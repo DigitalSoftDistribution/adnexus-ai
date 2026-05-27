@@ -619,7 +619,7 @@ export function apiVersioning(
   if (requestedVersion !== API_VERSION_CURRENT) {
     res.setHeader(
       "Deprecation",
-      `version="${requestedVersion"; sunsetting="2025-06-01T00:00:00Z"`
+      `version="${requestedVersion}"; sunsetting="2025-06-01T00:00:00Z"`
     );
   }
 

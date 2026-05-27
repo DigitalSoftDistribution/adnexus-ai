@@ -326,7 +326,7 @@ export function alertTemplate(alert: AlertData, appUrl: string): string {
       ${alert.metric ? `
         <div style="padding: 24px; background-color: ${sc.bg}; border-radius: 10px; margin-bottom: 24px; text-align: center; border: 1px solid ${sc.border}30;">
           <p style="margin: 0 0 8px; font-size: 12px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">${alert.metric}</p>
-          <p style="margin: 0 0 4px; font-size: 36px; font-weight: 800; color: ${colors.gray900;}">${alert.value !== undefined ? alert.value.toLocaleString() : 'N/A'}</p>
+          <p style="margin: 0 0 4px; font-size: 36px; font-weight: 800; color: ${colors.gray900};">${alert.value !== undefined ? alert.value.toLocaleString() : 'N/A'}</p>
           ${alert.threshold ? `<p style="margin: 0; font-size: 13px; color: ${colors.gray500};">Threshold: ${alert.threshold.toLocaleString()}</p>` : ''}
         </div>
       ` : ''}
