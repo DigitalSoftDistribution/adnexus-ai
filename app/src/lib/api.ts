@@ -1,4 +1,3 @@
-// @ts-nocheck
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
@@ -167,7 +166,7 @@ function getInflightRequest(key: string): Promise<AxiosResponse> | null {
   return null;
 }
 
-function registerInflight(key: string, promise: Promise<AxiosResponse>): void {
+export function registerInflight(key: string, promise: Promise<AxiosResponse>): void {
   inflightRequests.set(key, { promise, timestamp: Date.now() });
   // Auto-cleanup after window expires
   setTimeout(() => {
@@ -482,11 +481,9 @@ export function createSSEConnection(endpoint: string, options: SSEOptions = {}):
   let reconnectAttempt = 0;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let isManuallyClosed = false;
-  let currentES: EventSource | null = null;
 
   function connect(): EventSource {
     const es = new EventSource(url);
-    currentES = es;
 
     es.onopen = () => {
       reconnectAttempt = 0;
@@ -1645,6 +1642,17 @@ export const draftsApi = {
       return;
     }
     await apiPost<void>(`/drafts/${id}/reject`, { reason });
+  },
+
+  /** POST /api/v1/drafts/:id/discard — Discard a draft */
+  async discard(id: string): Promise<void> {
+    if (isDemoMode()) {
+      await delay(300);
+      const idx = MOCK_PENDING_DRAFTS.findIndex((x) => x.id === id);
+      if (idx !== -1) MOCK_PENDING_DRAFTS.splice(idx, 1);
+      return;
+    }
+    await apiPost<void>(`/drafts/${id}/discard`);
   },
 
   /** GET /api/v1/drafts/stats — Get draft statistics */
