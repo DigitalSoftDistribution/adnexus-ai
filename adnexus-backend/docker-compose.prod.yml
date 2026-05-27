@@ -1,0 +1,654 @@
+version: "3.9"
+
+# =============================================================================
+# AdNexus AI - Production Docker Compose Configuration
+# =============================================================================
+# Features:
+#   - Health checks for all services
+#   - Restart policies (always with max attempts)
+#   - Resource limits (CPU / memory)
+#   - Log rotation (max size / max files)
+#   - Environment variable validation
+#   - Network isolation (frontend / backend / database)
+#   - Volume backups with scheduled snapshots
+# =============================================================================
+
+x-default-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "5"
+    compress: "true"
+    labels: "service_name,environment"
+    tag: "{{.Name}}"
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  PORT: 3000
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+  REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+  JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+  API_RATE_LIMIT: ${API_RATE_LIMIT:-1000}
+  API_RATE_WINDOW: ${API_RATE_WINDOW:-900000}
+  BULL_REDIS_URL: ${BULL_REDIS_URL:-${REDIS_URL}}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  ENABLE_METRICS: ${ENABLE_METRICS:-true}
+  METRICS_PORT: ${METRICS_PORT:-9090}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+  FROM_EMAIL: ${FROM_EMAIL:-noreply@adnexus.ai}
+  MCP_SERVER_URL: ${MCP_SERVER_URL:-http://mcp:8080}
+
+services:
+  # ==========================================================================
+  # BLUE Backend (currently active or inactive depending on deployment)
+  # ==========================================================================
+  backend-blue:
+    image: ${BACKEND_IMAGE:-ghcr.io/adnexus-ai/adnexus-backend:latest}
+    container_name: adnexus-backend-blue
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      METRICS_PORT: 9091
+    ports:
+      - "3001:3000"
+      - "9091:9091"
+    networks:
+      - frontend
+      - backend
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  # ==========================================================================
+  # GREEN Backend (inactive until switched)
+  # ==========================================================================
+  backend-green:
+    image: ${BACKEND_IMAGE:-ghcr.io/adnexus-ai/adnexus-backend:latest}
+    container_name: adnexus-backend-green
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      METRICS_PORT: 9092
+    ports:
+      - "3002:3000"
+      - "9092:9092"
+    networks:
+      - frontend
+      - backend
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    profiles:
+      - blue-green
+
+  # ==========================================================================
+  # BLUE MCP Server
+  # ==========================================================================
+  mcp-blue:
+    image: ${MCP_IMAGE:-ghcr.io/adnexus-ai/adnexus-mcp-server:latest}
+    container_name: adnexus-mcp-blue
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MCP_API_KEY: ${MCP_API_KEY:?MCP_API_KEY is required}
+    ports:
+      - "8081:8080"
+    networks:
+      - frontend
+      - backend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+
+  # ==========================================================================
+  # GREEN MCP Server
+  # ==========================================================================
+  mcp-green:
+    image: ${MCP_IMAGE:-ghcr.io/adnexus-ai/adnexus-mcp-server:latest}
+    container_name: adnexus-mcp-green
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MCP_API_KEY: ${MCP_API_KEY:?MCP_API_KEY is required}
+    ports:
+      - "8082:8080"
+    networks:
+      - frontend
+      - backend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    profiles:
+      - blue-green
+
+  # ==========================================================================
+  # BLUE Background Worker
+  # ==========================================================================
+  worker-blue:
+    image: ${WORKER_IMAGE:-ghcr.io/adnexus-ai/adnexus-worker:latest}
+    container_name: adnexus-worker-blue
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    environment:
+      <<: *backend-env
+      WORKER_ENABLED: "true"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    networks:
+      - backend
+    logging: *default-logging
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+
+  # ==========================================================================
+  # GREEN Background Worker
+  # ==========================================================================
+  worker-green:
+    image: ${WORKER_IMAGE:-ghcr.io/adnexus-ai/adnexus-worker:latest}
+    container_name: adnexus-worker-green
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    environment:
+      <<: *backend-env
+      WORKER_ENABLED: "true"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    networks:
+      - backend
+    logging: *default-logging
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    profiles:
+      - blue-green
+
+  # ==========================================================================
+  # Database Migration Job (run-once)
+  # ==========================================================================
+  migrate:
+    image: ${BACKEND_IMAGE:-ghcr.io/adnexus-ai/adnexus-backend:latest}
+    container_name: adnexus-migrate
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    command: ["npx", "prisma", "migrate", "deploy"]
+    networks:
+      - database
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migrate
+
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: adnexus-postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    environment:
+      POSTGRES_DB: ${DB_NAME:-adnexus}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - type: volume
+        source: postgres-data
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: ./backups/postgres
+        target: /backups
+        read_only: false
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - database
+    logging: *default-logging
+    shm_size: 256m
+    sysctls:
+      - net.ipv4.tcp_keepalive_time=600
+      - net.ipv4.tcp_keepalive_intvl=30
+      - net.ipv4.tcp_keepalive_probes=3
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: adnexus-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    command: >
+      redis-server
+      --maxmemory 400mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - type: volume
+        source: redis-data
+        target: /data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - backend
+    logging: *default-logging
+    sysctls:
+      - net.core.somaxconn=65535
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # Nginx Reverse Proxy / Load Balancer
+  # ==========================================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: adnexus-nginx
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./nginx/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - type: bind
+        source: ./nginx/upstream.conf
+        target: /etc/nginx/conf.d/upstream.conf
+        read_only: true
+      - type: bind
+        source: ./nginx/ssl
+        target: /etc/nginx/ssl
+        read_only: true
+      - type: bind
+        source: ./nginx/html
+        target: /usr/share/nginx/html
+        read_only: true
+    networks:
+      - frontend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # Prometheus Metrics Collection
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: adnexus-prometheus
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - type: bind
+        source: ./monitoring/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+      - type: volume
+        source: prometheus-data
+        target: /prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - backend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # Grafana Dashboards
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: adnexus-grafana
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://monitoring.adnexus.ai}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - type: volume
+        source: grafana-data
+        target: /var/lib/grafana
+      - type: bind
+        source: ./monitoring/grafana/provisioning
+        target: /etc/grafana/provisioning
+        read_only: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - backend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # Backup Service (scheduled via external cron)
+  # ==========================================================================
+  backup:
+    image: offen/docker-volume-backup:v2
+    container_name: adnexus-backup
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    environment:
+      BACKUP_CRON_EXPRESSION: "0 2 * * *"
+      BACKUP_RETENTION_DAYS: "30"
+      BACKUP_FILENAME: backup-%Y-%m-%dT%H-%M-%S.tar.gz
+      BACKUP_ARCHIVE: "/archive"
+      BACKUP_STOP_CONTAINER_LABEL: adnexus.backup.stop
+      AWS_S3_BUCKET_NAME: ${BACKUP_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_AWS_KEY:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_AWS_SECRET:-}
+      AWS_DEFAULT_REGION: ${BACKUP_AWS_REGION:-us-east-1}
+      NOTIFICATION_URLS: ${BACKUP_NOTIFICATION_URL:-}
+      NOTIFICATION_LEVEL: "error"
+    volumes:
+      - type: volume
+        source: postgres-data
+        target: /backup/postgres
+        read_only: true
+      - type: volume
+        source: redis-data
+        target: /backup/redis
+        read_only: true
+      - type: bind
+        source: ${BACKUP_ARCHIVE_PATH:-./backups}
+        target: /archive
+    networks:
+      - backend
+    logging: *default-logging
+    profiles:
+      - backup
+
+# =============================================================================
+# Networks (isolated layers)
+# =============================================================================
+networks:
+  frontend:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.28.1.0/24
+
+  backend:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.2.0/24
+
+  database:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.3.0/24
+
+# =============================================================================
+# Persistent Volumes
+# =============================================================================
+volumes:
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/postgres
+
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/redis
+
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/prometheus
+
+  grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/grafana

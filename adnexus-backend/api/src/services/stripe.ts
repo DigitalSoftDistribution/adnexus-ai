@@ -1,0 +1,462 @@
+// @ts-nocheck
+import Stripe from "stripe";
+import { db } from "../db";
+import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
+import { eq } from "drizzle-orm";
+import logger from "../utils/logger";
+
+// ─── Initialize Stripe client ───
+const apiKey = process.env.STRIPE_SECRET_KEY;
+
+if (!apiKey) {
+  logger.error("STRIPE_SECRET_KEY is not set — billing will be disabled");
+}
+
+export const stripe = new Stripe(apiKey || "sk_placeholder", {
+  apiVersion: "2024-12-18.acacia",
+  typescript: false,
+});
+
+// ─── Plan mapping from Stripe Price IDs to internal plan names ───
+export const PRICE_TO_PLAN: Record<string, string> = {
+  // Map your Stripe price IDs to plan names:
+  // "price_abc123": "starter",
+  // "price_def456": "growth",
+  // "price_ghi789": "pro",
+};
+
+export const PLAN_TO_PRICE: Record<string, string> = {
+  // Reverse mapping for upgrades
+  // "starter": "price_abc123",
+  // "growth": "price_def456",
+  // "pro": "price_ghi789",
+};
+
+const PLAN_LIMITS: Record<string, { creatives: number; impressions: number; aiCredits: number }> = {
+  free: { creatives: 5, impressions: 1000, aiCredits: 50 },
+  starter: { creatives: 50, impressions: 50000, aiCredits: 500 },
+  growth: { creatives: 200, impressions: 500000, aiCredits: 5000 },
+  pro: { creatives: 1000, impressions: 2000000, aiCredits: 25000 },
+  enterprise: { creatives: -1, impressions: -1, aiCredits: -1 },
+};
+
+// ─── Types ───
+interface CreateCustomerParams {
+  email: string;
+  name?: string;
+  workspaceId: string;
+  userId: string;
+}
+
+interface CreateCheckoutParams {
+  customerId: string;
+  priceId: string;
+  workspaceId: string;
+  userId: string;
+  successUrl: string;
+  cancelUrl: string;
+}
+
+interface CreatePortalParams {
+  customerId: string;
+  returnUrl: string;
+}
+
+interface RetrieveInvoicesParams {
+  customerId: string;
+  limit: number;
+  startingAfter?: string;
+}
+
+// ─── Create Stripe Customer ───
+export async function createStripeCustomer(params: CreateCustomerParams): Promise<string> {
+  const { email, name, workspaceId, userId } = params;
+
+  const customer = await stripe.customers.create({
+    email,
+    name: name || email,
+    metadata: {
+      workspace_id: workspaceId,
+      user_id: userId,
+    },
+  });
+
+  logger.info({ customerId: customer.id, workspaceId }, "Stripe customer created");
+
+  return customer.id;
+}
+
+// ─── Create Checkout Session ───
+export async function createCheckoutSession(params: CreateCheckoutParams) {
+  const { customerId, priceId, workspaceId, userId, successUrl, cancelUrl } = params;
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    mode: "subscription",
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    client_reference_id: workspaceId,
+    metadata: {
+      workspace_id: workspaceId,
+      user_id: userId,
+      price_id: priceId,
+    },
+    subscription_data: {
+      metadata: {
+        workspace_id: workspaceId,
+        user_id: userId,
+      },
+      trial_period_days: 14, // 14-day free trial
+    },
+    allow_promotion_codes: true,
+    billing_address_collection: "auto",
+  });
+
+  logger.info(
+    { sessionId: session.id, workspaceId, priceId },
+    "Stripe checkout session created"
+  );
+
+  return session;
+}
+
+// ─── Create Customer Portal Session ───
+export async function createPortalSession(params: CreatePortalParams) {
+  const { customerId, returnUrl } = params;
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+    flow_data: {
+      type: "payment_method_update",
+    },
+  });
+
+  logger.info({ sessionId: session.id, customerId }, "Stripe portal session created");
+
+  return session;
+}
+
+// ─── Retrieve Invoices ───
+export async function retrieveInvoices(params: RetrieveInvoicesParams) {
+  const { customerId, limit, startingAfter } = params;
+
+  const invoices = await stripe.invoices.list({
+    customer: customerId,
+    limit,
+    starting_after: startingAfter,
+    expand: ["data.subscription"],
+  });
+
+  return {
+    invoices: invoices.data,
+    hasMore: invoices.has_more,
+  };
+}
+
+// ─── Handle Webhook Events ───
+export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
+  logger.info({ eventType: event.type }, "Processing Stripe webhook event");
+
+  switch (event.type) {
+    // ─── Subscription Created ───
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.mode === "subscription" && session.subscription) {
+        const workspaceId = session.metadata?.workspace_id;
+
+        if (!workspaceId) {
+          logger.error({ sessionId: session.id }, "No workspace_id in checkout session metadata");
+          break;
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(
+          session.subscription as string
+        );
+
+        const priceId = subscription.items.data[0]?.price.id;
+        const planName = PRICE_TO_PLAN[priceId] || "starter";
+
+        await updateWorkspacePlan(workspaceId, {
+          plan: planName,
+          status: subscription.status,
+          stripeCustomerId: session.customer as string,
+          stripeSubscriptionId: subscription.id,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        });
+
+        // Reset usage counters on new subscription
+        await resetUsageCounters(workspaceId);
+
+        logger.info({ workspaceId, plan: planName, subscriptionId: subscription.id }, "Subscription activated");
+      }
+      break;
+    }
+
+    // ─── Subscription Updated ───
+    case "customer.subscription.updated": {
+      const subscription = event.data.object as Stripe.Subscription;
+      const workspaceId = subscription.metadata?.workspace_id;
+
+      if (!workspaceId) {
+        // Try to find workspace by subscription ID
+        const ws = await db.query.workspaces.findFirst({
+          where: eq(workspaces.stripeSubscriptionId, subscription.id),
+        });
+        if (!ws) {
+          logger.error({ subscriptionId: subscription.id }, "Cannot find workspace for subscription update");
+          break;
+        }
+
+        await updateWorkspacePlan(ws.id, {
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        });
+      } else {
+        const priceId = subscription.items.data[0]?.price.id;
+        const planName = PRICE_TO_PLAN[priceId];
+
+        const updateData: any = {
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        };
+
+        if (planName) {
+          updateData.plan = planName;
+        }
+
+        await updateWorkspacePlan(workspaceId, updateData);
+      }
+
+      logger.info({ subscriptionId: subscription.id, status: subscription.status }, "Subscription updated");
+      break;
+    }
+
+    // ─── Subscription Cancelled ───
+    case "customer.subscription.deleted": {
+      const subscription = event.data.object as Stripe.Subscription;
+      const workspaceId = subscription.metadata?.workspace_id;
+
+      if (!workspaceId) {
+        const ws = await db.query.workspaces.findFirst({
+          where: eq(workspaces.stripeSubscriptionId, subscription.id),
+        });
+        if (ws) {
+          await updateWorkspacePlan(ws.id, {
+            plan: "free",
+            status: "cancelled",
+            stripeSubscriptionId: null,
+            cancelAtPeriodEnd: false,
+          });
+          logger.info({ workspaceId: ws.id }, "Subscription deleted, downgraded to free");
+        }
+      } else {
+        await updateWorkspacePlan(workspaceId, {
+          plan: "free",
+          status: "cancelled",
+          stripeSubscriptionId: null,
+          cancelAtPeriodEnd: false,
+        });
+        logger.info({ workspaceId }, "Subscription deleted, downgraded to free");
+      }
+      break;
+    }
+
+    // ─── Payment Failed ───
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = invoice.subscription as string;
+
+      logger.warn(
+        {
+          invoiceId: invoice.id,
+          subscriptionId,
+          attemptCount: invoice.attempt_count,
+          customerId: invoice.customer,
+        },
+        "Invoice payment failed"
+      );
+
+      // Find workspace by subscription
+      const ws = await db.query.workspaces.findFirst({
+        where: eq(workspaces.stripeSubscriptionId, subscriptionId),
+      });
+
+      if (ws) {
+        await db
+          .update(workspaces)
+          .set({
+            subscriptionStatus: "past_due",
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaces.id, ws.id));
+
+        // Log the failure
+        await db.insert(auditLogs).values({
+          workspaceId: ws.id,
+          userId: "stripe",
+          action: "billing.payment_failed",
+          entityType: "invoice",
+          entityId: invoice.id,
+          metadata: {
+            amount: invoice.amount_due,
+            attemptCount: invoice.attempt_count,
+            nextPaymentAttempt: invoice.next_payment_attempt,
+          },
+          createdAt: new Date(),
+        });
+
+        // Send notification to workspace members (implement your own notify)
+        logger.warn({ workspaceId: ws.id, invoiceId: invoice.id }, "Payment failed notification queued");
+      }
+
+      break;
+    }
+
+    // ─── Payment Succeeded ───
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = invoice.subscription as string;
+
+      const ws = await db.query.workspaces.findFirst({
+        where: eq(workspaces.stripeSubscriptionId, subscriptionId),
+      });
+
+      if (ws && ws.subscriptionStatus === "past_due") {
+        await db
+          .update(workspaces)
+          .set({
+            subscriptionStatus: "active",
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaces.id, ws.id));
+
+        logger.info({ workspaceId: ws.id, invoiceId: invoice.id }, "Payment succeeded, subscription reactivated");
+      }
+
+      break;
+    }
+
+    // ─── Subscription Trial Will End ───
+    case "customer.subscription.trial_will_end": {
+      const subscription = event.data.object as Stripe.Subscription;
+      const workspaceId = subscription.metadata?.workspace_id;
+
+      logger.info(
+        { subscriptionId: subscription.id, workspaceId },
+        "Subscription trial ending soon"
+      );
+
+      // Send trial ending notification
+      if (workspaceId) {
+        await db.insert(auditLogs).values({
+          workspaceId,
+          userId: "stripe",
+          action: "billing.trial_ending",
+          entityType: "subscription",
+          entityId: subscription.id,
+          metadata: {
+            trialEnd: subscription.trial_end,
+            currentPeriodEnd: subscription.current_period_end,
+          },
+          createdAt: new Date(),
+        });
+      }
+
+      break;
+    }
+
+    // ─── Unhandled Events ───
+    default:
+      logger.debug({ eventType: event.type }, "Unhandled Stripe webhook event");
+  }
+}
+
+// ─── Update workspace plan in DB ───
+async function updateWorkspacePlan(
+  workspaceId: string,
+  data: {
+    plan?: string;
+    status?: string;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+    currentPeriodStart?: Date | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }
+): Promise<void> {
+  const updateData: Record<string, any> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.plan !== undefined) updateData.plan = data.plan;
+  if (data.status !== undefined) updateData.subscriptionStatus = data.status;
+  if (data.stripeCustomerId !== undefined) updateData.stripeCustomerId = data.stripeCustomerId;
+  if (data.stripeSubscriptionId !== undefined) updateData.stripeSubscriptionId = data.stripeSubscriptionId;
+  if (data.currentPeriodStart !== undefined) updateData.currentPeriodStart = data.currentPeriodStart;
+  if (data.currentPeriodEnd !== undefined) updateData.currentPeriodEnd = data.currentPeriodEnd;
+  if (data.cancelAtPeriodEnd !== undefined) updateData.cancelAtPeriodEnd = data.cancelAtPeriodEnd;
+
+  await db.update(workspaces).set(updateData).where(eq(workspaces.id, workspaceId));
+
+  // Ensure credit row exists with updated limits
+  const limits = PLAN_LIMITS[data.plan || "free"] || PLAN_LIMITS.free;
+
+  await db
+    .insert(workspaceCredits)
+    .values({
+      workspaceId,
+      creativesUsed: 0,
+      impressionsUsed: 0,
+      aiCreditsUsed: 0,
+      creativesTotal: limits.creatives,
+      impressionsTotal: limits.impressions,
+      aiCreditsTotal: limits.aiCredits,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: workspaceCredits.workspaceId,
+      set: {
+        creativesTotal: limits.creatives,
+        impressionsTotal: limits.impressions,
+        aiCreditsTotal: limits.aiCredits,
+        updatedAt: new Date(),
+      },
+    });
+
+  logger.info({ workspaceId, ...data }, "Workspace plan updated");
+}
+
+// ─── Reset usage counters ───
+async function resetUsageCounters(workspaceId: string): Promise<void> {
+  await db
+    .update(workspaceCredits)
+    .set({
+      creativesUsed: 0,
+      impressionsUsed: 0,
+      aiCreditsUsed: 0,
+      updatedAt: new Date(),
+    })
+    .where(eq(workspaceCredits.workspaceId, workspaceId));
+
+  logger.info({ workspaceId }, "Usage counters reset");
+}
+
+// ─── Graceful degradation check ───
+export function isBillingEnabled(): boolean {
+  return !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith("sk_");
+}

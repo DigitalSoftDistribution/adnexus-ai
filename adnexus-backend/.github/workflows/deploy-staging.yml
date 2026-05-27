@@ -1,0 +1,264 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DEPLOY_ENV: staging
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  # ========================================================================
+  # Pre-deployment Checks
+  # ========================================================================
+  pre-check:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  # ========================================================================
+  # Build & Push Docker Images
+  # ========================================================================
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [pre-check]
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - name: backend
+            dockerfile: ./Dockerfile
+            context: .
+          - name: mcp-server
+            dockerfile: ./mcp-server/Dockerfile
+            context: ./mcp-server
+          - name: worker
+            dockerfile: ./Dockerfile.worker
+            context: .
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}
+          tags: |
+            type=sha,prefix=staging-,suffix=,format=short
+            type=raw,value=staging-latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+            VERSION=staging-${{ github.sha }}
+
+  # ========================================================================
+  # Deploy to Staging Environment
+  # ========================================================================
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-and-push]
+    environment:
+      name: staging
+      url: https://staging.adnexus.ai
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            echo "=== Starting staging deployment ==="
+
+            cd /opt/adnexus/staging
+
+            # Export images with explicit staging tag
+            export BACKEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:staging-latest"
+            export MCP_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mcp-server:staging-latest"
+            export WORKER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:staging-latest"
+
+            echo "Pulling latest images..."
+            docker login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker compose -f docker-compose.staging.yml pull
+
+            echo "Running database migrations..."
+            docker compose -f docker-compose.staging.yml run --rm backend npx prisma migrate deploy
+
+            echo "Deploying services..."
+            docker compose -f docker-compose.staging.yml up -d --remove-orphans
+
+            echo "Waiting for services to be healthy..."
+            sleep 10
+
+            # Health check all services
+            for service in backend mcp-server worker; do
+              echo "Checking health of $service..."
+              for i in {1..30}; do
+                if docker compose -f docker-compose.staging.yml ps $service | grep -q "healthy"; then
+                  echo "$service is healthy"
+                  break
+                fi
+                if [ $i -eq 30 ]; then
+                  echo "ERROR: $service failed health check"
+                  exit 1
+                fi
+                sleep 2
+              done
+            done
+
+            echo "=== Staging deployment complete ==="
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging..."
+          curl -sf https://staging.adnexus.ai/health || exit 1
+          curl -sf https://staging.adnexus.ai/api/v1/health || exit 1
+          echo "Smoke tests passed"
+        timeout-minutes: 5
+
+  # ========================================================================
+  # Notify Slack
+  # ========================================================================
+  notify:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+
+    steps:
+      - name: Notify Slack - Success
+        if: needs.deploy.result == 'success'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ Staging deployment successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Staging Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Branch:* ${{ github.ref_name }}"},
+                    {"type": "mrkdwn", "text": "*Commit:* ${{ github.sha }}"},
+                    {"type": "mrkdwn", "text": "*By:* ${{ github.actor }}"},
+                    {"type": "mrkdwn", "text": "*Time:* $(date -u +'%Y-%m-%d %H:%M UTC')"}
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<https://staging.adnexus.ai|View Staging Environment>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack - Failure
+        if: needs.deploy.result == 'failure'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Staging deployment failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ Staging Deployment Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Branch:* ${{ github.ref_name }}"},
+                    {"type": "mrkdwn", "text": "*Commit:* ${{ github.sha }}"},
+                    {"type": "mrkdwn", "text": "*By:* ${{ github.actor }}"},
+                    {"type": "mrkdwn", "text": "*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

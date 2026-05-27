@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Your Morning Brief — AdNexus AI</title>
+  <style type="text/css">
+    /* Reset styles */
+    body { margin: 0 !important; padding: 0 !important; -webkit-text-size-adjust: 100% !important; -ms-text-size-adjust: 100% !important; }
+    table, td { border-collapse: collapse !important; mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+    img { border: 0 !important; outline: none !important; text-decoration: none !important; -ms-interpolation-mode: bicubic !important; }
+
+    /* Responsive */
+    @media only screen and (max-width: 620px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .content { padding: 20px 16px !important; }
+      .kpi-grid td { display: block !important; width: 100% !important; margin-bottom: 10px !important; }
+      .kpi-card { width: 100% !important; box-sizing: border-box !important; }
+      .two-col td { display: block !important; width: 100% !important; }
+      .header-title { font-size: 22px !important; }
+      .section-title { font-size: 13px !important; }
+      .kpi-value { font-size: 20px !important; }
+      .btn { display: block !important; width: 100% !important; text-align: center !important; box-sizing: border-box !important; }
+      .btn-wrapper td { display: block !important; width: 100% !important; padding: 0 0 8px 0 !important; }
+      .hide-mobile { display: none !important; }
+      .recommendation-card { padding: 16px !important; }
+      .footer { padding: 20px 16px !important; }
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      .email-body { background-color: #1a1a2e !important; }
+      .email-container { background-color: #16213e !important; }
+      .content-bg { background-color: #16213e !important; }
+      .text-primary { color: #e0e0e0 !important; }
+      .text-secondary { color: #a0a0b0 !important; }
+      .kpi-bg { background-color: #1a1a3e !important; border-color: #2a2a4e !important; }
+      .winner-bg { background-color: #1a3a2a !important; }
+      .loser-bg { background-color: #3a1a1a !important; }
+      .insight-bg { background-color: #1a2a4a !important; }
+      .rec-bg { background-color: #1a1a3e !important; border-color: #2a2a4e !important; }
+      .footer-bg { background-color: #12122e !important; border-color: #2a2a4e !important; }
+    }
+  </style>
+</head>
+<body class="email-body" style="margin: 0; padding: 0; background-color: #F3F4F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+
+  <!-- Wrapper -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="min-width: 320px;">
+    <tr>
+      <td align="center" style="padding: 20px 10px;">
+
+        <!-- Main Container -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container email-container" style="max-width: 600px; width: 100%; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+
+          <!-- ===== HEADER ===== -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 50%, #1E40AF 100%); padding: 32px 40px; text-align: center;" class="content">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <!-- Logo -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 12px;">
+                      <tr>
+                        <td>
+                          <span style="font-size: 32px; font-weight: 800; color: #FFFFFF; letter-spacing: -1px;">AdNexus</span>
+                          <span style="font-size: 32px; font-weight: 200; color: rgba(255,255,255,0.8); margin-left: 2px;">AI</span>
+                        </td>
+                      </tr>
+                    </table>
+                    <!-- Tagline -->
+                    <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.7); letter-spacing: 1px; text-transform: uppercase;">Autonomous Advertising Intelligence</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== DATE & WORKSPACE ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 32px 40px 16px;" class="content">
+              <p style="margin: 0 0 6px; font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">Daily Brief</p>
+              <h1 class="header-title" style="margin: 0 0 6px; font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.5px;">Wednesday, January 15</h1>
+              <p class="text-secondary" style="margin: 0; font-size: 14px; color: #6B7280;">Acme Corp — Main Workspace</p>
+            </td>
+          </tr>
+
+          <!-- ===== EXECUTIVE SUMMARY ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 24px;" class="content">
+              <div style="padding: 16px 20px; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 12px; border-left: 4px solid #2563EB;">
+                <p style="margin: 0; font-size: 13px; color: #1E40AF; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📊 Executive Summary</p>
+                <p class="text-secondary" style="margin: 8px 0 0; font-size: 14px; color: #374151; line-height: 1.6;">Overall performance is <strong style="color: #059669;">strong</strong> today. ROAS is trending 8% above target with Summer Sale Campaign leading gains. 3 AI recommendations are ready for your review.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- ===== KPI CARDS ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 32px;" class="content">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="kpi-grid">
+                <tr>
+                  <!-- Spend -->
+                  <td class="kpi-card" style="width: 25%; padding: 20px 16px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;" style="width: 25%;">
+                    <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Spend</p>
+                    <p class="kpi-value" style="margin: 0 0 10px; font-size: 24px; font-weight: 700; color: #111827; line-height: 1;">$12,451</p>
+                    <span style="display: inline-block; padding: 2px 8px; background-color: #D1FAE5; color: #059669; font-size: 12px; font-weight: 700; border-radius: 20px;">▲ 12.3%</span>
+                  </td>
+                  <td style="width: 8px;"></td>
+                  <!-- ROAS -->
+                  <td class="kpi-card" style="width: 25%; padding: 20px 16px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;" style="width: 25%;">
+                    <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">ROAS</p>
+                    <p class="kpi-value" style="margin: 0 0 10px; font-size: 24px; font-weight: 700; color: #111827; line-height: 1;">4.85x</p>
+                    <span style="display: inline-block; padding: 2px 8px; background-color: #FEE2E2; color: #EF4444; font-size: 12px; font-weight: 700; border-radius: 20px;">▼ 2.1%</span>
+                  </td>
+                  <td style="width: 8px;"></td>
+                  <!-- Conversions -->
+                  <td class="kpi-card" style="width: 25%; padding: 20px 16px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;" style="width: 25%;">
+                    <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Conversions</p>
+                    <p class="kpi-value" style="margin: 0 0 10px; font-size: 24px; font-weight: 700; color: #111827; line-height: 1;">342</p>
+                    <span style="display: inline-block; padding: 2px 8px; background-color: #D1FAE5; color: #059669; font-size: 12px; font-weight: 700; border-radius: 20px;">▲ 8.7%</span>
+                  </td>
+                  <td style="width: 8px;"></td>
+                  <!-- CPA -->
+                  <td class="kpi-card" style="width: 25%; padding: 20px 16px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;" style="width: 25%;">
+                    <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">CPA</p>
+                    <p class="kpi-value" style="margin: 0 0 10px; font-size: 24px; font-weight: 700; color: #111827; line-height: 1;">$36.40</p>
+                    <span style="display: inline-block; padding: 2px 8px; background-color: #D1FAE5; color: #059669; font-size: 12px; font-weight: 700; border-radius: 20px;">▼ 5.2%</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== TOP WINNERS ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 16px;" class="content">
+              <h3 class="section-title" style="margin: 0 0 14px; font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Top Winners</h3>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td class="winner-bg" style="padding: 14px 16px; background-color: #ECFDF5; border-radius: 10px; border-left: 4px solid #10B981;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td>
+                          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1F2937;">Summer Sale Campaign</p>
+                          <p style="margin: 2px 0 0; font-size: 12px; color: #6B7280;">ROAS improvement driven by audience optimization</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #059669;">+45.2%</p>
+                          <p style="margin: 2px 0 0; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">ROAS</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr><td style="height: 8px;"></td></tr>
+                <tr>
+                  <td class="winner-bg" style="padding: 14px 16px; background-color: #ECFDF5; border-radius: 10px; border-left: 4px solid #10B981;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td>
+                          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1F2937;">Retargeting — Cart Abandoners</p>
+                          <p style="margin: 2px 0 0; font-size: 12px; color: #6B7280;">Landing page update increased conversion rate</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #059669;">+32.8%</p>
+                          <p style="margin: 2px 0 0; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Conversions</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== TOP LOSERS ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 32px;" class="content">
+              <h3 class="section-title" style="margin: 0 0 14px; font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">📉 Needs Attention</h3>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td class="loser-bg" style="padding: 14px 16px; background-color: #FEF2F2; border-radius: 10px; border-left: 4px solid #EF4444;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td>
+                          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1F2937;">Brand Awareness — Q3</p>
+                          <p style="margin: 2px 0 0; font-size: 12px; color: #6B7280;">CPA rising due to increased competition</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #EF4444;">+28.5%</p>
+                          <p style="margin: 2px 0 0; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">CPA</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr><td style="height: 8px;"></td></tr>
+                <tr>
+                  <td class="loser-bg" style="padding: 14px 16px; background-color: #FEF2F2; border-radius: 10px; border-left: 4px solid #EF4444;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td>
+                          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1F2937;">Display — Prospecting</p>
+                          <p style="margin: 2px 0 0; font-size: 12px; color: #6B7280;">ROAS declining on broad audience segments</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #EF4444;">-18.3%</p>
+                          <p style="margin: 2px 0 0; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">ROAS</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== AI RECOMMENDATIONS ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 32px;" class="content">
+              <h3 class="section-title" style="margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">🤖 AI Recommendations</h3>
+
+              <!-- Recommendation 1 -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="rec-bg" style="margin-bottom: 12px;">
+                <tr>
+                  <td class="recommendation-card rec-bg" style="padding: 20px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="vertical-align: top;">
+                          <span style="display: inline-block; padding: 3px 10px; background-color: #FEE2E2; color: #EF4444; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px;">High Impact</span>
+                          <span style="margin-left: 8px; font-size: 12px; color: #9CA3AF;">Budget Optimization</span>
+                        </td>
+                      </tr>
+                      <tr><td style="height: 10px;"></td></tr>
+                      <tr>
+                        <td>
+                          <p class="text-primary" style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1F2937;">Increase budget on Summer Sale Campaign</p>
+                          <p class="text-secondary" style="margin: 0 0 16px; font-size: 13px; color: #6B7280; line-height: 1.5;">ROAS is 45% above target. Increasing budget by 20% could yield 150+ additional conversions while maintaining profitability.</p>
+                          <a href="https://app.adnexus.ai/drafts/create?recommendation=rec_1" class="btn" style="display: inline-block; padding: 12px 24px; background-color: #2563EB; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px;">Create Draft →</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Recommendation 2 -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="rec-bg" style="margin-bottom: 12px;">
+                <tr>
+                  <td class="recommendation-card rec-bg" style="padding: 20px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="vertical-align: top;">
+                          <span style="display: inline-block; padding: 3px 10px; background-color: #FEF3C7; color: #D97706; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px;">Medium Impact</span>
+                          <span style="margin-left: 8px; font-size: 12px; color: #9CA3AF;">Performance</span>
+                        </td>
+                      </tr>
+                      <tr><td style="height: 10px;"></td></tr>
+                      <tr>
+                        <td>
+                          <p class="text-primary" style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1F2937;">Pause underperforming ad sets in Brand Awareness</p>
+                          <p class="text-secondary" style="margin: 0 0 16px; font-size: 13px; color: #6B7280; line-height: 1.5;">3 ad sets have CPA 2x above average for 5+ consecutive days. Pausing them could save approximately $420 per week.</p>
+                          <a href="https://app.adnexus.ai/drafts/create?recommendation=rec_2" class="btn" style="display: inline-block; padding: 12px 24px; background-color: #2563EB; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px;">Create Draft →</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Recommendation 3 -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="rec-bg">
+                <tr>
+                  <td class="recommendation-card rec-bg" style="padding: 20px; background-color: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="vertical-align: top;">
+                          <span style="display: inline-block; padding: 3px 10px; background-color: #FEF3C7; color: #D97706; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px;">Medium Impact</span>
+                          <span style="margin-left: 8px; font-size: 12px; color: #9CA3AF;">Creative</span>
+                        </td>
+                      </tr>
+                      <tr><td style="height: 10px;"></td></tr>
+                      <tr>
+                        <td>
+                          <p class="text-primary" style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1F2937;">A/B test new creative for Retargeting campaign</p>
+                          <p class="text-secondary" style="margin: 0 0 16px; font-size: 13px; color: #6B7280; line-height: 1.5;">Current creative frequency is high (3.2x). Fresh creative variants could improve CTR by an estimated 15-25%.</p>
+                          <a href="https://app.adnexus.ai/drafts/create?recommendation=rec_3" class="btn" style="display: inline-block; padding: 12px 24px; background-color: #2563EB; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px;">Create Draft →</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== AI INSIGHTS ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 32px;" class="content">
+              <h3 class="section-title" style="margin: 0 0 14px; font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">💡 AI Insights</h3>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td class="insight-bg" style="padding: 14px 16px; background-color: #EFF6FF; border-radius: 10px; border-left: 4px solid #2563EB; margin-bottom: 8px;">
+                    <p class="text-secondary" style="margin: 0; font-size: 13px; color: #4B5563; line-height: 1.5;"><strong style="color: #1E40AF;">Weekend Effect:</strong> Weekend ROAS was 23% higher than weekday average — consider increasing weekend budgets by 15-20%.</p>
+                  </td>
+                </tr>
+                <tr><td style="height: 8px;"></td></tr>
+                <tr>
+                  <td class="insight-bg" style="padding: 14px 16px; background-color: #EFF6FF; border-radius: 10px; border-left: 4px solid #2563EB;">
+                    <p class="text-secondary" style="margin: 0; font-size: 13px; color: #4B5563; line-height: 1.5;"><strong style="color: #1E40AF;">Mobile Momentum:</strong> Mobile conversions increased 18% after the latest landing page update. The new mobile experience is performing well.</p>
+                  </td>
+                </tr>
+                <tr><td style="height: 8px;"></td></tr>
+                <tr>
+                  <td class="insight-bg" style="padding: 14px 16px; background-color: #EFF6FF; border-radius: 10px; border-left: 4px solid #2563EB;">
+                    <p class="text-secondary" style="margin: 0; font-size: 13px; color: #4B5563; line-height: 1.5;"><strong style="color: #1E40AF;">Competitive Alert:</strong> Competitor activity detected in 3 of your top-performing keywords. Monitor CPC trends closely over the next 48 hours.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== CTA BUTTON ===== -->
+          <tr>
+            <td class="content-bg" style="background-color: #FFFFFF; padding: 0 40px 32px; text-align: center;" class="content">
+              <a href="https://app.adnexus.ai/dashboard" class="btn" style="display: inline-block; padding: 14px 32px; background-color: #FFFFFF; color: #2563EB; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 10px; border: 2px solid #2563EB;">View Full Dashboard →</a>
+            </td>
+          </tr>
+
+          <!-- ===== FOOTER ===== -->
+          <tr>
+            <td class="footer footer-bg" style="background-color: #F9FAFB; padding: 24px 40px; text-align: center; border-top: 1px solid #E5E7EB;" class="footer">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <p style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: #374151;">
+                      <span style="color: #2563EB;">AdNexus</span> AI
+                    </p>
+                    <p style="margin: 0 0 12px; font-size: 12px; color: #9CA3AF; line-height: 1.5;">
+                      Autonomous Advertising Intelligence<br>
+                      You receive this email because you enabled Morning Brief notifications.
+                    </p>
+                    <p style="margin: 0; font-size: 12px; color: #9CA3AF;">
+                      <a href="https://app.adnexus.ai/settings/notifications" style="color: #2563EB; text-decoration: none;">Manage Preferences</a>
+                      <span style="margin: 0 8px; color: #D1D5DB;">|</span>
+                      <a href="https://app.adnexus.ai/unsubscribe?type=morning_brief" style="color: #6B7280; text-decoration: none;">Unsubscribe</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Main Container -->
+
+        <!-- Footer Legal -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="max-width: 600px; width: 100%; margin-top: 16px;">
+          <tr>
+            <td style="text-align: center; padding: 0 16px;">
+              <p style="margin: 0; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
+                AdNexus AI, Inc. · 123 Market St, San Francisco, CA 94105<br>
+                © 2025 AdNexus AI. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+  <!-- /Wrapper -->
+
+</body>
+</html>
