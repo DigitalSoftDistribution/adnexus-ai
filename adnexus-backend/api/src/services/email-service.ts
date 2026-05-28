@@ -25,7 +25,7 @@ export class EmailService {
 
   constructor(config: EmailConfig) {
     this.config = config;
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       host: config.smtpHost,
       port: config.smtpPort,
       secure: config.smtpSecure,

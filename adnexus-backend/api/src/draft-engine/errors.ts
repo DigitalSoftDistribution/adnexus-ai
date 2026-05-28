@@ -4,7 +4,7 @@
  * the context needed for recovery decisions.
  */
 
-import type { Draft, ExecutionError, PlatformError, Snapshot } from './types';
+import type { Draft, ExecutionError as ExecutionErrorType, PlatformError, Snapshot } from './types';
 import { DraftStatus, ExecutionStatus, NotificationSeverity } from './types';
 
 // ────────────────────────────────────────────────
@@ -37,7 +37,7 @@ export class DraftEngineError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 
-  toExecutionError(): ExecutionError {
+  toExecutionError(): ExecutionErrorType {
     return {
       code: this.code,
       message: this.message,

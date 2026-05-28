@@ -208,7 +208,7 @@ export interface WebhookEvent {
  */
 export async function persistWebhookEvent(event: WebhookEvent): Promise<boolean> {
   try {
-    await db.insert(webhookEvents).values({
+    await db.insert(webhookEvents).values({ id: crypto.randomUUID() as string,
       eventId: event.eventId,
       platform: event.platform,
       eventType: event.eventType,
@@ -246,16 +246,16 @@ export async function updateLocalState(
   // This function serves as a generic fallback / audit point.
   switch (platform) {
     case "meta":
-      // Meta handler updates: campaigns, adAccounts, leads
+      // Meta handler updates: campaigns, ad_accounts, leads
       break;
     case "google":
       // Google handler updates: campaigns, ads (policy), spend tracking
       break;
     case "tiktok":
-      // TikTok handler updates: campaigns, ads, adAccounts
+      // TikTok handler updates: campaigns, ads, ad_accounts
       break;
     case "snap":
-      // Snap handler updates: campaigns, ads, adAccounts
+      // Snap handler updates: campaigns, ads, ad_accounts
       break;
     default:
       logger.warn({ platform }, "Unknown platform for local state update");
@@ -279,7 +279,7 @@ export async function notifyUsers(
     const title = `[${platform.toUpperCase()}] ${eventType}`;
     const message = extractEventSummary(platform, eventType, payload);
 
-    await db.insert(notifications).values({
+    await db.insert(notifications).values({ id: crypto.randomUUID() as string,
       workspaceId,
       type: "webhook_event",
       title,
@@ -290,7 +290,7 @@ export async function notifyUsers(
         eventId: event.eventId,
         payload: event.payload,
       },
-      createdAt: new Date(),
+      created_at: new Date(),
     });
 
     logger.info(
@@ -401,7 +401,7 @@ async function extractWorkspaceId(
         const entries = (payload.entry ?? []) as Array<Record<string, unknown>>;
         const accountId = entries[0]?.id as string | undefined;
         if (!accountId) return null;
-        const result = await db.query.adAccounts.findFirst({
+        const result = await db.query.ad_accounts.findFirst({
           where: (a, { eq, and }) =>
             and(eq(a.platform, "meta"), eq(a.platformAccountId, accountId)),
         });
@@ -411,7 +411,7 @@ async function extractWorkspaceId(
       case "google": {
         const customerId = payload.customerId as string | undefined;
         if (!customerId) return null;
-        const result = await db.query.adAccounts.findFirst({
+        const result = await db.query.ad_accounts.findFirst({
           where: (a, { eq, and }) =>
             and(eq(a.platform, "google"), eq(a.platformAccountId, customerId)),
         });
@@ -421,7 +421,7 @@ async function extractWorkspaceId(
       case "tiktok": {
         const advertiserId = payload.advertiser_id as string | undefined;
         if (!advertiserId) return null;
-        const result = await db.query.adAccounts.findFirst({
+        const result = await db.query.ad_accounts.findFirst({
           where: (a, { eq, and }) =>
             and(eq(a.platform, "tiktok"), eq(a.platformAccountId, advertiserId)),
         });
@@ -431,7 +431,7 @@ async function extractWorkspaceId(
       case "snap": {
         const adAccountId = payload.ad_account_id as string | undefined;
         if (!adAccountId) return null;
-        const result = await db.query.adAccounts.findFirst({
+        const result = await db.query.ad_accounts.findFirst({
           where: (a, { eq, and }) =>
             and(eq(a.platform, "snap"), eq(a.platformAccountId, adAccountId)),
         });

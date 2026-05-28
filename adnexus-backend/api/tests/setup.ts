@@ -1,5 +1,20 @@
 import { jest } from '@jest/globals';
 
+// ─── Mock DB Connection (no real DB in test) ─────────────────────
+
+jest.mock('../src/db/connection', () => ({
+  getPool: jest.fn(() => ({
+    query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+    connect: jest.fn().mockResolvedValue({ query: jest.fn().mockResolvedValue({ rows: [] }), release: jest.fn() }),
+    end: jest.fn().mockResolvedValue(undefined),
+  })),
+  query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+  getClient: jest.fn().mockResolvedValue({
+    query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+    release: jest.fn(),
+  }),
+}));
+
 // ─── Environment Setup ───────────────────────────────────────────
 
 process.env.NODE_ENV = 'test';
@@ -86,18 +101,23 @@ jest.mock('../src/lib/supabase', () => ({
 
 // Mock axios for Meta/Google API calls
 jest.mock('axios', () => ({
-  get: jest.fn().mockResolvedValue({ data: {} }),
-  post: jest.fn().mockResolvedValue({ data: {} }),
-  delete: jest.fn().mockResolvedValue({ data: {} }),
-  put: jest.fn().mockResolvedValue({ data: {} }),
-  patch: jest.fn().mockResolvedValue({ data: {} }),
-  create: jest.fn().mockReturnValue({
+  __esModule: true,
+  default: {
     get: jest.fn().mockResolvedValue({ data: {} }),
     post: jest.fn().mockResolvedValue({ data: {} }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    put: jest.fn().mockResolvedValue({ data: {} }),
+    patch: jest.fn().mockResolvedValue({ data: {} }),
+    request: jest.fn().mockResolvedValue({ data: {} }),
+    create: jest.fn().mockReturnValue({
+      get: jest.fn().mockResolvedValue({ data: {} }),
+      post: jest.fn().mockResolvedValue({ data: {} }),
+      request: jest.fn().mockResolvedValue({ data: {} }),
+      interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
+    }),
     interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
-  }),
-  interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
-  defaults: { headers: { common: {} } },
+    defaults: { headers: { common: {} } },
+  },
 }));
 
 // Mock bullmq

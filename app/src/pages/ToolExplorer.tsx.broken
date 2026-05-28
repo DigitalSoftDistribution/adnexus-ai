@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from '../components/SEO';
@@ -595,6 +594,7 @@ export default function ToolExplorer() {
   };
 
   return (
+    <>
     <SEO
       title="Tool Explorer"
       description="Explore all the tools and features in AdNexus AI. Discover AI-powered capabilities for campaign management, optimization, and reporting."
@@ -910,5 +910,6 @@ export default function ToolExplorer() {
         }
       `}</style>
     </div>
+    </>
   );
 }

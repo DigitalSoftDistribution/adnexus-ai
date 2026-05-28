@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { v4 as uuidv4 } from "uuid";
 
 const router = Router();
@@ -261,7 +260,7 @@ seedData();
 
 /* ───────────────────────── middleware ───────────────────────── */
 
-function validateAlertBody(req, res, next) {
+function validateAlertBody(req: Request, res: Response, next: NextFunction) {
   const errors: string[] = [];
 
   if (!req.body.name || typeof req.body.name !== "string" || req.body.name.trim().length === 0) {
@@ -402,7 +401,7 @@ router.post("/", validateAlertBody, (req, res) => {
     triggerCount: 0,
     createdAt: now,
     updatedAt: now,
-    createdBy: req.user?.id || req.body.createdBy || "anonymous",
+    createdBy: req.user?.sub || req.body.createdBy || "anonymous",
   };
 
   alertRules.set(newAlert.id, newAlert);

@@ -1666,7 +1666,7 @@ export async function createSnapAd(
   const created = await client.createAd({
     ad_squad_id: adSquadId,
     name: ad.name ?? 'Untitled Ad',
-    creative_id: ad.creative_id,
+    creative_id: ad.creative_id!,
     type: ad.type,
   });
   return created.id;

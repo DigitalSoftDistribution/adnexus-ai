@@ -252,7 +252,7 @@ export class PlatformManager {
     if (cached) return cached;
 
     // TODO: Replace with actual database lookup
-    // const accounts = await db.adAccounts.findMany({ where: { workspaceId, status: 'active' } });
+    // const accounts = await db.ad_accounts.findMany({ where: { workspaceId, status: 'active' } });
     throw new PlatformAPIError(
       'meta',
       'NOT_FOUND_ACCOUNT',
@@ -362,7 +362,7 @@ export class PlatformManager {
       this.clientCache.delete(this.cacheKey(account.platform, account.platformAccountId));
 
       // TODO: Persist updated token to database
-      // await db.adAccounts.update({ where: { id: account.id }, data: { accessToken: result.accessToken, tokenExpiresAt: result.expiresAt } });
+      // await db.ad_accounts.update({ where: { id: account.id }, data: { accessToken: result.accessToken, tokenExpiresAt: result.expiresAt } });
     } catch (error) {
       throw wrapError(
         account.platform,
@@ -597,7 +597,8 @@ export class PlatformManager {
    * Create a new ad within a campaign.
    */
   async createAd(workspaceId: string, data: CreateAdInput): Promise<UnifiedAd> {
-    const { platform, accountId } = data;
+    const { platform } = data;
+    const accountId = (data as unknown as Record<string, unknown>).accountId as string;
 
     return this.executeWithRefresh(
       platform,
@@ -748,7 +749,7 @@ export class PlatformManager {
 
     // TODO: Revoke token with the platform + delete from database
     // await revokeToken(account);
-    // await db.adAccounts.delete({ where: { id: accountId } });
+    // await db.ad_accounts.delete({ where: { id: accountId } });
   }
 
   /**
@@ -1001,7 +1002,7 @@ export class PlatformManager {
 
           switch (type) {
             case 'create_campaign':
-              platformObjectId = (await client.createCampaign(payload as CreateCampaignInput)).platformCampaignId;
+              platformObjectId = (await client.createCampaign(payload as unknown as CreateCampaignInput)).platformCampaignId;
               break;
             case 'update_campaign':
               await client.updateCampaign(payload.campaignId as string, payload as UpdateCampaignInput);
@@ -1016,7 +1017,7 @@ export class PlatformManager {
               platformObjectId = payload.campaignId as string;
               break;
             case 'create_ad':
-              platformObjectId = (await client.createAd(payload as CreateAdInput)).platformAdId;
+              platformObjectId = (await client.createAd(payload as unknown as CreateAdInput)).platformAdId;
               break;
             case 'update_ad':
               await client.updateAd(payload.adId as string, payload);

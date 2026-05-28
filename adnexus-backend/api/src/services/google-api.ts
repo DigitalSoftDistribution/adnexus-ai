@@ -964,7 +964,7 @@ export async function normalizeGoogleCampaign(
     cpc,
     start_date: parseDate(campaign.start_date),
     end_date: parseDate(campaign.end_date),
-    platform_data: campaign,
+    platform_data: campaign as unknown as Record<string, unknown>,
     created_at: parseDate(campaign.start_date) ?? new Date().toISOString(),
   };
 }

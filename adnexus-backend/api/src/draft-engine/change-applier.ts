@@ -470,7 +470,7 @@ export class ChangeApplier {
       ...updates,
       audiences: updates.audiences ?? base.audiences,
       demographics: { ...base.demographics, ...updates.demographics },
-      geo: { ...base.geo, ...updates.geo },
+      geo: { ...base.geo, ...updates.geo, countries: updates.geo?.countries ?? base.geo?.countries ?? [] },
       interests: updates.interests ?? base.interests,
       placements: updates.placements ?? base.placements,
       exclusions: updates.exclusions ?? base.exclusions,

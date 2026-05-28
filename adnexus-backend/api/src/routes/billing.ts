@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from "express";
 import { requireAuth, requireWorkspace } from "../middleware/auth";
 import {
@@ -20,7 +19,7 @@ const router = Router();
 // ─── GET /billing — current plan, usage, credits ───
 router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
-    const workspaceId = req.workspace.id;
+    const workspaceId = req.workspace!.id;
 
     // Fetch workspace with billing info
     const workspace = await db.query.workspaces.findFirst({
@@ -36,7 +35,7 @@ router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
       where: eq(workspaceCredits.workspaceId, workspaceId),
     });
 
-    const planLimits = {
+    const planLimits: Record<string, { creatives: number; impressions: number; aiCredits: number }> = {
       free: { creatives: 5, impressions: 1000, aiCredits: 50 },
       starter: { creatives: 50, impressions: 50000, aiCredits: 500 },
       growth: { creatives: 200, impressions: 500000, aiCredits: 5000 },
@@ -74,9 +73,9 @@ router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
 // ─── POST /billing/checkout — create Stripe Checkout session ───
 router.post("/checkout", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
-    const workspaceId = req.workspace.id;
-    const userId = req.user.id;
-    const { priceId, successUrl, cancelUrl } = req.body;
+    const workspaceId = req.workspace!.id;
+    const userId = req.user!.sub;
+    const { priceId, successUrl, cancelUrl } = req.body as { priceId?: string; successUrl?: string; cancelUrl?: string };
 
     if (!priceId) {
       throw new HttpError(400, "Price ID is required");
@@ -95,8 +94,8 @@ router.post("/checkout", requireAuth, requireWorkspace, async (req, res, next) =
     let customerId = workspace.stripeCustomerId;
     if (!customerId) {
       customerId = await createStripeCustomer({
-        email: req.user.email,
-        name: req.user.name || workspace.name,
+        email: req.user!.email,
+        name: req.user!.email,
         workspaceId: workspace.id,
         userId: userId,
       });
@@ -126,8 +125,8 @@ router.post("/checkout", requireAuth, requireWorkspace, async (req, res, next) =
 // ─── POST /billing/portal — create Stripe Customer Portal session ───
 router.post("/portal", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
-    const workspaceId = req.workspace.id;
-    const { returnUrl } = req.body;
+    const workspaceId = req.workspace!.id;
+    const { returnUrl } = req.body as { returnUrl?: string };
 
     const workspace = await db.query.workspaces.findFirst({
       where: eq(workspaces.id, workspaceId),
@@ -171,9 +170,10 @@ router.post("/webhook", async (req, res, next) => {
         sig,
         endpointSecret
       );
-    } catch (err: any) {
-      logger.warn({ error: err.message }, "Stripe webhook signature verification failed");
-      throw new HttpError(400, `Webhook signature verification failed: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn({ error: msg }, "Stripe webhook signature verification failed");
+      throw new HttpError(400, `Webhook signature verification failed: ${msg}`);
     }
 
     logger.info({ eventType: event.type, eventId: event.id }, "Stripe webhook received");
@@ -183,8 +183,9 @@ router.post("/webhook", async (req, res, next) => {
 
     // Log the webhook for audit trail
     try {
-      const workspaceId = event.data?.object?.client_reference_id
-        || event.data?.object?.metadata?.workspace_id
+      const eventObject = event.data?.object as unknown as Record<string, unknown> | undefined;
+      const workspaceId = (eventObject?.client_reference_id as string)
+        || (eventObject?.metadata as Record<string, string> | undefined)?.workspace_id
         || null;
 
       await db.insert(auditLogs).values({
@@ -195,9 +196,9 @@ router.post("/webhook", async (req, res, next) => {
         entityId: event.id,
         metadata: {
           eventType: event.type,
-          objectId: event.data?.object?.id,
-        },
-        createdAt: new Date(),
+          objectId: eventObject?.id,
+        } as Record<string, unknown>,
+        created_at: new Date(),
       });
     } catch (logErr) {
       logger.error({ error: logErr }, "Failed to log webhook event");
@@ -212,7 +213,7 @@ router.post("/webhook", async (req, res, next) => {
 // ─── GET /billing/invoices — list invoices ───
 router.get("/invoices", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
-    const workspaceId = req.workspace.id;
+    const workspaceId = req.workspace!.id;
 
     const workspace = await db.query.workspaces.findFirst({
       where: eq(workspaces.id, workspaceId),

@@ -199,7 +199,7 @@ router.post(
       throw new ValidationError('Invalid adSetId: ad set not found in workspace');
     }
 
-    const campaign = (adset.campaigns ?? {}) as Record<string, unknown>;
+    const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
 
     // Create a DRAFT instead of creating directly — this is the core differentiator
@@ -303,7 +303,7 @@ router.put(
     }
 
     const adset = (row.adsets ?? {}) as Record<string, unknown>;
-    const campaign = (adset.campaigns ?? {}) as Record<string, unknown>;
+    const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
 
     const draft = await createDraft({
@@ -349,7 +349,7 @@ router.post(
     }
 
     const adset = (row.adsets ?? {}) as Record<string, unknown>;
-    const campaign = (adset.campaigns ?? {}) as Record<string, unknown>;
+    const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
 
     const draft = await createDraft({
@@ -397,7 +397,7 @@ router.post(
     }
 
     const adset = (row.adsets ?? {}) as Record<string, unknown>;
-    const campaign = (adset.campaigns ?? {}) as Record<string, unknown>;
+    const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
 
     const draft = await createDraft({
@@ -441,7 +441,7 @@ router.post(
     if (!row) throw new NotFoundError('Ad');
 
     const adset = (row.adsets ?? {}) as Record<string, unknown>;
-    const campaign = (adset.campaigns ?? {}) as Record<string, unknown>;
+    const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
 
     const duplicatedName = `${row.name} (Copy)`;

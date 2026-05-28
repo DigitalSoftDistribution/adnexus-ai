@@ -36,6 +36,7 @@ import { register, getMetrics } from './lib/monitoring';
 
 import authRoutes from './routes/auth';
 import metaOAuthRoutes from './routes/auth/meta';
+import googleOAuthRoutes from './routes/auth/google';
 import campaignRoutes from './routes/campaigns';
 import adRoutes from './routes/ads';
 import draftRoutes from './routes/drafts';
@@ -53,6 +54,7 @@ import webhooksConfigRoutes from './routes/webhooks-config';
 import auditLogRoutes from './routes/audit-log';
 import adminRoutes from './routes/admin';
 import apiKeyRoutes from './routes/api-keys';
+import publicAuditRoutes from './routes/public-audit';
 
 // ─── Real-time ───────────────────────────────────────────────
 
@@ -146,7 +148,7 @@ app.get('/health', (_req: Request, res: Response) => {
  * Returns 503 if critical dependencies are down.
  */
 app.get('/ready', async (_req: Request, res: Response) => {
-  const checks: Record<string, 'ok' | 'error'> = {};
+  const checks: Record<string, 'ok' | 'error' | 'not_configured'> = {};
   let dbOk = false;
 
   try {
@@ -188,6 +190,13 @@ app.use('/api/v1/auth', unauthenticatedRateLimiter, authRoutes);
 
 // Meta OAuth routes — public, no auth required
 app.use('/api/v1/auth/meta', unauthenticatedRateLimiter, metaOAuthRoutes);
+
+// Google OAuth routes — public, no auth required
+app.use('/api/v1/auth/google', unauthenticatedRateLimiter, googleOAuthRoutes);
+
+// ─── Free Public Audit (no auth required — GTM wedge) ────────
+
+app.use('/api/v1/public', unauthenticatedRateLimiter, publicAuditRoutes);
 
 // ═══════════════════════════════════════════════════════════════
 // WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
@@ -280,11 +289,24 @@ app.use(errorHandler);
 
 const PORT = config.port;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info(
     { port: PORT, env: config.nodeEnv, nodeVersion: process.version },
     'AdNexus API server started',
   );
+
+  // Start background workers when Redis is available
+  if (isRedisAvailable()) {
+    try {
+      const { startMorningBriefScheduler } = await import('./workers/morning-brief');
+      await startMorningBriefScheduler();
+      loggerApp.info('Morning brief scheduler started');
+    } catch (err) {
+      loggerApp.error({ err }, 'Failed to start morning brief scheduler');
+    }
+  } else {
+    loggerApp.info('Redis not available, skipping background workers');
+  }
 });
 
 // ─── Graceful Shutdown ───────────────────────────────────────

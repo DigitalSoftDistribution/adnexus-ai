@@ -10,7 +10,8 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import { ReportResult, ExportFormat, ExportResult, PlatformBreakdown } from '../types/report';
-import { TempFileManager } from '../utils/temp-file-manager';
+import { tempFileManager } from '../utils/temp-file-manager';
+type TempFileManager = typeof tempFileManager;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -537,7 +538,7 @@ export async function streamCampaignsToCSV(
 
     for (const row of rows) {
       const line = headers.map((h) => {
-        const val = row[h];
+        const val = (row as unknown as Record<string, unknown>)[h as string] as string | number | boolean | null | undefined;
         if (val == null) return '';
         const str = String(val);
         if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -686,7 +687,7 @@ export class ExportService {
    * Export report data to CSV format
    */
   private async exportToCsv(report: ReportResult): Promise<ExportResult> {
-    const filePath = this.tempManager.createTempPath(`report-${report.reportId}`, '.csv');
+    const filePath = this.tempManager.createTempPath(`report-${report.reportId}.csv`);
 
     const csvWriter = createObjectCsvWriter({
       path: filePath,
@@ -729,7 +730,7 @@ export class ExportService {
    * Export report data to Excel (XLSX) format with multiple sheets
    */
   private async exportToXlsx(report: ReportResult): Promise<ExportResult> {
-    const filePath = this.tempManager.createTempPath(`report-${report.reportId}`, '.xlsx');
+    const filePath = this.tempManager.createTempPath(`report-${report.reportId}.xlsx`);
 
     // Create workbook
     const workbook = xlsx.utils.book_new();

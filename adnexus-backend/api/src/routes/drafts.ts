@@ -378,11 +378,17 @@ function createInAppNotificationChannel(): ChannelRegistry {
       },
     },
     slack: {
+      async postMessage(channel: string, message: string, blocks?: unknown[]): Promise<void> {
+        logger.info('Slack notification skipped (not configured)');
+      },
       async send(_webhookUrl: string, _message: Record<string, unknown>): Promise<void> {
         logger.info('Slack notification skipped (not configured)');
       },
     },
     inApp: {
+      async notify(userId: string, title: string, message: string, metadata?: Record<string, unknown>): Promise<void> {
+        logger.info('In-app notification skipped (not configured)');
+      },
       async send(userId: string, notification: Record<string, unknown>): Promise<void> {
         const { error } = await supabase.from('notifications').insert({
           user_id: userId,
@@ -398,6 +404,9 @@ function createInAppNotificationChannel(): ChannelRegistry {
       },
     },
     webhook: {
+      async post(url: string, payload: Record<string, unknown>): Promise<void> {
+        logger.info('Webhook notification skipped (not configured)');
+      },
       async send(_url: string, _payload: Record<string, unknown>): Promise<void> {
         logger.info('Webhook notification skipped (not configured)');
       },

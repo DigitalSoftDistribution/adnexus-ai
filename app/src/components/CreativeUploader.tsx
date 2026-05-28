@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useCallback, useRef, useState } from 'react';
 import { Upload, X, FileImage, FileVideo, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import axios from 'axios';

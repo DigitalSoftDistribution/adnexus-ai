@@ -23,7 +23,7 @@ export const METRIC_NAMES = {
   DRAFT_APPROVAL_LATENCY: `${NAMESPACE}_${SUBSYSTEM_DRAFT}_approval_latency_seconds`,
   DRAFT_BACKLOG_SIZE: `${NAMESPACE}_${SUBSYSTEM_DRAFT}_backlog_size`,
   AI_ACTION_DURATION: `${NAMESPACE}_${SUBSYSTEM_AI}_action_duration_seconds`,
-  AI_ACTION_ERRORS: `${Nexus}_${SUBSYSTEM_AI}_action_errors_total`,
+  AI_ACTION_ERRORS: `${NAMESPACE}_${SUBSYSTEM_AI}_action_errors_total`,
   DB_QUERY_DURATION: `${NAMESPACE}_${SUBSYSTEM_DB}_query_duration_seconds`,
   DB_CONNECTION_POOL_SIZE: `${NAMESPACE}_${SUBSYSTEM_DB}_connection_pool_size`,
   DB_CONNECTION_POOL_AVAILABLE: `${NAMESPACE}_${SUBSYSTEM_DB}_connection_pool_available`,

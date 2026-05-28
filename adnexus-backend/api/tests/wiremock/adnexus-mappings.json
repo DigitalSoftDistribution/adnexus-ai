@@ -1,0 +1,229 @@
+{
+  "mappings": [
+    {
+      "name": "Meta Ads API — Get Campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/act_.*/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "data": [
+            { "id": "12020000000000001", "name": "Test Campaign 1", "status": "ACTIVE", "objective": "CONVERSIONS", "daily_budget": "10000" },
+            { "id": "12020000000000002", "name": "Test Campaign 2", "status": "PAUSED", "objective": "LINK_CLICKS", "daily_budget": "5000" }
+          ],
+          "paging": { "cursors": { "after": "NEXT_PAGE" } }
+        }
+      }
+    },
+    {
+      "name": "Meta Ads API — Get AdSets",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/act_.*/adsets"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "data": [
+            { "id": "6300000000000001", "name": "Test AdSet 1", "status": "ACTIVE", "campaign_id": "12020000000000001", "optimization_goal": "CONVERSIONS" }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Ads API — Get Ads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/act_.*/ads"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "data": [
+            { "id": "73000000000000001", "name": "Test Ad 1", "status": "ACTIVE", "creative": { "id": "640000000000001" } }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Ads API — Get Insights",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/act_.*/insights"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "data": [
+            { "impressions": "10000", "clicks": "500", "spend": "250.00", "cpc": "0.50", "ctr": "5.0", "reach": "8000", "frequency": "1.25" }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Ads API — OAuth Access Token",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9.]+/oauth/access_token"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "access_token": "EAAMockAccessToken1234567890",
+          "token_type": "bearer",
+          "expires_in": 5184000
+        }
+      }
+    },
+    {
+      "name": "Meta Ads API — Get Ad Accounts",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/me/adaccounts"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "data": [
+            { "account_id": "act_1234567890", "name": "WireMock Ad Account", "account_status": 1, "currency": "USD" }
+          ],
+          "paging": {}
+        }
+      }
+    },
+
+    {
+      "name": "Google Ads API — List campaigns",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "results": [
+            {
+              "campaign": {
+                "resourceName": "customers/1234567890/campaigns/1111111111",
+                "id": "1111111111",
+                "name": "Google Test Campaign 1",
+                "status": "ENABLED",
+                "advertisingChannelType": "SEARCH"
+              },
+              "metrics": { "impressions": "5000", "clicks": "200", "costMicros": "150000000" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Google Ads API — OAuth token",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/token"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "access_token": "ya29.MockGoogleAccessToken1234567890",
+          "token_type": "Bearer",
+          "expires_in": 3599
+        }
+      }
+    },
+
+    {
+      "name": "TikTok Ads API — Get campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/open_api/v[0-9.]+/campaign/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "data": {
+            "list": [
+              {
+                "campaign_id": "1700000000000001",
+                "campaign_name": "TikTok Test Campaign 1",
+                "status": "ENABLE",
+                "objective_type": "CONVERSIONS",
+                "budget": 100.00,
+                "create_time": "2025-01-15T10:00:00Z"
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "name": "Snapchat Ads API — Get campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/adaccounts/[^/]+/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "campaigns": [
+            {
+              "campaign": {
+                "id": "snap-test-campaign-1",
+                "name": "Snap Test Campaign 1",
+                "status": "ACTIVE",
+                "daily_budget_micro": 100000000,
+                "start_time": "2025-01-15T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "name": "AdNexus Health Check — always OK",
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "url": "/health"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "status": "healthy",
+          "timestamp": "{{now}}",
+          "uptime": 3600
+        }
+      }
+    }
+  ]
+}

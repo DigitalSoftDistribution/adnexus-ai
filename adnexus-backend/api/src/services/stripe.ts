@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Stripe from "stripe";
 import { db } from "../db";
 import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
@@ -13,8 +12,8 @@ if (!apiKey) {
 }
 
 export const stripe = new Stripe(apiKey || "sk_placeholder", {
-  apiVersion: "2024-12-18.acacia",
-  typescript: false,
+  apiVersion: "2024-06-20",
+  typescript: true,
 });
 
 // ─── Plan mapping from Stripe Price IDs to internal plan names ───
@@ -227,7 +226,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
         const priceId = subscription.items.data[0]?.price.id;
         const planName = PRICE_TO_PLAN[priceId];
 
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           status: subscription.status,
           currentPeriodStart: new Date(subscription.current_period_start * 1000),
           currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -300,7 +299,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
           .update(workspaces)
           .set({
             subscriptionStatus: "past_due",
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(eq(workspaces.id, ws.id));
 
@@ -316,7 +315,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
             attemptCount: invoice.attempt_count,
             nextPaymentAttempt: invoice.next_payment_attempt,
           },
-          createdAt: new Date(),
+          created_at: new Date(),
         });
 
         // Send notification to workspace members (implement your own notify)
@@ -340,7 +339,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
           .update(workspaces)
           .set({
             subscriptionStatus: "active",
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(eq(workspaces.id, ws.id));
 
@@ -372,7 +371,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
             trialEnd: subscription.trial_end,
             currentPeriodEnd: subscription.current_period_end,
           },
-          createdAt: new Date(),
+          created_at: new Date(),
         });
       }
 
@@ -398,8 +397,8 @@ async function updateWorkspacePlan(
     cancelAtPeriodEnd?: boolean;
   }
 ): Promise<void> {
-  const updateData: Record<string, any> = {
-    updatedAt: new Date(),
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date(),
   };
 
   if (data.plan !== undefined) updateData.plan = data.plan;
@@ -425,8 +424,8 @@ async function updateWorkspacePlan(
       creativesTotal: limits.creatives,
       impressionsTotal: limits.impressions,
       aiCreditsTotal: limits.aiCredits,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
     })
     .onConflictDoUpdate({
       target: workspaceCredits.workspaceId,
@@ -434,7 +433,7 @@ async function updateWorkspacePlan(
         creativesTotal: limits.creatives,
         impressionsTotal: limits.impressions,
         aiCreditsTotal: limits.aiCredits,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       },
     });
 
@@ -449,7 +448,7 @@ async function resetUsageCounters(workspaceId: string): Promise<void> {
       creativesUsed: 0,
       impressionsUsed: 0,
       aiCreditsUsed: 0,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     })
     .where(eq(workspaceCredits.workspaceId, workspaceId));
 

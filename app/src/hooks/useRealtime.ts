@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createSSEConnection } from '../lib/api';
 import type { ApiSSEEvent } from '../lib/api';

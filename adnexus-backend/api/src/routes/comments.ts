@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { Router } from 'express';
 import { z } from 'zod';
-import { db } from '../db';
-import { authenticate, requireAuth } from '../middleware/auth';
+import { query } from '../db/connection';
+import { authenticate, requireMember as requireAuth } from '../middleware/authenticate';
 
 const router = Router();
 
@@ -35,7 +34,7 @@ router.get('/drafts/:id/comments', authenticate, async (req, res) => {
   const draftId = req.params.id;
 
   try {
-    const rows = await db.query(
+    const { rows } = await query(
       `
         SELECT
           c.id,
@@ -61,28 +60,40 @@ router.get('/drafts/:id/comments', authenticate, async (req, res) => {
     const replyMap: Record<string, any[]> = {};
 
     for (const row of rows) {
+      const id = row.id as string;
+      const draftId = row.draft_id as string;
+      const userId = row.user_id as string;
+      const text = row.text as string;
+      const parentId = row.parent_id as string | null;
+      const createdAt = row.created_at as unknown as Date;
+      const updatedAt = row.updated_at as unknown as Date;
+      const userName = row.user_name as string;
+      const userEmail = row.user_email as string;
+      const userAvatar = row.user_avatar as string | undefined;
+
       const comment = {
-        id: row.id,
-        draftId: row.draft_id,
-        userId: row.user_id,
-        text: row.text,
-        parentId: row.parent_id,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        relativeTime: timeAgo(row.created_at),
+        id,
+        draftId,
+        userId,
+        text,
+        parentId,
+        createdAt,
+        updatedAt,
+        relativeTime: timeAgo(createdAt),
         user: {
-          id: row.user_id,
-          name: row.user_name,
-          email: row.user_email,
-          avatar: row.user_avatar,
-          initials: getInitials(row.user_name),
+          id: userId,
+          name: userName,
+          email: userEmail,
+          avatar: userAvatar,
+          initials: getInitials(userName),
         },
         replies: [] as any[],
       };
 
-      if (row.parent_id) {
-        if (!replyMap[row.parent_id]) replyMap[row.parent_id] = [];
-        replyMap[row.parent_id].push(comment);
+      if (parentId) {
+        const parentIdStr = String(parentId);
+        if (!replyMap[parentIdStr]) replyMap[parentIdStr] = [];
+        replyMap[parentIdStr].push(comment);
       } else {
         comments.push(comment);
       }
@@ -90,8 +101,9 @@ router.get('/drafts/:id/comments', authenticate, async (req, res) => {
 
     // Attach replies to their parent comments (1-level nesting)
     for (const comment of comments) {
-      if (replyMap[comment.id]) {
-        comment.replies = replyMap[comment.id].sort(
+      const commentId = String(comment.id);
+      if (replyMap[commentId]) {
+        comment.replies = replyMap[commentId].sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
@@ -112,7 +124,7 @@ router.post(
   requireAuth,
   async (req, res) => {
     const draftId = req.params.id;
-    const userId = req.user!.id;
+    const userId = req.user!.sub;
 
     const parse = createCommentSchema.safeParse(req.body);
     if (!parse.success) {
@@ -123,7 +135,7 @@ router.post(
 
     // If replying, validate parent belongs to same draft
     if (parentId) {
-      const parentCheck = await db.query(
+      const { rows: parentCheck } = await query(
         'SELECT draft_id FROM comments WHERE id = $1',
         [parentId]
       );
@@ -136,7 +148,7 @@ router.post(
     }
 
     try {
-      const [newComment] = await db.query(
+      const { rows: [newComment] } = await query(
         `
           INSERT INTO comments (draft_id, user_id, text, parent_id)
           VALUES ($1, $2, $3, $4)
@@ -145,28 +157,38 @@ router.post(
         [draftId, userId, text, parentId || null]
       );
 
+      const newId = newComment?.id as string;
+      const newDraftId = newComment?.draft_id as string;
+      const newUserId = newComment?.user_id as string;
+      const newText = newComment?.text as string;
+      const newParentId = newComment?.parent_id as string | null;
+      const newCreatedAt = newComment?.created_at as unknown as Date;
+      const newUpdatedAt = newComment?.updated_at as unknown as Date;
+
       // Fetch user info for response
-      const [user] = await db.query(
+      const { rows: [user] } = await query(
         'SELECT id, name, email, avatar_url FROM users WHERE id = $1',
         [userId]
       );
 
+      const usr = user as Record<string, unknown> | undefined;
+
       res.status(201).json({
         comment: {
-          id: newComment.id,
-          draftId: newComment.draft_id,
-          userId: newComment.user_id,
-          text: newComment.text,
-          parentId: newComment.parent_id,
-          createdAt: newComment.created_at,
-          updatedAt: newComment.updated_at,
-          relativeTime: timeAgo(newComment.created_at),
+          id: newId,
+          draftId: newDraftId,
+          userId: newUserId,
+          text: newText,
+          parentId: newParentId,
+          createdAt: newCreatedAt,
+          updatedAt: newUpdatedAt,
+          relativeTime: timeAgo(newCreatedAt),
           user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            avatar: user.avatar_url,
-            initials: getInitials(user.name),
+            id: usr?.id as string,
+            name: usr?.name as string,
+            email: usr?.email as string,
+            avatar: usr?.avatar_url as string | undefined,
+            initials: getInitials(usr?.name as string),
           },
           replies: [],
         },
@@ -182,11 +204,11 @@ router.post(
 // Delete a comment (author or admin only)
 router.delete('/comments/:id', requireAuth, async (req, res) => {
   const commentId = req.params.id;
-  const userId = req.user!.id;
+  const userId = req.user!.sub;
   const isAdmin = req.user!.role === 'admin';
 
   try {
-    const [existing] = await db.query(
+    const { rows: [existing] } = await query(
       'SELECT user_id FROM comments WHERE id = $1',
       [commentId]
     );
@@ -199,7 +221,7 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this comment' });
     }
 
-    await db.query('DELETE FROM comments WHERE id = $1', [commentId]);
+    await query('DELETE FROM comments WHERE id = $1', [commentId]);
 
     res.json({ success: true, deletedId: commentId });
   } catch (err) {

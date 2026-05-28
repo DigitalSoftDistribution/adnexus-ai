@@ -15,7 +15,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { campaigns, adAccounts, notifications, webhookEvents, ads } from "../db/schema";
+import { campaigns, ad_accounts, ads, webhookEvents, notifications as notificationsTable } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import { createNotification } from "../services/notifications";
@@ -177,21 +177,21 @@ async function handleCampaignChange(
       return;
     }
 
-    const campaign = localCampaign[0];
+    const campaign = localCampaign[0]!;
 
     // Update local state
     await db
       .update(campaigns)
       .set({
         status: mapGoogleStatus(newStatus),
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(campaigns.id, campaign.id));
 
     // Notify if status changed externally
     if (event.userEmail) {
       await createNotification({
-        workspaceId: campaign.workspaceId,
+        workspaceId: campaign.workspaceId ?? '',
         type: "campaign_status_change",
         title: "Google Campaign Status Changed",
         message: `Campaign "${campaign.name}" is now ${newStatus} (changed by ${event.userEmail})`,
@@ -260,7 +260,7 @@ async function handleBudgetAlert(
         .set({
           spend: alert.spentAmount,
           budget: alert.budgetAmount,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(campaigns.id, localCampaign[0].id));
     }
@@ -292,7 +292,7 @@ async function handlePolicyViolation(
         .set({
           status: "DISAPPROVED",
           policyViolations: violation.description,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(
           and(
@@ -352,12 +352,12 @@ async function resolveWorkspaceId(
   platformAccountId: string
 ): Promise<string> {
   const account = await db
-    .select({ workspaceId: adAccounts.workspaceId })
-    .from(adAccounts)
+    .select({ workspaceId: ad_accounts.workspaceId })
+    .from(ad_accounts)
     .where(
       and(
-        eq(adAccounts.platform, platform),
-        eq(adAccounts.platformAccountId, platformAccountId)
+        eq(ad_accounts.platform, platform),
+        eq(ad_accounts.platformAccountId, platformAccountId)
       )
     )
     .limit(1);
@@ -428,7 +428,7 @@ export async function handleGoogleWebhook(req: Request, res: Response): Promise<
       eventId = pubsub.message.messageId;
     } else {
       // Direct webhook payload (for testing / alternate integrations)
-      payload = body as GoogleAdsChangeEvent | GoogleAdsBudgetAlert | GoogleAdsPolicyViolation;
+      payload = body as unknown as GoogleAdsChangeEvent | GoogleAdsBudgetAlert | GoogleAdsPolicyViolation;
       eventType = (body as Record<string, unknown>).changeType as string
         ?? (body as Record<string, unknown>).alertType as string
         ?? "unknown";
@@ -444,6 +444,7 @@ export async function handleGoogleWebhook(req: Request, res: Response): Promise<
   // 4. Idempotency check
   try {
     await db.insert(webhookEvents).values({
+      id: eventId,
       eventId,
       platform: "google",
       eventType,

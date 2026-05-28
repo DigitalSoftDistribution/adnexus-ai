@@ -147,7 +147,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       },
     });
 
-    const adAccounts: Array<{
+    const ad_accounts: Array<{
       id: string;
       name: string;
       account_status: number;
@@ -158,7 +158,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Step 4: Store in ad_accounts table
     const results: string[] = [];
-    for (const acc of adAccounts) {
+    for (const acc of ad_accounts) {
       if (reconnect && accountId) {
         // Update existing account
         const { error: updateErr } = await supabase

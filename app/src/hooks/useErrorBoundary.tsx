@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useErrorBoundary.tsx
  * A per-page Error Boundary hook + component for wrapping route-level pages.

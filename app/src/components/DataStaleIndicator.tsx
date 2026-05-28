@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * DataStaleIndicator.tsx
  * Shows the last-updated timestamp for data, a refresh button,

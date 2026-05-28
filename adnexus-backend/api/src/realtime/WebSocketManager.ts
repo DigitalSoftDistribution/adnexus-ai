@@ -108,7 +108,12 @@ export class WebSocketManager extends EventEmitter {
     if (!client) return;
 
     // Size guard
-    if (raw.length > this.config.maxPayloadBytes) {
+    const size = Buffer.isBuffer(raw)
+      ? raw.length
+      : Array.isArray(raw)
+        ? raw.reduce((s, b) => s + (Buffer.isBuffer(b) ? b.length : (b as Buffer).byteLength), 0)
+        : (raw as { byteLength: number }).byteLength;
+    if (size > this.config.maxPayloadBytes) {
       this.sendToClient(clientId, {
         type: 'error',
         payload: { message: 'Payload too large' },

@@ -25,6 +25,10 @@ import Blog from './pages/Blog'
 import BlogPost from './pages/BlogPost'
 import ComparePipeboard from './pages/ComparePipeboard'
 import CompareMadgicx from './pages/CompareMadgicx'
+import CompareBirch from './pages/CompareBirch'
+import CompareSmartly from './pages/CompareSmartly'
+import CompareAdKit from './pages/CompareAdKit'
+import ToolsROASCalculator from './pages/ToolsROASCalculator'
 
 import ABTesting from './pages/ABTesting'
 import AudienceManager from './pages/AudienceManager'
@@ -74,8 +78,12 @@ export default function App() {
           <Route path="/blog/:slug" element={<PageTransition><BlogPost /></PageTransition>} />
           <Route path="/compare/pipeboard" element={<PageTransition><ComparePipeboard /></PageTransition>} />
           <Route path="/compare/madgicx" element={<PageTransition><CompareMadgicx /></PageTransition>} />
+          <Route path="/compare/birch" element={<PageTransition><CompareBirch /></PageTransition>} />
+          <Route path="/compare/smartly" element={<PageTransition><CompareSmartly /></PageTransition>} />
+          <Route path="/compare/adkit" element={<PageTransition><CompareAdKit /></PageTransition>} />
 
           <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+          <Route path="/tools/roas-calculator" element={<PageTransition><ToolsROASCalculator /></PageTransition>} />
 
           {/* ═══════ Auth (public, redirect if authenticated) ═══════ */}
           <Route
@@ -453,6 +461,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ═══════ Developer Tools ═══════ */}
+          {/* Webhooks, WhiteLabelReports, ToolExplorer — pending JSX fix, see .broken originals */}
         </Routes>
       </AnimatePresence>
     </Layout>

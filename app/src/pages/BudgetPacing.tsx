@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import CountUp from 'react-countup'

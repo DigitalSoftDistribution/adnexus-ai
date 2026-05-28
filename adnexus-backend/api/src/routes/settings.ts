@@ -662,7 +662,7 @@ router.get(
     }
 
     // Placeholder invoices (would query an invoices table in production)
-    const invoices = [];
+    const invoices: Array<Record<string, unknown>> = [];
 
     res.json({
       success: true,

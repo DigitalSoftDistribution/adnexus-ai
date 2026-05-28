@@ -115,15 +115,15 @@ export class GoogleAdsAuth {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, unknown>;
 
     this.tokens = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expiry_date: Date.now() + data.expires_in * 1000,
-      token_type: data.token_type ?? "Bearer",
-      id_token: data.id_token,
-      scope: data.scope,
+      access_token: data.access_token as string,
+      refresh_token: data.refresh_token as string,
+      expiry_date: Date.now() + (data.expires_in as number) * 1000,
+      token_type: (data.token_type as string) ?? "Bearer",
+      id_token: data.id_token as string | undefined,
+      scope: data.scope as string | undefined,
     };
 
     await this.notifyTokenRefresh(this.tokens);
@@ -218,7 +218,7 @@ export class GoogleAdsAuth {
       );
     }
 
-    const data: TokenRefreshResponse = await response.json();
+    const data = (await response.json()) as TokenRefreshResponse;
 
     this.tokens = {
       ...this.tokens,

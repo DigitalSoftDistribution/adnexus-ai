@@ -262,6 +262,24 @@ export interface DailyBudget {
 // SECTION 2: Statistical Utilities
 // ═══════════════════════════════════════════════════════════════
 
+/** Error function (erf) — Abramowitz & Stegun approximation */
+function erf(x: number): number {
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  const sign = x >= 0 ? 1 : -1;
+  x = Math.abs(x);
+
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
+}
+
 class StatsUtils {
   /** Compute mean of an array */
   static mean(arr: number[]): number {
@@ -363,7 +381,7 @@ class StatsUtils {
     if (df > 30) {
       // Normal approximation: p = 2 * (1 - Phi(t))
       const z = t;
-      const p = 2 * (1 - 0.5 * (1 + Math.erf(z / Math.sqrt(2))));
+      const p = 2 * (1 - 0.5 * (1 + erf(z / Math.sqrt(2))));
       return Math.min(1, Math.max(0, p));
     }
 
@@ -386,9 +404,7 @@ class StatsUtils {
       return 1 - this.incompleteBeta(1 - x, b, a);
     }
 
-    const lnBeta = Math.lgamma
-      ? Math.lgamma(a) + Math.lgamma(b) - Math.lgamma(a + b)
-      : this.logGamma(a) + this.logGamma(b) - this.logGamma(a + b);
+    const lnBeta = this.logGamma(a) + this.logGamma(b) - this.logGamma(a + b);
 
     const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta) / a;
 
@@ -603,9 +619,9 @@ class DataFetcher {
     if (error || !data) return [];
 
     return data
-      .map((row: Record<string, unknown>) => ({
-        date: row.date as string,
-        value: Number(row[metric]) || 0,
+      .map((row) => ({
+        date: (row as unknown as Record<string, unknown>).date as string,
+        value: Number((row as unknown as Record<string, unknown>)[metric]) || 0,
       }))
       .filter((d) => !isNaN(d.value));
   }
@@ -703,7 +719,7 @@ export class RuleEvaluator {
     if (rule.status !== 'active') return false;
 
     for (const campaign of campaigns) {
-      const allMet = rule.conditions.every((cond) => this.checkCondition(cond, campaign));
+      const allMet = rule.conditions.every((cond) => this.checkCondition(cond, campaign as unknown as Record<string, unknown>));
       if (allMet) return true;
     }
     return false;
@@ -717,7 +733,7 @@ export class RuleEvaluator {
 
     for (const campaign of matches) {
       for (const action of rule.actions) {
-        const draft = await this.createDraftFromAction(rule, campaign, action);
+        const draft = await this.createDraftFromAction(rule, campaign as unknown as Record<string, unknown>, action);
         if (draft) drafts.push(draft);
       }
     }
@@ -765,7 +781,7 @@ export class RuleEvaluator {
 
     const matched: Campaign[] = [];
     for (const campaign of campaigns) {
-      if (rule.conditions.every((cond) => this.checkCondition(cond, campaign))) {
+      if (rule.conditions.every((cond) => this.checkCondition(cond, campaign as unknown as Record<string, unknown>))) {
         matched.push(campaign);
       }
     }

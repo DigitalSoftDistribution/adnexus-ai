@@ -5,10 +5,8 @@
 
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
-// ─── Mock axios before importing modules ───────────────────────────────────
-jest.mock('axios');
+// ─── Mock axios (already mocked in global setup) ───────────────────────────
 const mockedAxios = axios as jest.Mocked<typeof axios>;
-mockedAxios.create = jest.fn(() => mockedAxios);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

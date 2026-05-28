@@ -85,7 +85,7 @@ export function classifyError(ctx: ErrorContext): TikTokApiError {
   }
 
   // Auth errors
-  if (AUTH_ERROR_CODES.has(code) || ctx.statusCode === 401) {
+  if (AUTH_ERROR_CODES.has(code as typeof TIKTOK_ERROR_CODES.ACCESS_TOKEN_INVALID) || ctx.statusCode === 401) {
     return new TikTokAuthError({
       message: message || "Authentication failed",
       code,
@@ -95,7 +95,7 @@ export function classifyError(ctx: ErrorContext): TikTokApiError {
 
   // General classification
   const isRetryable =
-    RETRYABLE_CODES.has(code) || TRANSIENT_HTTP_STATUS.has(ctx.statusCode);
+    RETRYABLE_CODES.has(code as typeof TIKTOK_ERROR_CODES.INTERNAL_ERROR) || TRANSIENT_HTTP_STATUS.has(ctx.statusCode);
 
   return new TikTokApiError({
     message: message || `HTTP ${ctx.statusCode}`,
@@ -114,7 +114,7 @@ export function isRetryableError(error: unknown): boolean {
   if (error instanceof TikTokApiError) return error.isRetryable;
   if (error instanceof Error && "code" in error) {
     const code = (error as { code: number }).code;
-    return RETRYABLE_CODES.has(code);
+    return RETRYABLE_CODES.has(code as typeof TIKTOK_ERROR_CODES.INTERNAL_ERROR);
   }
   // Network-level errors are always retryable
   if (error instanceof Error) {
@@ -137,7 +137,7 @@ export function isRetryableError(error: unknown): boolean {
 export function isTokenExpiredError(error: unknown): boolean {
   if (error instanceof TikTokAuthError) return true;
   if (error instanceof TikTokApiError) {
-    return AUTH_ERROR_CODES.has(error.code);
+    return AUTH_ERROR_CODES.has(error.code as typeof TIKTOK_ERROR_CODES.ACCESS_TOKEN_INVALID);
   }
   return false;
 }

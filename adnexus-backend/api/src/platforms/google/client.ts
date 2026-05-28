@@ -40,7 +40,6 @@ import {
 
   // GAQL types
   GAQLResource,
-  SelectableField,
   GAQLCampaignField,
   GAQLAdGroupField,
   GAQLAdField,
@@ -472,7 +471,7 @@ export class GoogleAdsClient {
     }
 
     if (data.biddingStrategy) {
-      Object.assign(campaign, this.buildBiddingStrategy(data.biddingStrategy));
+      Object.assign(campaign, this.buildBiddingStrategy(data.biddingStrategy as unknown as Record<string, unknown>));
     }
 
     if (data.trackingUrlTemplate) {
@@ -1072,7 +1071,7 @@ export class GoogleAdsClient {
     return results.map((row) => {
       const campaign = row.campaign ? this.transformCampaign(row.campaign) : ({} as Campaign);
       const metrics = row.metrics ? this.extractMetrics(row.metrics) : {};
-      return { ...campaign, ...metrics };
+      return { ...campaign, ...metrics } as Campaign & Partial<CampaignMetrics>;
     });
   }
 
@@ -1143,8 +1142,8 @@ export class GoogleAdsClient {
     customerId: string,
     campaigns: CreateCampaignData[]
   ): Promise<{
-    successes: Array<{ data: CreateCampaignData; resourceName: string; id: string }>;
-    failures: Array<{ data: CreateCampaignData; error: Error }>;
+    successes: Array<{ item: CreateCampaignData; result: { resourceName: string; id: string } }>;
+    failures: Array<{ item: CreateCampaignData; error: Error }>;
   }> {
     return this.retryHandler.executeBatch(
       campaigns,
@@ -1160,8 +1159,8 @@ export class GoogleAdsClient {
     customerId: string,
     ads: CreateAdData[]
   ): Promise<{
-    successes: Array<{ data: CreateAdData; result: { resourceName: string; id: string; adGroupAdResourceName: string } }>;
-    failures: Array<{ data: CreateAdData; error: Error }>;
+    successes: Array<{ item: CreateAdData; result: { resourceName: string; id: string; adGroupAdResourceName: string } }>;
+    failures: Array<{ item: CreateAdData; error: Error }>;
   }> {
     return this.retryHandler.executeBatch(
       ads,

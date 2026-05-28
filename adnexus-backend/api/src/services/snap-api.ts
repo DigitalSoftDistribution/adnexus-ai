@@ -821,7 +821,7 @@ export async function normalizeSnapCampaign(
     cpc,
     start_date: campaign.start_time?.slice(0, 10),
     end_date: campaign.end_time?.slice(0, 10),
-    platform_data: campaign,
+    platform_data: campaign as unknown as Record<string, unknown>,
     created_at: campaign.created_at ?? campaign.start_time ?? new Date().toISOString(),
   };
 }

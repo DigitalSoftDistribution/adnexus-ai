@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, forwardRef } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils';

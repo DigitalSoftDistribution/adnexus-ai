@@ -229,7 +229,7 @@ export function normalizeMetaCampaign(mc: MetaCampaign): UnifiedCampaign {
     cpc: 0,
     start_date: mc.start_time?.slice(0, 10),
     end_date: mc.stop_time?.slice(0, 10),
-    platform_data: mc,
+    platform_data: mc as unknown as Record<string, unknown>,
     created_at: mc.start_time ?? new Date().toISOString(),
   };
 }

@@ -52,14 +52,14 @@ export type {
   NotificationPreference,
   // Validation
   ValidationResult,
-  ValidationError,
+  // Omit ValidationError — re-exported as class from ./errors
   ValidationWarning,
   PolicyCheck,
   // Execution
   ExecutionResult,
   ExecutionStep,
   AppliedChange,
-  ExecutionError,
+  // Omit ExecutionError — re-exported as class from ./errors
   PlatformError,
   // Snapshot & Rollback
   Snapshot,

@@ -156,7 +156,7 @@ export function createHelmetMiddleware() {
     },
 
     // X-Content-Type-Options
-    contentTypeOptions: true,
+    xContentTypeOptions: true,
 
     // X-XSS-Protection (legacy browsers)
     xssFilter: true,
@@ -167,19 +167,7 @@ export function createHelmetMiddleware() {
     },
 
     // Permissions-Policy (formerly Feature-Policy)
-    permissionsPolicy: {
-      features: {
-        accelerometer: ["'none'"],
-        camera: ["'none'"],
-        geolocation: ["'none'"],
-        gyroscope: ["'none'"],
-        magnetometer: ["'none'"],
-        microphone: ["'none'"],
-        payment: ["'none'"],
-        usb: ["'none'"],
-        interestCohort: ["'none'"],
-      },
-    },
+    // Applied via custom middleware below
 
     // Cross-Origin Embedder Policy
     crossOriginEmbedderPolicy: { policy: "require-corp" },

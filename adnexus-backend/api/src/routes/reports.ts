@@ -365,7 +365,7 @@ async function generateReportData(
           fatigue_status: ad.fatigue_status,
           impressions: ca?.impressions ?? Number(ad.impressions ?? 0),
           clicks: ca?.clicks ?? Number(ad.clicks ?? 0),
-          ctr: ca && ca.impressions > 0 ? Number(((ca.clicks / ca.impressions) * 100).toFixed(2)) : Number(ad.ctr ?? 0),
+          ctr: ca && ca.impressions > 0 ? Number(((ca.clicks / ca.impressions) * 100).toFixed(2)) : (Number(ad.clicks ?? 0) > 0 ? Number(((Number(ad.clicks ?? 0) / Number(ad.impressions ?? 1)) * 100).toFixed(2)) : 0),
           spend: Number(ad.spend ?? 0),
         };
       });
@@ -570,6 +570,7 @@ router.post(
       logger,
     );
 
+    const { campaigns: _reportCampaigns, ...reportContent } = reportData;
     res.json({
       success: true,
       data: {
@@ -578,7 +579,7 @@ router.post(
         platforms: body.platforms ?? ['meta', 'google', 'tiktok', 'snap'],
         campaigns: body.campaigns ?? [],
         generated_at: new Date().toISOString(),
-        ...reportData,
+        ...reportContent,
       },
     });
   }),

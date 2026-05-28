@@ -39,6 +39,8 @@ export interface GoogleAdsApiConfig {
   linkedCustomerId?: string;
   apiVersion?: string;
   baseUrl?: string;
+  rateLimitConfig?: RateLimitConfig;
+  retryConfig?: RetryConfig;
 }
 
 export interface GoogleAdsClientConfig {

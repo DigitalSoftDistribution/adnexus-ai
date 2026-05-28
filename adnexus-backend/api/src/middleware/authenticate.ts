@@ -55,7 +55,7 @@ async function verifySupabaseToken(token: string): Promise<JWTPayload> {
     workspace_id: workspaceId,
     role,
     iat: Math.floor(Date.now() / 1000),
-    exp: sbUser.exp ? Math.floor(sbUser.exp / 1000) : 0,
+    exp: (sbUser as unknown as Record<string, unknown>).exp ? Math.floor(Number((sbUser as unknown as Record<string, unknown>).exp) / 1000) : 0,
   };
 
   return payload;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * cache.ts — Client-side cache layer
  *

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SessionExpiryModal.tsx
  * Displays a modal when the user's JWT/session has expired.

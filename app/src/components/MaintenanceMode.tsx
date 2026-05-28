@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * MaintenanceMode.tsx
  * Displays a full-page maintenance overlay when the backend returns 503 Service Unavailable.

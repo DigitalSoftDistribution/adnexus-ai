@@ -25,14 +25,17 @@ export interface EmailSender {
 
 export interface SlackSender {
   postMessage(channel: string, message: string, blocks?: unknown[]): Promise<void>;
+  send?(webhookUrl: string, message: Record<string, unknown>): Promise<void>;
 }
 
 export interface InAppSender {
   notify(userId: string, title: string, message: string, metadata?: Record<string, unknown>): Promise<void>;
+  send?(userId: string, notification: Record<string, unknown>): Promise<void>;
 }
 
 export interface WebhookSender {
   post(url: string, payload: Record<string, unknown>): Promise<void>;
+  send?(url: string, payload: Record<string, unknown>): Promise<void>;
 }
 
 // ────────────────────────────────────────────────

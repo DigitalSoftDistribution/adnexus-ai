@@ -752,7 +752,7 @@ export async function scheduleRuleEvaluations(): Promise<void> {
               return;
             }
 
-            if ((hasRules?.count ?? 0) === 0) {
+            if ((hasRules?.length ?? 0) === 0) {
               return; // Skip workspaces with no active rules
             }
 

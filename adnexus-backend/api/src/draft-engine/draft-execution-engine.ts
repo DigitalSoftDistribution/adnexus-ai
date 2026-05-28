@@ -175,7 +175,7 @@ export class DraftExecutionEngine {
   constructor(private readonly options: EngineOptions) {
     this.validator = new DraftValidator(options.campaignStore);
     this.applier = new ChangeApplier(options.platformClients, options.retryConfig);
-    this.rollbackManager = new RollbackManager(options.snapshotStore, options.platformClients);
+    this.rollbackManager = new RollbackManager(options.snapshotStore, options.platformClients as unknown as Record<string, import("./rollback-manager").PlatformApiClient>);
     this.logger = new ExecutionLogger(options.logStore);
     this.notifier = new NotificationDispatcher(options.notificationChannels);
     this.autoRollback = options.autoRollback ?? true;

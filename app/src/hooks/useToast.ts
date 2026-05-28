@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useEffect } from "react";
 
 export type ToastType = "success" | "error" | "warning" | "info" | "draft";

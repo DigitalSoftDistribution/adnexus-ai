@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RateLimitModal.tsx
  * Displays a modal warning when the API rate limit is approached or exceeded.

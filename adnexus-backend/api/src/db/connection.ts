@@ -93,7 +93,7 @@ export interface QueryOptions {
  * @example
  *   const { rows } = await query("SELECT * FROM users WHERE id = $1", [userId]);
  */
-export async function query<T = Record<string, unknown>>(
+export async function query<T extends Record<string, unknown> = Record<string, unknown>>(
   sql: string,
   params?: unknown[],
   options?: QueryOptions
@@ -102,7 +102,7 @@ export async function query<T = Record<string, unknown>>(
   const queryName = options?.name ?? "unnamed";
 
   try {
-    const result = await getPool().query<T>(sql, params);
+    const result = await getPool().query(sql, params) as QueryResult<T>;
     const duration = Date.now() - start;
 
     if (duration > 1000) {
@@ -196,6 +196,14 @@ export async function healthCheck(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Exported getter for the raw Pool instance.
+ * Lazily initializes on first access. Used by migration runner.
+ */
+export function pool(): Pool {
+  return getPool();
 }
 
 /**

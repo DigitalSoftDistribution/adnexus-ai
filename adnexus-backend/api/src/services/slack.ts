@@ -2,9 +2,15 @@ import { logger } from '../utils/logger';
 
 export interface SlackMessageBlock {
   type: string;
-  text?: { type: string; text: string };
+  text?: string | { type: string; text: string; emoji?: boolean };
   fields?: Array<{ type: string; text: string }>;
-  elements?: Array<{ type: string; text: string; url?: string; style?: string }>;
+  elements?: Array<{
+    type: string;
+    text?: string | { type: string; text: string; emoji?: boolean };
+    url?: string;
+    style?: string;
+    emoji?: boolean;
+  }>;
 }
 
 export interface SlackMessage {

@@ -13,7 +13,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { campaigns, leads, adAccounts, notifications, webhookEvents } from "../db/schema";
+import { campaigns, leads, ad_accounts, notifications, webhookEvents } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import { createNotification } from "../services/notifications";
@@ -120,7 +120,7 @@ async function handleLeadgen(entry: MetaWebhookEntry): Promise<void> {
       const workspaceId = formCampaign[0]?.workspaceId ?? "default";
 
       // Insert lead record
-      await db.insert(leads).values({
+      await db.insert(leads).values({ id: crypto.randomUUID() as string,
         platform: "meta",
         platformLeadId: lead.leadgen_id,
         campaignId,
@@ -142,8 +142,8 @@ async function handleLeadgen(entry: MetaWebhookEntry): Promise<void> {
         }, {}),
         rawPayload: lead as unknown as Record<string, unknown>,
         status: "new",
-        createdAt: new Date(lead.created_time * 1000),
-        updatedAt: new Date(),
+        created_at: new Date(lead.created_time * 1000),
+        updated_at: new Date(),
       });
 
       // Notify workspace members
@@ -176,15 +176,15 @@ async function handleAccountChange(
     switch (field) {
       case "account_spending_limit": {
         await db
-          .update(adAccounts)
+          .update(ad_accounts)
           .set({
             spendCap: value.new_spend_limit as string,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
-              eq(adAccounts.platform, "meta"),
-              eq(adAccounts.platformAccountId, accountId)
+              eq(ad_accounts.platform, "meta"),
+              eq(ad_accounts.platformAccountId, accountId)
             )
           );
 
@@ -194,15 +194,15 @@ async function handleAccountChange(
 
       case "account_status": {
         await db
-          .update(adAccounts)
+          .update(ad_accounts)
           .set({
             status: value.status as string,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
-              eq(adAccounts.platform, "meta"),
-              eq(adAccounts.platformAccountId, accountId)
+              eq(ad_accounts.platform, "meta"),
+              eq(ad_accounts.platformAccountId, accountId)
             )
           );
 
@@ -220,16 +220,16 @@ async function handleAccountChange(
 
       case "disable_reason": {
         await db
-          .update(adAccounts)
+          .update(ad_accounts)
           .set({
             status: "disabled",
             disabledReason: value.reason as string,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
-              eq(adAccounts.platform, "meta"),
-              eq(adAccounts.platformAccountId, accountId)
+              eq(ad_accounts.platform, "meta"),
+              eq(ad_accounts.platformAccountId, accountId)
             )
           );
 
@@ -273,12 +273,12 @@ async function handleCampaignChange(
 
     // Resolve workspace from account mapping
     const accountRecord = await db
-      .select({ workspaceId: adAccounts.workspaceId })
-      .from(adAccounts)
+      .select({ workspaceId: ad_accounts.workspaceId })
+      .from(ad_accounts)
       .where(
         and(
-          eq(adAccounts.platform, "meta"),
-          eq(adAccounts.platformAccountId, accountId)
+          eq(ad_accounts.platform, "meta"),
+          eq(ad_accounts.platformAccountId, accountId)
         )
       )
       .limit(1);
@@ -293,7 +293,7 @@ async function handleCampaignChange(
           .update(campaigns)
           .set({
             status: newStatus,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
@@ -322,7 +322,7 @@ async function handleCampaignChange(
           .set({
             budget: budget,
             budgetType: value.budget_type as string,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
@@ -340,7 +340,7 @@ async function handleCampaignChange(
           .update(campaigns)
           .set({
             name: value.new_name as string,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(
             and(
@@ -427,7 +427,7 @@ export async function handleMetaWebhook(req: Request, res: Response): Promise<vo
     // Log webhook event for idempotency
     const eventId = `${entry.id}-${entry.time}`;
     try {
-      await db.insert(webhookEvents).values({
+      await db.insert(webhookEvents).values({ id: crypto.randomUUID() as string,
         eventId,
         platform: "meta",
         payload: entry as unknown as Record<string, unknown>,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { FormField } from './FormField';

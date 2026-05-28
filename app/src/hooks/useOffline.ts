@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useOffline.ts — Offline detection hook
  *

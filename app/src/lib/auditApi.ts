@@ -1,4 +1,3 @@
-// @ts-nocheck
 import api from './api';
 
 /** Actor type for audit entries */

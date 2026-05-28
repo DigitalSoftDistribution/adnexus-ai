@@ -14,7 +14,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { campaigns, adAccounts, notifications, webhookEvents, ads } from "../db/schema";
+import { campaigns, ad_accounts, notifications, webhookEvents, ads } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import { createNotification } from "../services/notifications";
@@ -166,14 +166,14 @@ async function handleCampaignChange(
       .update(campaigns)
       .set({
         status: newStatus,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(campaigns.id, campaign.id));
 
     // Notify on significant changes
     if (newStatus !== campaign.status) {
       await createNotification({
-        workspaceId: campaign.workspaceId,
+        workspaceId: campaign.workspaceId ?? "default",
         type: "campaign_status_change",
         title: "TikTok Campaign Status Changed",
         message: `Campaign "${event.campaign_name}" is now ${event.status}${
@@ -250,7 +250,7 @@ async function handleBudgetAlert(
         .set({
           spend: String(alert.spend),
           budget: String(alert.budget),
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(campaigns.id, localCampaign[0].id));
     }
@@ -280,7 +280,7 @@ async function handleCreativeViolation(
       .set({
         status: violation.severity === "REJECT" ? "rejected" : "warning",
         policyViolations: violation.policy_description,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(
         and(
@@ -327,15 +327,15 @@ async function handleAccountAlert(
     // Update account status for auth revokes
     if (alert.alert_type === "AUTH_REVOKE") {
       await db
-        .update(adAccounts)
-        .set({
+      .update(ad_accounts)
+      .set({
           status: "disconnected",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(
           and(
-            eq(adAccounts.platform, "tiktok"),
-            eq(adAccounts.platformAccountId, advertiserId)
+            eq(ad_accounts.platform, "tiktok"),
+            eq(ad_accounts.platformAccountId, advertiserId)
           )
         );
     }
@@ -393,12 +393,12 @@ async function resolveWorkspaceId(
   platformAccountId: string
 ): Promise<string> {
   const account = await db
-    .select({ workspaceId: adAccounts.workspaceId })
-    .from(adAccounts)
+    .select({ workspaceId: ad_accounts.workspaceId })
+    .from(ad_accounts)
     .where(
       and(
-        eq(adAccounts.platform, platform),
-        eq(adAccounts.platformAccountId, platformAccountId)
+        eq(ad_accounts.platform, platform),
+        eq(ad_accounts.platformAccountId, platformAccountId)
       )
     )
     .limit(1);
@@ -495,6 +495,7 @@ export async function handleTikTokWebhook(req: Request, res: Response): Promise<
   // 6. Idempotency check
   try {
     await db.insert(webhookEvents).values({
+      id: crypto.randomUUID(),
       eventId: payload.event_id,
       platform: "tiktok",
       eventType: payload.event_type,

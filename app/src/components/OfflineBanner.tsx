@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * OfflineBanner.tsx — Offline indicator
  *

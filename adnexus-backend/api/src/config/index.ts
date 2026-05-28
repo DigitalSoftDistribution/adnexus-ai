@@ -153,20 +153,33 @@ export const config = {
     transport: optionalEnv('MCP_TRANSPORT', 'stdio'),
   },
 
+  /** PostgreSQL database */
+  database: {
+    url: optionalEnv('DATABASE_URL', ''),
+    host: optionalEnv('DB_HOST', 'localhost'),
+    port: optionalEnv('DB_PORT', 5432),
+    name: optionalEnv('DB_NAME', 'adnexus'),
+    user: optionalEnv('DB_USER', 'postgres'),
+    password: optionalEnv('DB_PASSWORD', ''),
+    ssl: optionalEnv('DB_SSL', 'false') === 'true',
+    sslCa: optionalEnv('DB_SSL_CA', ''),
+    poolSize: optionalEnv('DB_POOL_SIZE', 20),
+  },
+
   /** Credit limits per plan */
   credits: {
-    free: 100,
-    pro: 2000,
-    premium: 10000,
+    free: 50,
+    growth: 500,
+    team: 5000,
     agency: 50000,
   },
 
   /** Plan configuration */
   plans: {
     free: { name: 'Free', price: 0, accounts: 1 },
-    pro: { name: 'Pro', price: 9900, accounts: 5 },
-    premium: { name: 'Premium', price: 29900, accounts: 20 },
-    agency: { name: 'Agency', price: 49900, accounts: 999 },
+    growth: { name: 'Growth', price: 4900, accounts: 3 },
+    team: { name: 'Team', price: 14900, accounts: 10 },
+    agency: { name: 'Agency', price: 39900, accounts: 25 },
   },
 } as const;
 

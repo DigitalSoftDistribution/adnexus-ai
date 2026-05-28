@@ -14,7 +14,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { pool, query, closePool } from "./connection";
+import { query, closePool } from "./connection";
 import { logger } from "../utils/logger";
 
 // ── Configuration ───────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ interface MigrationFile {
   downSql: string;
 }
 
-interface AppliedMigration {
+interface AppliedMigration extends Record<string, unknown> {
   id: number;
   name: string;
   applied_at: Date;

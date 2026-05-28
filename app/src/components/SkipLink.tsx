@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { skipToContent } from '../hooks/useA11y';
 
 /**

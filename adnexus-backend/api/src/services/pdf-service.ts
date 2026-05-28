@@ -6,12 +6,13 @@
 import puppeteer from 'puppeteer';
 import * as path from 'path';
 import { ReportResult, ChartImage, ReportSummary, PlatformBreakdown } from '../types/report';
-import { TempFileManager } from '../utils/temp-file-manager';
+import { tempFileManager } from '../utils/temp-file-manager';
+type TempFileManager = typeof tempFileManager;
 
 /** Service for generating PDF reports */
 export class PdfService {
   private tempManager: TempFileManager;
-  private browser: puppeteer.Browser | null = null;
+  private browser: any = null;
 
   constructor(tempManager: TempFileManager) {
     this.tempManager = tempManager;
@@ -20,7 +21,7 @@ export class PdfService {
   /**
    * Initialize the Puppeteer browser instance (lazy singleton)
    */
-  private async getBrowser(): Promise<puppeteer.Browser> {
+  private async getBrowser(): Promise<any> {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
         headless: true,
@@ -53,7 +54,7 @@ export class PdfService {
       await page.waitForSelector('.chart-image', { timeout: 30000 });
 
       // Generate PDF
-      const pdfPath = this.tempManager.createTempPath('report', '.pdf');
+      const pdfPath = this.tempManager.createTempPath('report.pdf');
       await page.pdf({
         path: pdfPath,
         format: 'A4',

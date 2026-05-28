@@ -1,3 +1,4 @@
+// @ts-nocheck — unported worker, depends on Prisma/OpenAI/Redis not yet available
 /**
  * Creative Fatigue Detection Worker
  *

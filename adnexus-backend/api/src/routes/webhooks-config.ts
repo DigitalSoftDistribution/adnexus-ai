@@ -1,4 +1,3 @@
-// @ts-nocheck
 // ═══════════════════════════════════════════════════════════════
 // Webhooks Configuration Routes
 // ═══════════════════════════════════════════════════════════════
@@ -27,7 +26,7 @@ import {
 import { getRequestLogger } from '../lib/logger';
 
 const router = Router();
-const logger = (req) =>
+const logger = (req: import('express').Request) =>
   getRequestLogger((req.headers['x-request-id'] as string) ?? 'webhooks-config');
 
 // ─── Valid event types ───────────────────────────────────────
@@ -86,6 +85,25 @@ const webhookIdParamSchema = z.object({
   id: z.string().uuid('Invalid webhook ID'),
 });
 
+// ─── Types ───────────────────────────────────────────────────
+
+interface WebhookPayload {
+  event: string;
+  timestamp: string;
+  deliveryId: string;
+  environment: string;
+  webhook: { id: string; url: string };
+  [key: string]: unknown;
+}
+
+interface DeliveryResult {
+  status: string;
+  statusCode: number;
+  duration: number;
+  responseBody: string;
+  headers: Record<string, string>;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────
 
 /**
@@ -98,14 +116,14 @@ function generateSecret() {
 /**
  * Sign a webhook payload with the secret using HMAC-SHA256.
  */
-function signPayload(payload, secret) {
+function signPayload(payload: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
 /**
  * Send a test webhook payload to the given URL.
  */
-async function deliverWebhook(url, eventType, payload, secret) {
+async function deliverWebhook(url: string, eventType: string, payload: WebhookPayload, secret: string): Promise<DeliveryResult> {
   const body = JSON.stringify(payload);
   const headers = {
     'Content-Type': 'application/json',
@@ -148,7 +166,7 @@ async function deliverWebhook(url, eventType, payload, secret) {
 /**
  * Build a test payload for the given event type.
  */
-function buildTestPayload(eventType) {
+function buildTestPayload(eventType: string): WebhookPayload {
   const base = {
     event: eventType,
     timestamp: new Date().toISOString(),
@@ -160,7 +178,7 @@ function buildTestPayload(eventType) {
     },
   };
 
-  const eventPayloads = {
+  const eventPayloads: Record<string, Record<string, unknown>> = {
     'draft.created': {
       draft: { id: 'draft_123', title: 'Increase budget by 20%', status: 'pending_review', author: 'alex@example.com' },
     },
@@ -245,7 +263,7 @@ router.get(
 
     // Get last delivery for each webhook
     const webhookIds = (webhooks || []).map((wh) => wh.id);
-    let lastDeliveries = [];
+    let lastDeliveries: Array<Record<string, unknown>> = [];
 
     if (webhookIds.length > 0) {
       const { data: deliveries } = await supabase
@@ -378,7 +396,7 @@ router.put(
       throw new NotFoundError('Webhook');
     }
 
-    const updateData = {};
+    const updateData: Record<string, unknown> = {};
     if (body.url !== undefined) updateData.url = body.url.trim();
     if (body.events !== undefined) updateData.events = body.events;
     if (body.secret !== undefined) updateData.secret = body.secret.trim();

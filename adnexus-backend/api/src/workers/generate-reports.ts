@@ -41,7 +41,8 @@ import {
   ChartConfig,
 } from '../types/report';
 
-import { TempFileManager } from '../utils/temp-file-manager';
+import { tempFileManager } from '../utils/temp-file-manager';
+type TempFileManager = typeof tempFileManager;
 import { ChartService, ChartRenderError } from '../services/chart-service';
 import { PdfService } from '../services/pdf-service';
 import { ExportService, ExportError } from '../services/export-service';
@@ -111,7 +112,7 @@ export class ReportGenerationWorker {
     this.config = { ...DEFAULT_WORKER_CONFIG, ...config };
 
     // Initialize temp file manager (per-job instances created in processJob)
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
 
     // Initialize services
     this.dataAggregation = new DataAggregationService();
@@ -240,7 +241,7 @@ export class ReportGenerationWorker {
     console.log(`[ReportGenerationWorker] Processing job ${job.id} (type: ${type}, attempt: ${job.attemptsMade + 1}/${this.config.maxRetries})`);
 
     // Initialize per-job temp file manager
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
     await tempManager.initialize();
 
     try {
@@ -295,7 +296,7 @@ export class ReportGenerationWorker {
 
     // Send email if recipients are configured
     if (schedule.emailRecipients && schedule.emailRecipients.length > 0) {
-      await this.sendReportEmail(result.reportId, schedule.emailRecipients, result, tempManager);
+      await this.sendReportEmailWithReport(result.reportId, schedule.emailRecipients, result, tempManager);
     }
 
     // Update schedule metadata
@@ -327,7 +328,7 @@ export class ReportGenerationWorker {
 
     // Send email if recipients are provided
     if (reportParams.emailRecipients && reportParams.emailRecipients.length > 0) {
-      await this.sendReportEmail(result.reportId, reportParams.emailRecipients, result, tempManager);
+      await this.sendReportEmailWithReport(result.reportId, reportParams.emailRecipients, result, tempManager);
     }
 
     // Final cleanup
@@ -415,7 +416,7 @@ export class ReportGenerationWorker {
     const reportId = `rpt_${uuidv4()}`;
     const errors: string[] = [];
 
-    const tempManager = existingTempManager || new TempFileManager(this.config.tempDir);
+    const tempManager = existingTempManager || tempFileManager;
     if (!existingTempManager) {
       await tempManager.initialize();
     }
@@ -527,7 +528,7 @@ export class ReportGenerationWorker {
    * Generate a scheduled report by schedule ID
    */
   async generateScheduledReport(scheduleId: string): Promise<ReportResult> {
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
     await tempManager.initialize();
 
     try {
@@ -539,7 +540,7 @@ export class ReportGenerationWorker {
       const result = await this.generateReport(schedule.reportParams, undefined, tempManager);
 
       if (schedule.emailRecipients && schedule.emailRecipients.length > 0) {
-        await this.sendReportEmail(result.reportId, schedule.emailRecipients, result, tempManager);
+        await this.sendReportEmailWithReport(result.reportId, schedule.emailRecipients, result, tempManager);
       }
 
       await this.updateScheduleLastRun(scheduleId);
@@ -555,14 +556,14 @@ export class ReportGenerationWorker {
   async generateOnDemandReport(params: ReportParams): Promise<ReportResult> {
     this.validateReportParams(params);
 
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
     await tempManager.initialize();
 
     try {
       const result = await this.generateReport(params, undefined, tempManager);
 
       if (params.emailRecipients && params.emailRecipients.length > 0) {
-        await this.sendReportEmail(result.reportId, params.emailRecipients, result, tempManager);
+        await this.sendReportEmailWithReport(result.reportId, params.emailRecipients, result, tempManager);
       }
 
       return result;
@@ -580,7 +581,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError(`Report not found: ${reportId}`, 'data-loading', false);
     }
 
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
     await tempManager.initialize();
 
     try {
@@ -623,7 +624,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError(`Report not found: ${reportId}`, 'data-loading', false);
     }
 
-    const tempManager = new TempFileManager(this.config.tempDir);
+    const tempManager = tempFileManager;
     await tempManager.initialize();
 
     try {
@@ -638,9 +639,9 @@ export class ReportGenerationWorker {
   // =========================================================================
 
   /**
-   * Send report email with PDF attachment
+   * Send report email with PDF attachment (has pre-loaded report + temp manager)
    */
-  private async sendReportEmail(
+  private async sendReportEmailWithReport(
     reportId: string,
     emails: string[],
     report: ReportResult,

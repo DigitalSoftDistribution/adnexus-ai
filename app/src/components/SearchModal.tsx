@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'

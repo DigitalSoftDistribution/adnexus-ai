@@ -1,5 +1,6 @@
-// @ts-nocheck
 import { Router, Request, Response } from 'express';
+import type { ParamsDictionary } from 'express-serve-static-core';
+import type { ParsedQs } from 'qs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,11 +24,9 @@ interface UploadRecord {
   metadata?: Record<string, any>;
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email?: string;
-  };
+interface AuthenticatedRequest extends Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>> {
+  user?: import('../types').JWTPayload;
+  file?: Express.Multer.File;
 }
 
 interface ListResponse {
@@ -161,7 +160,7 @@ router.post(
       }
 
       const file = req.file;
-      const userId = req.user?.id;
+      const userId = req.user?.sub;
       const campaignId = req.body?.campaign_id;
       const thumbnailBase64 = req.body?.thumbnail;
 
@@ -302,8 +301,8 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
     let query = supabase.from('uploads').select('*', { count: 'exact' });
 
     // User filter
-    if (req.user?.id) {
-      query = query.eq('user_id', req.user.id);
+    if (req.user?.sub) {
+      query = query.eq('user_id', req.user.sub);
     }
 
     // Name search
@@ -358,16 +357,16 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
     const total = count || 0;
 
     const response: ListResponse = {
-      data: (data || []).map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        url: row.url,
-        type: row.type,
-        size: row.size,
-        created_at: row.created_at,
-        thumbnail_url: row.thumbnail_url,
-        metadata: row.metadata,
-      })),
+      data: (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        name: row.name as string,
+        url: row.url as string,
+        type: (row.type as UploadRecord['type']) ?? 'image',
+        size: row.size as number,
+        created_at: row.created_at as string,
+        thumbnail_url: row.thumbnail_url as string | undefined,
+        metadata: row.metadata as Record<string, unknown> | undefined,
+      }) as UploadRecord),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -446,7 +445,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
     }
 
     // Authorization check
-    if (upload.user_id && upload.user_id !== req.user?.id) {
+    if (upload.user_id && upload.user_id !== req.user?.sub) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this upload',
@@ -519,7 +518,7 @@ router.patch('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, r
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Upload not found' });
     }
-    if (existing.user_id && existing.user_id !== req.user?.id) {
+    if (existing.user_id && existing.user_id !== req.user?.sub) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 

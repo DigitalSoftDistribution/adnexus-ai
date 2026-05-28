@@ -150,7 +150,7 @@ router.get(
     `;
     params.push(limit, offset);
 
-    const { rows: campaigns } = await query<UnifiedCampaign>(dataSql, params);
+    const { rows: campaigns } = await query(dataSql, params) as unknown as { rows: UnifiedCampaign[] };
 
     res.json({
       success: true,
@@ -173,14 +173,14 @@ router.get(
     const campaignId = req.params.id;
 
     // ── Fetch campaign ────────────────────────────────────────
-    const { rows: campaignRows } = await query<UnifiedCampaign>(
+    const { rows: campaignRows } = await query(
       `SELECT c.*, a.platform, a.name AS ad_account_name
          FROM campaigns c
          JOIN ad_accounts a ON a.id = c.ad_account_id
         WHERE c.id = $1 AND a.workspace_id = $2
         LIMIT 1`,
       [campaignId, workspaceId],
-    );
+    ) as unknown as { rows: UnifiedCampaign[] };
 
     if (campaignRows.length === 0) {
       throw new NotFoundError('Campaign');

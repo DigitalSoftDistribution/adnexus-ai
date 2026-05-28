@@ -745,7 +745,7 @@ export async function normalizeTikTokCampaign(
     cpc,
     start_date: campaign.create_time?.slice(0, 10),
     end_date: undefined,
-    platform_data: campaign,
+    platform_data: campaign as unknown as Record<string, unknown>,
     created_at: campaign.create_time ?? new Date().toISOString(),
   };
 }

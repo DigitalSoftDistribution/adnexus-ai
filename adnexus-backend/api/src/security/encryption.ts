@@ -5,7 +5,6 @@
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, createHmac, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 import bcrypt from "bcrypt";
 
 // ── Constants ──────────────────────────────────────────────
@@ -220,28 +219,14 @@ export function decrypt(serialized: string): string {
  * Async variant of encrypt for non-blocking operation.
  */
 export async function encryptAsync(plaintext: string): Promise<string> {
-  return promisify((cb: (err: Error | null, result?: string) => void) => {
-    try {
-      const result = encrypt(plaintext);
-      cb(null, result);
-    } catch (err) {
-      cb(err instanceof Error ? err : new Error(String(err)));
-    }
-  })();
+  return encrypt(plaintext);
 }
 
 /**
  * Async variant of decrypt for non-blocking operation.
  */
 export async function decryptAsync(serialized: string): Promise<string> {
-  return promisify((cb: (err: Error | null, result?: string) => void) => {
-    try {
-      const result = decrypt(serialized);
-      cb(null, result);
-    } catch (err) {
-      cb(err instanceof Error ? err : new Error(String(err)));
-    }
-  })();
+  return decrypt(serialized);
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -430,11 +430,11 @@ router.get(
       ad_account_id: r.ad_account_id,
       created_at: r.created_at,
       updated_at: r.updated_at,
-      ad_accounts: r.ad_accounts as { workspace_id: string } | undefined,
+      ad_accounts: r.ad_accounts as unknown as { workspace_id: string } | undefined,
     }));
 
     const adsetTargeting: TargetingRow[] = (adsetRows ?? []).map((r) => {
-      const campaigns = r.campaigns as { workspace_id: string; platform: string; name: string } | null;
+      const campaigns = r.campaigns as unknown as { workspace_id: string; platform: string; name: string } | null;
       return {
         id: r.id,
         workspace_id: campaigns?.workspace_id || '',
@@ -521,7 +521,7 @@ router.get(
     }));
 
     const adsetTargeting: TargetingRow[] = (adsetRows ?? []).map((r) => {
-      const campaigns = r.campaigns as { workspace_id: string; platform: string; name: string } | null;
+      const campaigns = r.campaigns as unknown as { workspace_id: string; platform: string; name: string } | null;
       return {
         id: r.id,
         workspace_id: campaigns?.workspace_id || '',
@@ -631,7 +631,7 @@ router.get(
     }));
 
     const adsetTargeting: TargetingRow[] = (adsetRows ?? []).map((r) => {
-      const campaigns = r.campaigns as { workspace_id: string; platform: string; name: string } | null;
+      const campaigns = r.campaigns as unknown as { workspace_id: string; platform: string; name: string } | null;
       return {
         id: r.id,
         workspace_id: campaigns?.workspace_id || '',
@@ -743,7 +743,7 @@ router.get(
     }));
 
     const adsetTargeting: TargetingRow[] = (adsetRows ?? []).map((r) => {
-      const campaigns = r.campaigns as { workspace_id: string; platform: string; name: string } | null;
+      const campaigns = r.campaigns as unknown as { workspace_id: string; platform: string; name: string } | null;
       return {
         id: r.id,
         workspace_id: campaigns?.workspace_id || '',
@@ -841,7 +841,7 @@ router.get(
       if (c.targeting) usedTypes.add(detectAudienceType(c.targeting as Record<string, unknown>));
     }
     for (const a of adsets ?? []) {
-      const camp = a.campaigns as { platform: Platform; targeting: Record<string, unknown> | null } | null;
+      const camp = a.campaigns as unknown as { platform: Platform; targeting: Record<string, unknown> | null } | null;
       if (camp?.platform) usedPlatforms.add(camp.platform);
       if (camp?.targeting) usedTypes.add(detectAudienceType(camp.targeting));
     }

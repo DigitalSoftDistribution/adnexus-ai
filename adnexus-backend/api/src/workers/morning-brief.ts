@@ -872,10 +872,18 @@ export class MorningBriefWorker {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STEP 2: CALCULATE KPIs & PLATFORM BREAKDOWN
+  // STEP 2: DAY-OVER-DAY CHANGES
   // ═══════════════════════════════════════════════════════════════════════════
 
-  private calculateKpis(campaigns: CampaignWithChanges): FullMorningBriefData['kpis'] {
+  private computeDayOverDayChanges(campaigns: CampaignWithChanges[]): CampaignWithChanges[] {
+    return campaigns;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 2 (cont): CALCULATE KPIs & PLATFORM BREAKDOWN
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  private calculateKpis(campaigns: CampaignWithChanges[]): FullMorningBriefData['kpis'] {
     const totalSpend = campaigns.reduce((s, c) => s + c.yesterdayMetrics.spend, 0);
     const totalConversions = campaigns.reduce((s, c) => s + c.yesterdayMetrics.conversions, 0);
     const totalRevenue = campaigns.reduce(
@@ -884,7 +892,7 @@ export class MorningBriefWorker {
     );
     const totalImpressions = campaigns.reduce((s, c) => s + c.yesterdayMetrics.impressions, 0);
     const totalClicks = campaigns.reduce((s, c) => s + c.yesterdayMetrics.clicks, 0);
-    const totalReach = campaigns.reduce((s, c) => s + (c.yesterdayMetrics as unknown as Record<string, number>).reach ?? 0, 0);
+    const totalReach = campaigns.reduce((s, c) => s + ((c.yesterdayMetrics as unknown as Record<string, number>).reach || 0), 0);
     const avgFrequency = campaigns.length > 0
       ? campaigns.reduce((s, c) => s + (c.frequency ?? 0), 0) / campaigns.length
       : 0;

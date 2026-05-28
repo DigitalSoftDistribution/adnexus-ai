@@ -1003,7 +1003,7 @@ export async function scheduleRecurringSyncs(
     SYNC_JOB_NAME,
     { workspaceId: 'ALL_WORKSPACES', priority: false },
     {
-      repeat: { cron },
+      repeat: { pattern: cron },
       jobId: 'recurring:all-workspaces',
     }
   );

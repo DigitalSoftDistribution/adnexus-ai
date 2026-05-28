@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * PageTransition.tsx
  *

@@ -205,7 +205,7 @@ export class TikTokClient {
     const res = await this.request<TikTokApiResponse<{ campaign_id: string; list: TikTokCampaign[] }>>(
       "POST",
       "/campaign/create/",
-      data
+      data as unknown as Record<string, unknown>
     );
     const body = unwrap(res);
     // TikTok returns the campaign in the list array
@@ -278,7 +278,7 @@ export class TikTokClient {
     const res = await this.request<TikTokApiResponse<{ ad_id: string; list: TikTokAd[] }>>(
       "POST",
       "/ad/create/",
-      data
+      data as unknown as Record<string, unknown>
     );
     const body = unwrap(res);
     return (body.list?.[0] ?? { ad_id: body.ad_id, ...data }) as TikTokAd;

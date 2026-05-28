@@ -2,7 +2,10 @@
 // Report Generation Worker Tests
 // ============================================================================
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { jest } from '@jest/globals';
+import type { Mock } from 'jest-mock';
+const { describe, it, expect, beforeEach, afterEach } = jest;
+const vi = { fn: jest.fn, mock: jest.fn, spyOn: jest.spyOn };
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ReportGenerationWorker, ReportGenerationError } from '../../src/workers/generate-reports';

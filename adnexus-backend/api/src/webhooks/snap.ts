@@ -14,7 +14,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { campaigns, adAccounts, notifications, webhookEvents, ads } from "../db/schema";
+import { campaigns, ad_accounts, notifications, webhookEvents, ads } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import { createNotification } from "../services/notifications";
@@ -176,7 +176,7 @@ async function handleCampaignChange(
     // Build update object
     const updateData: Record<string, unknown> = {
       status: newStatus,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
 
     if (campaignData.daily_budget_micro) {
@@ -199,7 +199,7 @@ async function handleCampaignChange(
     if (newStatus !== campaign.status) {
       const isSystemChange = campaignData.updated_by.startsWith("system");
       await createNotification({
-        workspaceId: campaign.workspaceId,
+        workspaceId: campaign.workspaceId ?? '',
         type: "campaign_status_change",
         title: "Snap Campaign Status Changed",
         message: `Campaign "${campaignData.campaign_name}" is now ${campaignData.status}${
@@ -244,19 +244,19 @@ async function handleAccountChange(
     }
 
     await db
-      .update(adAccounts)
+      .update(ad_accounts)
       .set({
         status: accountData.status,
         disabledReason: accountData.disable_reason ?? null,
         spendCap: accountData.spending_limit_micro
           ? String(accountData.spending_limit_micro / 1_000_000)
           : undefined,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(
         and(
-          eq(adAccounts.platform, "snap"),
-          eq(adAccounts.platformAccountId, adAccountId)
+          eq(ad_accounts.platform, "snap"),
+          eq(ad_accounts.platformAccountId, adAccountId)
         )
       );
 
@@ -310,7 +310,7 @@ async function handleCreativeReview(
               ?.map((r) => `${r.policy_topic}: ${r.description}`)
               .join("; ")
           : null,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(
         and(
@@ -466,12 +466,12 @@ async function resolveWorkspaceId(
   if (!platformAccountId) return "default";
 
   const account = await db
-    .select({ workspaceId: adAccounts.workspaceId })
-    .from(adAccounts)
+    .select({ workspaceId: ad_accounts.workspaceId })
+    .from(ad_accounts)
     .where(
       and(
-        eq(adAccounts.platform, platform),
-        eq(adAccounts.platformAccountId, platformAccountId)
+        eq(ad_accounts.platform, platform),
+        eq(ad_accounts.platformAccountId, platformAccountId)
       )
     )
     .limit(1);
@@ -540,7 +540,7 @@ export async function handleSnapWebhook(req: Request, res: Response): Promise<vo
 
   // 4. Idempotency check
   try {
-    await db.insert(webhookEvents).values({
+    await db.insert(webhookEvents).values({ id: crypto.randomUUID() as string,
       eventId: payload.event_id,
       platform: "snap",
       eventType: payload.event_type,

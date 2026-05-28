@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from '../components/SEO';
@@ -189,6 +188,7 @@ export default function WhiteLabelReports() {
     .replace('{date}', 'May 23, 2026');
 
   return (
+    <>
     <SEO
       title="White-Label Reports"
       description="Create and customize white-label reports for your clients. Add your branding, logos, and custom color schemes."
@@ -932,5 +932,6 @@ export default function WhiteLabelReports() {
         )}
       </div>
     </div>
+    </>
   );
 }
