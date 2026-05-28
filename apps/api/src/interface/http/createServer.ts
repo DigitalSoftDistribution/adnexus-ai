@@ -38,6 +38,9 @@ import googleOAuthRoutes from '../../routes/auth/google';
 // OpenAPI
 import { generateOpenAPIDocument } from '../../openapi/generator';
 
+// Realtime
+import { EventBus, createSSEHandler } from '../../realtime';
+
 export function createServer() {
   const app = express();
 
@@ -86,16 +89,17 @@ export function createServer() {
   });
 
   // Dependency Injection
-  const eventBus = new InMemoryEventBus();
+  const domainEventBus = new InMemoryEventBus();
   const auditLogger = new SupabaseAuditLogger();
   const notificationService = new NotificationService();
+  const realtimeEventBus = new EventBus();
 
   const container = new Container({
     campaignRepository: new CampaignRepository(),
     draftRepository: new DraftRepository(),
     workspaceRepository: new WorkspaceRepository(),
     userRepository: new UserRepository(),
-    eventBus,
+    eventBus: domainEventBus,
     auditLogger,
     notificationService,
   });
@@ -108,6 +112,14 @@ export function createServer() {
   // New Clean Architecture Routes (v2)
   app.use('/api/v2/campaigns', authenticatedRateLimiter, createCampaignRoutes(container));
   app.use('/api/v2/drafts', authenticatedRateLimiter, createDraftRoutes(container));
+
+  // Realtime SSE endpoint
+  app.get('/api/v2/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));
+
+  // Realtime stats endpoint
+  app.get('/api/v2/events/stats', authenticatedRateLimiter, (_req, res) => {
+    res.json({ success: true, data: realtimeEventBus.getStats() });
+  });
 
   // OpenAPI Spec & Documentation
   const openApiDocument = generateOpenAPIDocument();
