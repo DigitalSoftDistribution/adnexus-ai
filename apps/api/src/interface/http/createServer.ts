@@ -35,6 +35,9 @@ import authRoutes from '../../routes/auth';
 import metaOAuthRoutes from '../../routes/auth/meta';
 import googleOAuthRoutes from '../../routes/auth/google';
 
+// OpenAPI
+import { generateOpenAPIDocument } from '../../openapi/generator';
+
 export function createServer() {
   const app = express();
 
@@ -105,6 +108,30 @@ export function createServer() {
   // New Clean Architecture Routes (v2)
   app.use('/api/v2/campaigns', authenticatedRateLimiter, createCampaignRoutes(container));
   app.use('/api/v2/drafts', authenticatedRateLimiter, createDraftRoutes(container));
+
+  // OpenAPI Spec & Documentation
+  const openApiDocument = generateOpenAPIDocument();
+
+  app.get('/api/v2/openapi.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json(openApiDocument);
+  });
+
+  app.get('/api/v2/docs', async (_req, res) => {
+    const { apiReference } = await import('@scalar/express-api-reference');
+    res.send(
+      apiReference({
+        spec: {
+          content: openApiDocument,
+        },
+        theme: 'purple',
+        layout: 'modern',
+        metaData: {
+          title: 'AdNexus AI API Documentation',
+        },
+      }),
+    );
+  });
 
   // Error Handling
   app.use(expressErrorHandler);
