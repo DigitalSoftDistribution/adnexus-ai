@@ -33,7 +33,7 @@ if [ -n "$TOKEN" ]; then
   curl -sf "$BASE/api/v1/drafts" -H "$AUTH" >/dev/null && pass "GET /drafts" || fail "GET /drafts" "$?"
   curl -sf "$BASE/api/v1/alerts" -H "$AUTH" >/dev/null && pass "GET /alerts" || fail "GET /alerts" "$?"
   curl -sf "$BASE/api/v1/settings" -H "$AUTH" >/dev/null && pass "GET /settings" || fail "GET /settings" "$?"
-  curl -sf "$BASE/api/v1/billing/plans" -H "$AUTH" >/dev/null && pass "GET /billing/plans" || fail "GET /billing/plans" "$?"
+  curl -sf "$BASE/api/v1/billing" -H "$AUTH" >/dev/null && pass "GET /billing" || fail "GET /billing" "$?"
 fi
 
 # 5. WireMock Ad APIs
