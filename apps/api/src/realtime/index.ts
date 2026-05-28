@@ -30,6 +30,9 @@ export { createWebSocketServer } from './websocket';
 export { RealtimeService } from './RealtimeService';
 export type { RealtimeServiceConfig } from './RealtimeService';
 
+import { RealtimeService } from './RealtimeService';
+import type { RealtimeServiceConfig } from './RealtimeService';
+
 export function createRealtimeService(config?: RealtimeServiceConfig): RealtimeService {
   return new RealtimeService(config);
 }
