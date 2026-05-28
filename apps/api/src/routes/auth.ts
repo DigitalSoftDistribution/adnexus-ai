@@ -48,7 +48,10 @@ const inviteSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.enum(['admin', 'analyst', 'viewer']).default('viewer'),
   workspaceId: z.string().uuid('Invalid workspace ID'),
-});
+}).refine(
+  (data) => data.role !== 'owner',
+  { message: 'Cannot invite as owner via this endpoint', path: ['role'] }
+);
 
 const acceptInviteSchema = z.object({
   token: z.string().min(1, 'Invitation token is required'),
@@ -608,6 +611,11 @@ router.post(
 
     if (!inviterMembership || !['owner', 'admin'].includes(inviterMembership.role)) {
       throw new UnauthorizedError('Only workspace owners and admins can invite members');
+    }
+
+    // ── 1b. Admins cannot invite other admins ──
+    if (inviterMembership.role === 'admin' && body.role === 'admin') {
+      throw new UnauthorizedError('Only workspace owners can invite admins');
     }
 
     // ── 2. Prevent duplicate pending invites ──

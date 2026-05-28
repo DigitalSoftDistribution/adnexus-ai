@@ -55,6 +55,9 @@ import auditLogRoutes from './routes/audit-log';
 import adminRoutes from './routes/admin';
 import apiKeyRoutes from './routes/api-keys';
 import publicAuditRoutes from './routes/public-audit';
+import commentRoutes from './routes/comments';
+import uploadRoutes from './routes/upload';
+import alertRoutes from './routes/alerts';
 
 // ─── Real-time ───────────────────────────────────────────────
 
@@ -76,7 +79,21 @@ const rt = createRealtimeService();
  */
 app.use(
   helmet({
-    contentSecurityPolicy: isProduction ? undefined : false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'nonce-{RANDOM}'"],
+        styleSrc: ["'self'", "'nonce-{RANDOM}'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: [],
+      },
+    },
     crossOriginEmbedderPolicy: isProduction,
   }),
 );
@@ -202,12 +219,17 @@ app.use('/api/v1/public', unauthenticatedRateLimiter, publicAuditRoutes);
 // WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
 // ═══════════════════════════════════════════════════════════════
 
-/** Stripe billing webhook requires raw body for signature verification */
-app.use(
+/** Stripe billing webhook — dedicated handler for raw body */
+app.post(
   '/api/v1/billing/webhook',
   unauthenticatedRateLimiter,
   express.raw({ type: 'application/json' }),
-  billingRoutes,
+  (req, res) => {
+    // Forward to billing route handler for webhook
+    // The billing router's POST /webhook will handle this
+    req.url = '/webhook';
+    billingRoutes(req, res);
+  },
 );
 
 /** External platform webhooks */
@@ -249,6 +271,9 @@ app.use('/api/v1/webhooks', webhooksConfigRoutes);
 app.use('/api/v1/audit-log', auditLogRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/api-keys', apiKeyRoutes);
+app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/alerts', alertRoutes);
 
 // ─── Real-Time: SSE Endpoint ─────────────────────────────────
 

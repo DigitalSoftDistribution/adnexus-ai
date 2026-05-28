@@ -163,6 +163,90 @@ router.get(
 );
 
 // ═══════════════════════════════════════════════════════════════
+// GET /campaigns/summary — Workspace campaign summary
+// MUST come before /:id to avoid being captured as an ID
+// ═══════════════════════════════════════════════════════════════
+
+router.get(
+  '/summary',
+  asyncHandler(async (req, res) => {
+    const workspaceId = req.workspaceId!;
+
+    // ── Total campaigns & aggregate performance ───────────────
+    const { rows: aggregate } = await query<{
+      total_campaigns: number;
+      active_campaigns: number;
+      total_spend: number;
+      total_conversions: number;
+      avg_ctr: number;
+      avg_roas: number;
+    }>(
+      `SELECT
+         COUNT(*)::int AS total_campaigns,
+         COUNT(*) FILTER (WHERE c.status = 'active')::int AS active_campaigns,
+         COALESCE(SUM(c.spend), 0)::numeric AS total_spend,
+         COALESCE(SUM(c.conversions), 0)::int AS total_conversions,
+         COALESCE(AVG(NULLIF(c.ctr, 0)), 0)::numeric AS avg_ctr,
+         COALESCE(AVG(NULLIF(c.roas, 0)), 0)::numeric AS avg_roas
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+      WHERE a.workspace_id = $1`,
+      [workspaceId],
+    );
+
+    // ── Platform breakdown ────────────────────────────────────
+    const { rows: platformBreakdown } = await query<{
+      platform: string;
+      count: number;
+      active_count: number;
+      total_spend: number;
+    }>(
+      `SELECT
+         a.platform,
+         COUNT(*)::int AS count,
+         COUNT(*) FILTER (WHERE c.status = 'active')::int AS active_count,
+         COALESCE(SUM(c.spend), 0)::numeric AS total_spend
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+      WHERE a.workspace_id = $1
+      GROUP BY a.platform`,
+      [workspaceId],
+    );
+
+    // ── Status breakdown ──────────────────────────────────────
+    const { rows: statusBreakdown } = await query<{
+      status: string;
+      count: number;
+    }>(
+      `SELECT
+         c.status,
+         COUNT(*)::int AS count
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+      WHERE a.workspace_id = $1
+      GROUP BY c.status`,
+      [workspaceId],
+    );
+
+    const agg = aggregate[0];
+
+    res.json({
+      success: true,
+      data: {
+        totalCampaigns: agg?.total_campaigns ?? 0,
+        activeCampaigns: agg?.active_campaigns ?? 0,
+        totalSpend: agg?.total_spend ?? 0,
+        totalConversions: agg?.total_conversions ?? 0,
+        avgCTR: agg?.avg_ctr ?? 0,
+        avgROAS: agg?.avg_roas ?? 0,
+        platformBreakdown: platformBreakdown ?? [],
+        statusBreakdown: statusBreakdown ?? [],
+      },
+    });
+  }),
+);
+
+// ═══════════════════════════════════════════════════════════════
 // GET /campaigns/:id — Get single campaign (with ad sets + ads)
 // ═══════════════════════════════════════════════════════════════
 
@@ -253,7 +337,7 @@ router.post(
         endDate: z.string().optional(),
       }).optional(),
       adAccountId: z.string().uuid(),
-    });
+    }).strict(); // Reject unknown fields — prevents client from sending server-controlled fields like spend, status
 
     const body = schema.parse(req.body);
 
@@ -322,7 +406,7 @@ router.put(
         endDate: z.string().optional(),
       }).optional(),
       status: z.enum(['active', 'paused', 'draft', 'ended']).optional(),
-    });
+    }).strict(); // Reject unknown fields
 
     const body = schema.parse(req.body);
 
@@ -738,89 +822,6 @@ router.get(
           avg_frequency: 0,
         },
         daily,
-      },
-    });
-  }),
-);
-
-// ═══════════════════════════════════════════════════════════════
-// GET /campaigns/summary — Workspace campaign summary
-// ═══════════════════════════════════════════════════════════════
-
-router.get(
-  '/summary',
-  asyncHandler(async (req, res) => {
-    const workspaceId = req.workspaceId!;
-
-    // ── Total campaigns & aggregate performance ───────────────
-    const { rows: aggregate } = await query<{
-      total_campaigns: number;
-      active_campaigns: number;
-      total_spend: number;
-      total_conversions: number;
-      avg_ctr: number;
-      avg_roas: number;
-    }>(
-      `SELECT
-         COUNT(*)::int AS total_campaigns,
-         COUNT(*) FILTER (WHERE c.status = 'active')::int AS active_campaigns,
-         COALESCE(SUM(c.spend), 0)::numeric AS total_spend,
-         COALESCE(SUM(c.conversions), 0)::int AS total_conversions,
-         COALESCE(AVG(NULLIF(c.ctr, 0)), 0)::numeric AS avg_ctr,
-         COALESCE(AVG(NULLIF(c.roas, 0)), 0)::numeric AS avg_roas
-       FROM campaigns c
-       JOIN ad_accounts a ON a.id = c.ad_account_id
-      WHERE a.workspace_id = $1`,
-      [workspaceId],
-    );
-
-    // ── Platform breakdown ────────────────────────────────────
-    const { rows: platformBreakdown } = await query<{
-      platform: string;
-      count: number;
-      active_count: number;
-      total_spend: number;
-    }>(
-      `SELECT
-         a.platform,
-         COUNT(*)::int AS count,
-         COUNT(*) FILTER (WHERE c.status = 'active')::int AS active_count,
-         COALESCE(SUM(c.spend), 0)::numeric AS total_spend
-       FROM campaigns c
-       JOIN ad_accounts a ON a.id = c.ad_account_id
-      WHERE a.workspace_id = $1
-      GROUP BY a.platform`,
-      [workspaceId],
-    );
-
-    // ── Status breakdown ──────────────────────────────────────
-    const { rows: statusBreakdown } = await query<{
-      status: string;
-      count: number;
-    }>(
-      `SELECT
-         c.status,
-         COUNT(*)::int AS count
-       FROM campaigns c
-       JOIN ad_accounts a ON a.id = c.ad_account_id
-      WHERE a.workspace_id = $1
-      GROUP BY c.status`,
-      [workspaceId],
-    );
-
-    const agg = aggregate[0];
-
-    res.json({
-      success: true,
-      data: {
-        totalCampaigns: agg?.total_campaigns ?? 0,
-        activeCampaigns: agg?.active_campaigns ?? 0,
-        totalSpend: agg?.total_spend ?? 0,
-        totalConversions: agg?.total_conversions ?? 0,
-        avgCTR: agg?.avg_ctr ?? 0,
-        avgROAS: agg?.avg_roas ?? 0,
-        platformBreakdown: platformBreakdown ?? [],
-        statusBreakdown: statusBreakdown ?? [],
       },
     });
   }),
