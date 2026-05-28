@@ -1,172 +1,184 @@
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
 dotenv.config();
 
-// ─── Helpers ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  Unified Environment Schema (Zod-validated)
+//  Fixes naming drift between .env.example and old config
+// ═══════════════════════════════════════════════════════════════
 
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value || value.trim().length === 0) {
-    throw new Error(`[Config] Missing required environment variable: ${key}`);
-  }
-  return value;
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'staging', 'production']).default('development'),
+  PORT: z.coerce.number().default(3001),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+  // Database
+  DATABASE_URL: z.string().url().optional(),
+  DB_HOST: z.string().default('localhost'),
+  DB_PORT: z.coerce.number().default(5432),
+  DB_NAME: z.string().default('adnexus'),
+  DB_USER: z.string().default('postgres'),
+  DB_PASSWORD: z.string().default(''),
+  DB_SSL: z.string().default('false'),
+  DB_SSL_CA: z.string().default(''),
+  DB_POOL_SIZE: z.coerce.number().default(20),
+
+  // Supabase
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_SERVICE_KEY: z.string().min(1),
+  SUPABASE_ANON_KEY: z.string().default(''),
+
+  // Auth
+  JWT_SECRET: z.string().min(32),
+  JWT_ACCESS_EXPIRY: z.string().default('15m'),
+  JWT_REFRESH_EXPIRY: z.string().default('7d'),
+
+  // Redis
+  REDIS_URL: z.string().url().optional(),
+
+  // CORS
+  CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
+
+  // Rate limits
+  RATE_LIMIT_AUTHENTICATED: z.coerce.number().default(100),
+  RATE_LIMIT_UNAUTHENTICATED: z.coerce.number().default(20),
+  RATE_LIMIT_WEBHOOK: z.coerce.number().default(200),
+  RATE_LIMIT_BURST_MULTIPLIER: z.coerce.number().default(3),
+
+  // Frontend
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
+  // Platform APIs
+  META_APP_ID: z.string().default(''),
+  META_APP_SECRET: z.string().default(''),
+  META_API_VERSION: z.string().default('v19.0'),
+
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+  GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
+
+  TIKTOK_APP_ID: z.string().default(''),
+  TIKTOK_APP_SECRET: z.string().default(''),
+
+  SNAP_CLIENT_ID: z.string().default(''),
+  SNAP_CLIENT_SECRET: z.string().default(''),
+
+  // Billing
+  STRIPE_SECRET_KEY: z.string().default(''),
+  STRIPE_WEBHOOK_SECRET: z.string().default(''),
+  STRIPE_PUBLISHABLE_KEY: z.string().default(''),
+
+  // MCP
+  MCP_API_KEY: z.string().default(''),
+  MCP_TRANSPORT: z.string().default('stdio'),
+
+  // Monitoring
+  SENTRY_DSN: z.string().url().optional(),
+});
+
+// Parse and validate environment variables
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  const issues = parsedEnv.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+  throw new Error(
+    `[Config] Environment validation failed:\n${issues.join('\n')}`
+  );
 }
 
-function optionalEnv(key: string, defaultValue: string): string;
-function optionalEnv(key: string, defaultValue: number): number;
-function optionalEnv(key: string, defaultValue: string | number): string | number {
-  const value = process.env[key];
-  if (!value || value.trim().length === 0) {
-    return defaultValue;
-  }
-  return typeof defaultValue === 'number' ? parseInt(value, 10) : value;
-}
+const env = parsedEnv.data;
 
-function parseListEnv(key: string, defaultValue: string[]): string[] {
-  const value = process.env[key];
-  if (!value || value.trim().length === 0) {
-    return defaultValue;
-  }
-  return value.split(',').map((s) => s.trim()).filter(Boolean);
-}
-
-// ─── Validation ──────────────────────────────────────────────
-
-function validateConfig(): void {
-  // Required variables are validated on access below,
-  // but we do a pre-flight check here for early failure.
-  const required = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_KEY',
-    'JWT_SECRET',
-  ];
-
-  const missing: string[] = [];
-  for (const key of required) {
-    const value = process.env[key];
-    if (!value || value.trim().length === 0) {
-      missing.push(key);
-    }
-  }
-
-  if (missing.length > 0) {
-    throw new Error(
-      `[Config] Missing ${missing.length} required environment variable(s): ${missing.join(', ')}`
-    );
-  }
-}
-
-// Run validation immediately so the app fails fast on misconfiguration
-validateConfig();
-
-// ─── Typed Config ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  Typed Config Object
+// ═══════════════════════════════════════════════════════════════
 
 export const config = {
-  /** Application environment */
-  nodeEnv: optionalEnv('NODE_ENV', 'development'),
+  nodeEnv: env.NODE_ENV,
+  port: env.PORT,
+  logLevel: env.LOG_LEVEL,
 
-  /** Server port */
-  port: optionalEnv('PORT', 3001),
-
-  /** Log level for structured logger */
-  logLevel: optionalEnv('LOG_LEVEL', 'info'),
-
-  /** Supabase configuration */
   supabase: {
-    url: requireEnv('SUPABASE_URL'),
-    serviceKey: requireEnv('SUPABASE_SERVICE_KEY'),
-    anonKey: optionalEnv('SUPABASE_ANON_KEY', ''),
+    url: env.SUPABASE_URL,
+    serviceKey: env.SUPABASE_SERVICE_KEY,
+    anonKey: env.SUPABASE_ANON_KEY,
   },
 
-  /** JWT authentication */
   jwt: {
-    secret: requireEnv('JWT_SECRET'),
-    expiresIn: optionalEnv('JWT_EXPIRES_IN', '7d'),
-    refreshExpiresIn: optionalEnv('JWT_REFRESH_EXPIRES_IN', '30d'),
+    secret: env.JWT_SECRET,
+    accessExpiry: env.JWT_ACCESS_EXPIRY,
+    refreshExpiry: env.JWT_REFRESH_EXPIRY,
+    // Legacy aliases for backward compatibility during migration
+    get expiresIn() { return this.accessExpiry; },
+    get refreshExpiresIn() { return this.refreshExpiry; },
   },
 
-  /** Redis configuration */
   redis: {
-    url: optionalEnv('REDIS_URL', ''),
+    url: env.REDIS_URL,
   },
 
-  /** CORS allowed origins */
   cors: {
-    origin: parseListEnv('CORS_ORIGIN', [
-      'http://localhost:5173',
-      'http://localhost:3000',
-    ]),
+    origin: env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
     credentials: true,
   },
 
-  /** Rate limiting configuration */
   rateLimit: {
-    /** Authenticated users: requests per minute (default: 100) */
-    authenticatedPerMinute: optionalEnv('RATE_LIMIT_AUTHENTICATED', 100),
-    /** Unauthenticated users: requests per minute (default: 20) */
-    unauthenticatedPerMinute: optionalEnv('RATE_LIMIT_UNAUTHENTICATED', 20),
-    /** Webhook endpoints: requests per minute (default: 200) */
-    webhookPerMinute: optionalEnv('RATE_LIMIT_WEBHOOK', 200),
-    /** Burst limit multiplier (default: 3x base rate) */
-    burstMultiplier: optionalEnv('RATE_LIMIT_BURST_MULTIPLIER', 3),
+    authenticatedPerMinute: env.RATE_LIMIT_AUTHENTICATED,
+    unauthenticatedPerMinute: env.RATE_LIMIT_UNAUTHENTICATED,
+    webhookPerMinute: env.RATE_LIMIT_WEBHOOK,
+    burstMultiplier: env.RATE_LIMIT_BURST_MULTIPLIER,
   },
 
-  /** Frontend URL (for redirects/emails) */
   frontend: {
-    url: optionalEnv('FRONTEND_URL', 'http://localhost:5173'),
+    url: env.FRONTEND_URL,
   },
 
-  /** Platform API credentials */
   meta: {
-    appId: optionalEnv('META_APP_ID', ''),
-    appSecret: optionalEnv('META_APP_SECRET', ''),
-    apiVersion: optionalEnv('META_API_VERSION', 'v19.0'),
+    appId: env.META_APP_ID,
+    appSecret: env.META_APP_SECRET,
+    apiVersion: env.META_API_VERSION,
     graphUrl: 'https://graph.facebook.com',
   },
 
   google: {
-    clientId: optionalEnv('GOOGLE_CLIENT_ID', ''),
-    clientSecret: optionalEnv('GOOGLE_CLIENT_SECRET', ''),
-    developerToken: optionalEnv('GOOGLE_DEVELOPER_TOKEN', ''),
+    clientId: env.GOOGLE_CLIENT_ID,
+    clientSecret: env.GOOGLE_CLIENT_SECRET,
+    developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
   },
 
   tiktok: {
-    appId: optionalEnv('TIKTOK_APP_ID', ''),
-    appSecret: optionalEnv('TIKTOK_APP_SECRET', ''),
+    appId: env.TIKTOK_APP_ID,
+    appSecret: env.TIKTOK_APP_SECRET,
   },
 
   snap: {
-    clientId: optionalEnv('SNAP_CLIENT_ID', ''),
-    clientSecret: optionalEnv('SNAP_CLIENT_SECRET', ''),
+    clientId: env.SNAP_CLIENT_ID,
+    clientSecret: env.SNAP_CLIENT_SECRET,
   },
 
-  /** Stripe billing */
   stripe: {
-    secretKey: optionalEnv('STRIPE_SECRET_KEY', ''),
-    webhookSecret: optionalEnv('STRIPE_WEBHOOK_SECRET', ''),
-    publishableKey: optionalEnv('STRIPE_PUBLISHABLE_KEY', ''),
+    secretKey: env.STRIPE_SECRET_KEY,
+    webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+    publishableKey: env.STRIPE_PUBLISHABLE_KEY,
   },
 
-  /** MCP server */
   mcp: {
-    apiKey: optionalEnv('MCP_API_KEY', ''),
-    transport: optionalEnv('MCP_TRANSPORT', 'stdio'),
+    apiKey: env.MCP_API_KEY,
+    transport: env.MCP_TRANSPORT,
   },
 
-  /** PostgreSQL database */
   database: {
-    url: optionalEnv('DATABASE_URL', ''),
-    host: optionalEnv('DB_HOST', 'localhost'),
-    port: optionalEnv('DB_PORT', 5432),
-    name: optionalEnv('DB_NAME', 'adnexus'),
-    user: optionalEnv('DB_USER', 'postgres'),
-    password: optionalEnv('DB_PASSWORD', ''),
-    ssl: optionalEnv('DB_SSL', 'false') === 'true',
-    sslCa: optionalEnv('DB_SSL_CA', ''),
-    poolSize: optionalEnv('DB_POOL_SIZE', 20),
+    url: env.DATABASE_URL,
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    name: env.DB_NAME,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
+    ssl: env.DB_SSL === 'true',
+    sslCa: env.DB_SSL_CA,
+    poolSize: env.DB_POOL_SIZE,
   },
 
-  /** Credit limits per plan */
   credits: {
     free: 50,
     growth: 500,
@@ -174,7 +186,6 @@ export const config = {
     agency: 50000,
   },
 
-  /** Plan configuration */
   plans: {
     free: { name: 'Free', price: 0, accounts: 1 },
     growth: { name: 'Growth', price: 4900, accounts: 3 },
@@ -183,18 +194,11 @@ export const config = {
   },
 } as const;
 
-// ─── Derived Types ───────────────────────────────────────────
-
 export type Config = typeof config;
 export type Plan = keyof typeof config.plans;
 
-/** Check if running in production */
 export const isProduction = config.nodeEnv === 'production';
-
-/** Check if running in development */
 export const isDevelopment = config.nodeEnv === 'development';
-
-/** Check if running in test mode */
 export const isTest = config.nodeEnv === 'test';
 
 export default config;
