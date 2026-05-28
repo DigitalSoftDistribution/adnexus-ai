@@ -27,3 +27,9 @@ export { EventBus } from './EventBus';
 export type { EventType, EventMessage, SSEConnection, WSConnection } from './EventBus';
 export { createSSEHandler } from './sse';
 export { createWebSocketServer } from './websocket';
+export { RealtimeService } from './RealtimeService';
+export type { RealtimeServiceConfig } from './RealtimeService';
+
+export function createRealtimeService(config?: RealtimeServiceConfig): RealtimeService {
+  return new RealtimeService(config);
+}
