@@ -46,8 +46,8 @@ function getPool(): Pool {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
       ssl: config.database.ssl
-        ? { rejectUnauthorized: true, ca: config.database.sslCa }
-        : undefined,
+        ? { rejectUnauthorized: false }
+        : false,
     });
     setupPoolListeners(_pool);
   }
