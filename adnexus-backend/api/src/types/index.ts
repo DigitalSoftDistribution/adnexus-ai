@@ -19,7 +19,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
+  exp?: number;
   created_at: string;
   updated_at: string;
 }

@@ -35,6 +35,7 @@ import { register, getMetrics } from './lib/monitoring';
 // ─── Route imports ───────────────────────────────────────────
 
 import authRoutes from './routes/auth';
+import metaOAuthRoutes from './routes/auth/meta';
 import campaignRoutes from './routes/campaigns';
 import adRoutes from './routes/ads';
 import draftRoutes from './routes/drafts';
@@ -184,6 +185,9 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 // ─── Public Routes (unauthenticated rate limiting) ───────────
 
 app.use('/api/v1/auth', unauthenticatedRateLimiter, authRoutes);
+
+// Meta OAuth routes — public, no auth required
+app.use('/api/v1/auth/meta', unauthenticatedRateLimiter, metaOAuthRoutes);
 
 // ═══════════════════════════════════════════════════════════════
 // WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed

@@ -10,6 +10,7 @@ declare global {
     interface Request {
       user?: JWTPayload;
       workspaceId?: string;
+      workspace?: { id: string };
     }
   }
 }
@@ -88,3 +89,17 @@ export const requireAdmin = requireRole('owner', 'admin');
 
 /** Any authenticated workspace member */
 export const requireMember = requireRole('owner', 'admin', 'analyst', 'viewer');
+
+/** Attach workspace from header/param and validate membership */
+export async function requireWorkspace(req: Request, _res: Response, next: NextFunction) {
+  try {
+    const wsId = req.headers['x-workspace-id'] as string || req.params.workspaceId;
+    if (!wsId) {
+      throw new UnauthorizedError();
+    }
+    req.workspace = { id: wsId };
+    next();
+  } catch (err) {
+    next(err);
+  }
+}

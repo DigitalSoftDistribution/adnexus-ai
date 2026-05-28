@@ -68,7 +68,7 @@ function signAccessToken(userId: string, email: string, workspaceId: string, rol
   return jwt.sign(
     { sub: userId, email, workspace_id: workspaceId, role },
     config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn },
+    { expiresIn: config.jwt.expiresIn as string },
   );
 }
 
@@ -80,7 +80,7 @@ function signRefreshToken(userId: string): string {
   return jwt.sign(
     { sub: userId, type: 'refresh' },
     config.jwt.secret,
-    { expiresIn: config.jwt.refreshExpiresIn },
+    { expiresIn: config.jwt.refreshExpiresIn as string },
   );
 }
 

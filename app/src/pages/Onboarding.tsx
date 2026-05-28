@@ -306,15 +306,14 @@ export default function Onboarding() {
   const [newRole, setNewRole] = useState('Analyst');
   const [inviting, setInviting] = useState(false);
 
-  /* ── Simulated API connect handler ── */
-  const handleConnect = (
+  /* ── Connect handler using real API + OAuth ── */
+  const handleConnect = async (
     platformName: string,
     setConnected: (v: boolean) => void,
     setConnecting: (v: boolean) => void,
-    hasAccountId: boolean
   ) => {
-    if (isDemoMode) {
-      /* In demo mode, simulate a quick connection without real API calls */
+    // If demo mode or no API configured, simulate
+    if (isDemoMode || !import.meta.env.VITE_SUPABASE_URL) {
       setConnecting(true);
       setTimeout(() => {
         setConnecting(false);
@@ -323,18 +322,28 @@ export default function Onboarding() {
       return;
     }
 
-    /* Production mode — would call real OAuth/API here */
-    if (!hasAccountId) {
-      /* eslint-disable-next-line no-console */
-      console.warn(`[Onboarding] No account ID provided for ${platformName}`);
-      return;
-    }
-    setConnecting(true);
-    /* Simulated API call for non-demo environments without a backend */
-    setTimeout(() => {
+    try {
+      setConnecting(true);
+      const workspaceId = workspace?.id;
+      if (!workspaceId) {
+        console.error('No workspace ID available');
+        return;
+      }
+
+      const result = await settingsApi.connectAccount(platformName, workspaceId);
+
+      if ('redirectUrl' in result) {
+        // OAuth flow — redirect user to platform
+        window.location.href = result.redirectUrl;
+      } else {
+        // Direct connection — account created
+        setConnected(true);
+      }
+    } catch (err) {
+      console.error(`Failed to connect ${platformName}:`, err);
+    } finally {
       setConnecting(false);
-      setConnected(true);
-    }, 1200);
+    }
   };
 
   /* ── Simulated team invite handler ── */
@@ -633,7 +642,7 @@ export default function Onboarding() {
                     connected={metaConnected}
                     connecting={metaConnecting}
                     onConnect={() =>
-                      handleConnect('Meta Ads', setMetaConnected, setMetaConnecting, !!metaAccountId)
+                      handleConnect('Meta Ads', setMetaConnected, setMetaConnecting)
                     }
                   />
                   <PlatformConnect
@@ -645,7 +654,7 @@ export default function Onboarding() {
                     connected={googleConnected}
                     connecting={googleConnecting}
                     onConnect={() =>
-                      handleConnect('Google Ads', setGoogleConnected, setGoogleConnecting, !!googleAccountId)
+                      handleConnect('Google Ads', setGoogleConnected, setGoogleConnecting)
                     }
                   >
                     <input
@@ -688,7 +697,7 @@ export default function Onboarding() {
                     connected={tiktokConnected}
                     connecting={tiktokConnecting}
                     onConnect={() =>
-                      handleConnect('TikTok Ads', setTiktokConnected, setTiktokConnecting, !!tiktokAccountId)
+                      handleConnect('TikTok Ads', setTiktokConnected, setTiktokConnecting)
                     }
                   />
                   <PlatformConnect
@@ -701,7 +710,7 @@ export default function Onboarding() {
                     connected={snapConnected}
                     connecting={snapConnecting}
                     onConnect={() =>
-                      handleConnect('Snap Ads', setSnapConnected, setSnapConnecting, !!snapAccountId)
+                      handleConnect('Snap Ads', setSnapConnected, setSnapConnecting)
                     }
                   />
                 </div>

@@ -2017,34 +2017,23 @@ let MOCK_INTEGRATIONS: IntegrationConfig = {
 
 export const settingsApi = {
   async integrations(): Promise<ConnectedAccount[]> {
-    await delay(300 + Math.random() * 200);
-    return [...MOCK_ACCOUNTS];
+    const { data } = await apiClient.get('/settings/accounts');
+    return data;
   },
-  async connectAccount(platform: string): Promise<ConnectedAccount> {
-    await delay(600);
-    const colors: Record<string, string> = { Meta: '#1877F2', Google: '#DB4437', TikTok: '#00F2EA', Snap: '#FFFC00' };
-    const newAccount: ConnectedAccount = {
-      id: `acc_${Date.now()}`,
-      platform: platform as 'Meta' | 'Google' | 'TikTok' | 'Snap',
-      name: `${platform} Account`,
-      accountId: `${platform.toLowerCase()}_${Math.random().toString(36).slice(2, 8)}`,
-      status: 'active',
-      lastSynced: new Date().toISOString(),
-      brandColor: colors[platform] || '#555',
-    };
-    MOCK_ACCOUNTS.push(newAccount);
-    return newAccount;
+  async connectAccount(platform: string, workspaceId: string): Promise<{ redirectUrl: string } | ConnectedAccount> {
+    // For OAuth platforms, returns the OAuth URL. For others, returns the created account.
+    if (platform === 'Meta') {
+      return { redirectUrl: `${API_BASE}/api/v1/auth/meta/connect?workspace_id=${workspaceId}` };
+    }
+    const { data } = await apiClient.post('/settings/accounts', { platform, workspace_id: workspaceId });
+    return data;
   },
-  async disconnectAccount(id: string): Promise<void> {
-    await delay(400);
-    MOCK_ACCOUNTS = MOCK_ACCOUNTS.filter((a) => a.id !== id);
+  async disconnectAccount(id: string, workspaceId: string): Promise<void> {
+    await apiClient.post(`/api/v1/auth/meta/disconnect`, { account_id: id, workspace_id: workspaceId });
   },
   async refreshAccount(id: string): Promise<ConnectedAccount> {
-    await delay(500);
-    const idx = MOCK_ACCOUNTS.findIndex((a) => a.id === id);
-    if (idx === -1) throw new Error('Account not found');
-    MOCK_ACCOUNTS[idx] = { ...MOCK_ACCOUNTS[idx], lastSynced: new Date().toISOString(), status: 'active' };
-    return MOCK_ACCOUNTS[idx];
+    const { data } = await apiClient.post(`/settings/accounts/${id}/refresh`);
+    return data;
   },
   async team(): Promise<TeamMember[]> {
     await delay(300 + Math.random() * 200);

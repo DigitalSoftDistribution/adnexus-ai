@@ -23,53 +23,60 @@ const INT8_OID = 20;
 types.setTypeParser(INT8_OID, (val: string) => parseInt(val, 10));
 
 /**
- * Global connection pool instance.
- * Uses config-driven connection string; falls back to individual params.
+ * Global connection pool instance — lazily initialized on first query.
+ * Only created when DATABASE_URL is configured.
  */
-export const pool = new Pool({
-  connectionString: config.database.url,
-  host: config.database.host,
-  port: config.database.port,
-  database: config.database.name,
-  user: config.database.user,
-  password: config.database.password,
+let _pool: Pool | null = null;
 
-  // Pool tuning for production
-  max: config.database.poolSize ?? 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  // SSL configuration for production
-  ssl: config.database.ssl
-    ? {
-        rejectUnauthorized: true,
-        ca: config.database.sslCa,
-      }
-    : undefined,
-});
-
-// ── Pool event listeners ────────────────────────────────────────────────────
-
-pool.on("connect", () => {
-  logger.debug("[DB] New client connected to pool");
-});
-
-pool.on("error", (err: Error) => {
-  logger.error("[DB] Unexpected pool error", { error: err.message });
-  // Pool will auto-reconnect; we just log here
-});
-
-pool.on("acquire", () => {
-  const { totalCount, idleCount, waitingCount } = pool;
-  if (waitingCount > 5) {
-    logger.warn(`[DB] Pool pressure — waiting: ${waitingCount}, idle: ${idleCount}, total: ${totalCount}`);
+function getPool(): Pool {
+  if (!_pool) {
+    if (!config.database?.url) {
+      throw new Error(
+        'DATABASE_URL not configured. Set DATABASE_URL in .env for direct PostgreSQL access.'
+      );
+    }
+    _pool = new Pool({
+      connectionString: config.database.url,
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      user: config.database.user,
+      password: config.database.password,
+      max: config.database.poolSize ?? 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+      ssl: config.database.ssl
+        ? { rejectUnauthorized: true, ca: config.database.sslCa }
+        : undefined,
+    });
+    setupPoolListeners(_pool);
   }
-});
+  return _pool;
+}
+
+// ── Pool event listeners (only registered when pool is created) ─────────────
+
+function setupPoolListeners(p: Pool): void {
+  p.on("connect", () => {
+    logger.debug("[DB] New client connected to pool");
+  });
+  p.on("error", (err: Error) => {
+    logger.error("[DB] Unexpected pool error", { error: err.message });
+  });
+  p.on("acquire", () => {
+    const { totalCount, idleCount, waitingCount } = p;
+    if (waitingCount > 5) {
+      logger.warn(`[DB] Pool pressure — waiting: ${waitingCount}, idle: ${idleCount}, total: ${totalCount}`);
+    }
+  });
+}
 
 // ── Graceful shutdown ───────────────────────────────────────────────────────
 
 export async function closePool(): Promise<void> {
+  if (!_pool) return;
   logger.info("[DB] Closing connection pool...");
-  await pool.end();
+  await _pool.end();
   logger.info("[DB] Connection pool closed");
 }
 
@@ -95,7 +102,7 @@ export async function query<T = Record<string, unknown>>(
   const queryName = options?.name ?? "unnamed";
 
   try {
-    const result = await pool.query<T>(sql, params);
+    const result = await getPool().query<T>(sql, params);
     const duration = Date.now() - start;
 
     if (duration > 1000) {
@@ -137,7 +144,7 @@ export async function query<T = Record<string, unknown>>(
 export async function transaction<T>(
   fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   const start = Date.now();
 
   try {
@@ -175,7 +182,7 @@ export async function transaction<T>(
  *   }
  */
 export async function getClient(): Promise<PoolClient> {
-  return pool.connect();
+  return getPool().connect();
 }
 
 /**
