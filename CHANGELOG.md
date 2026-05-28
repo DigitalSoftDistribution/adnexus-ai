@@ -7,12 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- WebSocket real-time collaboration
-- Advanced attribution modeling
-- Custom webhook builder
-- Multi-language i18n support
-- Mobile native app (React Native)
+### Added
+- No pending changes
+
+---
+
+## [1.0.0] - 2026-05-28
+
+### Added - Production Infrastructure
+- **Supabase Project** — PostgreSQL database with full schema (14 tables) and seed data
+- **Authentication** — Working signup/signin flow via Supabase Auth with JWT tokens
+- **Redis Integration** — Connected to Docker Redis for BullMQ background job queues
+- **Meta OAuth Routes** — Full OAuth flow (connect → callback → token storage → disconnect) at `/api/v1/auth/meta/connect` and `/api/v1/auth/meta/callback`
+- **Draft-First Approval Workflow** — All campaign mutations create drafts; approval executes via `DraftExecutionEngine` calling real Meta Marketing API
+- **MCP Server** — 27-tool FastMCP server tested and operational (stdio transport, JWT auth)
+- **Frontend API Client** — Full Axios-based client with auth interceptor, circuit breaker, retry, request dedup, and SSE support
+- **Environment Configuration** — Backend `.env` with Supabase keys, JWT secrets, Redis URL; Frontend `.env` with Supabase URL, anon key, and API URL
+
+### Fixed
+- Backend TypeScript compilation errors (missing modules, incorrect imports, permissions)
+- `db/connection.ts` lazy pool initialization (no-op when DATABASE_URL not configured)
+- RLS policy on `workspace_members` preventing service-role queries
+- Frontend `handleConnect` wired to real API with OAuth redirect
+- `isDemoMode()` gate: when `VITE_API_URL` is set, all API calls go live
 
 ---
 
