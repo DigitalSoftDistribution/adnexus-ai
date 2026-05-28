@@ -628,14 +628,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Auth actions
   // ---------------------------------------------------------------------------
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
 
-    // In demo mode, manually set the user since onAuthStateChange may not fire
-    // synchronously enough for the navigation to work
     if (isDemoMode) {
       setUser({ ...DEMO_USER, email });
       setSession(buildDemoSession());
+    } else if (data.session) {
+      // Set synchronously so navigate() sees isAuthenticated before ProtectedRoute checks
+      const sbUser = data.session.user;
+      setSession(data.session);
+      setUser({
+        id: sbUser.id,
+        email: sbUser.email || email,
+        name: (sbUser.user_metadata?.name as string) || email.split('@')[0],
+        avatar_url: undefined,
+        role: (sbUser.app_metadata?.role as string) || 'analyst',
+        workspace_id: (sbUser.app_metadata?.workspace_id as string) || '',
+        preferences: {},
+        created_at: sbUser.created_at,
+      });
     }
   };
 
