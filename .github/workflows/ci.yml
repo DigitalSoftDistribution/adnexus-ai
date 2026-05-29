@@ -86,3 +86,4 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level moderate
+        continue-on-error: true

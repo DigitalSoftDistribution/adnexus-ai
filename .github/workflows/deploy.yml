@@ -27,7 +27,7 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build --filter=@adnexus/api
+      - run: pnpm turbo build --filter=@adnexus/api
       - name: Deploy to production
         run: |
           echo "Deploy API to production server"
@@ -49,7 +49,7 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build --filter=@adnexus/web
+      - run: pnpm turbo build --filter=@adnexus/web
       - name: Deploy to production
         run: |
           echo "Deploy Web to production server"
