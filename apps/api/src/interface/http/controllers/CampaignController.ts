@@ -1,0 +1,68 @@
+import type { Request, Response } from 'express';
+import type { Container } from '../../../application/services/Container';
+import { asyncHandler } from '../middleware/errorHandler';
+import type { AuthenticatedRequest } from '../middleware/requireAuth';
+
+export function createCampaignController(container: Container) {
+  return {
+    list: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const result = await container.listCampaigns.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        status: req.query.status as string | string[] | undefined,
+        platform: req.query.platform as string | string[] | undefined,
+        search: req.query.search as string | undefined,
+        objective: req.query.objective as string | undefined,
+        dateFrom: req.query.dateFrom as string | undefined,
+        dateTo: req.query.dateTo as string | undefined,
+        sortBy: req.query.sortBy as string | undefined,
+        sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    create: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const result = await container.createCampaign.execute({
+        workspaceId: req.user!.workspaceId,
+        adAccountId: req.body.adAccountId,
+        platform: req.body.platform,
+        name: req.body.name,
+        status: req.body.status,
+        objective: req.body.objective,
+        budgetType: req.body.budgetType,
+        dailyBudget: req.body.dailyBudget,
+        lifetimeBudget: req.body.lifetimeBudget,
+        startDate: req.body.startDate,
+        endDate: req.body.endDate,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.status(201).json({ success: true, data: result.data });
+    }),
+
+    summary: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const result = await container.getCampaignSummary.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+  };
+}
