@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
 
+  // Skip TS errors during build (typecheck runs separately via `beast typecheck`)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
@@ -12,14 +17,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  experimental: {
-    ppr: true,
-    dynamicIO: true,
-  },
-
-  // Bundle optimization
+  // Bundle optimization (Webpack mode)
   webpack(config, { isServer }) {
-    // Split large vendor chunks
     if (!isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
