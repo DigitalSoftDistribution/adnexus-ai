@@ -67,6 +67,7 @@ export class CreateDraftUseCase {
 
     await this.auditLogger.log({
       workspaceId: input.workspaceId,
+      userId: input.actorType === 'user' ? (input.actorId ?? null) : null,
       actorType: input.actorType,
       actorId: input.actorId,
       actorName: input.actorName,

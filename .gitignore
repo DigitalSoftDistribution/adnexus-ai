@@ -52,3 +52,5 @@ docker-compose.override.yml
 
 # Archives
 *.zip
+.turbo/cache/
+apps/web/.next/

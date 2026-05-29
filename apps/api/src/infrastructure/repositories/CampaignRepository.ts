@@ -102,7 +102,22 @@ export class CampaignRepository implements ICampaignRepository {
   }
 
   async getSummary(workspaceId: string): Promise<CampaignSummary> {
-    const { rows } = await query<CampaignSummary>(
+    interface CampaignSummaryRow {
+      total_campaigns: number;
+      active_count: number;
+      paused_count: number;
+      total_spend: string | number;
+      total_impressions: string | number;
+      total_clicks: string | number;
+      total_conversions: string | number;
+      avg_ctr: string | number;
+      avg_cpa: string | number;
+      avg_roas: string | number;
+      platform_breakdown: Record<string, number> | null;
+      status_breakdown: Record<string, number> | null;
+    }
+
+    const { rows } = await query<CampaignSummaryRow>(
       `SELECT
         COUNT(*)::int as total_campaigns,
         COUNT(*) FILTER (WHERE status = 'active')::int as active_count,
