@@ -18,6 +18,7 @@ import type { IAlertRepository } from '../../domain/repositories/IAlertRepositor
 import type { ISearchRepository } from '../../domain/repositories/ISearchRepository';
 import type { INotificationRepository } from '../../domain/repositories/INotificationRepository';
 import type { IWebhookRepository } from '../../domain/repositories/IWebhookRepository';
+import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
@@ -85,6 +86,10 @@ import { MarkNotificationReadUseCase } from '../use-cases/notification/MarkNotif
 import { MarkAllNotificationsReadUseCase } from '../use-cases/notification/MarkAllNotificationsReadUseCase';
 import { ListWebhookConfigsUseCase } from '../use-cases/webhook/ListWebhookConfigsUseCase';
 import { CreateWebhookConfigUseCase } from '../use-cases/webhook/CreateWebhookConfigUseCase';
+import { ConnectAdAccountUseCase } from '../use-cases/ad-account/ConnectAdAccountUseCase';
+import { ListAdAccountsUseCase } from '../use-cases/ad-account/ListAdAccountsUseCase';
+import { SyncAdAccountUseCase } from '../use-cases/ad-account/SyncAdAccountUseCase';
+import { DisconnectAdAccountUseCase } from '../use-cases/ad-account/DisconnectAdAccountUseCase';
 
 export interface ContainerConfig {
   campaignRepository: ICampaignRepository;
@@ -100,6 +105,7 @@ export interface ContainerConfig {
   searchRepository: ISearchRepository;
   notificationRepository: INotificationRepository;
   webhookRepository: IWebhookRepository;
+  adAccountRepository: IAdAccountRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -170,6 +176,10 @@ export class Container {
   readonly markAllNotificationsRead: MarkAllNotificationsReadUseCase;
   readonly listWebhookConfigs: ListWebhookConfigsUseCase;
   readonly createWebhookConfig: CreateWebhookConfigUseCase;
+  readonly connectAdAccount: ConnectAdAccountUseCase;
+  readonly listAdAccounts: ListAdAccountsUseCase;
+  readonly syncAdAccount: SyncAdAccountUseCase;
+  readonly disconnectAdAccount: DisconnectAdAccountUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -267,5 +277,23 @@ export class Container {
     this.markAllNotificationsRead = new MarkAllNotificationsReadUseCase(config.notificationRepository);
     this.listWebhookConfigs = new ListWebhookConfigsUseCase(config.webhookRepository);
     this.createWebhookConfig = new CreateWebhookConfigUseCase(config.webhookRepository);
+
+    this.connectAdAccount = new ConnectAdAccountUseCase(
+      config.adAccountRepository,
+      config.workspaceRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
+    this.listAdAccounts = new ListAdAccountsUseCase(config.adAccountRepository);
+    this.syncAdAccount = new SyncAdAccountUseCase(
+      config.adAccountRepository,
+      config.auditLogger,
+    );
+    this.disconnectAdAccount = new DisconnectAdAccountUseCase(
+      config.adAccountRepository,
+      config.campaignRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
   }
 }

@@ -28,6 +28,7 @@ import { AlertRepository } from '../../infrastructure/repositories/AlertReposito
 import { SearchRepository } from '../../infrastructure/repositories/SearchRepository';
 import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 import { WebhookRepository } from '../../infrastructure/repositories/WebhookRepository';
+import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
@@ -48,6 +49,7 @@ import { createAlertRoutes } from './routes/alerts';
 import { createSearchRoutes } from './routes/search';
 import { createNotificationRoutes } from './routes/notifications';
 import { createWebhookRoutes } from './routes/webhooks';
+import { createAdAccountRoutes } from './routes/ad-accounts';
 
 // Legacy routes (to be migrated)
 import authRoutes from '../../routes/auth';
@@ -127,6 +129,7 @@ export function createServer() {
     searchRepository: new SearchRepository(),
     notificationRepository: new NotificationRepository(),
     webhookRepository: new WebhookRepository(),
+    adAccountRepository: new AdAccountRepository(),
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
@@ -150,6 +153,7 @@ export function createServer() {
   app.use('/api/v2/search', authenticatedRateLimiter, createSearchRoutes(container));
   app.use('/api/v2/notifications', authenticatedRateLimiter, createNotificationRoutes(container));
   app.use('/api/v2/webhooks', authenticatedRateLimiter, createWebhookRoutes(container));
+  app.use('/api/v2/ad-accounts', authenticatedRateLimiter, createAdAccountRoutes(container));
 
   // Realtime SSE endpoint
   app.get('/api/v2/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));
