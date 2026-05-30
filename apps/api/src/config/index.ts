@@ -73,6 +73,21 @@ const envSchema = z.object({
   MCP_API_KEY: z.string().default(''),
   MCP_TRANSPORT: z.string().default('stdio'),
 
+  // RAG / Vector (Qdrant + Voyage)
+  QDRANT_URL: z.string().url().default('http://localhost:6333'),
+  QDRANT_API_KEY: z.string().default(''),
+  VOYAGE_API_KEY: z.string().default(''),
+  VOYAGE_EMBED_MODEL: z.string().default('voyage-3'),
+  VOYAGE_RERANK_MODEL: z.string().default('rerank-2'),
+  RAG_COLLECTION_PREFIX: z.string().default('adnexus'),
+  RAG_SCORE_FLOOR: z.coerce.number().default(0.5),
+  RAG_DECAY_DAYS: z.coerce.number().default(180),
+  RAG_ENABLED: z.string().default('true'),
+
+  // Competitor scraping (Firecrawl)
+  FIRECRAWL_API_KEY: z.string().default(''),
+  FIRECRAWL_BASE_URL: z.string().url().default('https://api.firecrawl.dev'),
+
   // Monitoring
   SENTRY_DSN: z.string().url().optional(),
 });
@@ -167,6 +182,23 @@ export const config = {
     transport: env.MCP_TRANSPORT,
   },
 
+  rag: {
+    enabled: env.RAG_ENABLED === 'true',
+    qdrantUrl: env.QDRANT_URL,
+    qdrantApiKey: env.QDRANT_API_KEY,
+    voyageApiKey: env.VOYAGE_API_KEY,
+    embedModel: env.VOYAGE_EMBED_MODEL,
+    rerankModel: env.VOYAGE_RERANK_MODEL,
+    collectionPrefix: env.RAG_COLLECTION_PREFIX,
+    scoreFloor: env.RAG_SCORE_FLOOR,
+    decayDays: env.RAG_DECAY_DAYS,
+  },
+
+  firecrawl: {
+    apiKey: env.FIRECRAWL_API_KEY,
+    baseUrl: env.FIRECRAWL_BASE_URL,
+  },
+
   database: {
     url: env.DATABASE_URL,
     host: env.DB_HOST,
@@ -192,6 +224,9 @@ export const config = {
     team: { name: 'Team', price: 14900, accounts: 10 },
     agency: { name: 'Agency', price: 39900, accounts: 25 },
   },
+
+  version: process.env.npm_package_version ?? '2.0.0',
+  sentryDsn: env.SENTRY_DSN,
 } as const;
 
 export type Config = typeof config;
@@ -200,5 +235,8 @@ export type Plan = keyof typeof config.plans;
 export const isProduction = config.nodeEnv === 'production';
 export const isDevelopment = config.nodeEnv === 'development';
 export const isTest = config.nodeEnv === 'test';
+
+// Re-export for convenience
+export const corsOrigins = config.cors.origin;
 
 export default config;

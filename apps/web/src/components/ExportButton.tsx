@@ -331,7 +331,9 @@ const ExportButton: React.FC<ExportButtonProps> = ({
             : label}
         </span>
         {lastError && (
-          <AlertCircle className="h-3.5 w-3.5 text-red-400" title={lastError} />
+          <span title={lastError} className="inline-flex">
+            <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+          </span>
         )}
       </button>
     );

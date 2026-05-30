@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface FormFieldProps {
-  label: string;
+  label?: string;
   name: string;
   error?: string;
   required?: boolean;

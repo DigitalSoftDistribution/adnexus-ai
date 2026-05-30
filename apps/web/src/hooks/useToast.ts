@@ -1,12 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
-export type ToastType = "success" | "error" | "warning" | "info" | "draft";
+export type ToastType = "success" | "error" | "warning" | "info" | "draft" | "destructive" | "default";
 
 export interface Toast {
   id: string;
-  type: ToastType;
+  type?: ToastType;
+  variant?: ToastType;
   title: string;
   description?: string;
+  message?: string;
   duration?: number;
   link?: string;
   action?: {
@@ -63,6 +65,8 @@ export function toast(options: Omit<Toast, "id">): string {
   const duration = options.duration ?? DEFAULT_DURATION;
   const toastState: ToastState = {
     ...options,
+    type: options.type ?? options.variant ?? "info",
+    description: options.description ?? options.message,
     id,
     duration,
     createdAt: Date.now(),

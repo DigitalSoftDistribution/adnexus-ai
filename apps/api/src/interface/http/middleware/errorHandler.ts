@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { DomainError, ValidationError, NotFoundError, UnauthorizedError, ForbiddenError, RateLimitError } from '../../../domain/value-objects/Result';
+import { DomainError } from '../../../domain/value-objects/Result';
 
 export interface ApiErrorResponse {
   success: false;
@@ -36,7 +36,7 @@ export function expressErrorHandler(
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid input data',
-        details: (err as any).errors,
+        details: (err as { errors?: unknown }).errors,
       },
     };
     res.status(400).json(response);
@@ -68,8 +68,8 @@ export function expressErrorHandler(
   res.status(500).json(response);
 }
 
-export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
-  return (req: Request, res: Response, next: NextFunction) => {
+export function asyncHandler<T = Request>(fn: (req: T, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: T, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }

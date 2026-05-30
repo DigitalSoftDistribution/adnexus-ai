@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';

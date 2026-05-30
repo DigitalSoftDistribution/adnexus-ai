@@ -97,3 +97,109 @@ export class UserInvitedEvent extends DomainEvent {
     return 'user.invited';
   }
 }
+
+export class AdAccountConnectedEvent extends DomainEvent {
+  constructor(
+    readonly adAccountId: string,
+    readonly workspaceId: string,
+    readonly platform: string,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'ad-account.connected';
+  }
+}
+
+export class AdAccountDisconnectedEvent extends DomainEvent {
+  constructor(
+    readonly adAccountId: string,
+    readonly workspaceId: string,
+    readonly platform: string,
+    readonly reason?: string,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'ad-account.disconnected';
+  }
+}
+
+export class AutomationRuleTriggeredEvent extends DomainEvent {
+  constructor(
+    readonly ruleId: string,
+    readonly workspaceId: string,
+    readonly triggerType: string,
+    readonly actionType: string,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'automation-rule.triggered';
+  }
+}
+
+export class GoalAchievedEvent extends DomainEvent {
+  constructor(
+    readonly goalId: string,
+    readonly workspaceId: string,
+    readonly metricType: string,
+    readonly targetValue: number,
+    readonly actualValue: number,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'goal.achieved';
+  }
+}
+
+export class GoalMissedEvent extends DomainEvent {
+  constructor(
+    readonly goalId: string,
+    readonly workspaceId: string,
+    readonly metricType: string,
+    readonly targetValue: number,
+    readonly actualValue: number,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'goal.missed';
+  }
+}
+
+export class ReportGeneratedEvent extends DomainEvent {
+  constructor(
+    readonly reportId: string,
+    readonly workspaceId: string,
+    readonly reportType: string,
+    readonly format: string,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'report.generated';
+  }
+}
+
+export class WebhookDeliveredEvent extends DomainEvent {
+  constructor(
+    readonly webhookConfigId: string,
+    readonly workspaceId: string,
+    readonly event: string,
+    readonly success: boolean,
+  ) {
+    super();
+  }
+
+  getEventName(): string {
+    return 'webhook.delivered';
+  }
+}

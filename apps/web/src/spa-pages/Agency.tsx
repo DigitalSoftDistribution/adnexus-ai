@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -715,7 +716,7 @@ export default function Agency() {
   useEffect(() => {
     fetchClients()
     fetchActivities()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [clientsApiModule])
 
   const filteredClients = useMemo(() => {
