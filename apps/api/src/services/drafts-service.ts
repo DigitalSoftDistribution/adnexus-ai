@@ -1,7 +1,27 @@
 import { supabase } from '../lib/supabase';
 import { NotFoundError, ValidationError } from '../lib/errors';
 import { createMetaCampaign, updateMetaCampaign } from './meta-api';
+import { ragService } from './rag-service';
+import { renderInsightCard, insightInputFromDraft } from './rag-cards';
+import { getModuleLogger } from '../lib/logger';
 import type { Draft, DraftStats, DraftType, Platform } from '../types';
+
+const draftsLog = getModuleLogger('drafts-service');
+
+/**
+ * Record a resolved draft into the RAG optimization-memory collection.
+ * Best-effort: never blocks or fails the draft resolution flow.
+ */
+async function recordDraftOutcome(draft: Draft): Promise<void> {
+  try {
+    if (!(await ragService.isReady())) return;
+    await ragService.indexCard(
+      renderInsightCard(draft.workspace_id, insightInputFromDraft(draft)),
+    );
+  } catch (err) {
+    draftsLog.warn({ draftId: draft.id, msg: (err as Error).message }, 'rag insight log skipped');
+  }
+}
 
 // ─── Create Draft ────────────────────────────────────────────
 
@@ -146,6 +166,9 @@ export async function approveDraft(draftId: string, approverId: string): Promise
     source: 'dashboard',
   });
 
+  // Record outcome into RAG optimization memory (best-effort).
+  await recordDraftOutcome(data as Draft);
+
   return data as Draft;
 }
 
@@ -179,6 +202,9 @@ export async function rejectDraft(draftId: string, userId: string, reason?: stri
     details: { draft_id: draftId, reason },
     source: 'dashboard',
   });
+
+  // Record outcome into RAG optimization memory (best-effort).
+  await recordDraftOutcome(data as Draft);
 
   return data as Draft;
 }
