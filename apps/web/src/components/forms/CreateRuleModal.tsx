@@ -207,7 +207,7 @@ export function CreateRuleModal({ isOpen, onClose, onSubmit }: CreateRuleModalPr
                         options={METRIC_OPTIONS}
                         value={(field.value ?? '') as string}
                         onChange={field.onChange}
-                        error={errors.conditions?.[index]?.metric?.message}
+                        error={errors.conditions?.[index]?.metric?.message ?? ''}
                         required
                         disabled={isSubmitting}
                         className="flex-1"
@@ -224,7 +224,7 @@ export function CreateRuleModal({ isOpen, onClose, onSubmit }: CreateRuleModalPr
                         options={OPERATOR_OPTIONS}
                         value={(field.value ?? '') as string}
                         onChange={field.onChange}
-                        error={errors.conditions?.[index]?.operator?.message}
+                        error={errors.conditions?.[index]?.operator?.message ?? ''}
                         required
                         disabled={isSubmitting}
                         className="flex-1"
@@ -242,7 +242,7 @@ export function CreateRuleModal({ isOpen, onClose, onSubmit }: CreateRuleModalPr
                         placeholder="0"
                         value={field.value ?? ''}
                         onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                        error={errors.conditions?.[index]?.value?.message}
+                        error={errors.conditions?.[index]?.value?.message ?? ''}
                         required
                         disabled={isSubmitting}
                         className="w-[100px]"
@@ -307,7 +307,7 @@ export function CreateRuleModal({ isOpen, onClose, onSubmit }: CreateRuleModalPr
                         options={ACTION_TYPE_OPTIONS}
                         value={(field.value ?? '') as string}
                         onChange={field.onChange}
-                        error={errors.actions?.[index]?.type?.message}
+                        error={errors.actions?.[index]?.type?.message ?? ''}
                         required
                         disabled={isSubmitting}
                         className="flex-1"

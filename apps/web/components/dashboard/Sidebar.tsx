@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   user: { name: string | null; email: string; role: string } | null;
+  onSignOut?: () => void;
 }
 
 const navItems = [
@@ -32,7 +33,7 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, onSignOut }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -67,7 +68,7 @@ export function Sidebar({ user }: SidebarProps) {
         })}
       </nav>
 
-      <div className="border-t p-4">
+      <div className="border-t p-4 space-y-1">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
             {user?.name?.charAt(0) ?? user?.email?.charAt(0) ?? '?'}
@@ -77,6 +78,18 @@ export function Sidebar({ user }: SidebarProps) {
             <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
           </div>
         </div>
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
+        )}
       </div>
     </aside>
   );

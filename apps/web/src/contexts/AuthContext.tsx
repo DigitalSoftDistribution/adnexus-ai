@@ -642,11 +642,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: sbUser.id,
         email: sbUser.email || email,
         name: (sbUser.user_metadata?.name as string) || email.split('@')[0],
-        avatar_url: undefined,
         role: (sbUser.app_metadata?.role as string) || 'analyst',
         workspace_id: (sbUser.app_metadata?.workspace_id as string) || '',
-        preferences: {},
-        created_at: sbUser.created_at,
       });
     }
   };

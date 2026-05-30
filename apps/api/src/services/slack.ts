@@ -400,3 +400,8 @@ export class SlackService {
 }
 
 export const slackService = new SlackService();
+
+/** Standalone sendSlackMessage helper for notifications */
+export async function sendSlackMessage(params: { webhookUrl: string; text: string }): Promise<void> {
+  await slackService.sendSimpleMessage(params.webhookUrl, params.text);
+}

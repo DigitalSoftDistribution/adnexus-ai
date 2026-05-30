@@ -75,7 +75,7 @@ function redactSensitive(obj: unknown, depth = 0): unknown {
  */
 export function redactRequestBody(req: Request, _res: Response, next: NextFunction) {
   if (req.body && typeof req.body === 'object') {
-    (req as Record<string, unknown>).redactedBody = redactSensitive(req.body);
+    (req as unknown as Record<string, unknown>).redactedBody = redactSensitive(req.body);
   }
   next();
 }

@@ -551,3 +551,8 @@ export class EmailService {
 }
 
 export const emailService = new EmailService();
+
+/** Standalone sendEmail helper for notifications */
+export async function sendEmail(params: { to: string; subject: string; body: string }): Promise<void> {
+  await emailService.sendImmediate(params.to, params.subject, params.body);
+}

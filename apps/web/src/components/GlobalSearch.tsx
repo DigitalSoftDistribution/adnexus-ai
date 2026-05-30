@@ -1240,7 +1240,7 @@ export default function GlobalSearch() {
                                 handleSelectResult(result)
                               }
                             }}
-                            onMouseEnter={() => onSelectIndex(globalIdx)}
+                            onMouseEnter={() => setSelectedIndex(globalIdx)}
                             className={cn(
                               'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-left',
                               'transition-all duration-75 group',

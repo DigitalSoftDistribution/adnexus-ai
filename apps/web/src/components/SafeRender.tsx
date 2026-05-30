@@ -29,7 +29,7 @@ export class SafeRender extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // eslint-disable-next-line no-console
+     
     console.error('SafeRender caught an error:', error, errorInfo)
   }
 

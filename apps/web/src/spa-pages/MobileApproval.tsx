@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';

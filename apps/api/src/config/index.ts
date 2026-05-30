@@ -192,6 +192,9 @@ export const config = {
     team: { name: 'Team', price: 14900, accounts: 10 },
     agency: { name: 'Agency', price: 39900, accounts: 25 },
   },
+
+  version: process.env.npm_package_version ?? '2.0.0',
+  sentryDsn: env.SENTRY_DSN,
 } as const;
 
 export type Config = typeof config;
@@ -200,5 +203,8 @@ export type Plan = keyof typeof config.plans;
 export const isProduction = config.nodeEnv === 'production';
 export const isDevelopment = config.nodeEnv === 'development';
 export const isTest = config.nodeEnv === 'test';
+
+// Re-export for convenience
+export const corsOrigins = config.cors.origin;
 
 export default config;

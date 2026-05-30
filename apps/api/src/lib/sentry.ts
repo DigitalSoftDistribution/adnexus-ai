@@ -5,12 +5,22 @@
  * Initialize early in the application lifecycle.
  */
 
-import * as Sentry from '@sentry/node';
-import { config } from '../config';
+import { config, isProduction } from '../config';
+
+// Lazy-load Sentry to avoid type errors when package is missing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Sentry: any = null;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require('@sentry/node');
+} catch {
+  // Sentry not installed
+}
 
 export function initSentry(): void {
-  if (!config.sentryDsn) {
-    console.log('Sentry DSN not configured — error tracking disabled');
+  if (!Sentry || !config.sentryDsn) {
+    console.log('Sentry not configured — error tracking disabled');
     return;
   }
 
@@ -20,11 +30,11 @@ export function initSentry(): void {
     release: config.version,
 
     // Performance monitoring
-    tracesSampleRate: config.isProduction ? 0.1 : 1.0,
-    profilesSampleRate: config.isProduction ? 0.05 : 1.0,
+    tracesSampleRate: isProduction ? 0.1 : 1.0,
+    profilesSampleRate: isProduction ? 0.05 : 1.0,
 
     // Error filtering
-    beforeSend(event) {
+    beforeSend(event: any) {
       // Filter out known non-actionable errors
       const ignoreErrors = [
         'ETIMEDOUT',
@@ -35,7 +45,7 @@ export function initSentry(): void {
       ];
 
       const errorMessage = event.exception?.values?.[0]?.value ?? '';
-      if (ignoreErrors.some((e) => errorMessage.includes(e))) {
+      if (ignoreErrors.some((e: string) => errorMessage.includes(e))) {
         return null;
       }
 

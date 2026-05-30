@@ -5,7 +5,7 @@ import { ThemeProvider } from './hooks/useTheme'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { registerServiceWorker } from './lib/pwa-register'
 import './index.css'
-import App from './App.tsx'
+import App from './App'
 
 // Register PWA service worker
 registerServiceWorker()
