@@ -16,6 +16,8 @@ const ICON_MAP = {
   warning: AlertTriangle,
   info: Info,
   draft: FileText,
+  destructive: XCircle,
+  default: Info,
 };
 
 const TYPE_STYLES = {
@@ -49,6 +51,18 @@ const TYPE_STYLES = {
     border: "border-purple-400/20",
     glow: "shadow-[0_0_12px_rgba(192,132,252,0.15)]",
   },
+  destructive: {
+    iconColor: "text-red-400",
+    progressBar: "bg-red-400",
+    border: "border-red-400/20",
+    glow: "shadow-[0_0_12px_rgba(248,113,113,0.15)]",
+  },
+  default: {
+    iconColor: "text-blue-400",
+    progressBar: "bg-blue-400",
+    border: "border-blue-400/20",
+    glow: "shadow-[0_0_12px_rgba(96,165,250,0.15)]",
+  },
 };
 
 interface ToastItemProps {
@@ -74,8 +88,9 @@ const ToastItem: React.FC<ToastItemProps> = ({
     action,
   } = toast;
 
-  const styles = TYPE_STYLES[type];
-  const Icon = ICON_MAP[type];
+  const toastType = type ?? 'info';
+  const styles = TYPE_STYLES[toastType] ?? TYPE_STYLES.info;
+  const Icon = ICON_MAP[toastType] ?? ICON_MAP.info;
 
   const progressPercent =
     duration && duration > 0 ? (remaining / duration) * 100 : 0;

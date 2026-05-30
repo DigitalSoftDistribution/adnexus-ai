@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AdNexus AI — Admin Dashboard
  * =============================

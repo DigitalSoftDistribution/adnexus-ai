@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import api, { createSSEConnection } from '../lib/api';

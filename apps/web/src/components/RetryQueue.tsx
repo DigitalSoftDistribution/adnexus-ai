@@ -224,7 +224,7 @@ export const RetryQueue: React.FC = () => {
       autoRetryTimersRef.current.forEach((t) => clearTimeout(t));
       autoRetryTimersRef.current.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOnline]);
 
   /* ── Toast helpers ───────────────────────────────────────────────── */

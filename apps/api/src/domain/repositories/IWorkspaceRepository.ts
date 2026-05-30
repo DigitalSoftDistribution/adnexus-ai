@@ -1,4 +1,4 @@
-import type { Workspace, PlanTier, WorkspaceLimits } from '../entities/Workspace';
+import type { Workspace, WorkspaceLimits } from '../entities/Workspace';
 import type { WorkspaceMember, WorkspaceRole } from '../entities/User';
 
 export interface IWorkspaceRepository {

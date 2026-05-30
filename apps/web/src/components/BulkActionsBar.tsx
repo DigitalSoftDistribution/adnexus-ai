@@ -89,7 +89,7 @@ export default function BulkActionsBar({
           aria-label="Bulk actions"
           initial={reducedMotion ? false : { y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={reducedMotion ? false : { y: 80, opacity: 0 }}
+          exit={reducedMotion ? undefined : { y: 80, opacity: 0 }}
           transition={{
             type: 'spring',
             damping: 26,

@@ -97,7 +97,7 @@ describe('CreateCampaignUseCase', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.statusCode).toBe(403);
+      expect((result.error as any).statusCode).toBe(403);
     }
   });
 
@@ -124,7 +124,7 @@ describe('CreateCampaignUseCase', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.code).toBe('VALIDATION_ERROR');
+      expect((result.error as any).code).toBe('VALIDATION_ERROR');
     }
   });
 
@@ -148,7 +148,7 @@ describe('CreateCampaignUseCase', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.code).toBe('VALIDATION_ERROR');
+      expect((result.error as any).code).toBe('VALIDATION_ERROR');
     }
   });
 

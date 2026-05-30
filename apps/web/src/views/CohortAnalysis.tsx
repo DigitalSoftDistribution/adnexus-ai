@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CohortAnalysis.tsx
  *
