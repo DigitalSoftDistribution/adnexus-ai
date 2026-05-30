@@ -27,12 +27,18 @@ Grounded in the product defined in [`../../SPEC.md`](../../SPEC.md) and the live
 | 08 | [Risks & mitigations](08-risks.md) | Platform/ToS, commoditization, infra bleed, kill/pivot triggers |
 | 09 | [90-day milestones](09-milestones.md) | Day 0-30 / 31-60 / 61-90 with gate conditions |
 
-## Open founder decisions (carried across docs)
+## Decisions
+
+- **DECIDED - Launch order: MCP-first.** Ship the MCP server to the official registry +
+  directories and prove trial activation *before* the Product Hunt / Show HN spike, so the
+  launch lands on a funnel that already converts. See [`04-distribution.md`](04-distribution.md)
+  and [`05-launch-sequence.md`](05-launch-sequence.md).
+
+### Still open (carried across docs)
 
 1. Single beachhead vs the two-layer (AI-native + agencies) approach - recommended: two-layer.
 2. Final entry price ($49 vs $39) and whether the trial requires a card.
-3. Launch order - MCP-first (recommended) vs Product-Hunt-first.
-4. Which platform ships first for paid - recommended: Meta-only at launch.
+3. Which platform ships first for paid - recommended: Meta-only at launch.
 
 ## Note on scope
 

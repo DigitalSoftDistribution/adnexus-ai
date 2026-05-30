@@ -1,5 +1,10 @@
 # AdNexus AI - Launch Sequence & First-100 Playbook
 
+> **DECIDED - MCP-first.** The MCP server ships to the registry + directories and must hit
+> the Gate-2 activation bar (trial activation > 40%) *before* the Product Hunt / Show HN
+> launch. The big launch amplifies a funnel that already converts; it does not substitute
+> for one. (Gates defined in [`09-milestones.md`](09-milestones.md).)
+
 ## End-to-end sequence
 
 ```mermaid
