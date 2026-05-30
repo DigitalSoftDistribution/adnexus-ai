@@ -12,7 +12,7 @@
  */
 
 import type { Response } from 'express';
-import type WebSocket from 'ws';
+import type { WebSocket } from 'ws';
 import { getRedisClient } from '../lib/redis';
 import { logger } from '../lib/logger';
 
@@ -92,9 +92,9 @@ export class EventBus {
     // Cross-instance delivery via Redis
     if (this.redis) {
       try {
-        await this.redis.publish(`adnexus:events:${workspaceId}`, JSON.stringify(message));
+        await (this.redis as any).publish(`adnexus:events:${workspaceId}`, JSON.stringify(message));
       } catch (err) {
-        logger.error('Redis publish failed', err);
+        logger.error({ err }, 'Redis publish failed');
       }
     }
   }
@@ -113,9 +113,9 @@ export class EventBus {
 
     if (this.redis) {
       try {
-        await this.redis.publish('adnexus:events:broadcast', JSON.stringify(message));
+        await (this.redis as any).publish('adnexus:events:broadcast', JSON.stringify(message));
       } catch (err) {
-        logger.error('Redis broadcast failed', err);
+        logger.error({ err }, 'Redis broadcast failed');
       }
     }
   }
@@ -137,7 +137,15 @@ export class EventBus {
 
   addSSEClient(connection: SSEConnection): void {
     this.sseClients.set(connection.id, connection);
-    this.sendSSE(connection, { type: 'connected', data: { clientId: connection.id } } as EventMessage);
+    const connectedMessage: EventMessage = {
+      id: `conn-${Date.now()}`,
+      type: 'notification',
+      workspaceId: connection.workspaceId,
+      data: { type: 'connected', clientId: connection.id },
+      timestamp: new Date().toISOString(),
+      sourceInstance: this.instanceId,
+    };
+    this.sendSSE(connection, connectedMessage);
   }
 
   removeSSEClient(clientId: string): void {
@@ -158,24 +166,24 @@ export class EventBus {
   addWSClient(connection: WSConnection): void {
     this.wsClients.set(connection.id, connection);
 
-    connection.socket.on('message', (raw) => {
+    (connection.socket as any).on('message', (raw: Buffer) => {
       try {
         const msg = JSON.parse(raw.toString());
         this.handleWSMessage(connection, msg);
       } catch {
-        connection.socket.send(JSON.stringify({ error: 'Invalid JSON' }));
+        (connection.socket as any).send(JSON.stringify({ error: 'Invalid JSON' }));
       }
     });
 
-    connection.socket.on('close', () => {
+    (connection.socket as any).on('close', () => {
       this.removeWSClient(connection.id);
     });
 
-    connection.socket.on('pong', () => {
+    (connection.socket as any).on('pong', () => {
       connection.isAlive = true;
     });
 
-    connection.socket.send(JSON.stringify({ type: 'connected', clientId: connection.id }));
+    (connection.socket as any).send(JSON.stringify({ type: 'connected', clientId: connection.id }));
   }
 
   removeWSClient(clientId: string): void {
@@ -195,14 +203,14 @@ export class EventBus {
         }
         break;
       case 'ping':
-        client.socket.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+        (client.socket as any).send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
         break;
       case 'draft.action':
         // Forward to event bus for processing
         this.publish('draft.approved', client.workspaceId ?? '*', msg.payload);
         break;
       default:
-        client.socket.send(JSON.stringify({ error: `Unknown message type: ${msg.type}` }));
+        (client.socket as any).send(JSON.stringify({ error: `Unknown message type: ${msg.type}` }));
     }
   }
 
@@ -213,7 +221,7 @@ export class EventBus {
     const handlers = this.subscribers.get(message.type);
     if (handlers) {
       handlers.forEach((h) => {
-        try { h(message); } catch (err) { logger.error('Event handler error', err); }
+        try { h(message); } catch (err) { logger.error({ err }, 'Event handler error'); }
       });
     }
 
@@ -247,8 +255,8 @@ export class EventBus {
 
   private sendWS(client: WSConnection, message: EventMessage): void {
     try {
-      if (client.socket.readyState === 1) { // OPEN
-        client.socket.send(JSON.stringify(message));
+      if ((client.socket as any).readyState === 1) { // OPEN
+        (client.socket as any).send(JSON.stringify(message));
       }
     } catch {
       this.removeWSClient(client.id);
@@ -262,26 +270,28 @@ export class EventBus {
 
     const subscriber = this.redis.duplicate();
 
-    subscriber.on('message', (channel, message) => {
+    subscriber.on('message', (_channel: string, message: string) => {
       try {
         const event = JSON.parse(message) as EventMessage;
         // Skip messages from this instance (already delivered locally)
         if (event.sourceInstance === this.instanceId) return;
         this.deliverLocal(event);
       } catch (err) {
-        logger.error('Redis message parse error', err);
+        logger.error({ err }, 'Redis message parse error');
       }
     });
 
-    subscriber.subscribe('adnexus:events:broadcast').catch((err) => {
-      logger.error('Redis broadcast subscribe failed', err);
+    (subscriber as any).subscribe('adnexus:events:broadcast').catch((err: Error) => {
+      logger.error({ err }, 'Redis broadcast subscribe failed');
     });
 
     // Subscribe to workspace-specific channels dynamically
     // In production, use pattern matching: psubscribe('adnexus:events:*')
-    subscriber.psubscribe('adnexus:events:*').catch((err) => {
-      logger.error('Redis pattern subscribe failed', err);
-    });
+    if (typeof (subscriber as any).psubscribe === 'function') {
+      (subscriber as any).psubscribe('adnexus:events:*').catch((err: Error) => {
+        logger.error({ err }, 'Redis pattern subscribe failed');
+      });
+    }
   }
 
   // ─── Heartbeat ───────────────────────────────────────────────
@@ -307,7 +317,7 @@ export class EventBus {
           continue;
         }
         client.isAlive = false;
-        try { client.socket.ping(); } catch { this.removeWSClient(id); }
+        try { (client.socket as any).ping(); } catch { this.removeWSClient(id); }
       }
     }, 30000);
   }

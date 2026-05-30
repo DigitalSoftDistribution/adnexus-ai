@@ -47,7 +47,7 @@ export function validateQuery<T extends z.ZodType>(schema: T) {
           issues,
         );
       }
-      req.query = result.data as Record<string, unknown>;
+      req.query = result.data as unknown as Record<string, string>;
       next();
     } catch (err) {
       next(err);

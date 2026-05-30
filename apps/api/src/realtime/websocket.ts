@@ -6,12 +6,12 @@
  */
 
 import type { Server } from 'http';
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 import type { EventBus } from './EventBus';
 import { logger } from '../lib/logger';
 
-export function createWebSocketServer(httpServer: Server, eventBus: EventBus): WebSocket.Server {
-  const wss = new WebSocket.Server({ server: httpServer, path: '/ws' });
+export function createWebSocketServer(httpServer: Server, eventBus: EventBus): WebSocketServer {
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
   wss.on('connection', (socket, req) => {
     // Extract user info from upgrade request
@@ -38,7 +38,7 @@ export function createWebSocketServer(httpServer: Server, eventBus: EventBus): W
   });
 
   wss.on('error', (err) => {
-    logger.error('WebSocket server error', err);
+    logger.error({ err }, 'WebSocket server error');
   });
 
   return wss;

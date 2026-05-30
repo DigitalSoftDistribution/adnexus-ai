@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { FormField } from './FormField';
 
 export interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   name: string;
   error?: string;
   required?: boolean;

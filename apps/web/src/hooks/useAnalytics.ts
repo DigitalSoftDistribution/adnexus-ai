@@ -297,7 +297,7 @@ export function usePageView(
 ) {
   useEffect(() => {
     analytics.page(pageName ?? window.location.pathname, properties);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, deps);
 }
 
@@ -316,6 +316,6 @@ export function useTrackEvent(
     if (firedRef.current) return;
     firedRef.current = true;
     analytics.track(event, properties);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, deps);
 }

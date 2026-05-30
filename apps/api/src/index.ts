@@ -224,11 +224,11 @@ app.post(
   '/api/v1/billing/webhook',
   unauthenticatedRateLimiter,
   express.raw({ type: 'application/json' }),
-  (req, res) => {
+  (req, res, next) => {
     // Forward to billing route handler for webhook
     // The billing router's POST /webhook will handle this
     req.url = '/webhook';
-    billingRoutes(req, res);
+    billingRoutes(req, res, next);
   },
 );
 

@@ -112,7 +112,7 @@ const EASE_BOUNCE = [0.34, 1.56, 0.64, 1] as [number, number, number, number]
 const PUBLIC_PAGES = ['/', '/blog', '/blog/', '/compare/', '/tools']
 const AUTH_PAGES = ['/signin', '/signup', '/forgot-password', '/onboarding']
 
-function isAppPage(pathname) {
+function isAppPage(pathname: string) {
   if (AUTH_PAGES.includes(pathname)) return false
   if (PUBLIC_PAGES.some((p) => pathname.startsWith(p) && (p === '/' ? pathname === '/' : true))) return false
   if (pathname.startsWith('/blog/')) return false

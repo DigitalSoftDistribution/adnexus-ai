@@ -5,12 +5,12 @@ import { FormField } from './FormField';
 
 export interface SelectOption {
   value: string;
-  label: string;
+  label?: string;
   icon?: React.ReactNode;
 }
 
 export interface SelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
+  label?: string;
   name: string;
   options: SelectOption[];
   error?: string;

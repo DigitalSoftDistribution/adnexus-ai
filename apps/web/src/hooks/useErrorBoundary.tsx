@@ -518,7 +518,7 @@ export function useErrorBoundary(
         {children}
       </ErrorBoundaryClass>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [key, options.maxRetries, options.retryDelayMs, options.pageName, reset]
   );
 

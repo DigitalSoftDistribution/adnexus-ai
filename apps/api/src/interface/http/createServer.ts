@@ -9,7 +9,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config } from '../../config';
+import { config, isProduction, corsOrigins } from '../../config';
 import { requestLogger } from '../../middleware/requestLogger';
 import { authenticatedRateLimiter, unauthenticatedRateLimiter } from '../../middleware/rateLimiter';
 import { expressErrorHandler } from './middleware/errorHandler';
@@ -19,6 +19,15 @@ import { CampaignRepository } from '../../infrastructure/repositories/CampaignRe
 import { DraftRepository } from '../../infrastructure/repositories/DraftRepository';
 import { WorkspaceRepository } from '../../infrastructure/repositories/WorkspaceRepository';
 import { UserRepository } from '../../infrastructure/repositories/UserRepository';
+import { BillingRepository } from '../../infrastructure/repositories/BillingRepository';
+import { AdRepository } from '../../infrastructure/repositories/AdRepository';
+import { SettingsRepository } from '../../infrastructure/repositories/SettingsRepository';
+import { AudienceRepository } from '../../infrastructure/repositories/AudienceRepository';
+import { ReportRepository } from '../../infrastructure/repositories/ReportRepository';
+import { AlertRepository } from '../../infrastructure/repositories/AlertRepository';
+import { SearchRepository } from '../../infrastructure/repositories/SearchRepository';
+import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
+import { WebhookRepository } from '../../infrastructure/repositories/WebhookRepository';
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
@@ -27,8 +36,18 @@ import { NotificationService } from '../../infrastructure/notification/Notificat
 import { Container } from '../../application/services/Container';
 
 // Routes
+import { createAuthRoutes } from './routes/auth';
 import { createCampaignRoutes } from './routes/campaigns';
 import { createDraftRoutes } from './routes/drafts';
+import { createBillingRoutes } from './routes/billing';
+import { createAdRoutes } from './routes/ads';
+import { createSettingsRoutes } from './routes/settings';
+import { createAudienceRoutes } from './routes/audiences';
+import { createReportRoutes } from './routes/reports';
+import { createAlertRoutes } from './routes/alerts';
+import { createSearchRoutes } from './routes/search';
+import { createNotificationRoutes } from './routes/notifications';
+import { createWebhookRoutes } from './routes/webhooks';
 
 // Legacy routes (to be migrated)
 import authRoutes from '../../routes/auth';
@@ -46,7 +65,7 @@ export function createServer() {
 
   // Security
   app.use(helmet({
-    contentSecurityPolicy: config.isProduction ? {
+    contentSecurityPolicy: isProduction ? {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'nonce-{random}'"],
@@ -60,11 +79,11 @@ export function createServer() {
         formAction: ["'self'"],
       },
     } : false,
-    crossOriginEmbedderPolicy: config.isProduction,
+    crossOriginEmbedderPolicy: isProduction,
   }));
 
   app.use(cors({
-    origin: config.corsOrigins,
+    origin: corsOrigins,
     credentials: true,
   }));
 
@@ -99,19 +118,38 @@ export function createServer() {
     draftRepository: new DraftRepository(),
     workspaceRepository: new WorkspaceRepository(),
     userRepository: new UserRepository(),
+    billingRepository: new BillingRepository(),
+    adRepository: new AdRepository(),
+    settingsRepository: new SettingsRepository(),
+    audienceRepository: new AudienceRepository(),
+    reportRepository: new ReportRepository(),
+    alertRepository: new AlertRepository(),
+    searchRepository: new SearchRepository(),
+    notificationRepository: new NotificationRepository(),
+    webhookRepository: new WebhookRepository(),
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
   });
 
-  // Legacy Routes (v1, to be migrated)
+  // Legacy Routes (v1, stable — OAuth, webhooks)
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/auth/meta', metaOAuthRoutes);
   app.use('/api/v1/auth/google', googleOAuthRoutes);
 
-  // New Clean Architecture Routes (v2)
+  // V2 Clean Architecture Routes
+  app.use('/api/v2/auth', unauthenticatedRateLimiter, createAuthRoutes());
   app.use('/api/v2/campaigns', authenticatedRateLimiter, createCampaignRoutes(container));
   app.use('/api/v2/drafts', authenticatedRateLimiter, createDraftRoutes(container));
+  app.use('/api/v2/billing', authenticatedRateLimiter, createBillingRoutes(container));
+  app.use('/api/v2/ads', authenticatedRateLimiter, createAdRoutes(container));
+  app.use('/api/v2/settings', authenticatedRateLimiter, createSettingsRoutes(container));
+  app.use('/api/v2/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
+  app.use('/api/v2/reports', authenticatedRateLimiter, createReportRoutes(container));
+  app.use('/api/v2/alerts', authenticatedRateLimiter, createAlertRoutes(container));
+  app.use('/api/v2/search', authenticatedRateLimiter, createSearchRoutes(container));
+  app.use('/api/v2/notifications', authenticatedRateLimiter, createNotificationRoutes(container));
+  app.use('/api/v2/webhooks', authenticatedRateLimiter, createWebhookRoutes(container));
 
   // Realtime SSE endpoint
   app.get('/api/v2/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));

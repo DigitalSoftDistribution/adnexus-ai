@@ -129,7 +129,7 @@ export function useOffline(): UseOfflineReturn {
       }, 1500); // brief delay so the user sees "Back online" first
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOnline]);
 
   /* ── Queue helpers ───────────────────────────────────────────────── */

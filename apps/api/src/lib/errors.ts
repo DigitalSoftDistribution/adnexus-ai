@@ -40,8 +40,8 @@ export class NotFoundError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(message = 'Validation failed', details?: Record<string, unknown>) {
-    super('VALIDATION_ERROR', message, 400, details);
+  constructor(message = 'Validation failed', details?: Record<string, unknown> | Array<Record<string, string>>) {
+    super('VALIDATION_ERROR', message, 400, details as Record<string, unknown>);
   }
 }
 

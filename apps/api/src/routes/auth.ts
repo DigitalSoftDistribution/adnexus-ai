@@ -46,7 +46,7 @@ const changePasswordSchema = z.object({
 
 const inviteSchema = z.object({
   email: z.string().email('Invalid email address'),
-  role: z.enum(['admin', 'analyst', 'viewer']).default('viewer'),
+  role: z.enum(['admin', 'analyst', 'viewer', 'owner']).default('viewer'),
   workspaceId: z.string().uuid('Invalid workspace ID'),
 }).refine(
   (data) => data.role !== 'owner',
