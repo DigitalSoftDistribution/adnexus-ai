@@ -5,6 +5,10 @@ Golden rule for every community: **participate value-first with personal account
 brand-spam.** Reddit/Quora comments are permanent SEO assets that rank on Google and feed
 AI search answers.
 
+> **DECIDED - launch order is MCP-first.** Phase A (MCP registry + directories) runs to
+> completion and proves trial activation before the Phase C Product Hunt / Show HN moment.
+> Do not front-load the PH/HN spike onto an unproven funnel.
+
 ## Phase A (Weeks 0-2) - MCP wedge, free reach
 
 The single highest-leverage action: get the MCP server discoverable.
