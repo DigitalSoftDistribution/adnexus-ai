@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useParams, useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,8 +12,17 @@ import { formatCurrency, formatNumber, formatPercent, formatDate } from '@/lib/u
 import Link from 'next/link';
 import {
   ArrowLeft, Edit, Pause, Play, BarChart3, Users, Calendar,
-  History, Megaphone, TrendingUp, MousePointer, Target,
+  History, Megaphone, TrendingUp, MousePointer, Target, Copy, Trash2, MoreHorizontal,
+  Image, AlertTriangle,
 } from 'lucide-react';
+// Dropdown menu not available - using inline buttons instead
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger,
+// } from '@/components/ui/dropdown-menu';
 
 interface Campaign {
   id: string;
@@ -31,6 +40,8 @@ interface Campaign {
   conversions: number;
   cpa: number | null;
   roas: number | null;
+  cpm: number | null;
+  cpc: number | null;
   frequency: number | null;
   startDate: string | null;
   endDate: string | null;
@@ -49,11 +60,93 @@ function useCampaign(id: string) {
   });
 }
 
+interface Ad {
+  id: string;
+  name: string;
+  status: string;
+  creativeType: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number | null;
+  fatigueStatus: string;
+}
+
+function useCampaignAds(campaignId: string) {
+  return useQuery({
+    queryKey: ['ads', 'campaign', campaignId],
+    queryFn: async (): Promise<{ ads: Ad[]; total: number }> => {
+      const res = await fetch(`/api/v2/ads?campaignId=${campaignId}`);
+      if (!res.ok) throw new Error('Failed to fetch ads');
+      const data = await res.json();
+      return data.data;
+    },
+  });
+}
+
+function useCampaignActions(id: string) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const pause = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${id}/pause`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to pause campaign');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign', id] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'summary'] });
+    },
+  });
+
+  const activate = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${id}/activate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to activate campaign');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign', id] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'summary'] });
+    },
+  });
+
+  const duplicate = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${id}/duplicate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to duplicate campaign');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
+      router.push(`/dashboard/campaigns/${data.data.id}`);
+    },
+  });
+
+  const deleteCampaign = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete campaign');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'summary'] });
+      router.push('/dashboard/campaigns');
+    },
+  });
+
+  return { pause, activate, duplicate, delete: deleteCampaign };
+}
+
 export function CampaignDetailContent() {
   const params = useParams();
   const id = params.id as string;
   const [activeTab, setActiveTab] = useState('overview');
   const { data: campaign, isLoading } = useCampaign(id);
+  const actions = useCampaignActions(id);
 
   if (isLoading) {
     return (
@@ -104,13 +197,51 @@ export function CampaignDetailContent() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            {isActive ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-            {isActive ? 'Pause' : 'Activate'}
+          {isActive ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => actions.pause.mutate()}
+              disabled={actions.pause.isPending}
+            >
+              <Pause className="mr-2 h-4 w-4" />
+              {actions.pause.isPending ? 'Pausing...' : 'Pause'}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => actions.activate.mutate()}
+              disabled={actions.activate.isPending}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {actions.activate.isPending ? 'Activating...' : 'Activate'}
+            </Button>
+          )}
+          <Button size="sm" asChild>
+            <Link href={`/dashboard/campaigns/${id}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Link>
           </Button>
-          <Button size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => actions.duplicate.mutate()}
+            disabled={actions.duplicate.isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {actions.duplicate.isPending ? 'Duplicating...' : 'Duplicate'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => actions.delete.mutate()}
+            disabled={actions.delete.isPending}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {actions.delete.isPending ? 'Deleting...' : 'Delete'}
           </Button>
         </div>
       </div>
@@ -199,15 +330,7 @@ export function CampaignDetailContent() {
         </TabsContent>
 
         <TabsContent value="ads">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ad Sets & Ads</CardTitle>
-              <CardDescription>Manage your ad creatives</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">No ads configured yet.</p>
-            </CardContent>
-          </Card>
+          <CampaignAdsTab campaignId={id} />
         </TabsContent>
 
         <TabsContent value="audiences">
@@ -253,6 +376,87 @@ export function CampaignDetailContent() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function CampaignAdsTab({ campaignId }: { campaignId: string }) {
+  const { data, isLoading } = useCampaignAds(campaignId);
+  const ads = data?.ads ?? [];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex h-32 items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (ads.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Ad Sets & Ads</CardTitle>
+          <CardDescription>Manage your ad creatives</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Image className="h-12 w-12 mb-4 opacity-50" />
+            <p>No ads configured yet</p>
+            <p className="text-sm">Ads will appear here once created</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Ad Sets & Ads</CardTitle>
+          <CardDescription>{ads.length} ad(s) in this campaign</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {ads.map((ad) => (
+              <div
+                key={ad.id}
+                className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{ad.name}</span>
+                    <Badge variant="outline" className="capitalize text-xs">{ad.status}</Badge>
+                    {ad.creativeType && (
+                      <Badge variant="secondary" className="text-xs">{ad.creativeType}</Badge>
+                    )}
+                    {ad.fatigueStatus !== 'healthy' && (
+                      <Badge variant="destructive" className="text-xs">
+                        <AlertTriangle className="mr-1 h-3 w-3" />
+                        {ad.fatigueStatus}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>Spend: {formatCurrency(ad.spend)}</span>
+                    <span>Impressions: {formatNumber(ad.impressions)}</span>
+                    <span>Clicks: {formatNumber(ad.clicks)}</span>
+                    {ad.ctr && <span>CTR: {formatPercent(ad.ctr)}</span>}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/dashboard/ads/${ad.id}`}>View</Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

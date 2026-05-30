@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Users, MousePointer, Target, DollarSign } from 'lucide-react';
+import { useSSE } from '@/hooks/useSSE';
+import { TrendingUp, TrendingDown, Users, MousePointer, Target, DollarSign, Radio } from 'lucide-react';
 
 interface CampaignSummary {
   totalCampaigns: number;
@@ -35,6 +36,7 @@ function useCampaignSummary() {
 
 export function DashboardContent() {
   const { data: summary, isLoading } = useCampaignSummary();
+  const { isConnected } = useSSE();
 
   if (isLoading) {
     return (
@@ -77,9 +79,23 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your advertising performance.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your advertising performance.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={
+            `flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+              isConnected
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700'
+            }`
+          }>
+            <Radio className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
+            {isConnected ? 'Live' : 'Offline'}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

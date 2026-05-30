@@ -1,11 +1,11 @@
-import type { Request, Response } from 'express';
+// import type { Request, Response } from 'express';
 import type { Container } from '../../../application/services/Container';
 import { asyncHandler } from '../middleware/errorHandler';
 import type { AuthenticatedRequest } from '../middleware/requireAuth';
 
 export function createCampaignController(container: Container) {
   return {
-    list: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    list: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.listCampaigns.execute({
         workspaceId: req.user!.workspaceId,
         userRole: req.user!.role,
@@ -28,7 +28,7 @@ export function createCampaignController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
-    create: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    create: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.createCampaign.execute({
         workspaceId: req.user!.workspaceId,
         adAccountId: req.body.adAccountId,
@@ -52,7 +52,7 @@ export function createCampaignController(container: Container) {
       res.status(201).json({ success: true, data: result.data });
     }),
 
-    summary: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    summary: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.getCampaignSummary.execute({
         workspaceId: req.user!.workspaceId,
         userRole: req.user!.role,
@@ -63,6 +63,96 @@ export function createCampaignController(container: Container) {
       }
 
       res.json({ success: true, data: result.data });
+    }),
+
+    getById: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getCampaignById?.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Campaign not found' } });
+        return;
+      }
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    update: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.updateCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        updates: req.body,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    delete: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.deleteCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.status(204).send();
+    }),
+
+    pause: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.pauseCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    activate: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.activateCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    duplicate: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.duplicateCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.status(201).json({ success: true, data: result.data });
     }),
   };
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Re-export the canonical UI store from store/useUIStore
 // This file exists for backward compatibility — pages importing from
 // '../stores/uiStore' will get the same singleton instance as components

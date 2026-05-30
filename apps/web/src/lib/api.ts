@@ -537,7 +537,7 @@ export function createSSEConnection(endpoint: string, options: SSEOptions = {}):
 /*  ENVIRONMENT EXPORTS                                                */
 /* ═════════════════════════════════════════════════════════════════════ */
 
-export { ENV, BASE_URL, DEFAULT_TIMEOUT, MAX_RETRIES };
+export { ENV, BASE_URL, DEFAULT_TIMEOUT, MAX_RETRIES, api };
 export default api;
 
 /* ═════════════════════════════════════════════════════════════════════ */
@@ -2017,22 +2017,22 @@ let MOCK_INTEGRATIONS: IntegrationConfig = {
 
 export const settingsApi = {
   async integrations(): Promise<ConnectedAccount[]> {
-    const { data } = await apiClient.get('/settings/accounts');
+    const { data } = await api.get('/settings/accounts');
     return data;
   },
   async connectAccount(platform: string, workspaceId: string): Promise<{ redirectUrl: string } | ConnectedAccount> {
     // For OAuth platforms, returns the OAuth URL. For others, returns the created account.
     if (platform === 'Meta') {
-      return { redirectUrl: `${API_BASE}/api/v1/auth/meta/connect?workspace_id=${workspaceId}` };
+      return { redirectUrl: `${BASE_URL}/auth/meta/connect?workspace_id=${workspaceId}` };
     }
-    const { data } = await apiClient.post('/settings/accounts', { platform, workspace_id: workspaceId });
+    const { data } = await api.post('/settings/accounts', { platform, workspace_id: workspaceId });
     return data;
   },
   async disconnectAccount(id: string, workspaceId: string): Promise<void> {
-    await apiClient.post(`/api/v1/auth/meta/disconnect`, { account_id: id, workspace_id: workspaceId });
+    await api.post(`/api/v1/auth/meta/disconnect`, { account_id: id, workspace_id: workspaceId });
   },
   async refreshAccount(id: string): Promise<ConnectedAccount> {
-    const { data } = await apiClient.post(`/settings/accounts/${id}/refresh`);
+    const { data } = await api.post(`/settings/accounts/${id}/refresh`);
     return data;
   },
   async team(): Promise<TeamMember[]> {

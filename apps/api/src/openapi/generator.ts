@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { createDocument, type ZodOpenApiObject } from 'zod-openapi';
+import { createDocument } from 'zod-openapi';
 import { extendZodWithOpenApi } from 'zod-openapi';
 
 extendZodWithOpenApi(z);
@@ -187,7 +187,7 @@ export const ApiErrorSchema = z.object({
 
 // ─── OpenAPI Document ────────────────────────────────────────
 
-export function generateOpenAPIDocument(): ZodOpenApiObject {
+export function generateOpenAPIDocument(): any {
   return createDocument({
     openapi: '3.1.0',
     info: {

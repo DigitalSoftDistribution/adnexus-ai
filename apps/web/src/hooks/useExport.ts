@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { useState, useCallback, useRef } from 'react';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 
@@ -483,7 +483,7 @@ export function useExport(): UseExportReturn {
         setLastResult(result);
         return result;
       } catch (err) {
-        if (err.name === 'CanceledError' || err.name === 'AbortError') {
+        if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) {
           const result: ExportResult = {
             success: false,
             filename: filename || `report-${reportId}`,

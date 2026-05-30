@@ -18,7 +18,7 @@ New in v2:
 
 Environment Variables
 ---------------------
-    API_BASE_URL   : Base URL of the AdNexus API (default: http://localhost:3000/api/v1)
+    API_BASE_URL   : Base URL of the AdNexus API (default: http://localhost:3000/api/v2)
     API_JWT_TOKEN  : JWT token for authenticating with the AdNexus backend
     LOG_LEVEL      : Logging level (default: INFO)
     MCP_TRANSPORT  : FastMCP transport — 'stdio', 'sse', or 'http' (default: stdio)
@@ -59,7 +59,7 @@ logger = logging.getLogger("adnexus-mcp")
 # ---------------------------------------------------------------------------
 # Configuration from environment
 # ---------------------------------------------------------------------------
-API_BASE: str = os.getenv("API_BASE_URL", "http://localhost:3000/api/v1").rstrip("/")
+API_BASE: str = os.getenv("API_BASE_URL", "http://localhost:3000/api/v2").rstrip("/")
 API_JWT: str = os.getenv("API_JWT_TOKEN", "")
 MCP_TRANSPORT: str = os.getenv("MCP_TRANSPORT", "stdio")
 MCP_PORT: int = int(os.getenv("MCP_PORT", "8080"))

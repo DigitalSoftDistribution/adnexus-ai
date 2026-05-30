@@ -9,6 +9,16 @@ import type { ICampaignRepository } from '../../domain/repositories/ICampaignRep
 import type { IDraftRepository } from '../../domain/repositories/IDraftRepository';
 import type { IWorkspaceRepository } from '../../domain/repositories/IWorkspaceRepository';
 import type { IUserRepository } from '../../domain/repositories/IUserRepository';
+import type { IBillingRepository } from '../../domain/repositories/IBillingRepository';
+import type { IAdRepository } from '../../domain/repositories/IAdRepository';
+import type { ISettingsRepository } from '../../domain/repositories/ISettingsRepository';
+import type { IAudienceRepository } from '../../domain/repositories/IAudienceRepository';
+import type { IReportRepository } from '../../domain/repositories/IReportRepository';
+import type { IAlertRepository } from '../../domain/repositories/IAlertRepository';
+import type { ISearchRepository } from '../../domain/repositories/ISearchRepository';
+import type { INotificationRepository } from '../../domain/repositories/INotificationRepository';
+import type { IWebhookRepository } from '../../domain/repositories/IWebhookRepository';
+import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
@@ -16,16 +26,86 @@ import type { INotificationService } from '../ports/INotificationService';
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
 import { ListCampaignsUseCase } from '../use-cases/campaign/ListCampaignsUseCase';
 import { GetCampaignSummaryUseCase } from '../use-cases/campaign/GetCampaignSummaryUseCase';
+import { GetCampaignByIdUseCase } from '../use-cases/campaign/GetCampaignByIdUseCase';
+import { UpdateCampaignUseCase } from '../use-cases/campaign/UpdateCampaignUseCase';
+import { DeleteCampaignUseCase } from '../use-cases/campaign/DeleteCampaignUseCase';
+import { PauseCampaignUseCase } from '../use-cases/campaign/PauseCampaignUseCase';
+import { ActivateCampaignUseCase } from '../use-cases/campaign/ActivateCampaignUseCase';
+import { DuplicateCampaignUseCase } from '../use-cases/campaign/DuplicateCampaignUseCase';
 import { CreateDraftUseCase } from '../use-cases/draft/CreateDraftUseCase';
+import { ListDraftsUseCase } from '../use-cases/draft/ListDraftsUseCase';
+import { GetDraftByIdUseCase } from '../use-cases/draft/GetDraftByIdUseCase';
 import { ApproveDraftUseCase } from '../use-cases/draft/ApproveDraftUseCase';
+import { RejectDraftUseCase } from '../use-cases/draft/RejectDraftUseCase';
+import { ExecuteDraftUseCase } from '../use-cases/draft/ExecuteDraftUseCase';
 import { GetWorkspaceUseCase } from '../use-cases/workspace/GetWorkspaceUseCase';
 import { InviteMemberUseCase } from '../use-cases/workspace/InviteMemberUseCase';
+import { GetBillingInfoUseCase } from '../use-cases/billing/GetBillingInfoUseCase';
+import { CreateCheckoutSessionUseCase } from '../use-cases/billing/CreateCheckoutSessionUseCase';
+import { CreatePortalSessionUseCase } from '../use-cases/billing/CreatePortalSessionUseCase';
+import { ListInvoicesUseCase } from '../use-cases/billing/ListInvoicesUseCase';
+import { CancelSubscriptionUseCase } from '../use-cases/billing/CancelSubscriptionUseCase';
+import { ListAdsUseCase } from '../use-cases/ad/ListAdsUseCase';
+import { GetAdByIdUseCase } from '../use-cases/ad/GetAdByIdUseCase';
+import { GetAdPerformanceUseCase } from '../use-cases/ad/GetAdPerformanceUseCase';
+import { GetAdCreativePerformanceUseCase } from '../use-cases/ad/GetAdCreativePerformanceUseCase';
+import { GetWorkspaceSettingsUseCase } from '../use-cases/settings/GetWorkspaceSettingsUseCase';
+import { UpdateWorkspaceSettingsUseCase } from '../use-cases/settings/UpdateWorkspaceSettingsUseCase';
+import { GetTeamMembersUseCase } from '../use-cases/settings/GetTeamMembersUseCase';
+import { UpdateTeamMemberRoleUseCase } from '../use-cases/settings/UpdateTeamMemberRoleUseCase';
+import { RemoveTeamMemberUseCase } from '../use-cases/settings/RemoveTeamMemberUseCase';
+import { GetIntegrationsUseCase } from '../use-cases/settings/GetIntegrationsUseCase';
+import { GetNotificationPreferencesUseCase } from '../use-cases/settings/GetNotificationPreferencesUseCase';
+import { UpdateNotificationPreferencesUseCase } from '../use-cases/settings/UpdateNotificationPreferencesUseCase';
+import { GetApiKeysUseCase } from '../use-cases/settings/GetApiKeysUseCase';
+import { CreateApiKeyUseCase } from '../use-cases/settings/CreateApiKeyUseCase';
+import { RevokeApiKeyUseCase } from '../use-cases/settings/RevokeApiKeyUseCase';
+import { ListAudiencesUseCase } from '../use-cases/audience/ListAudiencesUseCase';
+import { GetAudienceByIdUseCase } from '../use-cases/audience/GetAudienceByIdUseCase';
+import { CreateAudienceUseCase } from '../use-cases/audience/CreateAudienceUseCase';
+import { UpdateAudienceUseCase } from '../use-cases/audience/UpdateAudienceUseCase';
+import { DeleteAudienceUseCase } from '../use-cases/audience/DeleteAudienceUseCase';
+import { GetAudienceInsightsUseCase } from '../use-cases/audience/GetAudienceInsightsUseCase';
+import { ListReportsUseCase } from '../use-cases/report/ListReportsUseCase';
+import { GetReportByIdUseCase } from '../use-cases/report/GetReportByIdUseCase';
+import { CreateReportUseCase } from '../use-cases/report/CreateReportUseCase';
+import { UpdateReportUseCase } from '../use-cases/report/UpdateReportUseCase';
+import { DeleteReportUseCase } from '../use-cases/report/DeleteReportUseCase';
+import { RunReportUseCase } from '../use-cases/report/RunReportUseCase';
+import { ListAlertsUseCase } from '../use-cases/alert/ListAlertsUseCase';
+import { GetAlertByIdUseCase } from '../use-cases/alert/GetAlertByIdUseCase';
+import { CreateAlertUseCase } from '../use-cases/alert/CreateAlertUseCase';
+import { UpdateAlertUseCase } from '../use-cases/alert/UpdateAlertUseCase';
+import { DeleteAlertUseCase } from '../use-cases/alert/DeleteAlertUseCase';
+import { ToggleAlertUseCase } from '../use-cases/alert/ToggleAlertUseCase';
+import { GetAlertHistoryUseCase } from '../use-cases/alert/GetAlertHistoryUseCase';
+import { SearchUseCase } from '../use-cases/search/SearchUseCase';
+import { GetSuggestionsUseCase } from '../use-cases/search/GetSuggestionsUseCase';
+import { ListNotificationsUseCase } from '../use-cases/notification/ListNotificationsUseCase';
+import { MarkNotificationReadUseCase } from '../use-cases/notification/MarkNotificationReadUseCase';
+import { MarkAllNotificationsReadUseCase } from '../use-cases/notification/MarkAllNotificationsReadUseCase';
+import { ListWebhookConfigsUseCase } from '../use-cases/webhook/ListWebhookConfigsUseCase';
+import { CreateWebhookConfigUseCase } from '../use-cases/webhook/CreateWebhookConfigUseCase';
+import { ConnectAdAccountUseCase } from '../use-cases/ad-account/ConnectAdAccountUseCase';
+import { ListAdAccountsUseCase } from '../use-cases/ad-account/ListAdAccountsUseCase';
+import { SyncAdAccountUseCase } from '../use-cases/ad-account/SyncAdAccountUseCase';
+import { DisconnectAdAccountUseCase } from '../use-cases/ad-account/DisconnectAdAccountUseCase';
 
 export interface ContainerConfig {
   campaignRepository: ICampaignRepository;
   draftRepository: IDraftRepository;
   workspaceRepository: IWorkspaceRepository;
   userRepository: IUserRepository;
+  billingRepository: IBillingRepository;
+  adRepository: IAdRepository;
+  settingsRepository: ISettingsRepository;
+  audienceRepository: IAudienceRepository;
+  reportRepository: IReportRepository;
+  alertRepository: IAlertRepository;
+  searchRepository: ISearchRepository;
+  notificationRepository: INotificationRepository;
+  webhookRepository: IWebhookRepository;
+  adAccountRepository: IAdAccountRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -36,10 +116,70 @@ export class Container {
   readonly createCampaign: CreateCampaignUseCase;
   readonly listCampaigns: ListCampaignsUseCase;
   readonly getCampaignSummary: GetCampaignSummaryUseCase;
+  readonly getCampaignById: GetCampaignByIdUseCase;
+  readonly updateCampaign: UpdateCampaignUseCase;
+  readonly deleteCampaign: DeleteCampaignUseCase;
+  readonly pauseCampaign: PauseCampaignUseCase;
+  readonly activateCampaign: ActivateCampaignUseCase;
+  readonly duplicateCampaign: DuplicateCampaignUseCase;
   readonly createDraft: CreateDraftUseCase;
+  readonly listDrafts: ListDraftsUseCase;
+  readonly getDraftById: GetDraftByIdUseCase;
   readonly approveDraft: ApproveDraftUseCase;
+  readonly rejectDraft: RejectDraftUseCase;
+  readonly executeDraft: ExecuteDraftUseCase;
   readonly getWorkspace: GetWorkspaceUseCase;
   readonly inviteMember: InviteMemberUseCase;
+  readonly getBillingInfo: GetBillingInfoUseCase;
+  readonly createCheckoutSession: CreateCheckoutSessionUseCase;
+  readonly createPortalSession: CreatePortalSessionUseCase;
+  readonly listInvoices: ListInvoicesUseCase;
+  readonly cancelSubscription: CancelSubscriptionUseCase;
+  readonly listAds: ListAdsUseCase;
+  readonly getAdById: GetAdByIdUseCase;
+  readonly getAdPerformance: GetAdPerformanceUseCase;
+  readonly getAdCreativePerformance: GetAdCreativePerformanceUseCase;
+  readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
+  readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
+  readonly getTeamMembers: GetTeamMembersUseCase;
+  readonly updateTeamMemberRole: UpdateTeamMemberRoleUseCase;
+  readonly removeTeamMember: RemoveTeamMemberUseCase;
+  readonly getIntegrations: GetIntegrationsUseCase;
+  readonly getNotificationPreferences: GetNotificationPreferencesUseCase;
+  readonly updateNotificationPreferences: UpdateNotificationPreferencesUseCase;
+  readonly getApiKeys: GetApiKeysUseCase;
+  readonly createApiKey: CreateApiKeyUseCase;
+  readonly revokeApiKey: RevokeApiKeyUseCase;
+  readonly listAudiences: ListAudiencesUseCase;
+  readonly getAudienceById: GetAudienceByIdUseCase;
+  readonly createAudience: CreateAudienceUseCase;
+  readonly updateAudience: UpdateAudienceUseCase;
+  readonly deleteAudience: DeleteAudienceUseCase;
+  readonly getAudienceInsights: GetAudienceInsightsUseCase;
+  readonly listReports: ListReportsUseCase;
+  readonly getReportById: GetReportByIdUseCase;
+  readonly createReport: CreateReportUseCase;
+  readonly updateReport: UpdateReportUseCase;
+  readonly deleteReport: DeleteReportUseCase;
+  readonly runReport: RunReportUseCase;
+  readonly listAlerts: ListAlertsUseCase;
+  readonly getAlertById: GetAlertByIdUseCase;
+  readonly createAlert: CreateAlertUseCase;
+  readonly updateAlert: UpdateAlertUseCase;
+  readonly deleteAlert: DeleteAlertUseCase;
+  readonly toggleAlert: ToggleAlertUseCase;
+  readonly getAlertHistory: GetAlertHistoryUseCase;
+  readonly search: SearchUseCase;
+  readonly searchSuggestions: GetSuggestionsUseCase;
+  readonly listNotifications: ListNotificationsUseCase;
+  readonly markNotificationRead: MarkNotificationReadUseCase;
+  readonly markAllNotificationsRead: MarkAllNotificationsReadUseCase;
+  readonly listWebhookConfigs: ListWebhookConfigsUseCase;
+  readonly createWebhookConfig: CreateWebhookConfigUseCase;
+  readonly connectAdAccount: ConnectAdAccountUseCase;
+  readonly listAdAccounts: ListAdAccountsUseCase;
+  readonly syncAdAccount: SyncAdAccountUseCase;
+  readonly disconnectAdAccount: DisconnectAdAccountUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -53,23 +193,105 @@ export class Container {
 
     this.getCampaignSummary = new GetCampaignSummaryUseCase(config.campaignRepository);
 
+    this.getCampaignById = new GetCampaignByIdUseCase(config.campaignRepository);
+    this.updateCampaign = new UpdateCampaignUseCase(config.campaignRepository);
+    this.deleteCampaign = new DeleteCampaignUseCase(config.campaignRepository);
+    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository);
+    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository);
+    this.duplicateCampaign = new DuplicateCampaignUseCase(config.campaignRepository);
+
     this.createDraft = new CreateDraftUseCase(
       config.draftRepository,
       config.eventBus,
       config.auditLogger,
     );
+    this.listDrafts = new ListDraftsUseCase(config.draftRepository);
+    this.getDraftById = new GetDraftByIdUseCase(config.draftRepository);
 
     this.approveDraft = new ApproveDraftUseCase(
       config.draftRepository,
       config.eventBus,
       config.auditLogger,
     );
+    this.rejectDraft = new RejectDraftUseCase(config.draftRepository);
+    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository);
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);
 
     this.inviteMember = new InviteMemberUseCase(
       config.workspaceRepository,
       config.userRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
+
+    this.getBillingInfo = new GetBillingInfoUseCase(config.billingRepository);
+    this.createCheckoutSession = new CreateCheckoutSessionUseCase(config.billingRepository);
+    this.createPortalSession = new CreatePortalSessionUseCase(config.billingRepository);
+    this.listInvoices = new ListInvoicesUseCase(config.billingRepository);
+    this.cancelSubscription = new CancelSubscriptionUseCase(config.billingRepository);
+
+    this.listAds = new ListAdsUseCase(config.adRepository);
+    this.getAdById = new GetAdByIdUseCase(config.adRepository);
+    this.getAdPerformance = new GetAdPerformanceUseCase(config.adRepository);
+    this.getAdCreativePerformance = new GetAdCreativePerformanceUseCase(config.adRepository);
+
+    this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
+    this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);
+    this.getTeamMembers = new GetTeamMembersUseCase(config.settingsRepository);
+    this.updateTeamMemberRole = new UpdateTeamMemberRoleUseCase(config.settingsRepository);
+    this.removeTeamMember = new RemoveTeamMemberUseCase(config.settingsRepository);
+    this.getIntegrations = new GetIntegrationsUseCase(config.settingsRepository);
+    this.getNotificationPreferences = new GetNotificationPreferencesUseCase(config.settingsRepository);
+    this.updateNotificationPreferences = new UpdateNotificationPreferencesUseCase(config.settingsRepository);
+    this.getApiKeys = new GetApiKeysUseCase(config.settingsRepository);
+    this.createApiKey = new CreateApiKeyUseCase(config.settingsRepository);
+    this.revokeApiKey = new RevokeApiKeyUseCase(config.settingsRepository);
+
+    this.listAudiences = new ListAudiencesUseCase(config.audienceRepository);
+    this.getAudienceById = new GetAudienceByIdUseCase(config.audienceRepository);
+    this.createAudience = new CreateAudienceUseCase(config.audienceRepository);
+    this.updateAudience = new UpdateAudienceUseCase(config.audienceRepository);
+    this.deleteAudience = new DeleteAudienceUseCase(config.audienceRepository);
+    this.getAudienceInsights = new GetAudienceInsightsUseCase(config.audienceRepository);
+
+    this.listReports = new ListReportsUseCase(config.reportRepository);
+    this.getReportById = new GetReportByIdUseCase(config.reportRepository);
+    this.createReport = new CreateReportUseCase(config.reportRepository);
+    this.updateReport = new UpdateReportUseCase(config.reportRepository);
+    this.deleteReport = new DeleteReportUseCase(config.reportRepository);
+    this.runReport = new RunReportUseCase(config.reportRepository);
+
+    this.listAlerts = new ListAlertsUseCase(config.alertRepository);
+    this.getAlertById = new GetAlertByIdUseCase(config.alertRepository);
+    this.createAlert = new CreateAlertUseCase(config.alertRepository);
+    this.updateAlert = new UpdateAlertUseCase(config.alertRepository);
+    this.deleteAlert = new DeleteAlertUseCase(config.alertRepository);
+    this.toggleAlert = new ToggleAlertUseCase(config.alertRepository);
+    this.getAlertHistory = new GetAlertHistoryUseCase(config.alertRepository);
+
+    this.search = new SearchUseCase(config.searchRepository);
+    this.searchSuggestions = new GetSuggestionsUseCase(config.searchRepository);
+    this.listNotifications = new ListNotificationsUseCase(config.notificationRepository);
+    this.markNotificationRead = new MarkNotificationReadUseCase(config.notificationRepository);
+    this.markAllNotificationsRead = new MarkAllNotificationsReadUseCase(config.notificationRepository);
+    this.listWebhookConfigs = new ListWebhookConfigsUseCase(config.webhookRepository);
+    this.createWebhookConfig = new CreateWebhookConfigUseCase(config.webhookRepository);
+
+    this.connectAdAccount = new ConnectAdAccountUseCase(
+      config.adAccountRepository,
+      config.workspaceRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
+    this.listAdAccounts = new ListAdAccountsUseCase(config.adAccountRepository);
+    this.syncAdAccount = new SyncAdAccountUseCase(
+      config.adAccountRepository,
+      config.auditLogger,
+    );
+    this.disconnectAdAccount = new DisconnectAdAccountUseCase(
+      config.adAccountRepository,
+      config.campaignRepository,
       config.eventBus,
       config.auditLogger,
     );

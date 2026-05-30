@@ -1,12 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatDate } from '@/lib/utils';
-import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock } from 'lucide-react';
+import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock, Play } from 'lucide-react';
 
 interface Draft {
   id: string;
@@ -88,7 +88,51 @@ export function DraftsContent() {
   );
 }
 
+function useDraftActions() {
+  const queryClient = useQueryClient();
+
+  const approve = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/v2/drafts/${id}/approve`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to approve draft');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts', 'list'] });
+    },
+  });
+
+  const reject = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const res = await fetch(`/api/v2/drafts/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) throw new Error('Failed to reject draft');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts', 'list'] });
+    },
+  });
+
+  const execute = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/v2/drafts/${id}/execute`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to execute draft');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts', 'list'] });
+    },
+  });
+
+  return { approve, reject, execute };
+}
+
 function DraftCard({ draft }: { draft: Draft }) {
+  const actions = useDraftActions();
   const statusConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
     pending: { icon: Clock, color: 'bg-amber-100 text-amber-700', label: 'Pending' },
     approved: { icon: CheckCircle, color: 'bg-emerald-100 text-emerald-700', label: 'Approved' },
@@ -123,8 +167,36 @@ function DraftCard({ draft }: { draft: Draft }) {
       </div>
       {draft.status === 'pending' && (
         <div className="flex gap-2 ml-4">
-          <Button size="sm" variant="outline">Reject</Button>
-          <Button size="sm">Approve</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => actions.reject.mutate({ id: draft.id })}
+            disabled={actions.reject.isPending}
+          >
+            <XCircle className="mr-1 h-3 w-3" />
+            Reject
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => actions.approve.mutate(draft.id)}
+            disabled={actions.approve.isPending}
+          >
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Approve
+          </Button>
+        </div>
+      )}
+      {draft.status === 'approved' && (
+        <div className="flex gap-2 ml-4">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => actions.execute.mutate(draft.id)}
+            disabled={actions.execute.isPending}
+          >
+            <Play className="mr-1 h-3 w-3" />
+            {actions.execute.isPending ? 'Executing...' : 'Execute'}
+          </Button>
         </div>
       )}
     </div>
