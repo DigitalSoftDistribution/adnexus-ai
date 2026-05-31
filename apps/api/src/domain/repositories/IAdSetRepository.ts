@@ -1,25 +1,8 @@
-import type { AdSet, AdSetStatus } from '../entities/AdSet';
-
-export interface AdSetFilters {
-  workspaceId: string;
-  campaignId?: string;
-  status?: AdSetStatus | AdSetStatus[];
-  search?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface AdSetListResult {
-  adSets: AdSet[];
-  total: number;
-  page: number;
-  totalPages: number;
-}
+import type { AdSet, AdSetFilters, AdSetListResult } from '../entities/AdSet';
 
 export interface IAdSetRepository {
   findById(id: string): Promise<AdSet | null>;
-  findByIdAndWorkspace(id: string, workspaceId: string): Promise<AdSet | null>;
-  findByCampaign(campaignId: string): Promise<AdSet[]>;
+  findByIdAndCampaign(id: string, campaignId: string): Promise<AdSet | null>;
   list(filters: AdSetFilters): Promise<AdSetListResult>;
   create(adSet: Omit<AdSet, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdSet>;
   update(id: string, updates: Partial<AdSet>): Promise<AdSet | null>;

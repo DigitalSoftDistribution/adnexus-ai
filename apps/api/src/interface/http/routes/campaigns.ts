@@ -16,6 +16,9 @@ export function createCampaignRoutes(container: Container): Router {
   router.post('/:id/pause', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.pause as any);
   router.post('/:id/activate', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.activate as any);
   router.post('/:id/duplicate', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.duplicate as any);
+  router.get('/:id/insights', requireAuth, controller.insights as any);
+  router.get('/:id/history', requireAuth, controller.history as any);
+  router.post('/:id/sync', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.sync as any);
 
   return router;
 }

@@ -18,6 +18,14 @@ import type { IAlertRepository } from '../../domain/repositories/IAlertRepositor
 import type { ISearchRepository } from '../../domain/repositories/ISearchRepository';
 import type { INotificationRepository } from '../../domain/repositories/INotificationRepository';
 import type { IWebhookRepository } from '../../domain/repositories/IWebhookRepository';
+import type { IDraftCommentRepository } from '../../domain/repositories/IDraftCommentRepository';
+import type { ICampaignInsightRepository } from '../../domain/repositories/ICampaignInsightRepository';
+import type { ICampaignHistoryRepository } from '../../domain/repositories/ICampaignHistoryRepository';
+import type { IAdSetRepository } from '../../domain/repositories/IAdSetRepository';
+import type { IGoalRepository } from '../../domain/repositories/IGoalRepository';
+import type { IAutomationRuleRepository } from '../../domain/repositories/IAutomationRuleRepository';
+import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRepository';
+import type { IExportRepository } from '../../domain/repositories/IExportRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
@@ -85,6 +93,36 @@ import { MarkNotificationReadUseCase } from '../use-cases/notification/MarkNotif
 import { MarkAllNotificationsReadUseCase } from '../use-cases/notification/MarkAllNotificationsReadUseCase';
 import { ListWebhookConfigsUseCase } from '../use-cases/webhook/ListWebhookConfigsUseCase';
 import { CreateWebhookConfigUseCase } from '../use-cases/webhook/CreateWebhookConfigUseCase';
+import { ListDraftCommentsUseCase } from '../use-cases/draft/ListDraftCommentsUseCase';
+import { AddDraftCommentUseCase } from '../use-cases/draft/AddDraftCommentUseCase';
+import { DeleteDraftCommentUseCase } from '../use-cases/draft/DeleteDraftCommentUseCase';
+import { GetCampaignInsightsUseCase } from '../use-cases/campaign/GetCampaignInsightsUseCase';
+import { GetCampaignHistoryUseCase } from '../use-cases/campaign/GetCampaignHistoryUseCase';
+import { SyncCampaignUseCase } from '../use-cases/campaign/SyncCampaignUseCase';
+import { ListAdSetsUseCase } from '../use-cases/ad-set/ListAdSetsUseCase';
+import { GetAdSetByIdUseCase } from '../use-cases/ad-set/GetAdSetByIdUseCase';
+import { CreateAdSetUseCase } from '../use-cases/ad-set/CreateAdSetUseCase';
+import { UpdateAdSetUseCase } from '../use-cases/ad-set/UpdateAdSetUseCase';
+import { DeleteAdSetUseCase } from '../use-cases/ad-set/DeleteAdSetUseCase';
+import { ListGoalsUseCase } from '../use-cases/goal/ListGoalsUseCase';
+import { GetGoalByIdUseCase } from '../use-cases/goal/GetGoalByIdUseCase';
+import { CreateGoalUseCase } from '../use-cases/goal/CreateGoalUseCase';
+import { UpdateGoalUseCase } from '../use-cases/goal/UpdateGoalUseCase';
+import { DeleteGoalUseCase } from '../use-cases/goal/DeleteGoalUseCase';
+import { GetGoalProgressUseCase } from '../use-cases/goal/GetGoalProgressUseCase';
+import { GetAgentStatusUseCase } from '../use-cases/agent/GetAgentStatusUseCase';
+import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
+import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
+import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
+import { GetExportByIdUseCase } from '../use-cases/export/GetExportByIdUseCase';
+import { CreateExportUseCase } from '../use-cases/export/CreateExportUseCase';
+import { DeleteExportUseCase } from '../use-cases/export/DeleteExportUseCase';
+import { ListAutomationRulesUseCase } from '../use-cases/agent/ListAutomationRulesUseCase';
+import { GetAutomationRuleByIdUseCase } from '../use-cases/agent/GetAutomationRuleByIdUseCase';
+import { CreateAutomationRuleUseCase } from '../use-cases/agent/CreateAutomationRuleUseCase';
+import { UpdateAutomationRuleUseCase } from '../use-cases/agent/UpdateAutomationRuleUseCase';
+import { DeleteAutomationRuleUseCase } from '../use-cases/agent/DeleteAutomationRuleUseCase';
+import { ToggleAutomationRuleUseCase } from '../use-cases/agent/ToggleAutomationRuleUseCase';
 
 export interface ContainerConfig {
   campaignRepository: ICampaignRepository;
@@ -100,6 +138,14 @@ export interface ContainerConfig {
   searchRepository: ISearchRepository;
   notificationRepository: INotificationRepository;
   webhookRepository: IWebhookRepository;
+  draftCommentRepository: IDraftCommentRepository;
+  campaignInsightRepository: ICampaignInsightRepository;
+  campaignHistoryRepository: ICampaignHistoryRepository;
+  adSetRepository: IAdSetRepository;
+  goalRepository: IGoalRepository;
+  automationRuleRepository: IAutomationRuleRepository;
+  auditLogRepository: IAuditLogRepository;
+  exportRepository: IExportRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -170,6 +216,36 @@ export class Container {
   readonly markAllNotificationsRead: MarkAllNotificationsReadUseCase;
   readonly listWebhookConfigs: ListWebhookConfigsUseCase;
   readonly createWebhookConfig: CreateWebhookConfigUseCase;
+  readonly listDraftComments: ListDraftCommentsUseCase;
+  readonly addDraftComment: AddDraftCommentUseCase;
+  readonly deleteDraftComment: DeleteDraftCommentUseCase;
+  readonly getCampaignInsights: GetCampaignInsightsUseCase;
+  readonly getCampaignHistory: GetCampaignHistoryUseCase;
+  readonly syncCampaign: SyncCampaignUseCase;
+  readonly listAdSets: ListAdSetsUseCase;
+  readonly getAdSetById: GetAdSetByIdUseCase;
+  readonly createAdSet: CreateAdSetUseCase;
+  readonly updateAdSet: UpdateAdSetUseCase;
+  readonly deleteAdSet: DeleteAdSetUseCase;
+  readonly listGoals: ListGoalsUseCase;
+  readonly getGoalById: GetGoalByIdUseCase;
+  readonly createGoal: CreateGoalUseCase;
+  readonly updateGoal: UpdateGoalUseCase;
+  readonly deleteGoal: DeleteGoalUseCase;
+  readonly getGoalProgress: GetGoalProgressUseCase;
+  readonly getAgentStatus: GetAgentStatusUseCase;
+  readonly listAutomationRules: ListAutomationRulesUseCase;
+  readonly getAutomationRuleById: GetAutomationRuleByIdUseCase;
+  readonly createAutomationRule: CreateAutomationRuleUseCase;
+  readonly updateAutomationRule: UpdateAutomationRuleUseCase;
+  readonly deleteAutomationRule: DeleteAutomationRuleUseCase;
+  readonly toggleAutomationRule: ToggleAutomationRuleUseCase;
+  readonly listAuditLog: ListAuditLogUseCase;
+  readonly getAuditLogSummary: GetAuditLogSummaryUseCase;
+  readonly listExports: ListExportsUseCase;
+  readonly getExportById: GetExportByIdUseCase;
+  readonly createExport: CreateExportUseCase;
+  readonly deleteExport: DeleteExportUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -267,5 +343,66 @@ export class Container {
     this.markAllNotificationsRead = new MarkAllNotificationsReadUseCase(config.notificationRepository);
     this.listWebhookConfigs = new ListWebhookConfigsUseCase(config.webhookRepository);
     this.createWebhookConfig = new CreateWebhookConfigUseCase(config.webhookRepository);
+
+    this.listDraftComments = new ListDraftCommentsUseCase(
+      config.draftRepository,
+      config.draftCommentRepository,
+    );
+    this.addDraftComment = new AddDraftCommentUseCase(
+      config.draftRepository,
+      config.draftCommentRepository,
+    );
+    this.deleteDraftComment = new DeleteDraftCommentUseCase(config.draftCommentRepository);
+
+    this.getCampaignInsights = new GetCampaignInsightsUseCase(
+      config.campaignRepository,
+      config.campaignInsightRepository,
+    );
+    this.getCampaignHistory = new GetCampaignHistoryUseCase(
+      config.campaignRepository,
+      config.campaignHistoryRepository,
+    );
+    this.syncCampaign = new SyncCampaignUseCase(
+      config.campaignRepository,
+      config.campaignHistoryRepository,
+      config.eventBus,
+    );
+
+    this.listAdSets = new ListAdSetsUseCase(config.adSetRepository);
+    this.getAdSetById = new GetAdSetByIdUseCase(config.adSetRepository);
+    this.createAdSet = new CreateAdSetUseCase(
+      config.adSetRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
+    this.updateAdSet = new UpdateAdSetUseCase(config.adSetRepository);
+    this.deleteAdSet = new DeleteAdSetUseCase(config.adSetRepository);
+
+    this.listGoals = new ListGoalsUseCase(config.goalRepository);
+    this.getGoalById = new GetGoalByIdUseCase(config.goalRepository);
+    this.createGoal = new CreateGoalUseCase(config.goalRepository);
+    this.updateGoal = new UpdateGoalUseCase(config.goalRepository);
+    this.deleteGoal = new DeleteGoalUseCase(config.goalRepository);
+    this.getGoalProgress = new GetGoalProgressUseCase(config.goalRepository);
+
+    this.getAgentStatus = new GetAgentStatusUseCase(config.automationRuleRepository);
+    this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
+    this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
+    this.createAutomationRule = new CreateAutomationRuleUseCase(
+      config.automationRuleRepository,
+      config.eventBus,
+      config.auditLogger,
+    );
+    this.updateAutomationRule = new UpdateAutomationRuleUseCase(config.automationRuleRepository);
+    this.deleteAutomationRule = new DeleteAutomationRuleUseCase(config.automationRuleRepository);
+    this.toggleAutomationRule = new ToggleAutomationRuleUseCase(config.automationRuleRepository);
+
+    this.listAuditLog = new ListAuditLogUseCase(config.auditLogRepository);
+    this.getAuditLogSummary = new GetAuditLogSummaryUseCase(config.auditLogRepository);
+
+    this.listExports = new ListExportsUseCase(config.exportRepository);
+    this.getExportById = new GetExportByIdUseCase(config.exportRepository);
+    this.createExport = new CreateExportUseCase(config.exportRepository);
+    this.deleteExport = new DeleteExportUseCase(config.exportRepository);
   }
 }

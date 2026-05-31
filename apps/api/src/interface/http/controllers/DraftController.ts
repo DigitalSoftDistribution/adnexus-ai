@@ -108,5 +108,52 @@ export function createDraftController(container: Container) {
 
       res.json({ success: true, data: result.data });
     }),
+
+    listComments: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.listDraftComments.execute({
+        draftId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    addComment: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.addDraftComment.execute({
+        draftId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userName: req.user!.name,
+        userAvatar: req.user!.avatar ?? null,
+        content: req.body.content,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.status(201).json({ success: true, data: result.data });
+    }),
+
+    deleteComment: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.deleteDraftComment.execute({
+        commentId: req.params.commentId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.status(204).send();
+    }),
   };
 }

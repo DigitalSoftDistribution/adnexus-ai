@@ -28,6 +28,14 @@ import { AlertRepository } from '../../infrastructure/repositories/AlertReposito
 import { SearchRepository } from '../../infrastructure/repositories/SearchRepository';
 import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 import { WebhookRepository } from '../../infrastructure/repositories/WebhookRepository';
+import { DraftCommentRepository } from '../../infrastructure/repositories/DraftCommentRepository';
+import { CampaignInsightRepository } from '../../infrastructure/repositories/CampaignInsightRepository';
+import { CampaignHistoryRepository } from '../../infrastructure/repositories/CampaignHistoryRepository';
+import { AdSetRepository } from '../../infrastructure/repositories/AdSetRepository';
+import { GoalRepository } from '../../infrastructure/repositories/GoalRepository';
+import { AutomationRuleRepository } from '../../infrastructure/repositories/AutomationRuleRepository';
+import { AuditLogRepository } from '../../infrastructure/repositories/AuditLogRepository';
+import { ExportRepository } from '../../infrastructure/repositories/ExportRepository';
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
@@ -48,6 +56,11 @@ import { createAlertRoutes } from './routes/alerts';
 import { createSearchRoutes } from './routes/search';
 import { createNotificationRoutes } from './routes/notifications';
 import { createWebhookRoutes } from './routes/webhooks';
+import { createAdSetRoutes } from './routes/ad-sets';
+import { createGoalRoutes } from './routes/goals';
+import { createAgentRoutes } from './routes/agent';
+import { createAuditLogRoutes } from './routes/audit-log';
+import { createExportRoutes } from './routes/exports';
 
 // Legacy routes (to be migrated)
 import authRoutes from '../../routes/auth';
@@ -127,6 +140,14 @@ export function createServer() {
     searchRepository: new SearchRepository(),
     notificationRepository: new NotificationRepository(),
     webhookRepository: new WebhookRepository(),
+    draftCommentRepository: new DraftCommentRepository(),
+    campaignInsightRepository: new CampaignInsightRepository(),
+    campaignHistoryRepository: new CampaignHistoryRepository(),
+    adSetRepository: new AdSetRepository(),
+    goalRepository: new GoalRepository(),
+    automationRuleRepository: new AutomationRuleRepository(),
+    auditLogRepository: new AuditLogRepository(),
+    exportRepository: new ExportRepository(),
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
@@ -150,6 +171,11 @@ export function createServer() {
   app.use('/api/v2/search', authenticatedRateLimiter, createSearchRoutes(container));
   app.use('/api/v2/notifications', authenticatedRateLimiter, createNotificationRoutes(container));
   app.use('/api/v2/webhooks', authenticatedRateLimiter, createWebhookRoutes(container));
+  app.use('/api/v2/campaigns/:campaignId/adsets', authenticatedRateLimiter, createAdSetRoutes(container));
+  app.use('/api/v2/goals', authenticatedRateLimiter, createGoalRoutes(container));
+  app.use('/api/v2/agent', authenticatedRateLimiter, createAgentRoutes(container));
+  app.use('/api/v2/audit-log', authenticatedRateLimiter, createAuditLogRoutes(container));
+  app.use('/api/v2/exports', authenticatedRateLimiter, createExportRoutes(container));
 
   // Realtime SSE endpoint
   app.get('/api/v2/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));
