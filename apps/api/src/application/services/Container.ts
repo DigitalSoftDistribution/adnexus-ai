@@ -26,6 +26,7 @@ import type { IGoalRepository } from '../../domain/repositories/IGoalRepository'
 import type { IAutomationRuleRepository } from '../../domain/repositories/IAutomationRuleRepository';
 import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRepository';
 import type { IExportRepository } from '../../domain/repositories/IExportRepository';
+import type { IAssetRepository } from '../../domain/repositories/IAssetRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
@@ -117,6 +118,15 @@ import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
 import { GetExportByIdUseCase } from '../use-cases/export/GetExportByIdUseCase';
 import { CreateExportUseCase } from '../use-cases/export/CreateExportUseCase';
 import { DeleteExportUseCase } from '../use-cases/export/DeleteExportUseCase';
+import { ListAssetsUseCase } from '../use-cases/asset/ListAssetsUseCase';
+import { GetAssetByIdUseCase } from '../use-cases/asset/GetAssetByIdUseCase';
+import { CreateAssetUseCase } from '../use-cases/asset/CreateAssetUseCase';
+import { UpdateAssetUseCase } from '../use-cases/asset/UpdateAssetUseCase';
+import { DeleteAssetUseCase } from '../use-cases/asset/DeleteAssetUseCase';
+import { GetAdminStatsUseCase } from '../use-cases/admin/GetAdminStatsUseCase';
+import { ListAllWorkspacesUseCase } from '../use-cases/admin/ListAllWorkspacesUseCase';
+import { ListAllUsersUseCase } from '../use-cases/admin/ListAllUsersUseCase';
+import { ImpersonateUserUseCase } from '../use-cases/admin/ImpersonateUserUseCase';
 import { ListAutomationRulesUseCase } from '../use-cases/agent/ListAutomationRulesUseCase';
 import { GetAutomationRuleByIdUseCase } from '../use-cases/agent/GetAutomationRuleByIdUseCase';
 import { CreateAutomationRuleUseCase } from '../use-cases/agent/CreateAutomationRuleUseCase';
@@ -146,6 +156,7 @@ export interface ContainerConfig {
   automationRuleRepository: IAutomationRuleRepository;
   auditLogRepository: IAuditLogRepository;
   exportRepository: IExportRepository;
+  assetRepository: IAssetRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -246,6 +257,15 @@ export class Container {
   readonly getExportById: GetExportByIdUseCase;
   readonly createExport: CreateExportUseCase;
   readonly deleteExport: DeleteExportUseCase;
+  readonly listAssets: ListAssetsUseCase;
+  readonly getAssetById: GetAssetByIdUseCase;
+  readonly createAsset: CreateAssetUseCase;
+  readonly updateAsset: UpdateAssetUseCase;
+  readonly deleteAsset: DeleteAssetUseCase;
+  readonly getAdminStats: GetAdminStatsUseCase;
+  readonly listAllWorkspaces: ListAllWorkspacesUseCase;
+  readonly listAllUsers: ListAllUsersUseCase;
+  readonly impersonateUser: ImpersonateUserUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -404,5 +424,20 @@ export class Container {
     this.getExportById = new GetExportByIdUseCase(config.exportRepository);
     this.createExport = new CreateExportUseCase(config.exportRepository);
     this.deleteExport = new DeleteExportUseCase(config.exportRepository);
+
+    this.listAssets = new ListAssetsUseCase(config.assetRepository);
+    this.getAssetById = new GetAssetByIdUseCase(config.assetRepository);
+    this.createAsset = new CreateAssetUseCase(config.assetRepository);
+    this.updateAsset = new UpdateAssetUseCase(config.assetRepository);
+    this.deleteAsset = new DeleteAssetUseCase(config.assetRepository);
+
+    this.getAdminStats = new GetAdminStatsUseCase(
+      config.workspaceRepository,
+      config.userRepository,
+      config.campaignRepository,
+    );
+    this.listAllWorkspaces = new ListAllWorkspacesUseCase(config.workspaceRepository);
+    this.listAllUsers = new ListAllUsersUseCase(config.userRepository);
+    this.impersonateUser = new ImpersonateUserUseCase(config.userRepository);
   }
 }
