@@ -2,7 +2,7 @@
 
 | # | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
-| 1 | **Platform API risk** - Meta/Google app review, rate limits, ToS changes | High | High | Ship **Meta-only** at launch for depth; add Google/TikTok/Snap as review clears. Lean on **draft-first** (a human approves every write) to stay on the right side of ToS. |
+| 1 | **Platform API risk** - Meta/Google app review, rate limits, ToS changes | High | High | Launch paid on **Meta + Google** (the ICP runs both); harden Meta first in build order but don't open paid until Google is solid. **TikTok + Snap fast-follow** as review clears. Lean on **draft-first** (a human approves every write) to stay on the right side of ToS. |
 | 2 | **Commodity pressure** - incumbents copy "AI ad automation" | Med | High | Defend with the **MCP wedge + audit/trust story**, not feature parity. The MCP-native + draft-first + audit-log combination is hard to bolt on. |
 | 3 | **Free-tier infra bleed** - non-converters cost LLM/API money | Med | Med | Keep Free **read-only + credit-capped**; require a card on the trial-to-paid path. |
 | 4 | **Community backlash** - Reddit/FB ban brand-spam | Med | Med | Personal accounts, value-first, soft-mention only on "best tool for X" threads. Never brand-post. |

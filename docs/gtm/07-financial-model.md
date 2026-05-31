@@ -31,7 +31,7 @@ Keep total Year-1 spend in the **low five figures**:
 
 | Metric | Value (illustrative) | Note |
 |---|---|---|
-| ARPU | ~$60/mo | Mix of $49/$149/$399 |
+| ARPU | ~$60/mo | Mix of $39/$149/$399 |
 | Gross margin | ~80% | Credit-capped COGS |
 | Gross profit / customer | ~$48/mo | |
 | CAC | ~$0-low | Directories + Reddit SEO + referrals |

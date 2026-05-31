@@ -27,18 +27,20 @@ Grounded in the product defined in [`../../SPEC.md`](../../SPEC.md) and the live
 | 08 | [Risks & mitigations](08-risks.md) | Platform/ToS, commoditization, infra bleed, kill/pivot triggers |
 | 09 | [90-day milestones](09-milestones.md) | Day 0-30 / 31-60 / 61-90 with gate conditions |
 
-## Decisions
+## Decisions (all locked)
 
-- **DECIDED - Launch order: MCP-first.** Ship the MCP server to the official registry +
-  directories and prove trial activation *before* the Product Hunt / Show HN spike, so the
-  launch lands on a funnel that already converts. See [`04-distribution.md`](04-distribution.md)
-  and [`05-launch-sequence.md`](05-launch-sequence.md).
-
-### Still open (carried across docs)
-
-1. Single beachhead vs the two-layer (AI-native + agencies) approach - recommended: two-layer.
-2. Final entry price ($49 vs $39) and whether the trial requires a card.
-3. Which platform ships first for paid - recommended: Meta-only at launch.
+- **Launch order: MCP-first.** Ship the MCP server to the official registry + directories and
+  prove trial activation *before* the Product Hunt / Show HN spike, so the launch lands on a
+  funnel that already converts. See [`04-distribution.md`](04-distribution.md) and
+  [`05-launch-sequence.md`](05-launch-sequence.md).
+- **Beachhead: two-layer.** AI-native buyers (zero-CAC wedge) + small agencies (revenue).
+  See [`02-beachhead-icp.md`](02-beachhead-icp.md).
+- **Entry price: $39/mo, no-card 14-day trial.** $39 undercuts Madgicx ($49) and Revealbot
+  ($99) on the headline; no-card maximizes top-of-funnel volume (the wedge audience self-serves
+  from MCP directories). See [`03-pricing-packaging.md`](03-pricing-packaging.md).
+- **Paid launch platforms: Meta + Google together; TikTok + Snap fast-follow.** Matches the ICP
+  (who run Meta + Google together) and the "one queue for every platform" positioning. Build
+  order still hardens Meta first, but paid launch waits until Google is solid too.
 
 ## Note on scope
 

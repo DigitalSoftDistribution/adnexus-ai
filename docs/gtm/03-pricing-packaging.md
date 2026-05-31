@@ -21,25 +21,24 @@ already exists in the product (`ai_credits` table + `credit-tracker` service in 
 The GTM plan proposed Free / Pro $39 / Agency $149 / Scale $399. The **live page is already
 well-structured** and close. Recommended reconciliation (decision for the founder):
 
-- **Keep the live 4-tier ladder** ($0 / $49 / $149 / $399). It is cleaner than renaming.
-- **Lower the entry to $39** only if early Reddit/PH feedback shows price resistance at $49.
-  $39 undercuts Madgicx ($49) and Revealbot ($99) at the headline.
-- **Rename "Team" -> keep**, but make the **Agency tier the hero in agency channels**
+- **DECIDED - entry price $39/mo** (down from the live $49). $39 undercuts Madgicx ($49) and
+  Revealbot ($99) on the headline and matches the wedge-audience price sensitivity. Ladder
+  becomes **$0 / $39 / $149 / $399**.
+- **Keep the 4-tier ladder**, but make the **Agency tier the hero in agency channels**
   (it is the revenue ICP per [`02-beachhead-icp.md`](02-beachhead-icp.md)).
 - Add an explicit **AI-credit allotment line** to every tier card (Free ~100, Growth ~1,500,
   Team ~6,000, Agency ~20,000 + top-ups). Today the cards omit credit counts; adding them
   makes the "no spend tax" story concrete.
 
-> This doc intentionally does **not** rewrite `Pricing.tsx`. Price points are an open
-> founder decision; changing a polished, animated marketing page is out of scope for the
-> GTM research deliverable. The recommended edits are listed above for a follow-up PR.
+> This doc does **not** rewrite `Pricing.tsx` itself. The price change ($49 -> $39) and credit
+> counts are flagged for a separate follow-up PR against the marketing page.
 
 ## Packaging mechanics (grounded in 2026 benchmarks)
 
 | Lever | Recommendation | Benchmark rationale |
 |---|---|---|
 | Trial type | **Reverse trial**: full features 14 days, then downgrade to Free | Reverse trial median ~24% convert vs ~4.5% pure freemium |
-| Card at trial | Require card on Growth/Team/Agency trial path | Opt-out trials ~44% vs opt-in ~14% |
+| Card at trial | **DECIDED - no card** (opt-in trial) to maximize top-of-funnel volume | Opt-in ~14% convert but the zero-CAC wedge audience self-serves from MCP directories; volume > per-trial rate at this stage. Revisit if activation is strong but conversion lags. |
 | Free tier | Keep "useful but capped" (read-only audit, draft preview) | Prevents infra bleed on non-converters; still a directory magnet |
 | Activation gate | Push user to connect 1 ad account + run 1 Morning Brief within 7 days | Activation drives 60-75% of trial conversion variance |
 | Annual | 2 months free (already live) | Standard; improves cash + retention |
@@ -50,8 +49,9 @@ well-structured** and close. Recommended reconciliation (decision for the founde
 - Heavy users hit the cap and buy top-ups (Stripe payment intent already in `billing` routes).
 - Credits decouple our COGS (LLM tokens) from the customer's ad spend - the core margin lever.
 
-## Open pricing decisions (for the founder)
+## Pricing decisions (locked)
 
-1. Entry price: hold $49 or test $39?
-2. Require a card on the trial, or stay no-card to maximize top-of-funnel volume?
-3. Publish credit counts on the pricing cards now, or keep them in-app only?
+1. **Entry price: $39/mo.** Ladder is $0 / $39 / $149 / $399.
+2. **No card on the trial** (opt-in, 14-day, reverse to Free) to maximize top-of-funnel volume.
+3. Publish credit counts on the pricing cards now (recommended) - bundled into the follow-up
+   `Pricing.tsx` PR alongside the $49 -> $39 change.

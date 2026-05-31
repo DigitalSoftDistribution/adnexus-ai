@@ -4,7 +4,7 @@ All figures illustrative, for planning - not forecasts.
 
 ## Shared assumptions
 
-- Blended ARPU ≈ **$60/mo** (mix of $49 Growth and $149 Team, a few $399 Agency).
+- Blended ARPU ≈ **$60/mo** (mix of $39 Growth and $149 Team, a few $399 Agency).
 - Monthly logo churn target **< 5%**.
 - Reverse-trial -> paid ≈ **20-24%**.
 - No paid-acquisition dependency; growth from MCP directories + Reddit SEO + PH/HN + referrals.
@@ -24,14 +24,14 @@ flowchart LR
 
 ## The dominant lever: tier mix, not signup volume
 
-One **$149 Team** agency ≈ **3x** a $49 Growth seat; one **$399 Agency** ≈ **8x**. So the
+One **$149 Team** agency ≈ **3.8x** a $39 Growth seat; one **$399 Agency** ≈ **10x**. So the
 mix between solo seats and agency seats moves ARR far more than raw signup count.
 
 | Mix at 150 customers | Implied MRR | Comment |
 |---|---|---|
-| 80% Growth / 20% Team | ~$10.3K | Solo-heavy; lower retention risk |
-| 50% Growth / 35% Team / 15% Agency | ~$13.7K | Balanced - the target mix |
-| 30% Growth / 40% Team / 30% Agency | ~$18.7K | Agency-led; highest ARR + stickiness |
+| 80% Growth / 20% Team | ~$9.2K | 120 x $39 + 30 x $149. Solo-heavy; lower retention risk |
+| 50% Growth / 35% Team / 15% Agency | ~$19.7K | 75 x $39 + 53 x $149 + 22 x $399. Balanced - target mix |
+| 30% Growth / 40% Team / 30% Agency | ~$27.0K | 45 x $39 + 60 x $149 + 45 x $399. Agency-led; highest ARR |
 
 ## Sensitivity to churn
 
