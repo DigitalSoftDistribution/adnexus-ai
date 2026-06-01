@@ -15,7 +15,7 @@
  *   8. Log sync results to sync_history
  */
 
-import { Queue, Worker, Job, FlowProducer } from 'bullmq';
+import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { EventEmitter } from 'events';
 
@@ -568,7 +568,7 @@ export class CampaignSyncWorker {
 
     // ── 3. Fetch ads for each campaign (batched) ──
     const adsFetchStart = Date.now();
-    let allExternalAds: ExternalAd[] = [];
+    const allExternalAds: ExternalAd[] = [];
     for (let i = 0; i < campaignExternalIds.length; i += SYNC_BATCH_SIZE) {
       const batch = campaignExternalIds.slice(i, i + SYNC_BATCH_SIZE);
       const batchAds = await adapter.fetchAds(refreshedAccount, batch);
@@ -611,7 +611,7 @@ export class CampaignSyncWorker {
 
     // ── 5. Fetch metrics for each campaign ──
     const metricsFetchStart = Date.now();
-    let allMetrics: ExternalMetrics[] = [];
+    const allMetrics: ExternalMetrics[] = [];
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - DEFAULT_SYNC_DAYS * 86400000).toISOString().split('T')[0];
 

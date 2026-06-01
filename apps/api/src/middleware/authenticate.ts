@@ -4,6 +4,7 @@ import { UnauthorizedError, ForbiddenError } from '../lib/errors';
 import type { JWTPayload, WorkspaceRole } from '../types';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- Express type augmentation requires namespace
   namespace Express {
     interface Request {
       /** Authenticated user payload from Supabase JWT */

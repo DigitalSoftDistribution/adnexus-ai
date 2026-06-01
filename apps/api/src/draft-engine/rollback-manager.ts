@@ -6,8 +6,8 @@
  * we escalate to human intervention immediately.
  */
 
-import type { Draft, Snapshot, RollbackResult, RollbackStep, Campaign, CampaignSnapshot } from './types';
-import { ChangeType, ExecutionStatus } from './types';
+import type { Draft, Snapshot, RollbackResult, RollbackStep, Campaign } from './types';
+import { ChangeType } from './types';
 import { RollbackError, RollbackVerificationError } from './errors';
 import crypto from 'crypto';
 

@@ -8,8 +8,7 @@
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { config } from '../../config';
-import { PlatformError, RateLimitError } from '../../lib/errors';
-import type { Platform } from '../../types';
+import { PlatformError } from '../../lib/errors';
 
 // ─── Constants ───────────────────────────────────────────────
 

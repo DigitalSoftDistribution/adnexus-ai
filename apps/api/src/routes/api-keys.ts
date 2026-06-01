@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { supabase } from '../lib/supabase';
 import { asyncHandler } from '../middleware/errorHandler';
 import { validateRequest } from '../middleware/validateRequest';
-import { NotFoundError, ValidationError, ForbiddenError } from '../lib/errors';
+import { NotFoundError, ValidationError } from '../lib/errors';
 import { getRequestLogger } from '../lib/logger';
 import crypto from 'crypto';
 

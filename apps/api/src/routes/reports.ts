@@ -987,7 +987,7 @@ router.get(
       .eq('workspace_id', workspaceId);
 
     const ids = (campaigns ?? []).map((c) => c.id);
-    let agg = { impressions: 0, clicks: 0, conversions: 0, revenue: 0, spend: 0 };
+    const agg = { impressions: 0, clicks: 0, conversions: 0, revenue: 0, spend: 0 };
 
     if (ids.length > 0) {
       const { data: metrics } = await supabase

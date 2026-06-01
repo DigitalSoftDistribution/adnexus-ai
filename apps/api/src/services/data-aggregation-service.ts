@@ -207,10 +207,11 @@ export class DataAggregationService {
         return `${d.toISOString().slice(0, 13)}:00`;
       case 'daily':
         return d.toISOString().slice(0, 10);
-      case 'weekly':
+      case 'weekly': {
         const weekStart = new Date(d);
         weekStart.setDate(d.getDate() - d.getDay());
         return weekStart.toISOString().slice(0, 10);
+      }
       case 'monthly':
         return d.toISOString().slice(0, 7);
       default:

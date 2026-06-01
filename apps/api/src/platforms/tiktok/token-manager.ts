@@ -6,7 +6,6 @@
  */
 
 import {
-  TikTokClientConfig,
   TikTokTokens,
   TikTokTokenResponse,
   TikTokRefreshTokenResponse,

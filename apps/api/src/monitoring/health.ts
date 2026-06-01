@@ -3,10 +3,10 @@
  * Kubernetes-friendly liveness, readiness, and detailed health probes.
  */
 
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response } from "express";
 import { Pool } from "pg";
 import { Redis } from "ioredis";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 
 // ── Types ──────────────────────────────────────────────────
 

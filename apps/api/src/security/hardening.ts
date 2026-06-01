@@ -4,7 +4,7 @@
  * brute-force protection, SQL injection detection, and API versioning.
  */
 
-import { Request, Response, NextFunction, Router } from "express";
+import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors, { CorsOptions } from "cors";
 import rateLimit, { RateLimitRequestHandler } from "express-rate-limit";
@@ -56,13 +56,13 @@ const bruteForceStore = new Map<string, BruteForceEntry>();
  */
 const SQL_INJECTION_PATTERNS: RegExp[] = [
   // UNION-based
-  /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,
+  /(%27)|(')|(--)|(%23)|(#)/i,
   // UNION SELECT
-  /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,
+  /((%3D)|(=))[^\n]*((%27)|(')|(--)|(%3B)|(;))/i,
   // Common SQL keywords in suspicious contexts
-  /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i,
+  /\w*((%27)|('))((%6F)|o|(%4F))((%72)|r|(%52))/i,
   // EXEC(ute)
-  /((\%27)|(\'))union/i,
+  /((%27)|('))union/i,
   /exec(\s|\+)+(s|x)p\w+/i,
   /UNION\s+SELECT/i,
   /INSERT\s+INTO/i,

@@ -17,7 +17,7 @@
  * BullMQ cron job: "0 7 * * *" (7 AM daily, per-user timezone via cron library)
  */
 
-import { Worker, Queue, Job, RepeatStrategy } from 'bullmq';
+import { Worker, Queue, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { CronJob } from 'cron';
 import { supabase } from '../lib/supabase';
@@ -27,21 +27,15 @@ import { emailService, MorningBriefData } from '../services/email';
 import { slackService, MorningBriefSlackData } from '../services/slack';
 import {
   generateMorningBrief,
-  analyzeCreative,
   generateRecommendations,
   type MorningBrief as AIMorningBrief,
-  type BriefAlert,
-  type BriefRecommendation,
-  type BriefHighlight,
 } from '../services/ai-service';
 import { createNotification, type CreateNotificationInput } from '../services/notification-service';
 import type {
   Platform,
   UnifiedCampaign,
-  UnifiedAd,
   PerformanceGoal,
   Draft,
-  DraftStats,
 } from '../types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────

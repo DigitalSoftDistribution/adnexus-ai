@@ -3,14 +3,10 @@
  * success, failure, rollback, or critical escalation.
  */
 
-import type { Notification, Draft, ExecutionResult, RollbackResult, User } from './types';
+import type { Notification, Draft, ExecutionResult } from './types';
 import {
   NotificationChannel,
   NotificationSeverity,
-  NotificationPreference,
-  ChangeType,
-  AdPlatform,
-  ExecutionStatus,
 } from './types';
 import { NotificationDispatchError } from './errors';
 import crypto from 'crypto';

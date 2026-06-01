@@ -420,20 +420,20 @@ class StatsUtils {
     let am = 1;
     let bm = 1;
     let az = 1;
-    let qab = a + b;
-    let qap = a + 1;
-    let qam = a - 1;
+    const qab = a + b;
+    const qap = a + 1;
+    const qam = a - 1;
     let bz = 1 - (qab * x) / qap;
 
     for (let m = 1; m <= maxIterations; m++) {
       const m2 = 2 * m;
       let d = (m * (b - m) * x) / ((qam + m2) * (a + m2));
-      let ap = az + d * am;
-      let bp = bz + d * bm;
+      const ap = az + d * am;
+      const bp = bz + d * bm;
       d = -((a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
-      let app = ap + d * az;
-      let bpp = bp + d * bz;
-      let aOld = az;
+      const app = ap + d * az;
+      const bpp = bp + d * bz;
+      const aOld = az;
 
       // Normalize to prevent overflow
       const scale = ap / app;

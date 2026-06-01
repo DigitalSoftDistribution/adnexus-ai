@@ -16,7 +16,6 @@ import {
   // Config & Tokens
   TikTokClientConfig,
   TikTokTokens,
-  TikTokOAuthConfig,
 
   // Domain Models
   TikTokCampaign,
@@ -28,7 +27,6 @@ import {
   TikTokInsight,
   TikTokInsightParams,
   TikTokDateRange,
-  TikTokListParams,
   TikTokListResponse,
   TikTokPagination,
   TikTokFilter,

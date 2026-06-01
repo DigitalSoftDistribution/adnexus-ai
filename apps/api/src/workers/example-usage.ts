@@ -17,7 +17,7 @@ import {
   addExportJob,
 } from './generate-reports';
 import { EmailConfig } from '../services/email-service';
-import { ReportParams, ChartConfig } from '../types/report';
+import { ReportParams } from '../types/report';
 
 // ---------------------------------------------------------------------------
 // 1. Configuration

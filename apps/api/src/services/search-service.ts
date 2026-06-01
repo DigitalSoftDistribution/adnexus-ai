@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import { getRedisClient } from '../lib/redis';
-import { config } from '../config';
 import type {
   UnifiedCampaign,
   UnifiedAdSet,
@@ -8,9 +7,6 @@ import type {
   Draft,
   AuditLogEntry,
   Platform,
-  CampaignStatus,
-  DraftStatus,
-  DraftType,
 } from '../types';
 
 // ─── Types ───────────────────────────────────────────────────

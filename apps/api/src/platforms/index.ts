@@ -139,15 +139,12 @@ import type {
 
 import {
   PlatformAPIError,
-  PlatformAuthError,
   isPlatformError,
   wrapError,
 } from './errors';
 
 import {
   PLATFORM_CONFIG,
-  getPlatformConfig,
-  getAllPlatforms,
 } from './config';
 
 // ═══════════════════════════════════════════════

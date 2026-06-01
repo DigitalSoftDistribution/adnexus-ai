@@ -9,7 +9,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
-import { ReportResult, ExportFormat, ExportResult, PlatformBreakdown } from '../types/report';
+import { ReportResult, ExportFormat, ExportResult } from '../types/report';
 import { tempFileManager } from '../utils/temp-file-manager';
 type TempFileManager = typeof tempFileManager;
 

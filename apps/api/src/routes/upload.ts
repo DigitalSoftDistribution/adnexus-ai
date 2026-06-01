@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { ParsedQs } from 'qs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -102,7 +102,7 @@ function generatePublicUrl(supabase: SupabaseClient, storagePath: string): strin
 
 // ─── Middleware ──────────────────────────────────────────────────
 
-function authMiddleware(req: AuthenticatedRequest, res: Response, next: Function) {
+function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   // Attach user if auth token is present; allow anonymous uploads too
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {

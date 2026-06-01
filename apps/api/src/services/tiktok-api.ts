@@ -719,7 +719,7 @@ export async function normalizeTikTokCampaign(
   const cpc = insights?.metrics?.cpc ?? 0;
 
   // Compute ROAS when available
-  let roas = 0;
+  const roas = 0;
 
   return {
     id: campaign.campaign_id,

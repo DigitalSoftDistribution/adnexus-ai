@@ -208,7 +208,7 @@ router.post(
       platform,
       campaignId: body.campaignId,
       adsetId: body.adSetId,
-      draftType: 'creative_upload' as 'creative_upload',
+      draftType: 'creative_upload' as const,
       changeSummary: `Create new ad "${body.name}"`,
       changeDetail: {
         ad_name: body.name,
@@ -312,7 +312,7 @@ router.put(
       campaignId: campaign.id as string | undefined,
       adsetId: row.adset_id as string | undefined,
       adId,
-      draftType: 'targeting_edit' as 'targeting_edit',
+      draftType: 'targeting_edit' as const,
       changeSummary: `Update ad "${row.name}": ${Object.keys(changes).join(', ')}`,
       changeDetail: {
         platform_ad_id: row.platform_ad_id,

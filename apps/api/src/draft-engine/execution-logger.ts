@@ -5,8 +5,7 @@
  * complete history of every decision and action taken by the engine.
  */
 
-import type { ExecutionLogEntry, ExecutionLogFilter, ExecutionResult, ExecutionStep, Draft } from './types';
-import { ExecutionStatus } from './types';
+import type { ExecutionLogEntry, ExecutionLogFilter, ExecutionResult, Draft } from './types';
 import crypto from 'crypto';
 
 // ────────────────────────────────────────────────

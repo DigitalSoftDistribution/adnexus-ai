@@ -4,8 +4,8 @@
  * the context needed for recovery decisions.
  */
 
-import type { Draft, ExecutionError as ExecutionErrorType, PlatformError, Snapshot } from './types';
-import { DraftStatus, ExecutionStatus, NotificationSeverity } from './types';
+import type { ExecutionError as ExecutionErrorType, PlatformError } from './types';
+import { ExecutionStatus, NotificationSeverity } from './types';
 
 // ────────────────────────────────────────────────
 // Base Error
