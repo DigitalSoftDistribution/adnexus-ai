@@ -185,6 +185,181 @@ export const ApiErrorSchema = z.object({
   description: 'Standard API error response',
 });
 
+// ─── AdSet Schemas ───────────────────────────────────────────
+
+export const AdSetStatusSchema = z.enum(['active', 'paused', 'archived', 'deleted']).openapi({
+  ref: 'AdSetStatus',
+  description: 'Ad set lifecycle status',
+});
+
+export const BidStrategySchema = z.enum(['lowest_cost', 'cost_cap', 'bid_cap', 'target_cost', 'highest_value']).openapi({
+  ref: 'BidStrategy',
+  description: 'Bidding strategy',
+});
+
+export const AdSetSchema = z.object({
+  id: z.string().uuid(),
+  campaignId: z.string().uuid(),
+  platformAdSetId: z.string().nullable(),
+  name: z.string(),
+  status: AdSetStatusSchema,
+  budget: z.number().nullable(),
+  budgetType: z.enum(['daily', 'lifetime']).nullable(),
+  bidStrategy: BidStrategySchema.nullable(),
+  bidAmount: z.number().nullable(),
+  targeting: z.record(z.unknown()).nullable(),
+  spend: z.number(),
+  impressions: z.number().int(),
+  clicks: z.number().int(),
+  ctr: z.number().nullable(),
+  conversions: z.number().int(),
+  cpa: z.number().nullable(),
+  roas: z.number().nullable(),
+  cpm: z.number().nullable(),
+  cpc: z.number().nullable(),
+  frequency: z.number().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).openapi({
+  ref: 'AdSet',
+  description: 'Ad set within a campaign',
+});
+
+// ─── Goal Schemas ────────────────────────────────────────────
+
+export const GoalMetricSchema = z.enum(['spend', 'impressions', 'clicks', 'conversions', 'ctr', 'roas', 'cpa', 'reach', 'frequency']).openapi({
+  ref: 'GoalMetric',
+  description: 'Goal tracking metric',
+});
+
+export const GoalPeriodSchema = z.enum(['daily', 'weekly', 'monthly', 'campaign_lifetime']).openapi({
+  ref: 'GoalPeriod',
+  description: 'Goal measurement period',
+});
+
+export const GoalStatusSchema = z.enum(['active', 'paused', 'achieved', 'missed', 'archived']).openapi({
+  ref: 'GoalStatus',
+  description: 'Goal lifecycle status',
+});
+
+export const GoalSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  campaignId: z.string().uuid().nullable(),
+  name: z.string(),
+  description: z.string().nullable(),
+  metric: GoalMetricSchema,
+  targetValue: z.number(),
+  currentValue: z.number(),
+  period: GoalPeriodSchema,
+  status: GoalStatusSchema,
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+  alertThreshold: z.number().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).openapi({
+  ref: 'Goal',
+  description: 'Campaign goal',
+});
+
+// ─── Asset Schemas ───────────────────────────────────────────
+
+export const AssetTypeSchema = z.enum(['image', 'video', 'document', 'csv', 'other']).openapi({
+  ref: 'AssetType',
+  description: 'Asset file type',
+});
+
+export const AssetStatusSchema = z.enum(['uploading', 'processing', 'ready', 'failed', 'archived']).openapi({
+  ref: 'AssetStatus',
+  description: 'Asset processing status',
+});
+
+export const AssetSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  name: z.string(),
+  originalName: z.string(),
+  type: AssetTypeSchema,
+  mimeType: z.string(),
+  size: z.number().int(),
+  url: z.string().nullable(),
+  thumbnailUrl: z.string().nullable(),
+  status: AssetStatusSchema,
+  metadata: z.record(z.unknown()).nullable(),
+  campaignId: z.string().uuid().nullable(),
+  adId: z.string().uuid().nullable(),
+  createdBy: z.string().uuid().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).openapi({
+  ref: 'Asset',
+  description: 'Media asset',
+});
+
+// ─── Export Schemas ──────────────────────────────────────────
+
+export const ExportFormatSchema = z.enum(['csv', 'pdf', 'xlsx', 'json']).openapi({
+  ref: 'ExportFormat',
+  description: 'Export file format',
+});
+
+export const ExportStatusSchema = z.enum(['pending', 'processing', 'completed', 'failed', 'cancelled']).openapi({
+  ref: 'ExportStatus',
+  description: 'Export job status',
+});
+
+export const ExportEntitySchema = z.enum(['campaigns', 'ads', 'audiences', 'reports', 'audit_log', 'billing']).openapi({
+  ref: 'ExportEntity',
+  description: 'Export data entity',
+});
+
+export const ExportSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  name: z.string(),
+  entity: ExportEntitySchema,
+  format: ExportFormatSchema,
+  status: ExportStatusSchema,
+  filters: z.record(z.unknown()).nullable(),
+  fileUrl: z.string().nullable(),
+  fileSize: z.number().nullable(),
+  rowCount: z.number().nullable(),
+  errorMessage: z.string().nullable(),
+  createdBy: z.string().uuid().nullable(),
+  completedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).openapi({
+  ref: 'Export',
+  description: 'Data export job',
+});
+
+// ─── Audit Log Schemas ───────────────────────────────────────
+
+export const AuditLogEntrySchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid().nullable(),
+  userId: z.string().uuid().nullable(),
+  actorType: z.string().nullable(),
+  actorId: z.string().nullable(),
+  actorName: z.string().nullable(),
+  action: z.string(),
+  actionCategory: z.string().nullable(),
+  platform: z.string().nullable(),
+  campaignId: z.string().uuid().nullable(),
+  entityType: z.string().nullable(),
+  entityId: z.string().nullable(),
+  metadata: z.record(z.unknown()).nullable(),
+  details: z.record(z.unknown()).nullable(),
+  source: z.string().nullable(),
+  ipAddress: z.string().nullable(),
+  createdAt: z.string().datetime(),
+}).openapi({
+  ref: 'AuditLogEntry',
+  description: 'Audit log entry',
+});
+
 // ─── OpenAPI Document ────────────────────────────────────────
 
 export function generateOpenAPIDocument(): any {
@@ -215,6 +390,13 @@ export function generateOpenAPIDocument(): any {
       { name: 'Workspaces', description: 'Workspace and team management' },
       { name: 'Reports', description: 'Reporting and analytics' },
       { name: 'Webhooks', description: 'Webhook configuration and delivery' },
+      { name: 'AdSets', description: 'Ad set management' },
+      { name: 'Goals', description: 'Campaign goals and tracking' },
+      { name: 'Assets', description: 'File uploads and media assets' },
+      { name: 'Exports', description: 'Data export jobs' },
+      { name: 'AuditLog', description: 'Audit trail and activity log' },
+      { name: 'Agent', description: 'AI Agent and automation rules' },
+      { name: 'Admin', description: 'Admin operations' },
     ],
     paths: {
       '/api/v2/campaigns': {
@@ -300,6 +482,156 @@ export function generateOpenAPIDocument(): any {
             '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
             '403': { description: 'Forbidden', content: { 'application/json': { schema: ApiErrorSchema } } },
             '404': { description: 'Draft not found', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/campaigns/{id}/adsets': {
+        get: {
+          tags: ['AdSets'],
+          summary: 'List ad sets',
+          description: 'Get ad sets for a campaign',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          ],
+          responses: {
+            '200': { description: 'Ad set list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ adSets: z.array(AdSetSchema), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '404': { description: 'Campaign not found', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/campaigns/{id}/history': {
+        get: {
+          tags: ['Campaigns'],
+          summary: 'Campaign history',
+          description: 'Get change history for a campaign',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          ],
+          responses: {
+            '200': { description: 'Change history', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ history: z.array(z.object({ id: z.string(), action: z.string(), userName: z.string().nullable(), details: z.record(z.unknown()).nullable(), createdAt: z.string() })), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '404': { description: 'Campaign not found', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/goals': {
+        get: {
+          tags: ['Goals'],
+          summary: 'List goals',
+          description: 'Get campaign goals',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Goal list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ goals: z.array(GoalSchema), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+        post: {
+          tags: ['Goals'],
+          summary: 'Create goal',
+          description: 'Create a new campaign goal',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: z.object({ name: z.string(), metric: GoalMetricSchema, targetValue: z.number(), period: GoalPeriodSchema, campaignId: z.string().uuid().optional() }) } },
+          },
+          responses: {
+            '201': { description: 'Goal created', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: GoalSchema }) } } },
+            '400': { description: 'Validation error', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/assets': {
+        get: {
+          tags: ['Assets'],
+          summary: 'List assets',
+          description: 'Get media assets',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Asset list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ assets: z.array(AssetSchema), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+        post: {
+          tags: ['Assets'],
+          summary: 'Create asset',
+          description: 'Register a new asset',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: z.object({ name: z.string(), originalName: z.string(), type: AssetTypeSchema, mimeType: z.string(), size: z.number().int() }) } },
+          },
+          responses: {
+            '201': { description: 'Asset created', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: AssetSchema }) } } },
+            '400': { description: 'Validation error', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/exports': {
+        get: {
+          tags: ['Exports'],
+          summary: 'List exports',
+          description: 'Get data export jobs',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Export list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ exports: z.array(ExportSchema), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+        post: {
+          tags: ['Exports'],
+          summary: 'Create export',
+          description: 'Create a data export job',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: z.object({ name: z.string(), entity: ExportEntitySchema, format: ExportFormatSchema }) } },
+          },
+          responses: {
+            '201': { description: 'Export created', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: ExportSchema }) } } },
+            '400': { description: 'Validation error', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/audit-log': {
+        get: {
+          tags: ['AuditLog'],
+          summary: 'List audit log',
+          description: 'Get audit trail entries',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Audit log list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ entries: z.array(AuditLogEntrySchema), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/agent/rules': {
+        get: {
+          tags: ['Agent'],
+          summary: 'List automation rules',
+          description: 'Get AI automation rules',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Rule list', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ rules: z.array(z.object({ id: z.string(), name: z.string(), status: z.string() })), total: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/admin/stats': {
+        get: {
+          tags: ['Admin'],
+          summary: 'Platform stats',
+          description: 'Get admin platform statistics',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Platform stats', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ totalWorkspaces: z.number(), totalUsers: z.number(), totalCampaigns: z.number(), totalSpend: z.number() }) }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Admin access required', content: { 'application/json': { schema: ApiErrorSchema } } },
           },
         },
       },
