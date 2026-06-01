@@ -4,9 +4,9 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --webpack",
-    "start": "next start",
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 # Multi-stage Dockerfile for adnexus-ai (Turbo + pnpm monorepo)
-# Builds apps/web (Next.js 16 standalone) with workspace packages @adnexus/shared, @adnexus/ui, @adnexus/config
+# Builds apps/web (Vite SPA) with workspace packages @adnexus/shared, @adnexus/ui, @adnexus/config
 
 FROM node:20-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -18,9 +18,8 @@ COPY packages/config/package.json ./packages/config/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
-# ---------- builder: build shared packages + web (standalone) ----------
+# ---------- builder: build shared packages + web (Vite SPA) ----------
 FROM base AS builder
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
@@ -28,27 +27,14 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 COPY . .
-RUN --mount=type=cache,target=/app/apps/web/.next/cache \
-    pnpm --filter @adnexus/web... build
+RUN pnpm --filter @adnexus/web... build
 
-# ---------- runner: minimal runtime image ----------
+# ---------- runner: serve Vite SPA dist via simple HTTP ----------
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 --ingroup nodejs nextjs
-
-# Next.js standalone output bundles only what's needed (incl. workspace deps)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
-
-USER nextjs
+RUN npm install -g serve
+COPY --from=builder /app/apps/web/dist /app/dist
 EXPOSE 3000
-
-# Standalone server lives at apps/web/server.js in monorepo layout
-CMD ["node", "apps/web/server.js"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
