@@ -1,5 +1,5 @@
 import type { IWebhookRepository } from '../../../domain/repositories/IWebhookRepository';
-import type { WebhookConfig } from '../../../domain/repositories/IWebhookRepository';
+import type { WebhookConfig } from '../../../domain/entities/WebhookConfig';
 import { Result, ok, err, ForbiddenError, ValidationError } from '../../../domain/value-objects/Result';
 
 export interface CreateWebhookConfigInput {
@@ -29,7 +29,10 @@ export class CreateWebhookConfigUseCase {
       url: input.url.trim(),
       events: input.events,
       secret: input.secret ?? null,
-      active: true,
+      status: 'active',
+      lastTriggeredAt: null,
+      failureCount: 0,
+      createdBy: null,
     });
 
     return ok(config);

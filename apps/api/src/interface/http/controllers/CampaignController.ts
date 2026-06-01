@@ -154,5 +154,57 @@ export function createCampaignController(container: Container) {
 
       res.status(201).json({ success: true, data: result.data });
     }),
+
+    insights: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getCampaignInsights.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        dateFrom: req.query.dateFrom as string | undefined,
+        dateTo: req.query.dateTo as string | undefined,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    history: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getCampaignHistory.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        action: req.query.action as string | string[] | undefined,
+        userId: req.query.userId as string | undefined,
+        dateFrom: req.query.dateFrom as string | undefined,
+        dateTo: req.query.dateTo as string | undefined,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    sync: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.syncCampaign.execute({
+        campaignId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        userId: req.user!.id,
+        userName: req.user!.name,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

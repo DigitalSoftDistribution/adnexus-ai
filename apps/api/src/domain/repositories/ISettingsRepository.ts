@@ -45,13 +45,7 @@ export interface NotificationPreferences {
   };
 }
 
-export interface ApiKey {
-  id: string;
-  name: string;
-  keyPrefix: string;
-  lastUsedAt: string | null;
-  createdAt: string;
-}
+import type { ApiKey } from '../entities/ApiKey';
 
 export interface ISettingsRepository {
   // Workspace

@@ -13,6 +13,9 @@ export function createDraftRoutes(container: Container): Router {
   router.post('/:id/approve', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.approve as any);
   router.post('/:id/reject', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.reject as any);
   router.post('/:id/execute', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.execute as any);
+  router.get('/:id/comments', requireAuth, controller.listComments as any);
+  router.post('/:id/comments', requireAuth, controller.addComment as any);
+  router.delete('/:id/comments/:commentId', requireAuth, requireRole('owner', 'admin') as any, controller.deleteComment as any);
 
   return router;
 }

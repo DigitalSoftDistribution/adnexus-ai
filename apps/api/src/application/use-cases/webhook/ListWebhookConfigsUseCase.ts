@@ -1,4 +1,5 @@
-import type { IWebhookRepository, WebhookConfig } from '../../../domain/repositories/IWebhookRepository';
+import type { IWebhookRepository } from '../../../domain/repositories/IWebhookRepository';
+import type { WebhookConfig } from '../../../domain/entities/WebhookConfig';
 import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
 
 export interface ListWebhookConfigsInput {

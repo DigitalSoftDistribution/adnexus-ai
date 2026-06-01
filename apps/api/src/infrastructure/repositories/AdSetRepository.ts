@@ -1,74 +1,85 @@
-import type { IAdSetRepository, AdSetFilters, AdSetListResult } from '../../domain/repositories/IAdSetRepository';
-import type { AdSet } from '../../domain/entities/AdSet';
+import type { IAdSetRepository } from '../../domain/repositories/IAdSetRepository';
+import type { AdSet, AdSetFilters, AdSetListResult } from '../../domain/entities/AdSet';
 import { query } from '../database/connection';
 
 export class AdSetRepository implements IAdSetRepository {
   async findById(id: string): Promise<AdSet | null> {
     const { rows } = await query<AdSet>(
-      `SELECT * FROM adsets WHERE id = $1 LIMIT 1`, [id],
+      `SELECT * FROM ad_sets WHERE id = $1 LIMIT 1`,
+      [id],
     );
     return rows[0] ?? null;
   }
 
-  async findByIdAndWorkspace(id: string, workspaceId: string): Promise<AdSet | null> {
+  async findByIdAndCampaign(id: string, campaignId: string): Promise<AdSet | null> {
     const { rows } = await query<AdSet>(
-      `SELECT * FROM adsets WHERE id = $1 AND workspace_id = $2 LIMIT 1`, [id, workspaceId],
+      `SELECT * FROM ad_sets WHERE id = $1 AND campaign_id = $2 LIMIT 1`,
+      [id, campaignId],
     );
     return rows[0] ?? null;
-  }
-
-  async findByCampaign(campaignId: string): Promise<AdSet[]> {
-    const { rows } = await query<AdSet>(
-      `SELECT * FROM adsets WHERE campaign_id = $1 ORDER BY created_at DESC`, [campaignId],
-    );
-    return rows;
   }
 
   async list(filters: AdSetFilters): Promise<AdSetListResult> {
-    const conditions: string[] = ['workspace_id = $1'];
-    const params: unknown[] = [filters.workspaceId];
-    let idx = 1;
+    const conditions: string[] = ['campaign_id = $1'];
+    const params: unknown[] = [filters.campaignId];
+    let paramIdx = 1;
 
-    if (filters.campaignId) {
-      conditions.push(`campaign_id = $${++idx}`);
-      params.push(filters.campaignId);
-    }
     if (filters.status) {
       const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
-      conditions.push(`status = ANY($${++idx}::text[])`);
+      paramIdx++;
+      conditions.push(`status = ANY($${paramIdx}::text[])`);
       params.push(statuses);
     }
+
     if (filters.search) {
-      conditions.push(`name ILIKE $${++idx}`);
+      paramIdx++;
+      conditions.push(`name ILIKE $${paramIdx}`);
       params.push(`%${filters.search}%`);
     }
 
     const whereClause = conditions.join(' AND ');
+    const sortColumn = this.getSortColumn(filters.sortBy);
+    const sortOrder = filters.sortOrder === 'asc' ? 'ASC' : 'DESC';
     const page = filters.page ?? 1;
     const limit = Math.min(filters.limit ?? 20, 100);
     const offset = (page - 1) * limit;
 
     const { rows: countRows } = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM adsets WHERE ${whereClause}`, params,
+      `SELECT COUNT(*)::text as count FROM ad_sets WHERE ${whereClause}`,
+      params,
     );
     const total = parseInt(countRows[0].count, 10);
 
-    const { rows } = await query<AdSet>(
-      `SELECT * FROM adsets WHERE ${whereClause} ORDER BY created_at DESC LIMIT $${++idx} OFFSET $${++idx}`,
+    const { rows: adSets } = await query<AdSet>(
+      `SELECT * FROM ad_sets
+       WHERE ${whereClause}
+       ORDER BY ${sortColumn} ${sortOrder}
+       LIMIT $${++paramIdx} OFFSET $${++paramIdx}`,
       [...params, limit, offset],
     );
 
-    return { adSets: rows, total, page, totalPages: Math.ceil(total / limit) };
+    return {
+      adSets,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async create(adSet: Omit<AdSet, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdSet> {
     const { rows } = await query<AdSet>(
-      `INSERT INTO adsets (workspace_id, campaign_id, platform, platform_adset_id, name, status, daily_budget, bid_strategy, bid_amount, targeting, platform_data)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO ad_sets (
+        campaign_id, platform_ad_set_id, name, status, budget, budget_type,
+        bid_strategy, bid_amount, targeting, spend, impressions, clicks,
+        ctr, conversions, cpa, roas, cpm, cpc, frequency
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      RETURNING *`,
       [
-        adSet.workspaceId, adSet.campaignId, adSet.platform, adSet.platformAdsetId,
-        adSet.name, adSet.status, adSet.dailyBudget, adSet.bidStrategy,
-        adSet.bidAmount, adSet.targeting, adSet.platformData,
+        adSet.campaignId, adSet.platformAdSetId, adSet.name, adSet.status,
+        adSet.budget, adSet.budgetType, adSet.bidStrategy, adSet.bidAmount,
+        adSet.targeting, adSet.spend, adSet.impressions, adSet.clicks,
+        adSet.ctr, adSet.conversions, adSet.cpa, adSet.roas,
+        adSet.cpm, adSet.cpc, adSet.frequency,
       ],
     );
     return rows[0];
@@ -81,7 +92,8 @@ export class AdSetRepository implements IAdSetRepository {
 
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
-        setClauses.push(`${this.camelToSnake(key)} = $${++idx}`);
+        const column = this.camelToSnake(key);
+        setClauses.push(`${column} = $${++idx}`);
         params.push(value);
       }
     }
@@ -89,21 +101,39 @@ export class AdSetRepository implements IAdSetRepository {
     if (setClauses.length === 0) return this.findById(id);
 
     const { rows } = await query<AdSet>(
-      `UPDATE adsets SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`, params,
+      `UPDATE ad_sets SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`,
+      params,
     );
     return rows[0] ?? null;
   }
 
   async delete(id: string): Promise<boolean> {
-    const { rowCount } = await query(`DELETE FROM adsets WHERE id = $1`, [id]);
+    const { rowCount } = await query(`DELETE FROM ad_sets WHERE id = $1`, [id]);
     return (rowCount ?? 0) > 0;
   }
 
   async countByCampaign(campaignId: string): Promise<number> {
     const { rows } = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM adsets WHERE campaign_id = $1`, [campaignId],
+      `SELECT COUNT(*)::text as count FROM ad_sets WHERE campaign_id = $1`,
+      [campaignId],
     );
     return parseInt(rows[0].count, 10);
+  }
+
+  private getSortColumn(sortBy?: string): string {
+    const columns: Record<string, string> = {
+      name: 'name',
+      status: 'status',
+      created_at: 'created_at',
+      updated_at: 'updated_at',
+      spend: 'spend',
+      impressions: 'impressions',
+      clicks: 'clicks',
+      ctr: 'ctr',
+      roas: 'roas',
+      conversions: 'conversions',
+    };
+    return columns[sortBy ?? ''] ?? 'created_at';
   }
 
   private camelToSnake(str: string): string {

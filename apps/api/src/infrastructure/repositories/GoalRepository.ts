@@ -1,16 +1,20 @@
-import type { IGoalRepository, GoalFilters, GoalListResult } from '../../domain/repositories/IGoalRepository';
-import type { Goal } from '../../domain/entities/Goal';
+import type { IGoalRepository } from '../../domain/repositories/IGoalRepository';
+import type { Goal, GoalFilters, GoalListResult, GoalProgress } from '../../domain/entities/Goal';
 import { query } from '../database/connection';
 
 export class GoalRepository implements IGoalRepository {
   async findById(id: string): Promise<Goal | null> {
-    const { rows } = await query<Goal>(`SELECT * FROM goals WHERE id = $1 LIMIT 1`, [id]);
+    const { rows } = await query<Goal>(
+      `SELECT * FROM goals WHERE id = $1 LIMIT 1`,
+      [id],
+    );
     return rows[0] ?? null;
   }
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Goal | null> {
     const { rows } = await query<Goal>(
-      `SELECT * FROM goals WHERE id = $1 AND workspace_id = $2 LIMIT 1`, [id, workspaceId],
+      `SELECT * FROM goals WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
+      [id, workspaceId],
     );
     return rows[0] ?? null;
   }
@@ -18,24 +22,33 @@ export class GoalRepository implements IGoalRepository {
   async list(filters: GoalFilters): Promise<GoalListResult> {
     const conditions: string[] = ['workspace_id = $1'];
     const params: unknown[] = [filters.workspaceId];
-    let idx = 1;
+    let paramIdx = 1;
+
+    if (filters.campaignId) {
+      paramIdx++;
+      conditions.push(`campaign_id = $${paramIdx}`);
+      params.push(filters.campaignId);
+    }
 
     if (filters.status) {
       const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
-      conditions.push(`status = ANY($${++idx}::text[])`);
+      paramIdx++;
+      conditions.push(`status = ANY($${paramIdx}::text[])`);
       params.push(statuses);
     }
-    if (filters.metricType) {
-      conditions.push(`metric_type = $${++idx}`);
-      params.push(filters.metricType);
+
+    if (filters.metric) {
+      const metrics = Array.isArray(filters.metric) ? filters.metric : [filters.metric];
+      paramIdx++;
+      conditions.push(`metric = ANY($${paramIdx}::text[])`);
+      params.push(metrics);
     }
-    if (filters.platform) {
-      conditions.push(`platform = $${++idx}`);
-      params.push(filters.platform);
-    }
-    if (filters.search) {
-      conditions.push(`name ILIKE $${++idx}`);
-      params.push(`%${filters.search}%`);
+
+    if (filters.period) {
+      const periods = Array.isArray(filters.period) ? filters.period : [filters.period];
+      paramIdx++;
+      conditions.push(`period = ANY($${paramIdx}::text[])`);
+      params.push(periods);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -44,26 +57,35 @@ export class GoalRepository implements IGoalRepository {
     const offset = (page - 1) * limit;
 
     const { rows: countRows } = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM goals WHERE ${whereClause}`, params,
+      `SELECT COUNT(*)::text as count FROM goals WHERE ${whereClause}`,
+      params,
     );
     const total = parseInt(countRows[0].count, 10);
 
-    const { rows } = await query<Goal>(
-      `SELECT * FROM goals WHERE ${whereClause} ORDER BY created_at DESC LIMIT $${++idx} OFFSET $${++idx}`,
+    const { rows: goals } = await query<Goal>(
+      `SELECT * FROM goals WHERE ${whereClause} ORDER BY created_at DESC LIMIT $${++paramIdx} OFFSET $${++paramIdx}`,
       [...params, limit, offset],
     );
 
-    return { goals: rows, total, page, totalPages: Math.ceil(total / limit) };
+    return {
+      goals,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async create(goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>): Promise<Goal> {
     const { rows } = await query<Goal>(
-      `INSERT INTO goals (workspace_id, name, description, metric_type, target_value, current_value, campaign_ids, platform, start_date, end_date, status, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      `INSERT INTO goals (
+        workspace_id, campaign_id, name, description, metric,
+        target_value, current_value, period, status, start_date, end_date, alert_threshold
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *`,
       [
-        goal.workspaceId, goal.name, goal.description, goal.metricType,
-        goal.targetValue, goal.currentValue, goal.campaignIds, goal.platform,
-        goal.startDate, goal.endDate, goal.status, goal.createdBy,
+        goal.workspaceId, goal.campaignId, goal.name, goal.description, goal.metric,
+        goal.targetValue, goal.currentValue, goal.period, goal.status,
+        goal.startDate, goal.endDate, goal.alertThreshold,
       ],
     );
     return rows[0];
@@ -76,7 +98,8 @@ export class GoalRepository implements IGoalRepository {
 
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
-        setClauses.push(`${this.camelToSnake(key)} = $${++idx}`);
+        const column = this.camelToSnake(key);
+        setClauses.push(`${column} = $${++idx}`);
         params.push(value);
       }
     }
@@ -84,7 +107,8 @@ export class GoalRepository implements IGoalRepository {
     if (setClauses.length === 0) return this.findById(id);
 
     const { rows } = await query<Goal>(
-      `UPDATE goals SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`, params,
+      `UPDATE goals SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`,
+      params,
     );
     return rows[0] ?? null;
   }
@@ -94,18 +118,40 @@ export class GoalRepository implements IGoalRepository {
     return (rowCount ?? 0) > 0;
   }
 
-  async updateProgress(id: string, currentValue: number): Promise<Goal | null> {
+  async getProgress(goalId: string): Promise<GoalProgress | null> {
     const { rows } = await query<Goal>(
-      `UPDATE goals SET current_value = $2 WHERE id = $1 RETURNING *`, [id, currentValue],
+      `SELECT * FROM goals WHERE id = $1 LIMIT 1`,
+      [goalId],
     );
-    return rows[0] ?? null;
-  }
 
-  async countByWorkspace(workspaceId: string): Promise<number> {
-    const { rows } = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM goals WHERE workspace_id = $1`, [workspaceId],
-    );
-    return parseInt(rows[0].count, 10);
+    const goal = rows[0];
+    if (!goal) return null;
+
+    const percentage = goal.targetValue > 0
+      ? Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100))
+      : 0;
+
+    const remaining = Math.max(0, goal.targetValue - goal.currentValue);
+    const isOnTrack = percentage >= 50;
+
+    let daysRemaining: number | null = null;
+    if (goal.endDate) {
+      const end = new Date(goal.endDate);
+      const now = new Date();
+      daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    return {
+      goalId: goal.id,
+      currentValue: goal.currentValue,
+      targetValue: goal.targetValue,
+      percentage,
+      remaining,
+      isOnTrack,
+      projectedValue: null,
+      daysRemaining,
+      trend: goal.currentValue > goal.targetValue * 0.5 ? 'up' : goal.currentValue > 0 ? 'flat' : 'down',
+    };
   }
 
   private camelToSnake(str: string): string {

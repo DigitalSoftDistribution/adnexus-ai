@@ -1,14 +1,4 @@
-export interface WebhookConfig {
-  id: string;
-  workspaceId: string;
-  name: string;
-  url: string;
-  events: string[];
-  secret: string | null;
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { WebhookConfig } from '../entities/WebhookConfig';
 
 export interface WebhookDelivery {
   id: string;

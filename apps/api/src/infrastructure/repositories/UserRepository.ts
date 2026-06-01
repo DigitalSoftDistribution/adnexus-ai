@@ -1,4 +1,4 @@
-import type { IUserRepository } from '../../domain/repositories/IUserRepository';
+import type { IUserRepository, UserFilters, UserListResult } from '../../domain/repositories/IUserRepository';
 import type { User, WorkspaceMember, WorkspaceRole } from '../../domain/entities/User';
 import { query } from '../database/connection';
 
@@ -26,6 +26,38 @@ export class UserRepository implements IUserRepository {
       [ids],
     );
     return rows;
+  }
+
+  async list(filters: UserFilters): Promise<UserListResult> {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 0;
+
+    if (filters.workspaceId) {
+      conditions.push(`id IN (SELECT user_id FROM workspace_members WHERE workspace_id = $${++idx})`);
+      params.push(filters.workspaceId);
+    }
+    if (filters.search) {
+      conditions.push(`(name ILIKE $${++idx} OR email ILIKE $${idx})`);
+      params.push(`%${filters.search}%`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const page = filters.page ?? 1;
+    const limit = Math.min(filters.limit ?? 20, 100);
+    const offset = (page - 1) * limit;
+
+    const { rows: countRows } = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM users ${whereClause}`, params,
+    );
+    const total = parseInt(countRows[0].count, 10);
+
+    const { rows: users } = await query<User>(
+      `SELECT * FROM users ${whereClause} ORDER BY created_at DESC LIMIT $${++idx} OFFSET $${++idx}`,
+      [...params, limit, offset],
+    );
+
+    return { users, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async create(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {

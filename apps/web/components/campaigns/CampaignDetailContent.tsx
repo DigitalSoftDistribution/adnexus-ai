@@ -60,6 +60,51 @@ function useCampaign(id: string) {
   });
 }
 
+interface AdSet {
+  id: string;
+  name: string;
+  status: string;
+  budget: number | null;
+  budgetType: string | null;
+  bidStrategy: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number | null;
+}
+
+function useCampaignAdSets(campaignId: string) {
+  return useQuery({
+    queryKey: ['adsets', 'campaign', campaignId],
+    queryFn: async (): Promise<{ adSets: AdSet[]; total: number }> => {
+      const res = await fetch(`/api/v2/campaigns/${campaignId}/adsets`);
+      if (!res.ok) throw new Error('Failed to fetch ad sets');
+      const data = await res.json();
+      return data.data;
+    },
+  });
+}
+
+interface HistoryEntry {
+  id: string;
+  action: string;
+  userName: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+function useCampaignHistory(campaignId: string) {
+  return useQuery({
+    queryKey: ['campaign', 'history', campaignId],
+    queryFn: async (): Promise<{ history: HistoryEntry[]; total: number }> => {
+      const res = await fetch(`/api/v2/campaigns/${campaignId}/history`);
+      if (!res.ok) throw new Error('Failed to fetch history');
+      const data = await res.json();
+      return data.data;
+    },
+  });
+}
+
 interface Ad {
   id: string;
   name: string;
@@ -277,6 +322,7 @@ export function CampaignDetailContent() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
           <TabsTrigger value="ads">Ads</TabsTrigger>
           <TabsTrigger value="audiences">Audiences</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
@@ -329,6 +375,10 @@ export function CampaignDetailContent() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="adsets">
+          <CampaignAdSetsTab campaignId={id} />
+        </TabsContent>
+
         <TabsContent value="ads">
           <CampaignAdsTab campaignId={id} />
         </TabsContent>
@@ -365,15 +415,7 @@ export function CampaignDetailContent() {
         </TabsContent>
 
         <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Change History</CardTitle>
-              <CardDescription>Audit log of campaign changes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">No changes recorded yet.</p>
-            </CardContent>
-          </Card>
+          <CampaignHistoryTab campaignId={id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -458,6 +500,137 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
+  const { data, isLoading } = useCampaignAdSets(campaignId);
+  const adSets = data?.adSets ?? [];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex h-32 items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (adSets.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Ad Sets</CardTitle>
+          <CardDescription>Manage your ad sets</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No ad sets configured yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Ad Sets</CardTitle>
+          <CardDescription>{adSets.length} ad set(s) in this campaign</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {adSets.map((adSet) => (
+              <div
+                key={adSet.id}
+                className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{adSet.name}</span>
+                    <Badge variant="outline" className="capitalize text-xs">{adSet.status}</Badge>
+                    {adSet.bidStrategy && (
+                      <Badge variant="secondary" className="text-xs">{adSet.bidStrategy}</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>Spend: {formatCurrency(adSet.spend)}</span>
+                    <span>Impressions: {formatNumber(adSet.impressions)}</span>
+                    <span>Clicks: {formatNumber(adSet.clicks)}</span>
+                    {adSet.ctr && <span>CTR: {formatPercent(adSet.ctr)}</span>}
+                    {adSet.budget && <span>Budget: {formatCurrency(adSet.budget)}</span>}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">View</Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CampaignHistoryTab({ campaignId }: { campaignId: string }) {
+  const { data, isLoading } = useCampaignHistory(campaignId);
+  const history = data?.history ?? [];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex h-32 items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Change History</CardTitle>
+          <CardDescription>Audit log of campaign changes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No changes recorded yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Change History</CardTitle>
+        <CardDescription>{history.length} change(s) recorded</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {history.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex items-start justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium capitalize">{entry.action}</span>
+                  <span className="text-xs text-muted-foreground">by {entry.userName ?? 'System'}</span>
+                </div>
+                {entry.details && (
+                  <p className="text-sm text-muted-foreground">{JSON.stringify(entry.details)}</p>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

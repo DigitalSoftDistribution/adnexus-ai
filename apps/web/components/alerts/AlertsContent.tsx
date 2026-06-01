@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Bell, Plus, AlertTriangle, TrendingDown, DollarSign, Users, Activity } from 'lucide-react';
 
 interface AlertRule {
@@ -15,40 +17,25 @@ interface AlertRule {
   lastTriggered: string | null;
 }
 
-const MOCK_RULES: AlertRule[] = [
-  {
-    id: '1',
-    name: 'Spend Over Budget',
-    condition: 'Daily spend > 120% of budget',
-    severity: 'critical',
-    status: 'active',
-    lastTriggered: '2 hours ago',
-  },
-  {
-    id: '2',
-    name: 'CTR Drop',
-    condition: 'CTR drops > 20% vs previous 7 days',
-    severity: 'warning',
-    status: 'active',
-    lastTriggered: '1 day ago',
-  },
-  {
-    id: '3',
-    name: 'Low ROAS',
-    condition: 'ROAS < 2.0 for 3 consecutive days',
-    severity: 'warning',
-    status: 'paused',
-    lastTriggered: null,
-  },
-  {
-    id: '4',
-    name: 'Creative Fatigue',
-    condition: 'Frequency > 3.5 and CTR declining',
-    severity: 'info',
-    status: 'active',
-    lastTriggered: '5 hours ago',
-  },
-];
+function useAlerts() {
+  const [filter, setFilter] = useState<string>('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['alerts', 'list'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/alerts');
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      return res.json();
+    },
+  });
+
+  const rules: AlertRule[] = data?.data?.alerts ?? [];
+  const filtered = filter === 'all'
+    ? rules
+    : rules.filter((r: AlertRule) => r.severity === filter);
+
+  return { rules: filtered, isLoading, filter, setFilter, total: data?.data?.total ?? 0 };
+}
 
 const ALERT_TYPES = [
   { name: 'Budget', icon: DollarSign, color: 'bg-red-100 text-red-700' },
@@ -58,11 +45,7 @@ const ALERT_TYPES = [
 ];
 
 export function AlertsContent() {
-  const [filter, setFilter] = useState<string>('all');
-
-  const filtered = filter === 'all'
-    ? MOCK_RULES
-    : MOCK_RULES.filter((r) => r.severity === filter);
+  const { rules, isLoading, filter, setFilter, total } = useAlerts();
 
   return (
     <div className="space-y-6">
@@ -78,11 +61,17 @@ export function AlertsContent() {
       </div>
 
       {/* Stats */}
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : (
+        <>
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Active Rules" value="3" icon={Bell} />
-        <StatCard label="Critical" value="1" icon={AlertTriangle} />
-        <StatCard label="Triggered Today" value="2" icon={Activity} />
-        <StatCard label="Paused" value="1" icon={Bell} />
+        <StatCard label="Total Rules" value={String(total)} icon={Bell} />
+        <StatCard label="Critical" value={String(rules.filter((r: AlertRule) => r.severity === 'critical').length)} icon={AlertTriangle} />
+        <StatCard label="Active" value={String(rules.filter((r: AlertRule) => r.status === 'active').length)} icon={Activity} />
+        <StatCard label="Paused" value={String(rules.filter((r: AlertRule) => r.status === 'paused').length)} icon={Bell} />
       </div>
 
       {/* Alert Type Cards */}
@@ -127,7 +116,7 @@ export function AlertsContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filtered.map((rule) => (
+            {rules.map((rule: AlertRule) => (
               <div
                 key={rule.id}
                 className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
@@ -159,6 +148,9 @@ export function AlertsContent() {
           </div>
         </CardContent>
       </Card>
+
+      </>
+      )}
 
       {/* Wireframe Concept */}
       <Card className="border-dashed">

@@ -1,4 +1,5 @@
-import type { ISettingsRepository, TeamMember, Integration, NotificationPreferences, ApiKey } from '../../domain/repositories/ISettingsRepository';
+import type { ISettingsRepository, TeamMember, Integration, NotificationPreferences } from '../../domain/repositories/ISettingsRepository';
+import type { ApiKey } from '../../domain/entities/ApiKey';
 import type { WorkspaceRole } from '../../domain/entities/User';
 import { query } from '../database/connection';
 import { randomBytes } from 'crypto';
@@ -284,17 +285,28 @@ export class SettingsRepository implements ISettingsRepository {
     return [];
   }
 
-  async createApiKey(_workspaceId: string, name: string): Promise<ApiKey & { fullKey: string }> {
+  async createApiKey(workspaceId: string, name: string): Promise<ApiKey & { fullKey: string }> {
     const keyId = `key_${randomBytes(8).toString('hex')}`;
     const fullKey = `adnx_${randomBytes(32).toString('hex')}`;
     const keyPrefix = fullKey.slice(0, 12);
 
     return {
       id: keyId,
+      workspaceId,
       name,
+      keyHash: '',
       keyPrefix,
+      scopes: [],
+      status: 'active',
+      expiresAt: null,
+      createdBy: null,
+      revokedBy: null,
+      revokedAt: null,
       lastUsedAt: null,
-      createdAt: new Date().toISOString(),
+      callsToday: 0,
+      callsThisMonth: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
       fullKey,
     };
   }

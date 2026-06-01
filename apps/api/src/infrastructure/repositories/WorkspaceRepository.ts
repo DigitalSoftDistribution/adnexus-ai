@@ -1,4 +1,4 @@
-import type { IWorkspaceRepository } from '../../domain/repositories/IWorkspaceRepository';
+import type { IWorkspaceRepository, WorkspaceFilters, WorkspaceListResult } from '../../domain/repositories/IWorkspaceRepository';
 import type { Workspace, WorkspaceLimits, PlanTier } from '../../domain/entities/Workspace';
 import type { WorkspaceMember, WorkspaceRole } from '../../domain/entities/User';
 import { PLAN_LIMITS } from '../../domain/entities/Workspace';
@@ -27,6 +27,38 @@ export class WorkspaceRepository implements IWorkspaceRepository {
       [ownerId],
     );
     return rows;
+  }
+
+  async list(filters: WorkspaceFilters): Promise<WorkspaceListResult> {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 0;
+
+    if (filters.status) {
+      conditions.push(`subscription_status = $${++idx}`);
+      params.push(filters.status);
+    }
+    if (filters.search) {
+      conditions.push(`(name ILIKE $${++idx} OR slug ILIKE $${idx})`);
+      params.push(`%${filters.search}%`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const page = filters.page ?? 1;
+    const limit = Math.min(filters.limit ?? 20, 100);
+    const offset = (page - 1) * limit;
+
+    const { rows: countRows } = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM workspaces ${whereClause}`, params,
+    );
+    const total = parseInt(countRows[0].count, 10);
+
+    const { rows: workspaces } = await query<Workspace>(
+      `SELECT * FROM workspaces ${whereClause} ORDER BY created_at DESC LIMIT $${++idx} OFFSET $${++idx}`,
+      [...params, limit, offset],
+    );
+
+    return { workspaces, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async create(workspace: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>): Promise<Workspace> {

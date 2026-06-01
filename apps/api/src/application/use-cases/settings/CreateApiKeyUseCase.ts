@@ -1,5 +1,5 @@
 import type { ISettingsRepository } from '../../../domain/repositories/ISettingsRepository';
-import type { ApiKey } from '../../../domain/repositories/ISettingsRepository';
+import type { ApiKey } from '../../../domain/entities/ApiKey';
 import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
 
 export interface CreateApiKeyInput {

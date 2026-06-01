@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-// import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { CreditCard, Download, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -251,12 +251,7 @@ function UsageBar({ label, used, total }: { label: string; used: number; total: 
         </span>
       </div>
             {!unlimited && (
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
+              <Progress value={used} max={total} />
             )}
     </div>
   );

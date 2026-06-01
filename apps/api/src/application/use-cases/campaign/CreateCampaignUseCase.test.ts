@@ -29,6 +29,7 @@ describe('CreateCampaignUseCase', () => {
     findById: vi.fn(),
     findBySlug: vi.fn(),
     findByOwnerId: vi.fn(),
+    list: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),

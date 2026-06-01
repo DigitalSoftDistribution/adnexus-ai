@@ -1,5 +1,6 @@
 import type { IAdAccountRepository, AdAccountFilters } from '../../../domain/repositories/IAdAccountRepository';
-import type { AdAccountListResult, AdAccountPlatform } from '../../../domain/entities/AdAccount';
+import type { AdAccountPlatform } from '../../../domain/entities/AdAccount';
+import type { AdAccountListResult } from '../../../domain/repositories/IAdAccountRepository';
 import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
 
 export interface ListAdAccountsInput {
