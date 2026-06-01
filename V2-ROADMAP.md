@@ -483,11 +483,14 @@ apps/api/src/interface/http/routes/
 - [x] Campaign insights, history, sync
 - [x] Ad set management (CRUD)
 - [x] Migrate Exports endpoints
-- [ ] Full ad creative management (update, duplicate)
-- [ ] Migrate Uploads endpoints
-- [ ] Migrate Admin endpoints
+- [x] Asset management (uploads)
+- [x] Admin panel endpoints (stats, users, workspaces, impersonate)
+- [ ] Full ad creative management (update, duplicate) — proxy to v1
 
-### Phase 5: Polish (Week 6) — 🔄 PENDING
+### Phase 5: Polish (Week 6) — 🔄 IN PROGRESS
+- [x] Frontend wiring: audiences, alerts, reports → v2 APIs
+- [x] Campaign detail: ad sets tab + history tab → v2 APIs
+- [x] Error handling on dashboard
 - [ ] OpenAPI spec completeness
 - [ ] API documentation (Scalar)
 - [ ] Rate limiting per endpoint
