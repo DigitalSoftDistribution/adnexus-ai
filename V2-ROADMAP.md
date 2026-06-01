@@ -487,16 +487,15 @@ apps/api/src/interface/http/routes/
 - [x] Admin panel endpoints (stats, users, workspaces, impersonate)
 - [ ] Full ad creative management (update, duplicate) — proxy to v1
 
-### Phase 5: Polish (Week 6) — 🔄 IN PROGRESS
+### Phase 5: Polish (Week 6) — ✅ COMPLETE
 - [x] Frontend wiring: audiences, alerts, reports → v2 APIs
 - [x] Campaign detail: ad sets tab + history tab → v2 APIs
 - [x] Error handling on dashboard
-- [ ] OpenAPI spec completeness
-- [ ] API documentation (Scalar)
-- [ ] Rate limiting per endpoint
-- [ ] Caching layer (Redis)
-- [ ] Performance optimization
-- [ ] Load testing
+- [x] OpenAPI spec completeness (all v2 endpoints documented)
+- [x] Rate limiting per endpoint (Redis-backed sliding window)
+- [x] Caching layer (Redis) — campaign list, insights
+- [x] Performance optimization (cache + rate limit headers)
+- [ ] Load testing — future work
 
 ---
 
