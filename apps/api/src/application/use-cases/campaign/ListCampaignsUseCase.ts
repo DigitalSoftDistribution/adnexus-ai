@@ -1,5 +1,6 @@
 import type { ICampaignRepository, CampaignFilters, CampaignListResult } from '../../../domain/repositories/ICampaignRepository';
 import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
+import * as cache from '../../../services/cache-service';
 
 export interface ListCampaignsInput {
   workspaceId: string;
@@ -16,13 +17,24 @@ export interface ListCampaignsInput {
   limit?: number;
 }
 
+function getCacheKey(input: ListCampaignsInput): string {
+  const { workspaceId, status, platform, search, objective, sortBy, sortOrder, page, limit } = input;
+  const parts = [workspaceId, status, platform, search, objective, sortBy, sortOrder, page, limit];
+  return `campaigns:list:${parts.map((p) => p ?? '_').join(':')}`;
+}
+
 export class ListCampaignsUseCase {
   constructor(private campaignRepo: ICampaignRepository) {}
 
   async execute(input: ListCampaignsInput): Promise<Result<CampaignListResult>> {
-    // All authenticated roles can list campaigns
     if (!['owner', 'admin', 'editor', 'viewer'].includes(input.userRole)) {
       return err(new ForbiddenError('Insufficient permissions'));
+    }
+
+    const cacheKey = getCacheKey(input);
+    const cached = await cache.get<CampaignListResult>(cacheKey);
+    if (cached) {
+      return ok(cached);
     }
 
     const filters: CampaignFilters = {
@@ -40,6 +52,7 @@ export class ListCampaignsUseCase {
     };
 
     const result = await this.campaignRepo.list(filters);
+    await cache.set(cacheKey, result, 300); // 5 min cache
     return ok(result);
   }
 }
