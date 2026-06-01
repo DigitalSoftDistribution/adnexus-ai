@@ -35,13 +35,22 @@ function useCampaignSummary() {
 }
 
 export function DashboardContent() {
-  const { data: summary, isLoading } = useCampaignSummary();
+  const { data: summary, isLoading, error } = useCampaignSummary();
   const { isConnected } = useSSE();
 
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
+        <div className="text-destructive text-lg font-medium">Failed to load dashboard</div>
+        <p className="text-muted-foreground text-sm">{error.message}</p>
       </div>
     );
   }
