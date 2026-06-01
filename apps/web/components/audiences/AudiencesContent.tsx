@@ -1,40 +1,44 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Users, Plus, Target, Globe, Smartphone, Heart, ShoppingCart } from 'lucide-react';
 
-interface AudienceSegment {
+interface Audience {
   id: string;
   name: string;
-  size: string;
   platform: string;
-  type: 'saved' | 'lookalike' | 'custom' | 'retargeting';
-  status: 'active' | 'draft' | 'archived';
+  type: string;
+  status: string;
+  size?: number;
 }
 
-const MOCK_SEGMENTS: AudienceSegment[] = [
-  { id: '1', name: 'High-Value Customers', size: '12.5K', platform: 'meta', type: 'lookalike', status: 'active' },
-  { id: '2', name: 'Website Visitors 30d', size: '45.2K', platform: 'google', type: 'retargeting', status: 'active' },
-  { id: '3', name: 'Cart Abandoners', size: '8.1K', platform: 'meta', type: 'custom', status: 'active' },
-  { id: '4', name: 'Engaged Users', size: '23.7K', platform: 'tiktok', type: 'saved', status: 'draft' },
-];
-
-const INTEREST_CATEGORIES = [
-  { name: 'Technology', icon: Smartphone, count: 45 },
-  { name: 'Fashion', icon: Heart, count: 32 },
-  { name: 'Travel', icon: Globe, count: 28 },
-  { name: 'E-commerce', icon: ShoppingCart, count: 56 },
-];
-
-export function AudiencesContent() {
+function useAudiences() {
   const [filter, setFilter] = useState<string>('all');
 
+  const { data, isLoading } = useQuery({
+    queryKey: ['audiences', 'list'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/audiences');
+      if (!res.ok) throw new Error('Failed to fetch audiences');
+      return res.json();
+    },
+  });
+
+  const audiences: Audience[] = data?.data?.audiences ?? [];
   const filtered = filter === 'all'
-    ? MOCK_SEGMENTS
-    : MOCK_SEGMENTS.filter((s) => s.platform === filter);
+    ? audiences
+    : audiences.filter((s: Audience) => s.platform === filter);
+
+  return { audiences: filtered, isLoading, filter, setFilter, total: data?.data?.total ?? 0 };
+}
+
+export function AudiencesContent() {
+  const { audiences, isLoading, filter, setFilter, total } = useAudiences();
 
   return (
     <div className="space-y-6">
@@ -50,11 +54,17 @@ export function AudiencesContent() {
       </div>
 
       {/* Stats */}
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : (
+        <>
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Audiences" value="4" icon={Users} />
-        <StatCard label="Active" value="3" icon={Target} />
-        <StatCard label="Total Reach" value="89.5K" icon={Globe} />
-        <StatCard label="Platforms" value="3" icon={Smartphone} />
+        <StatCard label="Total Audiences" value={String(total)} icon={Users} />
+        <StatCard label="Active" value={String(audiences.filter((a: Audience) => a.status === 'active').length)} icon={Target} />
+        <StatCard label="Total Reach" value={`${(audiences.reduce((sum: number, a: Audience) => sum + (a.size ?? 0), 0) / 1000).toFixed(1)}K`} icon={Globe} />
+        <StatCard label="Platforms" value={String(new Set(audiences.map((a: Audience) => a.platform)).size)} icon={Smartphone} />
       </div>
 
       {/* Platform Filter */}
@@ -80,7 +90,7 @@ export function AudiencesContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filtered.map((segment) => (
+            {audiences.map((segment: Audience) => (
               <div
                 key={segment.id}
                 className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
@@ -94,7 +104,7 @@ export function AudiencesContent() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {segment.size} users · {segment.type}
+                    {segment.size ? `${(segment.size / 1000).toFixed(1)}K` : 'Unknown'} users · {segment.type}
                   </p>
                 </div>
                 <Button variant="outline" size="sm">View</Button>
@@ -103,6 +113,9 @@ export function AudiencesContent() {
           </div>
         </CardContent>
       </Card>
+
+      </>
+      )}
 
       {/* Interest Categories */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -153,6 +166,13 @@ export function AudiencesContent() {
     </div>
   );
 }
+
+const INTEREST_CATEGORIES = [
+  { name: 'Technology', icon: Smartphone, count: 45 },
+  { name: 'Fashion', icon: Heart, count: 32 },
+  { name: 'Travel', icon: Globe, count: 28 },
+  { name: 'E-commerce', icon: ShoppingCart, count: 56 },
+];
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (

@@ -1,10 +1,37 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { BarChart3, Plus, FileText, Calendar, Download, TrendingUp, Users, DollarSign } from 'lucide-react';
+
+interface Report {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  createdAt: string;
+}
+
+function useReports() {
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['reports', 'list'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/reports');
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      return res.json();
+    },
+  });
+
+  const reports: Report[] = data?.data?.reports ?? [];
+
+  return { reports, isLoading, activeCategory, setActiveCategory, total: data?.data?.total ?? 0 };
+}
 
 interface ReportTemplate {
   id: string;
@@ -46,9 +73,9 @@ const TEMPLATES: ReportTemplate[] = [
 ];
 
 export function ReportsContent() {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const { reports, isLoading, activeCategory, setActiveCategory, total } = useReports();
 
-  const filtered = activeCategory === 'all'
+  const filteredTemplates = activeCategory === 'all'
     ? TEMPLATES
     : TEMPLATES.filter((t) => t.category === activeCategory);
 
@@ -66,9 +93,15 @@ export function ReportsContent() {
       </div>
 
       {/* Stats */}
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : (
+        <>
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Reports" value="0" icon={FileText} />
-        <StatCard label="Scheduled" value="0" icon={Calendar} />
+        <StatCard label="Total Reports" value={String(total)} icon={FileText} />
+        <StatCard label="Saved" value={String(reports.length)} icon={Calendar} />
         <StatCard label="Generated Today" value="0" icon={BarChart3} />
         <StatCard label="Downloads" value="0" icon={Download} />
       </div>
@@ -90,7 +123,7 @@ export function ReportsContent() {
 
       {/* Templates Grid */}
       <div className="grid gap-4 md:grid-cols-2">
-        {filtered.map((template) => (
+        {filteredTemplates.map((template) => (
           <Card key={template.id} className="hover:border-primary/50 transition-colors cursor-pointer">
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -109,6 +142,9 @@ export function ReportsContent() {
           </Card>
         ))}
       </div>
+
+      </>
+      )}
 
       {/* Wireframe Concept */}
       <Card className="border-dashed">
