@@ -95,7 +95,7 @@ const comparisonCategories: ComparisonCategory[] = [
     icon: DollarSign,
     rows: [
       { feature: 'Free Tier', adnexus: true, madgicx: false },
-      { feature: 'Pro Plan', adnexus: '$149/mo flat', madgicx: '$99 + $49 tracking' },
+      { feature: 'Scale plan', adnexus: '$149/mo flat', madgicx: '$99 + $49 tracking' },
       { feature: 'Agency Plan', adnexus: '$399/mo flat', madgicx: '$298+/mo' },
       { feature: 'Price Scales with Spend', adnexus: false, madgicx: true, note: 'Hidden cost escalation' },
     ],

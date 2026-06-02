@@ -4,11 +4,11 @@ import { useState, type FormEvent } from 'react';
 import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 export function ContactForm() {
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'fallback' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [fallbackEmail, setFallbackEmail] = useState('hello@adnexus.ai');
   const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });
 
-  const submitted = status === 'success';
   const submitting = status === 'submitting';
 
   async function handleSubmit(e: FormEvent) {
@@ -21,8 +21,17 @@ export function ContactForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      const data = await res.json().catch(() => null);
+
+      // No delivery channel configured — direct the user to email instead of
+      // claiming a delivery that did not happen.
+      if (res.status === 503 || data?.delivered === false) {
+        if (data?.fallbackEmail) setFallbackEmail(data.fallbackEmail);
+        setStatus('fallback');
+        return;
+      }
+
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         const firstError =
           data?.error && typeof data.error === 'object'
             ? Object.values(data.error).flat()[0]
@@ -36,7 +45,7 @@ export function ContactForm() {
     }
   }
 
-  if (submitted) {
+  if (status === 'success') {
     return (
       <div className="card-surface p-8 text-center">
         <CheckCircle2 size={40} className="mx-auto mb-4" style={{ color: '#c3f53b' }} aria-hidden="true" />
@@ -48,6 +57,30 @@ export function ContactForm() {
           </a>
           .
         </p>
+      </div>
+    );
+  }
+
+  if (status === 'fallback') {
+    const subject = encodeURIComponent('AdNexus AI — contact');
+    const bodyText = encodeURIComponent(
+      `Name: ${form.name}\nCompany: ${form.company}\n\n${form.message}`,
+    );
+    return (
+      <div className="card-surface p-8 text-center">
+        <Send size={36} className="mx-auto mb-4" style={{ color: '#c3f53b' }} aria-hidden="true" />
+        <h3 className="text-lg font-semibold text-white mb-2">One quick step</h3>
+        <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+          Send your message directly and we&apos;ll reply within one business day.
+        </p>
+        <a
+          href={`mailto:${fallbackEmail}?subject=${subject}&body=${bodyText}`}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold"
+          style={{ background: '#c3f53b', color: '#0a0a0a' }}
+        >
+          Email {fallbackEmail}
+          <Send size={15} aria-hidden="true" />
+        </a>
       </div>
     );
   }

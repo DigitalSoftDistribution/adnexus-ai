@@ -92,7 +92,7 @@ const comparisonCategories: ComparisonCategory[] = [
     icon: DollarSign,
     rows: [
       { feature: 'Free Tier', adnexus: true, pipeboard: true },
-      { feature: 'Pro Plan', adnexus: '$149/mo flat', pipeboard: '$149/mo' },
+      { feature: 'Scale plan', adnexus: '$149/mo flat', pipeboard: '$149/mo' },
       { feature: 'Agency Plan', adnexus: '$399/mo flat', pipeboard: 'Custom pricing' },
       { feature: 'Hidden Fees', adnexus: false, pipeboard: true, note: 'Tracking costs extra' },
     ],

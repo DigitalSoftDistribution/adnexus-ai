@@ -46,7 +46,12 @@ export async function POST(request: Request) {
     }
   }
 
-  // No upstream configured: record only a redacted reference, not the PII payload.
-  console.log('[contact] submission received (no upstream configured)', submissionRef);
-  return NextResponse.json({ ok: true }, { status: 202 });
+  // No upstream configured: there is no delivery channel, so do not claim
+  // success. Signal the client to show the direct-email fallback instead of
+  // silently dropping the submission. (Logs stay redacted to avoid storing PII.)
+  console.warn('[contact] no upstream configured — prompting direct email', submissionRef);
+  return NextResponse.json(
+    { ok: false, delivered: false, fallbackEmail: 'hello@adnexus.ai' },
+    { status: 503 },
+  );
 }

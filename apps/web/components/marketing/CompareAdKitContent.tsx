@@ -106,7 +106,7 @@ const comparisonCategories: ComparisonCategory[] = [
     rows: [
       { feature: 'Free tier', adnexus: true, adkit: true },
       { feature: 'Starting price', adnexus: '$49/mo', adkit: '$49/mo' },
-      { feature: 'Team plan', adnexus: '$149/mo', adkit: '$97/mo' },
+      { feature: 'Scale plan', adnexus: '$149/mo', adkit: '$97/mo' },
       { feature: 'Agency plan', adnexus: '$399/mo', adkit: 'N/A' },
       { feature: 'Transparent self-serve pricing', adnexus: true, adkit: true },
     ],

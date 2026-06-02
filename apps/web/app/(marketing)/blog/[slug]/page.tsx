@@ -1,5 +1,13 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { BlogPostContent } from '@/components/marketing/BlogPostContent';
+import { BLOG_SLUGS, isKnownBlogSlug } from '@/lib/marketing/blog-slugs';
+
+export function generateStaticParams() {
+  return BLOG_SLUGS.map((slug) => ({ slug }));
+}
+
+export const dynamicParams = true;
 
 export async function generateMetadata({
   params,
@@ -7,6 +15,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  if (!isKnownBlogSlug(slug)) {
+    return { title: 'Not found', robots: { index: false } };
+  }
   const title = slug
     .split('-')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -20,5 +31,8 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (!isKnownBlogSlug(slug)) {
+    notFound();
+  }
   return <BlogPostContent slug={slug} />;
 }
