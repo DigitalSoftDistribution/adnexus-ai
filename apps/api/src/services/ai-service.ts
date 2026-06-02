@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { supabase } from '../lib/supabase';
 import { AppError, ValidationError } from '../lib/errors';
+import { ragService } from './rag-service';
 import type { UnifiedCampaign, UnifiedAd, Platform, PerformanceGoal } from '../types';
 
 // ─── Type Definitions (AI Service Specific) ──────────────────
@@ -483,7 +484,39 @@ Consider frequency > 3.0 as a fatigue warning signal. CTR below adset average is
 `.trim();
 }
 
-function buildRecommendationsPrompt(campaigns: UnifiedCampaign[], goals: PerformanceGoal[]): string {
+/**
+ * Retrieve relevant past optimizations (RAG memory) to ground new
+ * recommendations. Best-effort: returns an empty string when RAG is unavailable.
+ */
+async function retrieveOptimizationMemory(
+  workspaceId: string,
+  campaigns: UnifiedCampaign[],
+): Promise<string> {
+  try {
+    if (!(await ragService.isReady())) return '';
+    const query = campaigns
+      .slice(0, 5)
+      .map((c) => `${c.objective ?? ''} ${c.name}`)
+      .join('; ')
+      .trim();
+    if (!query) return '';
+    const results = await ragService.search({
+      workspaceId,
+      collection: 'insights',
+      query,
+      limit: 5,
+    });
+    return ragService.buildContextBlock(results, 1500);
+  } catch {
+    return '';
+  }
+}
+
+function buildRecommendationsPrompt(
+  campaigns: UnifiedCampaign[],
+  goals: PerformanceGoal[],
+  memoryBlock = '',
+): string {
   const campaignTable = campaigns.map((c) =>
     `| ${c.name} | ${c.platform} | ${c.status} | $${c.spend.toFixed(0)} | ${c.ctr.toFixed(2)}% | ${c.roas.toFixed(2)}x | ${c.conversions} | $${c.cpa.toFixed(2)} | ${c.frequency.toFixed(1)} |`,
   ).join('\n');
@@ -504,7 +537,7 @@ ${campaignTable}
 | Goal | Type | Target | Current | Status | Progress |
 |------|------|--------|---------|--------|----------|
 ${goalsTable}
-
+${memoryBlock ? `\n## Past Optimization Outcomes (memory)\nUse these prior results to favour changes that worked and avoid ones that didn't:\n${memoryBlock}\n` : ''}
 ## Instructions
 Analyze the campaign data against the goals and generate specific, actionable recommendations. Each recommendation must include a draft action that could be implemented.
 
@@ -821,7 +854,10 @@ export async function generateRecommendations(
   try {
     await deductCredits(workspaceId, 'recommendations', AI_CREDIT_COSTS.recommendations);
 
-    const prompt = buildRecommendationsPrompt(campaigns, goals);
+    // Ground recommendations in past optimization outcomes ("what worked before").
+    const memoryBlock = await retrieveOptimizationMemory(workspaceId, campaigns);
+
+    const prompt = buildRecommendationsPrompt(campaigns, goals, memoryBlock);
     const raw = await callAI(prompt, {
       model: PRIMARY_MODEL,
       temperature: 0.3,
