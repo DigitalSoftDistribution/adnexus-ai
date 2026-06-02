@@ -1,8 +1,17 @@
 # AdNexus AI — Comprehensive V2 API & Architecture Plan
 
+> ⚠️ **SUPERSEDED (2026-06-02) for status accuracy.** The "✅ COMPLETE / Migrated"
+> markers below are *aspirational*. As verified during the testing pass:
+> the v2 Clean Architecture layer (`createServer.ts`, ~110 use-cases, 19 route
+> groups) is **built but NOT served** — `apps/api/src/index.ts` mounts v1 only and
+> never imports `createServer.ts`. Treat this file as the v2 *design spec*, and
+> read [docs/PATH_TO_V1.md](docs/PATH_TO_V1.md) +
+> [docs/architecture/test-coverage-matrix.md](docs/architecture/test-coverage-matrix.md)
+> for the real status and the prioritized path to v1.
+>
 > **Version:** 2.0.0-draft  
 > **Date:** 2026-05-29  
-> **Status:** Foundation complete — ready for v2 implementation  
+> **Status:** Design spec (v2 not yet wired into the running server — see PATH_TO_V1)  
 > **Branch:** `main` (`feat/v2-redesign` fully merged)
 
 ---
