@@ -7,9 +7,14 @@ import { requireRole } from '../middleware/authenticate';
 import { createDraft } from '../services/drafts-service';
 import type { UnifiedCampaign, CampaignStatus, DraftType, Platform } from '../types';
 
-// Mutating campaign operations are restricted to roles that can edit.
-// Viewers (and non-members) get a 403 before any request-body validation runs.
-const requireEditor = requireRole('owner', 'admin', 'analyst');
+// RBAC for campaign mutations. In the v1 role model the mutation-capable
+// mid-tier role is `analyst` (v2's equivalent is `editor`); viewers and
+// non-members get a 403 before any request-body validation runs.
+//   - create / update / pause / resume / duplicate → owner, admin, analyst
+//   - delete → owner, admin only (matches v2 DeleteCampaignUseCase, which
+//     denies the mid-tier role for destructive ops)
+const requireMutator = requireRole('owner', 'admin', 'analyst');
+const requireAdmin = requireRole('owner', 'admin');
 
 const router = Router();
 
@@ -326,7 +331,7 @@ router.get(
 
 router.post(
   '/',
-  requireEditor,
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
 
@@ -393,7 +398,7 @@ router.post(
 
 router.put(
   '/:id',
-  requireEditor,
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -518,7 +523,7 @@ router.put(
 
 router.delete(
   '/:id',
-  requireEditor,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -556,7 +561,7 @@ router.delete(
 
 router.post(
   '/:id/pause',
-  requireEditor,
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -598,7 +603,7 @@ router.post(
 
 router.post(
   '/:id/resume',
-  requireEditor,
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -640,7 +645,7 @@ router.post(
 
 router.post(
   '/:id/duplicate',
-  requireEditor,
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;

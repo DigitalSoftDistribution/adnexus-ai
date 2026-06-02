@@ -720,7 +720,9 @@ function buildChainableBuilder(config: ChainableConfig) {
     then: jest.fn((onFulfilled: (result: { data: unknown; error: unknown; count: number | null }) => unknown) => {
       const { data, count } = resolveRows();
       return Promise.resolve(
-        onFulfilled({ data, error: null, count: countRequested ? count : count }),
+        // Supabase returns count only when it was requested (select count option);
+        // otherwise count is null.
+        onFulfilled({ data, error: null, count: countRequested ? count : null }),
       );
     }),
   };
