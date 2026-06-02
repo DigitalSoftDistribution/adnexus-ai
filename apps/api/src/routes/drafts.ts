@@ -83,9 +83,12 @@ export const draftEventPublisher = new EventPublisher();
 function createSupabaseDraftStore(): DraftStore {
   return {
     async getById(id: string): Promise<Draft | null> {
+      // Join the campaign so the engine gets the REAL platform_campaign_id
+      // (the external id the platform API needs) rather than falling back to
+      // the internal UUID.
       const { data, error } = await supabase
         .from('drafts')
-        .select('*')
+        .select('*, campaigns!left(platform_campaign_id, name, status)')
         .eq('id', id)
         .single();
       if (error || !data) return null;
@@ -539,12 +542,25 @@ function buildProposedChanges(draftType: DraftType, detail: Record<string, unkno
 }
 
 function buildSnapshotState(db: AppDraft): Campaign {
+  // Resolve the platform's external campaign id, preferring (in order):
+  //   1. the joined campaign row's platform_campaign_id (the real external id)
+  //   2. an explicit platform_campaign_id captured in the draft's change_detail
+  // We do NOT fall back to the internal UUID — using it for platform API calls
+  // would fail in production since the platform doesn't recognise internal ids.
+  const joinedCampaign = (db as AppDraft & {
+    campaigns?: { platform_campaign_id?: string; name?: string } | null;
+  }).campaigns;
+  const externalId =
+    joinedCampaign?.platform_campaign_id ??
+    (db.change_detail?.platform_campaign_id as string | undefined) ??
+    '';
+
   // Build a best-effort Campaign state from the DB draft record
   return {
     id: db.campaign_id ?? 'unknown',
-    externalId: (db.change_detail?.platform_campaign_id as string) ?? db.campaign_id ?? 'unknown',
+    externalId,
     platform: (db.platform === 'all' ? AdPlatform.META : db.platform) as AdPlatform,
-    name: db.campaign_name ?? 'Unknown Campaign',
+    name: joinedCampaign?.name ?? db.campaign_name ?? 'Unknown Campaign',
     status: 'active' as EngineCampaignStatus,
     budget: {
       dailyBudget: typeof db.change_detail?.old_value === 'number' ? db.change_detail.old_value as number : 100,
