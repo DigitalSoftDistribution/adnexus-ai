@@ -197,10 +197,10 @@ export function CompareSmartlyContent() {
             Self-serve pricing. 2-minute setup. AI agents built in. No sales calls, no contracts, no surprises.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3, ease: easeSmooth }} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>
+            <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>
               Try Free
               <ArrowRight size={16} />
-            </button>
+            </Link>
             <button onClick={scrollToTable} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>
               See Feature Comparison
             </button>
@@ -334,10 +334,10 @@ export function CompareSmartlyContent() {
               <h2 className="font-space text-2xl sm:text-3xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Start Managing Smarter Today</h2>
               <p className="font-inter text-base max-w-xl mx-auto mb-8" style={{ color: 'var(--text-secondary)' }}>No sales call. No contract. No waiting. Try AdNexus AI free and see why teams are switching from Smartly.io.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>
+                <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>
                   Try Free
                   <ArrowRight size={16} />
-                </button>
+                </Link>
                 <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>Talk to Founder
                 </Link>
               </div>

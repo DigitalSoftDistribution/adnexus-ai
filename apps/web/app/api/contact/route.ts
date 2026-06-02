@@ -20,6 +20,10 @@ export async function POST(request: Request) {
 
   const { name, email, company, message } = parsed.data;
 
+  // Always log the submission so it is never silently lost, even if the
+  // upstream delivery path below fails.
+  console.log('[contact] message received', { name, email, company, message });
+
   const apiUrl = process.env.ADNEXUS_API_URL;
 
   if (apiUrl) {
@@ -30,17 +34,18 @@ export async function POST(request: Request) {
         body: JSON.stringify({ name, email, company, message }),
       });
       if (!res.ok) {
-        console.error('[contact] upstream rejected', await res.text().catch(() => ''));
+        console.error(
+          '[contact] upstream rejected — submission retained in logs',
+          { status: res.status, body: await res.text().catch(() => '') },
+        );
         return NextResponse.json({ ok: true }, { status: 202 });
       }
       return NextResponse.json({ ok: true }, { status: 201 });
     } catch (err) {
-      console.error('[contact] upstream unreachable', err);
+      console.error('[contact] upstream unreachable — submission retained in logs', err);
       return NextResponse.json({ ok: true }, { status: 202 });
     }
   }
 
-  // No API configured — log the message server-side and acknowledge.
-  console.log('[contact] message received', { name, email, company, message: message.slice(0, 120) });
   return NextResponse.json({ ok: true }, { status: 202 });
 }
