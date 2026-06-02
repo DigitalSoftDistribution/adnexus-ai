@@ -8,12 +8,18 @@ import type { UnifiedCampaign, CampaignStatus, DraftType, Platform } from '../ty
 
 const router = Router();
 
-// Mutating campaign operations require a non-viewer role.
-// Role is read from the verified JWT (req.user.role) — no DB round-trip —
-// so it works uniformly across unit/integration/e2e harnesses.
+// Mutating campaign operations require a role with write access.
+// Uses an explicit allow-list (consistent with requireRole(...) elsewhere) so
+// that a missing/undefined role (e.g. malformed JWT) is denied by default
+// rather than silently granted. Role is read from the verified JWT
+// (req.user.role) — no DB round-trip — so it works uniformly across
+// unit/integration/e2e harnesses.
+const CAMPAIGN_WRITE_ROLES: ReadonlySet<string> = new Set(['owner', 'admin', 'analyst']);
+
 function requireWriteRole(req: { user?: { role?: string } }): void {
-  if (req.user?.role === 'viewer') {
-    throw new ForbiddenError('Viewers cannot modify campaigns');
+  const role = req.user?.role;
+  if (!role || !CAMPAIGN_WRITE_ROLES.has(role)) {
+    throw new ForbiddenError('Insufficient role to modify campaigns');
   }
 }
 
