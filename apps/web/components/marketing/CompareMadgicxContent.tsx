@@ -593,7 +593,7 @@ export function CompareMadgicxContent() {
                   className="font-inter text-sm mb-4"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Pro plan — everything included
+                  Scale plan — all 4 platforms
                 </p>
                 <ul className="space-y-2">
                   {[
@@ -602,7 +602,7 @@ export function CompareMadgicxContent() {
                     'Draft-first workflow',
                     'Morning Briefs',
                     'Anomaly detection',
-                    'Unlimited accounts',
+                    'Cross-platform attribution',
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <Check size={14} style={{ color: '#10B981' }} />
