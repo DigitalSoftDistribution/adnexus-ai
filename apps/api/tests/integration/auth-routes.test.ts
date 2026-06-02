@@ -7,23 +7,114 @@ import { generateToken } from '../utils/helpers';
 
 // ─── Mock Supabase ───────────────────────────────────────────────
 
-const mockFrom = jest.fn();
+// NOTE: jest.mock() is hoisted above these declarations, so the factory may not
+// close over module-scope consts (they are still in the temporal dead zone when
+// the mocked module is first imported). Instead the factory builds the mocks and
+// we retrieve the same instances afterwards via jest.requireMock().
 const mockSelect = jest.fn();
 const mockInsert = jest.fn();
 const mockSingle = jest.fn();
 const mockEq = jest.fn();
 
-jest.mock('../../src/lib/supabase', () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-  },
-}));
+jest.mock('../../src/lib/supabase', () => {
+  const from = jest.fn();
+  // Supabase Auth (auth.admin.* + top-level auth.*) — the auth route delegates
+  // account creation, sign-in, and password operations to Supabase Auth rather
+  // than hashing passwords in the database. Each method is a jest.fn() so tests
+  // can override behaviour per case; defaults are (re)installed by resetAuthMock().
+  const auth = {
+    admin: {
+      listUsers: jest.fn(),
+      createUser: jest.fn(),
+      deleteUser: jest.fn(),
+      updateUserById: jest.fn(),
+      getUserById: jest.fn(),
+    },
+    signInWithPassword: jest.fn(),
+    signUp: jest.fn(),
+    resetPasswordForEmail: jest.fn(),
+    getUser: jest.fn(),
+    signOut: jest.fn(),
+  };
+  return { supabase: { from, auth } };
+});
+
+// Retrieve the same mock instances the route module will use.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mockSupabase = (jest.requireMock('../../src/lib/supabase') as any).supabase;
+const mockFrom = mockSupabase.from as jest.Mock;
+const mockAuth = mockSupabase.auth as {
+  admin: Record<string, jest.Mock>;
+} & Record<string, jest.Mock>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Install default Supabase Auth behaviour (no existing users, happy-path). */
+function resetAuthMock() {
+  mockAuth.admin.listUsers.mockResolvedValue({ data: { users: [] }, error: null });
+  mockAuth.admin.createUser.mockResolvedValue({
+    data: { user: { id: UUIDS.owner, email: mockUsers.owner.email } },
+    error: null,
+  });
+  mockAuth.admin.deleteUser.mockResolvedValue({ data: null, error: null });
+  mockAuth.admin.updateUserById.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
+  mockAuth.admin.getUserById.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
+  mockAuth.signInWithPassword.mockResolvedValue({
+    data: { user: { id: UUIDS.owner, email: mockUsers.owner.email } },
+    error: null,
+  });
+  mockAuth.signUp.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
+  mockAuth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+  mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  mockAuth.signOut.mockResolvedValue({ error: null });
+}
+
+/**
+ * Default chainable query-builder returned by from() for any table a test does
+ * not explicitly configure. Every method returns `this` so arbitrary chains
+ * resolve, and the terminal operations resolve to an empty/no-op result.
+ */
+function defaultBuilder() {
+  const builder: Record<string, unknown> = {
+    select: jest.fn(() => builder),
+    insert: jest.fn(() => builder),
+    update: jest.fn(() => builder),
+    delete: jest.fn(() => builder),
+    upsert: jest.fn(() => builder),
+    eq: jest.fn(() => builder),
+    neq: jest.fn(() => builder),
+    order: jest.fn(() => builder),
+    limit: jest.fn(() => builder),
+    range: jest.fn(() => builder),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    then: jest.fn((cb: (r: unknown) => unknown) => Promise.resolve(cb({ data: null, error: null }))),
+  };
+  return builder;
+}
+
+/**
+ * Default from() implementation used in beforeEach. The auth middleware
+ * (requireAuth → authenticateToken) verifies the caller via
+ * from('users').select('id').eq().single(), so by default we resolve that to a
+ * valid user; every other table falls back to the no-op builder. Tests that
+ * need specific behaviour override mockFrom with their own implementation.
+ */
+function defaultFromImpl(table: string) {
+  if (table === 'users') {
+    const builder = defaultBuilder();
+    (builder.single as jest.Mock).mockResolvedValue({ data: { id: UUIDS.owner }, error: null });
+    return builder;
+  }
+  return defaultBuilder();
+}
 
 // ─── Suite: POST /auth/signup ────────────────────────────────────
 
 describe('POST /api/v1/auth/signup', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should create a new user with workspace', async () => {
@@ -72,7 +163,7 @@ describe('POST /api/v1/auth/signup', () => {
           })),
         };
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn() };
+      return defaultBuilder();
     });
 
     // Act
@@ -137,18 +228,13 @@ describe('POST /api/v1/auth/signup', () => {
   });
 
   it('should reject when email already exists', async () => {
-    // Arrange
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') {
-        return {
-          select: mockSelect.mockReturnThis(),
-          eq: mockEq.mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: { id: UUIDS.owner }, error: null }),
-          insert: mockInsert.mockReturnThis(),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+    // Arrange — the route checks Supabase Auth (listUsers) for an existing
+    // email, so the duplicate must be surfaced there rather than via from().
+    mockAuth.admin.listUsers.mockResolvedValue({
+      data: { users: [{ id: UUIDS.owner, email: 'owner@example.com' }] },
+      error: null,
     });
+    mockFrom.mockImplementation(() => defaultBuilder());
 
     // Act
     const response = await request(app)
@@ -171,6 +257,8 @@ describe('POST /api/v1/auth/signup', () => {
 describe('POST /api/v1/auth/signin', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should sign in with valid credentials', async () => {
@@ -188,7 +276,7 @@ describe('POST /api/v1/auth/signin', () => {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
-            data: { password_hash: await bcrypt.hash('CorrectPass123!', 12) },
+            data: { password_hash: bcrypt.hashSync('CorrectPass123!', 12) },
             error: null,
           }),
         };
@@ -216,7 +304,7 @@ describe('POST /api/v1/auth/signin', () => {
           single: jest.fn().mockResolvedValue({ data: null, error: null }),
         };
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
     // Act
@@ -236,27 +324,13 @@ describe('POST /api/v1/auth/signin', () => {
   });
 
   it('should reject sign in with invalid password', async () => {
-    // Arrange
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') {
-        return {
-          select: mockSelect.mockReturnThis(),
-          eq: mockEq.mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: mockUsers.owner, error: null }),
-        };
-      }
-      if (table === 'auth_passwords') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { password_hash: await bcrypt.hash('CorrectPass123!', 12) },
-            error: null,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+    // Arrange — Supabase Auth rejects the credentials, which the route maps
+    // to a 401. (Password verification is delegated to Supabase, not bcrypt.)
+    mockAuth.signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Invalid login credentials' },
     });
+    mockFrom.mockImplementation(() => defaultBuilder());
 
     // Act
     const response = await request(app)
@@ -281,7 +355,7 @@ describe('POST /api/v1/auth/signin', () => {
           single: jest.fn().mockResolvedValue({ data: null, error: null }),
         };
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
     // Act
@@ -314,34 +388,26 @@ describe('POST /api/v1/auth/signin', () => {
 
 // ─── Suite: POST /auth/forgot-password ───────────────────────────
 
-describe('POST /api/v1/auth/forgot-password', () => {
+// The password-reset endpoint is mounted at POST /auth/reset-password (it
+// requests a reset email). It looks the user up via Supabase Auth listUsers()
+// and always returns the same privacy-preserving message.
+describe('POST /api/v1/auth/reset-password', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should initiate password reset for existing user', async () => {
-    // Arrange
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') {
-        return {
-          select: mockSelect.mockReturnThis(),
-          eq: mockEq.mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: { id: UUIDS.owner }, error: null }),
-        };
-      }
-      if (table === 'password_resets') {
-        return {
-          insert: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+    // Arrange — user exists in Supabase Auth
+    mockAuth.admin.listUsers.mockResolvedValue({
+      data: { users: [{ id: UUIDS.owner, email: 'owner@example.com' }] },
+      error: null,
     });
 
     // Act
     const response = await request(app)
-      .post('/api/v1/auth/forgot-password')
+      .post('/api/v1/auth/reset-password')
       .send({ email: 'owner@example.com' });
 
     // Assert
@@ -351,21 +417,12 @@ describe('POST /api/v1/auth/forgot-password', () => {
   });
 
   it('should return success even for non-existent email (privacy)', async () => {
-    // Arrange
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') {
-        return {
-          select: mockSelect.mockReturnThis(),
-          eq: mockEq.mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // Arrange — no matching user in Supabase Auth
+    mockAuth.admin.listUsers.mockResolvedValue({ data: { users: [] }, error: null });
 
     // Act
     const response = await request(app)
-      .post('/api/v1/auth/forgot-password')
+      .post('/api/v1/auth/reset-password')
       .send({ email: 'nobody@example.com' });
 
     // Assert
@@ -378,7 +435,7 @@ describe('POST /api/v1/auth/forgot-password', () => {
   it('should reject invalid email format', async () => {
     // Act
     const response = await request(app)
-      .post('/api/v1/auth/forgot-password')
+      .post('/api/v1/auth/reset-password')
       .send({ email: 'not-an-email' });
 
     // Assert
@@ -392,6 +449,8 @@ describe('POST /api/v1/auth/forgot-password', () => {
 describe('GET /api/v1/auth/me', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should return current user profile', async () => {
@@ -413,7 +472,7 @@ describe('GET /api/v1/auth/me', () => {
           single: jest.fn().mockResolvedValue({ data: mockWorkspaces.free, error: null }),
         };
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
     // Act
@@ -422,9 +481,13 @@ describe('GET /api/v1/auth/me', () => {
       .set('Authorization', `Bearer ${token}`);
 
     // Assert
+    // GET /auth/me returns the profile fields flat on `data` (id/email/name/
+    // role) alongside `workspace` and `connectedAccounts` — there is no nested
+    // `data.user`, so assert against the actual response contract.
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.user).toBeDefined();
+    expect(response.body.data.id).toBe(UUIDS.owner);
+    expect(response.body.data.email).toBeDefined();
     expect(response.body.data.workspace).toBeDefined();
   });
 
@@ -455,6 +518,8 @@ describe('GET /api/v1/auth/me', () => {
 describe('protected routes require authentication', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should reject /campaigns without auth', async () => {
@@ -537,6 +602,8 @@ describe('protected routes require authentication', () => {
 describe('POST /api/v1/auth/refresh', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should refresh token with valid refresh token', async () => {
@@ -560,11 +627,12 @@ describe('POST /api/v1/auth/refresh', () => {
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
+          order: jest.fn().mockReturnThis(),
           limit: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({ data: mockWorkspaceMembers[0], error: null }),
         };
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
     // Act
@@ -600,6 +668,12 @@ describe('POST /api/v1/auth/refresh', () => {
 // ─── Suite: POST /auth/signout ───────────────────────────────────
 
 describe('POST /api/v1/auth/signout', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
+  });
+
   it('should sign out successfully', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner');

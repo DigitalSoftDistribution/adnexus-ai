@@ -316,25 +316,32 @@ app.use(errorHandler);
 
 const PORT = config.port;
 
-const server = app.listen(PORT, async () => {
-  logger.info(
-    { port: PORT, env: config.nodeEnv, nodeVersion: process.version },
-    'AdNexus API server started',
-  );
+// In test environments the app is imported by supertest, which provides its own
+// ephemeral listener. Binding a fixed port here would cause EADDRINUSE across
+// suites and register process-wide signal handlers, so we skip startup entirely.
+const isTestEnv = config.nodeEnv === 'test';
 
-  // Start background workers when Redis is available
-  if (isRedisAvailable()) {
-    try {
-      const { startMorningBriefScheduler } = await import('./workers/morning-brief');
-      await startMorningBriefScheduler();
-      loggerApp.info('Morning brief scheduler started');
-    } catch (err) {
-      loggerApp.error({ err }, 'Failed to start morning brief scheduler');
-    }
-  } else {
-    loggerApp.info('Redis not available, skipping background workers');
-  }
-});
+const server = isTestEnv
+  ? undefined
+  : app.listen(PORT, async () => {
+      logger.info(
+        { port: PORT, env: config.nodeEnv, nodeVersion: process.version },
+        'AdNexus API server started',
+      );
+
+      // Start background workers when Redis is available
+      if (isRedisAvailable()) {
+        try {
+          const { startMorningBriefScheduler } = await import('./workers/morning-brief');
+          await startMorningBriefScheduler();
+          loggerApp.info('Morning brief scheduler started');
+        } catch (err) {
+          loggerApp.error({ err }, 'Failed to start morning brief scheduler');
+        }
+      } else {
+        loggerApp.info('Redis not available, skipping background workers');
+      }
+    });
 
 // ─── Graceful Shutdown ───────────────────────────────────────
 
@@ -359,7 +366,7 @@ function gracefulShutdown(signal: string): void {
   }
 
   // Stop accepting new HTTP connections
-  server.close(async () => {
+  const onClosed = async () => {
     loggerApp.info('HTTP server closed, cleaning up resources...');
 
     try {
@@ -371,7 +378,13 @@ function gracefulShutdown(signal: string): void {
 
     loggerApp.info('Graceful shutdown complete');
     process.exit(0);
-  });
+  };
+
+  if (server) {
+    server.close(onClosed);
+  } else {
+    void onClosed();
+  }
 
   // Force exit after timeout
   setTimeout(() => {
@@ -380,20 +393,24 @@ function gracefulShutdown(signal: string): void {
   }, SHUTDOWN_TIMEOUT_MS);
 }
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Don't register process-wide signal/error handlers under test — they would
+// leak across Jest suites and call process.exit on the test runner.
+if (!isTestEnv) {
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// ─── Unhandled Error Handlers ────────────────────────────────
+  // ─── Unhandled Error Handlers ────────────────────────────────
 
-process.on('uncaughtException', (err: Error) => {
-  logger.fatal({ err }, 'Uncaught exception');
-  gracefulShutdown('uncaughtException');
-});
+  process.on('uncaughtException', (err: Error) => {
+    logger.fatal({ err }, 'Uncaught exception');
+    gracefulShutdown('uncaughtException');
+  });
 
-process.on('unhandledRejection', (reason: unknown) => {
-  logger.fatal({ reason }, 'Unhandled promise rejection');
-  gracefulShutdown('unhandledRejection');
-});
+  process.on('unhandledRejection', (reason: unknown) => {
+    logger.fatal({ reason }, 'Unhandled promise rejection');
+    gracefulShutdown('unhandledRejection');
+  });
+}
 
 // ─── Module Export ───────────────────────────────────────────
 

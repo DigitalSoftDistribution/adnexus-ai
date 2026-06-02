@@ -60,7 +60,7 @@ async function checkRateLimit(
     }
   }
 
-  if (count > config.requests) {
+  if (count >= config.requests) {
     return { allowed: false, remaining: 0, resetIn: config.windowSeconds };
   }
 

@@ -18,11 +18,14 @@ module.exports = {
   coverageDirectory: 'coverage',
   testTimeout: 10000,
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
+    '^.+\\.(ts|js)$': ['ts-jest', {
       isolatedModules: true,
       diagnostics: {
         ignoreCodes: [2345, 2322, 2769, 2740, 2554],
       },
     }],
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(.*\\.mjs$))',
+  ],
 };

@@ -21,6 +21,8 @@ import {
   generateAuthToken,
   createTestCampaign,
   buildE2EMockFrom,
+  listTestCampaigns,
+  findTestCampaignById,
   type TestUser,
   type TestWorkspace,
   type TestCampaign,
@@ -43,6 +45,157 @@ jest.mock('../../src/lib/supabase', () => ({
   },
 }));
 
+// ─── Mock raw-SQL `query()` with the same in-memory store ────────
+//
+// The v1 campaigns route (`src/routes/campaigns.ts`) does NOT use Supabase for
+// its READ paths — it calls `query(sql, params)` from `src/db/connection`
+// (raw PostgreSQL). The Supabase mock above never intercepts those reads, so
+// without this mock the route attempts a real PG connection and hangs.
+//
+// This mock inspects the SQL string + params and returns store-backed
+// `{ rows, rowCount }` from the SAME `testStore.campaigns` that `setup.ts`
+// populates via `createTestCampaign`. It supports the exact queries the route
+// (and the ownership/draft helpers) issue:
+//   • ad_accounts platform lookup (getAdAccountPlatform)
+//   • campaign+ad_account JOIN ownership lookup (verifyCampaignWorkspace)
+//   • COUNT(*) for list pagination
+//   • paginated data SELECT (LIMIT/OFFSET)
+//   • single campaign by id
+//   • adsets / ads / campaign_metrics (empty result sets — no fixtures stored)
+//
+// NOTE: mutations (create/update/delete/pause) go through `createDraft()` which
+// uses Supabase (already mocked above), so they are NOT handled here.
+const mockQuery = jest.fn();
+
+jest.mock('../../src/db/connection', () => ({
+  query: (...args: unknown[]) => mockQuery(...args),
+}));
+
+interface QueryResultLike {
+  rows: Record<string, unknown>[];
+  rowCount: number;
+}
+
+const result = (rows: Record<string, unknown>[]): QueryResultLike => ({
+  rows,
+  rowCount: rows.length,
+});
+
+/**
+ * Project a stored TestCampaign (camelCase) into the snake_case row the route
+ * reads from `query()` (it does `SELECT c.*, a.platform, ...`).
+ */
+function campaignToRow(c: TestCampaign): Record<string, unknown> {
+  return {
+    id: c.id,
+    name: c.name,
+    status: c.status,
+    objective: c.objective,
+    daily_budget: c.dailyBudget,
+    platform: c.platform,
+    workspace_id: c.workspaceId,
+    ad_account_id: c.adAccountId,
+    // platform_campaign_id is required by verifyCampaignWorkspace's return.
+    platform_campaign_id: `pcid-${c.id}`,
+    ad_account_account_id: 'act_1234567890',
+    ad_account_name: 'Meta Ad Account',
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    roas: 0,
+    conversions: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * The raw-SQL mock implementation. Branches on a normalized (whitespace-
+ * collapsed, lowercased) SQL string. `params` carry the bound values.
+ */
+function runQueryMock(sql: string, params: unknown[] = []): QueryResultLike {
+  const s = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  // ── ad_accounts platform lookup (getAdAccountPlatform) ──
+  // SELECT platform FROM ad_accounts WHERE id = $1 AND workspace_id = $2
+  if (s.includes('from ad_accounts') && s.includes('select platform')) {
+    const adAccountId = params[0];
+    // The route only stores UUIDS.metaAccount as a valid Meta account in tests.
+    if (adAccountId === UUIDS.metaAccount) {
+      return result([{ platform: 'meta' }]);
+    }
+    // Unknown ad account → NotFound (route throws when rows.length === 0).
+    return result([]);
+  }
+
+  // ── verifyCampaignWorkspace: campaigns JOIN ad_accounts by campaign id ──
+  // SELECT c.id, c.name, a.platform, c.platform_campaign_id, c.status ...
+  if (
+    s.includes('from campaigns c') &&
+    s.includes('join ad_accounts a') &&
+    s.includes('where c.id = $1') &&
+    s.includes('c.platform_campaign_id')
+  ) {
+    const campaignId = params[0] as string;
+    const c = findTestCampaignById(campaignId);
+    if (!c) return result([]);
+    const row = campaignToRow(c);
+    return result([
+      {
+        id: row.id,
+        name: row.name,
+        platform: row.platform,
+        platform_campaign_id: row.platform_campaign_id,
+        status: row.status,
+      },
+    ]);
+  }
+
+  // ── List: COUNT(*) for pagination ──
+  if (s.includes('count(*)') && s.includes('from campaigns c') && s.includes('join ad_accounts a')) {
+    const rows = listTestCampaigns().map(campaignToRow);
+    return result([{ total: rows.length }]);
+  }
+
+  // ── Get single campaign by id (GET /:id) ──
+  // SELECT c.*, a.platform, a.name AS ad_account_name ... WHERE c.id = $1 AND a.workspace_id = $2
+  if (
+    s.includes('from campaigns c') &&
+    s.includes('join ad_accounts a') &&
+    s.includes('where c.id = $1') &&
+    s.includes('a.name as ad_account_name')
+  ) {
+    const campaignId = params[0] as string;
+    const c = findTestCampaignById(campaignId);
+    if (!c) return result([]);
+    return result([campaignToRow(c)]);
+  }
+
+  // ── List: paginated data SELECT (c.* + join, LIMIT/OFFSET) ──
+  if (s.includes('from campaigns c') && s.includes('join ad_accounts a') && s.includes('limit')) {
+    // Last two params are LIMIT then OFFSET.
+    const offset = Number(params[params.length - 1] ?? 0);
+    const limit = Number(params[params.length - 2] ?? 20);
+    const all = listTestCampaigns().map(campaignToRow);
+    return result(all.slice(offset, offset + limit));
+  }
+
+  // ── adsets / ads / campaign_metrics → empty (no fixtures stored) ──
+  if (s.includes('from adsets') || s.includes('from ads') || s.includes('from campaign_metrics')) {
+    return result([]);
+  }
+
+  // ── campaign duplicate detail SELECT ──
+  if (s.includes('from campaigns') && s.includes('where id = $1') && s.includes('objective')) {
+    const c = findTestCampaignById(params[0] as string);
+    return result(c ? [campaignToRow(c)] : []);
+  }
+
+  // Default: empty result set (any unhandled read).
+  return result([]);
+}
+
 // ─── Suite Setup ─────────────────────────────────────────────────
 
 describe('E2E: Campaign CRUD', () => {
@@ -57,6 +210,9 @@ describe('E2E: Campaign CRUD', () => {
   beforeAll(async () => {
     dbConfig = await setupTestDB();
     mockFrom.mockImplementation(buildE2EMockFrom());
+    mockQuery.mockImplementation((sql: string, params?: unknown[]) =>
+      Promise.resolve(runQueryMock(sql, params)),
+    );
   });
 
   afterAll(async () => {
@@ -81,6 +237,10 @@ describe('E2E: Campaign CRUD', () => {
     viewerToken = generateAuthToken(viewer.id, 'viewer', workspace.id);
 
     mockFrom.mockImplementation(buildE2EMockFrom());
+    // jest.clearAllMocks() above wiped the implementation — re-arm it.
+    mockQuery.mockImplementation((sql: string, params?: unknown[]) =>
+      Promise.resolve(runQueryMock(sql, params)),
+    );
   });
 
   // ─── GET /campaigns (List) ───────────────────────────────────
@@ -105,10 +265,12 @@ describe('E2E: Campaign CRUD', () => {
       expect(response.body.data).toBeDefined();
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBe(3);
-      expect(response.body.pagination).toBeDefined();
-      expect(response.body.pagination.total).toBe(3);
-      expect(response.body.pagination.page).toBe(1);
-      expect(response.body.pagination.limit).toBeGreaterThanOrEqual(10);
+      // Realigned: the v1 route emits a FLAT pagination envelope
+      // `{ success, data, total, page, totalPages }` (campaigns.ts:155-161),
+      // NOT a nested `pagination` object. Assert the real fields.
+      expect(response.body.total).toBe(3);
+      expect(response.body.page).toBe(1);
+      expect(response.body.totalPages).toBeGreaterThanOrEqual(1);
     });
 
     it('should filter campaigns by platform', async () => {
@@ -178,11 +340,14 @@ describe('E2E: Campaign CRUD', () => {
         .set('Authorization', `Bearer ${ownerToken}`);
 
       // Assert
+      // Realigned to the route's FLAT envelope (campaigns.ts:155-161).
+      // `limit` is not echoed back by the route, so we assert page size via
+      // the returned data length instead. totalPages = ceil(5/2) = 3.
       expect(response.status).toBe(200);
-      expect(response.body.pagination.page).toBe(1);
-      expect(response.body.pagination.limit).toBe(2);
-      expect(response.body.pagination.total).toBe(5);
-      expect(response.body.pagination.total_pages).toBe(3);
+      expect(response.body.page).toBe(1);
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.total).toBe(5);
+      expect(response.body.totalPages).toBe(3);
     });
 
     it('should return empty array when no campaigns exist', async () => {
@@ -266,11 +431,16 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
+        // Realigned to the v1 route's actual create schema (campaigns.ts:327-340):
+        // camelCase keys, required `platform`, `adAccountId` (uuid), `budget`.
+        // The schema is `.strict()` so snake_case keys (ad_account_id/daily_budget)
+        // are rejected with 400.
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
           name: 'New Test Campaign',
+          platform: 'meta',
           objective: 'CONVERSIONS',
-          daily_budget: 200,
+          budget: 200,
         });
 
       // Assert: Must return a DRAFT, not a campaign
@@ -290,11 +460,14 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
+        // Realigned to the route's actual create schema. `status` is NOT an
+        // accepted create field (the route is draft-first and rejects unknown
+        // keys), so it is omitted — the response is still a pending draft.
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
           name: 'Should Be Draft',
+          platform: 'meta',
           objective: 'CONVERSIONS',
-          status: 'active',
         });
 
       // Assert: Must be a draft, not a live campaign
@@ -394,16 +567,20 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .put(`/api/v1/campaigns/${campaign.id}`)
         .set('Authorization', `Bearer ${ownerToken}`)
+        // Realigned to the route's update schema (campaigns.ts:397-409):
+        // camelCase, `.strict()`, uses `budget` (not `daily_budget`).
         .send({
           name: 'Updated Campaign Name',
-          daily_budget: 300,
+          budget: 300,
         });
 
-      // Assert: Must return a DRAFT for the update
+      // Assert: Must return a DRAFT for the update. With both name + budget
+      // changing, the route picks `budget_change` as the draft type
+      // (campaigns.ts:469-482); `name_change` if only the name changed.
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
-      expect(response.body.data.draft_type).toMatch(/campaign_update|budget_change/);
+      expect(response.body.data.draft_type).toMatch(/name_change|budget_change/);
       expect(response.body.data.status).toBe('pending');
     });
 
@@ -565,9 +742,11 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
+        // Realigned to the route's actual camelCase create schema.
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
           name: 'Owner Campaign',
+          platform: 'meta',
           objective: 'CONVERSIONS',
         });
 
@@ -585,9 +764,11 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${adminToken}`)
+        // Realigned to the route's actual camelCase create schema.
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
           name: 'Admin Campaign',
+          platform: 'meta',
           objective: 'CONVERSIONS',
         });
 

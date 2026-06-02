@@ -423,7 +423,10 @@ describe('rejectDraft', () => {
       resolved_at: '2024-06-01T13:00:00.000Z',
     };
 
-    mockFrom.mockReturnValue(buildChainableMock({ data: rejectedDraft, error: null }));
+    // getDraft() reads the pending draft first, then the update returns the rejected one
+    mockFrom
+      .mockReturnValueOnce(buildChainableMock({ data: pendingDraft, error: null }))
+      .mockReturnValueOnce(buildChainableMock({ data: rejectedDraft, error: null }));
 
     // Act
     const result = await rejectDraft(UUIDS.draft1, UUIDS.admin, 'Budget reduction too aggressive');
@@ -445,7 +448,10 @@ describe('rejectDraft', () => {
       resolved_at: '2024-06-01T13:00:00.000Z',
     };
 
-    mockFrom.mockReturnValue(buildChainableMock({ data: rejectedDraft, error: null }));
+    // getDraft() reads the pending draft first, then the update returns the rejected one
+    mockFrom
+      .mockReturnValueOnce(buildChainableMock({ data: pendingDraft, error: null }))
+      .mockReturnValueOnce(buildChainableMock({ data: rejectedDraft, error: null }));
 
     // Act
     const result = await rejectDraft(UUIDS.draft1, UUIDS.admin);
@@ -482,7 +488,10 @@ describe('scheduleDraft', () => {
       scheduled_at: '2024-06-15T09:00:00.000Z',
     };
 
-    mockFrom.mockReturnValue(buildChainableMock({ data: scheduledDraft, error: null }));
+    // getDraft() reads the pending draft first, then the update returns the scheduled one
+    mockFrom
+      .mockReturnValueOnce(buildChainableMock({ data: pendingDraft, error: null }))
+      .mockReturnValueOnce(buildChainableMock({ data: scheduledDraft, error: null }));
 
     // Act
     const result = await scheduleDraft(UUIDS.draft1, '2024-06-15T09:00:00.000Z');
@@ -564,7 +573,7 @@ describe('listDrafts', () => {
     const result = await listDrafts(UUIDS.workspace1, { page: 1, limit: 20 });
 
     // Assert
-    expect(result.drafts.length).toBe(75); // Mock returns all
+    expect(result.drafts.length).toBe(20); // Mock returns one page (20 of 75)
     expect(result.total).toBe(75);
   });
 
@@ -712,8 +721,10 @@ describe('draft-first workflow', () => {
     mockFrom
       .mockReturnValueOnce(buildChainableMock({ data: expectedDraft, error: null })) // drafts insert
       .mockReturnValueOnce({
-        insert: auditInsertMock,
-        then: jest.fn().mockResolvedValue({ data: null, error: null }),
+        // audit_log insert: insert() returns a thenable that resolves so `await` settles
+        insert: auditInsertMock.mockReturnValue(
+          Promise.resolve({ data: null, error: null }),
+        ),
       } as unknown as ReturnType<typeof buildChainableMock>); // audit_log insert
 
     // Act

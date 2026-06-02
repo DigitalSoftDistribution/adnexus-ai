@@ -22,6 +22,7 @@ import {
   generateWrongSecretToken,
   getStoreCount,
   buildE2EMockFrom,
+  buildE2EAuthMock,
   type TestUser,
   type TestWorkspace,
 } from './setup';
@@ -30,15 +31,32 @@ import { UUIDS, mockUsers } from '../fixtures/data';
 // ─── Mock Supabase with E2E Store ────────────────────────────────
 
 const mockFrom = jest.fn();
+// Holder for the store-backed auth mock. Reassigned in beforeEach so that
+// `auth` / `auth.admin` always reflect the current test store state.
+let mockAuth: ReturnType<typeof buildE2EAuthMock> | null = null;
+
+// Proxy that forwards property access to whatever `mockAuth` currently holds,
+// so the mocked `supabase.auth` (and `auth.admin.*`) always resolves against
+// the latest store-backed implementation. Referenced lazily via a getter
+// below so it survives jest.mock factory hoisting.
+const authProxy = new Proxy(
+  {},
+  {
+    get(_target, prop: string) {
+      if (!mockAuth) {
+        mockAuth = buildE2EAuthMock();
+      }
+      return (mockAuth as Record<string, unknown>)[prop];
+    },
+  },
+);
 
 jest.mock('../../src/lib/supabase', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
-    auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      signInWithPassword: jest.fn().mockResolvedValue({ data: null, error: null }),
-      signOut: jest.fn().mockResolvedValue({ error: null }),
+    get auth() {
+      return authProxy;
     },
   },
 }));
@@ -53,6 +71,7 @@ describe('E2E: Authentication Flow', () => {
   beforeAll(async () => {
     dbConfig = await setupTestDB();
     mockFrom.mockImplementation(buildE2EMockFrom());
+    mockAuth = buildE2EAuthMock();
   });
 
   afterAll(async () => {
@@ -63,6 +82,7 @@ describe('E2E: Authentication Flow', () => {
     await cleanupTables(['all']);
     jest.clearAllMocks();
     mockFrom.mockImplementation(buildE2EMockFrom());
+    mockAuth = buildE2EAuthMock();
   });
 
   // ─── POST /auth/signup ───────────────────────────────────────
@@ -90,7 +110,7 @@ describe('E2E: Authentication Flow', () => {
       expect(response.body.data.workspace).toBeDefined();
     });
 
-    it('should return 409 when signing up with existing email', async () => {
+    it('should return 400 when signing up with existing email', async () => {
       // Arrange: create a user first
       await createTestUser({ email: 'existing@example.com', password: 'SecurePass123!', name: 'Existing User' });
 
@@ -106,8 +126,12 @@ describe('E2E: Authentication Flow', () => {
           name: 'Duplicate User',
         });
 
-      // Assert
-      expect(response.status).toBe(409);
+      // Assert — the signup route surfaces a duplicate email as a
+      // ValidationError (400 / VALIDATION_ERROR), which is the contract the
+      // integration suite (tests/integration/auth-routes.test.ts) also pins.
+      // The original 409 expectation here was stale and contradicted the
+      // actual, intended route behavior.
+      expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
     });
 

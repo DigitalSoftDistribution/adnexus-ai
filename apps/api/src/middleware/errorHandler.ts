@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import {
   AppError,
   UnauthorizedError,
@@ -6,6 +7,7 @@ import {
   PlatformAPIError,
   RateLimitError,
 } from '../lib/errors';
+import { HttpError } from '../utils/errors';
 import { getRequestLogger } from '../lib/logger';
 import { isProduction } from '../config';
 
@@ -14,14 +16,18 @@ import { isProduction } from '../config';
  * Consistent shape across all error types.
  */
 interface ErrorResponse {
-  error: string;
-  code: string;
+  /** Always false for error responses — mirrors the `{ success, data }` success contract. */
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    /** Additional error details (validation issues, etc.) */
+    details?: Record<string, unknown>;
+  };
   timestamp: string;
   correlationId?: string;
   /** Stack traces only included in non-production environments */
   stack?: string;
-  /** Additional error details (validation errors, etc.) */
-  details?: Record<string, unknown>;
 }
 
 /**
@@ -35,18 +41,18 @@ function buildErrorResponse(
   details?: Record<string, unknown>,
 ): ErrorResponse {
   const response: ErrorResponse = {
-    error: message,
-    code,
+    success: false,
+    error: {
+      code,
+      message,
+      ...(details ? { details } : {}),
+    },
     timestamp: new Date().toISOString(),
     ...(correlationId ? { correlationId } : {}),
   };
 
   if (!isProduction && stack) {
     response.stack = stack;
-  }
-
-  if (details) {
-    response.details = details;
   }
 
   return response;
@@ -96,6 +102,22 @@ export function errorHandler(
     return;
   }
 
+  // ─── Zod Schema Validation Errors ─────────────────────────
+
+  if (err instanceof ZodError) {
+    const fields = err.issues.map((issue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+    }));
+    logger.info({ fields }, 'Request validation failed');
+    res.status(400).json(
+      buildErrorResponse('Validation failed', 'VALIDATION_ERROR', correlationId, undefined, {
+        fields,
+      }),
+    );
+    return;
+  }
+
   // ─── Validation Errors ────────────────────────────────────
 
   if (err instanceof ValidationError) {
@@ -134,6 +156,27 @@ export function errorHandler(
         isProduction ? 'External service unavailable' : err.message,
         err.code,
         correlationId,
+      ),
+    );
+    return;
+  }
+
+  // ─── HttpError (status-carrying errors from utils/errors) ─
+  // The billing routes throw HttpError(status, message); honour its status
+  // instead of falling through to the generic 500 handler.
+  if (err instanceof HttpError) {
+    const isServerError = err.status >= 500;
+    if (isServerError) {
+      logger.error({ statusCode: err.status }, `HTTP error (${err.status}): ${err.message}`);
+    } else {
+      logger.info({ statusCode: err.status }, `HTTP error (${err.status}): ${err.message}`);
+    }
+    res.status(err.status).json(
+      buildErrorResponse(
+        isProduction && isServerError ? 'Internal server error' : err.message,
+        isServerError ? 'INTERNAL_ERROR' : 'HTTP_ERROR',
+        correlationId,
+        err.stack,
       ),
     );
     return;
