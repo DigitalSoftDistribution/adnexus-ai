@@ -665,7 +665,7 @@ export function BlogContent() {
                 style={{
                   background: currentPage === page ? 'var(--accent)' : 'var(--bg-elevated)',
                   border: '1px solid var(--border-subtle)',
-                  color: currentPage === page ? '#fff' : 'var(--text-secondary)',
+                  color: currentPage === page ? '#0a0a0a' : 'var(--text-secondary)',
                 }}
               >
                 {page}
