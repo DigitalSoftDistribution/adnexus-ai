@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
 import { JsonLd, SOFTWARE_APPLICATION_JSONLD } from '@/components/marketing/JsonLd';
+import { ProductShowcase } from '@/components/marketing/ProductShowcase';
 
 export const metadata: Metadata = {
   title: 'Features',
@@ -54,7 +55,7 @@ export default function FeaturesPage() {
       <PageHero
         eyebrow="Features"
         title={<>Everything you need to run <span style={{ color: '#c3f53b' }}>smarter campaigns</span></>}
-        subtitle="A complete toolkit for AI-assisted, human-approved advertising across every major platform."
+        subtitle="Open the dashboard, read the morning brief, approve a few drafts, and your day's optimization is done. Here's what's inside."
       />
 
       <Section eyebrow="The Pillars" title="Three foundations, deeply integrated">
@@ -71,6 +72,8 @@ export default function FeaturesPage() {
           ))}
         </div>
       </Section>
+
+      <ProductShowcase />
 
       <Section eyebrow="The Toolkit" title="Built for performance teams" alt>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

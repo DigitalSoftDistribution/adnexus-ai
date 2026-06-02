@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { PRICING_TIERS, formatPrice } from '@/lib/marketing/pricing';
+import { CredibilityBar } from '@/components/marketing/CredibilityBar';
+import { ProductShowcase } from '@/components/marketing/ProductShowcase';
+import { HomeComparison } from '@/components/marketing/HomeComparison';
 
 const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number];
 const easeBounce = [0.34, 1.56, 0.64, 1] as [number, number, number, number];
@@ -99,8 +102,9 @@ function HeroSection() {
             className="text-base md:text-lg leading-relaxed max-w-[520px] mb-8"
             style={{ color: 'var(--text-secondary)' }}
           >
-            AI-powered ad management across Meta, Google, TikTok, and Snap — where every AI-generated
-            change is a draft awaiting your approval. One dashboard, one brain, flat pricing.
+            An AI agent watches your Meta, Google, TikTok, and Snap campaigns around the clock and
+            drafts the fixes. You review each one and approve with a click. Nothing reaches your live
+            budget until you say so.
           </motion.p>
 
           <motion.div
@@ -247,9 +251,9 @@ function HeroSection() {
 function ProblemSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const painPoints = [
-    { stat: '56%', label: 'of marketers lack time to analyze data', icon: <Clock size={24} style={{ color: '#F59E0B' }} aria-hidden="true" />, desc: 'Manual reporting and analysis consumes hours each week, leaving little time for strategic decisions.' },
-    { stat: '20-30%', label: 'of budgets wasted on creative fatigue', icon: <AlertTriangle size={24} style={{ color: '#EF4444' }} aria-hidden="true" />, desc: 'Ad creative fatigue goes undetected, burning budget on worn-out assets that no longer convert.' },
-    { stat: 'Zero', label: 'tools combine AI + cross-platform + governance', icon: <XCircle size={24} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />, desc: 'Tools either auto-optimize without oversight, or force manual work across disconnected platforms.' },
+    { stat: 'Hours', label: 'lost to manual reporting every week', icon: <Clock size={24} style={{ color: '#F59E0B' }} aria-hidden="true" />, desc: 'You pull the same numbers across four dashboards before you can make a single decision. The analysis eats the time you needed for strategy.' },
+    { stat: '20-30%', label: 'of spend wasted on tired creative', icon: <AlertTriangle size={24} style={{ color: '#EF4444' }} aria-hidden="true" />, desc: 'Creative fatigues in days. By the time you notice the drop, the budget is already gone. Industry research puts the waste at a fifth to a third of spend.' },
+    { stat: 'Zero', label: 'tools pair AI with real guardrails', icon: <XCircle size={24} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />, desc: 'Today you choose between automation that acts without asking, or manual work across disconnected platforms. Nobody gives you both speed and control.' },
   ];
 
   return (
@@ -257,8 +261,8 @@ function ProblemSection() {
       <div className="max-w-6xl mx-auto">
         <FadeInSection className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: 'var(--status-error)' }}>The Problem</span>
-          <h2 className="font-space text-4xl font-semibold text-white mb-3">Marketers are overwhelmed</h2>
-          <p className="text-sm max-w-[480px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Managing campaigns across multiple platforms shouldn&apos;t require superhuman effort.</p>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">Running ads shouldn&apos;t take superhuman effort</h2>
+          <p className="text-sm max-w-[480px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Four platforms. A dozen dashboards. One person trying to keep up.</p>
         </FadeInSection>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {painPoints.map((point, i) => (
@@ -279,9 +283,9 @@ function ProblemSection() {
 function SolutionPillarsSection() {
   const { ref, isVisible } = useScrollAnimation(0.15);
   const pillars = [
-    { title: 'Draft-First Approval', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every AI-generated change lands as a draft. Review, edit, approve, or reject — full control over what goes live.', accent: '#c3f53b' },
-    { title: 'MCP-Native Architecture', icon: <Cable size={28} style={{ color: '#A78BFA' }} aria-hidden="true" />, description: 'Built on the Model Context Protocol. Your AI assistant talks to ad platforms through a secure, standardized interface.', accent: '#A78BFA' },
-    { title: 'Cross-Platform Intelligence', icon: <Globe size={28} style={{ color: '#2563EB' }} aria-hidden="true" />, description: 'Unified reporting and optimization across Meta, Google, TikTok, and Snap — one dashboard, one brain, zero fragmentation.', accent: '#2563EB' },
+    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, approve or reject. Your live budget never moves on its own.', accent: '#c3f53b' },
+    { title: 'Talk to your ads in plain English', icon: <Cable size={28} style={{ color: '#A78BFA' }} aria-hidden="true" />, description: 'Built on the open Model Context Protocol, so Claude, ChatGPT, or Cursor connect straight to your accounts. Ask a question, get an answer from live data.', accent: '#A78BFA' },
+    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#2563EB' }} aria-hidden="true" />, description: 'Meta, Google, TikTok, and Snap in a single view. The AI reasons across them together and moves budget to whatever is working this week.', accent: '#2563EB' },
   ];
 
   return (
@@ -289,8 +293,8 @@ function SolutionPillarsSection() {
       <div className="max-w-6xl mx-auto">
         <FadeInSection className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: 'var(--status-active)' }}>The Solution</span>
-          <h2 className="font-space text-4xl font-semibold text-white mb-3">Three pillars of intelligent ad management</h2>
-          <p className="text-sm max-w-[520px] mx-auto" style={{ color: 'var(--text-secondary)' }}>A fundamentally different approach to AI-powered advertising — built on transparency, control, and cross-platform cohesion.</p>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">Speed and control, finally together</h2>
+          <p className="text-sm max-w-[520px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Three ideas hold the whole product together. Each one earns your trust before it asks for it.</p>
         </FadeInSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {pillars.map((pillar, i) => (
@@ -310,9 +314,9 @@ function SolutionPillarsSection() {
 function HowItWorksSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const steps = [
-    { num: '01', title: 'Connect your ad accounts', desc: 'Link Meta, Google, TikTok, and Snap via secure OAuth. Takes under 2 minutes.', icon: <Globe size={24} style={{ color: '#2563EB' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
-    { num: '02', title: 'AI analyzes & drafts optimizations', desc: 'Our AI monitors performance 24/7 and generates optimization drafts — never auto-publishes.', icon: <BrainCircuit size={24} style={{ color: '#A78BFA' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
-    { num: '03', title: 'You review, approve, and publish', desc: 'Review each draft, edit if needed, approve with one click. Full governance and audit trail.', icon: <CheckCircle2 size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click approve', 'Edit drafts', 'Full audit trail'] },
+    { num: '01', title: 'Connect in two minutes', desc: 'Link Meta, Google, TikTok, and Snap with secure OAuth. No code, no spreadsheets, no waiting on a sales call.', icon: <Globe size={24} style={{ color: '#2563EB' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
+    { num: '02', title: 'Let the agent find the wins', desc: 'It watches every account around the clock, spots the budget leaks and tired creative, and writes the fix as a draft. It never publishes on its own.', icon: <BrainCircuit size={24} style={{ color: '#A78BFA' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
+    { num: '03', title: 'Approve with one click', desc: 'Read each draft and the reasoning behind it, tweak if you want, then approve. Every action is logged for a full audit trail.', icon: <CheckCircle2 size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click approve', 'Edit drafts', 'Full audit trail'] },
   ];
 
   return (
@@ -364,8 +368,8 @@ function FeaturesGridSection() {
       <div className="max-w-[1100px] mx-auto">
         <FadeInSection className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#2563EB' }}>Features</span>
-          <h2 className="font-space text-4xl font-semibold text-white mb-3">Everything you need to run smarter campaigns</h2>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>A complete toolkit for AI-assisted, human-approved advertising.</p>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">One workspace for the whole job</h2>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>From the morning brief to the final approval, everything lives in one place.</p>
         </FadeInSection>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((feature, i) => (
@@ -401,8 +405,8 @@ function WhyAdNexusSection() {
       <div className="max-w-5xl mx-auto">
         <FadeInSection className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#c3f53b' }}>Why AdNexus</span>
-          <h2 className="font-space text-4xl font-semibold text-white mb-3">Built for the gap no other tool fills</h2>
-          <p className="text-sm max-w-[520px] mx-auto" style={{ color: 'var(--text-secondary)' }}>AI-native automation with human-in-the-loop governance, across every major platform.</p>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">The gap no other tool fills</h2>
+          <p className="text-sm max-w-[520px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Every alternative makes you trade something away. AdNexus is the one built to give you all three at once.</p>
         </FadeInSection>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {points.map((p, i) => (
@@ -494,8 +498,8 @@ function FinalCTASection() {
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(195,245,59,0.08) 0%, rgba(37,99,235,0.06) 40%, transparent 65%)' }} />
       <div className="max-w-[640px] mx-auto text-center relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={isVisible ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: easeSmooth }}>
-          <h2 className="font-space text-4xl md:text-5xl font-bold text-white mb-5">Ready to transform your ad workflow?</h2>
-          <p className="text-base mb-8 max-w-[460px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Start managing campaigns smarter — with full control over every AI-generated change.</p>
+          <h2 className="font-space text-4xl md:text-5xl font-bold text-white mb-5">Put an AI analyst on every account</h2>
+          <p className="text-base mb-8 max-w-[460px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Connect your platforms in two minutes and see the first drafts today. You approve everything that ships.</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={isVisible ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.2, ease: easeSmooth }} className="flex flex-wrap items-center justify-center gap-4 mb-4">
           <Link href="/auth/signup" className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-all duration-150 hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
@@ -516,11 +520,14 @@ export function HomeContent() {
   return (
     <div>
       <HeroSection />
+      <CredibilityBar />
       <ProblemSection />
       <SolutionPillarsSection />
       <HowItWorksSection />
+      <ProductShowcase />
       <FeaturesGridSection />
       <WhyAdNexusSection />
+      <HomeComparison />
       <PricingTeaserSection />
       <FinalCTASection />
     </div>
