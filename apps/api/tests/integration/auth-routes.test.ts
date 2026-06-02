@@ -7,31 +7,46 @@ import { generateToken } from '../utils/helpers';
 
 // ─── Mock Supabase ───────────────────────────────────────────────
 
-const mockFrom = jest.fn();
+// NOTE: jest.mock() is hoisted above these declarations, so the factory may not
+// close over module-scope consts (they are still in the temporal dead zone when
+// the mocked module is first imported). Instead the factory builds the mocks and
+// we retrieve the same instances afterwards via jest.requireMock().
 const mockSelect = jest.fn();
 const mockInsert = jest.fn();
 const mockSingle = jest.fn();
 const mockEq = jest.fn();
 
-// Supabase Auth (auth.admin.* + top-level auth.*) — the auth route delegates
-// account creation, sign-in, and password operations to Supabase Auth rather
-// than hashing passwords in the database. Each method is a jest.fn() so tests
-// can override behaviour per case; sensible defaults are (re)installed in
-// resetAuthMock() which runs in every beforeEach.
-const mockAuth = {
-  admin: {
-    listUsers: jest.fn(),
-    createUser: jest.fn(),
-    deleteUser: jest.fn(),
-    updateUserById: jest.fn(),
-    getUserById: jest.fn(),
-  },
-  signInWithPassword: jest.fn(),
-  signUp: jest.fn(),
-  resetPasswordForEmail: jest.fn(),
-  getUser: jest.fn(),
-  signOut: jest.fn(),
-};
+jest.mock('../../src/lib/supabase', () => {
+  const from = jest.fn();
+  // Supabase Auth (auth.admin.* + top-level auth.*) — the auth route delegates
+  // account creation, sign-in, and password operations to Supabase Auth rather
+  // than hashing passwords in the database. Each method is a jest.fn() so tests
+  // can override behaviour per case; defaults are (re)installed by resetAuthMock().
+  const auth = {
+    admin: {
+      listUsers: jest.fn(),
+      createUser: jest.fn(),
+      deleteUser: jest.fn(),
+      updateUserById: jest.fn(),
+      getUserById: jest.fn(),
+    },
+    signInWithPassword: jest.fn(),
+    signUp: jest.fn(),
+    resetPasswordForEmail: jest.fn(),
+    getUser: jest.fn(),
+    signOut: jest.fn(),
+  };
+  return { supabase: { from, auth } };
+});
+
+// Retrieve the same mock instances the route module will use.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mockSupabase = (jest.requireMock('../../src/lib/supabase') as any).supabase;
+const mockFrom = mockSupabase.from as jest.Mock;
+const mockAuth = mockSupabase.auth as {
+  admin: Record<string, jest.Mock>;
+} & Record<string, jest.Mock>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Install default Supabase Auth behaviour (no existing users, happy-path). */
 function resetAuthMock() {
@@ -77,12 +92,21 @@ function defaultBuilder() {
   return builder;
 }
 
-jest.mock('../../src/lib/supabase', () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-    auth: mockAuth,
-  },
-}));
+/**
+ * Default from() implementation used in beforeEach. The auth middleware
+ * (requireAuth → authenticateToken) verifies the caller via
+ * from('users').select('id').eq().single(), so by default we resolve that to a
+ * valid user; every other table falls back to the no-op builder. Tests that
+ * need specific behaviour override mockFrom with their own implementation.
+ */
+function defaultFromImpl(table: string) {
+  if (table === 'users') {
+    const builder = defaultBuilder();
+    (builder.single as jest.Mock).mockResolvedValue({ data: { id: UUIDS.owner }, error: null });
+    return builder;
+  }
+  return defaultBuilder();
+}
 
 // ─── Suite: POST /auth/signup ────────────────────────────────────
 
@@ -90,7 +114,7 @@ describe('POST /api/v1/auth/signup', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should create a new user with workspace', async () => {
@@ -234,7 +258,7 @@ describe('POST /api/v1/auth/signin', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should sign in with valid credentials', async () => {
@@ -371,7 +395,7 @@ describe('POST /api/v1/auth/reset-password', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should initiate password reset for existing user', async () => {
@@ -426,7 +450,7 @@ describe('GET /api/v1/auth/me', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should return current user profile', async () => {
@@ -457,9 +481,13 @@ describe('GET /api/v1/auth/me', () => {
       .set('Authorization', `Bearer ${token}`);
 
     // Assert
+    // GET /auth/me returns the profile fields flat on `data` (id/email/name/
+    // role) alongside `workspace` and `connectedAccounts` — there is no nested
+    // `data.user`, so assert against the actual response contract.
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.user).toBeDefined();
+    expect(response.body.data.id).toBe(UUIDS.owner);
+    expect(response.body.data.email).toBeDefined();
     expect(response.body.data.workspace).toBeDefined();
   });
 
@@ -491,7 +519,7 @@ describe('protected routes require authentication', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should reject /campaigns without auth', async () => {
@@ -575,7 +603,7 @@ describe('POST /api/v1/auth/refresh', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should refresh token with valid refresh token', async () => {
@@ -643,7 +671,7 @@ describe('POST /api/v1/auth/signout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetAuthMock();
-    mockFrom.mockImplementation(() => defaultBuilder());
+    mockFrom.mockImplementation(defaultFromImpl);
   });
 
   it('should sign out successfully', async () => {

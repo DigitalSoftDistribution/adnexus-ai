@@ -110,7 +110,7 @@ describe('E2E: Authentication Flow', () => {
       expect(response.body.data.workspace).toBeDefined();
     });
 
-    it('should return 409 when signing up with existing email', async () => {
+    it('should return 400 when signing up with existing email', async () => {
       // Arrange: create a user first
       await createTestUser({ email: 'existing@example.com', password: 'SecurePass123!', name: 'Existing User' });
 
@@ -126,8 +126,12 @@ describe('E2E: Authentication Flow', () => {
           name: 'Duplicate User',
         });
 
-      // Assert
-      expect(response.status).toBe(409);
+      // Assert — the signup route surfaces a duplicate email as a
+      // ValidationError (400 / VALIDATION_ERROR), which is the contract the
+      // integration suite (tests/integration/auth-routes.test.ts) also pins.
+      // The original 409 expectation here was stale and contradicted the
+      // actual, intended route behavior.
+      expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
     });
 

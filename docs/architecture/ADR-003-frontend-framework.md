@@ -1,7 +1,29 @@
 # ADR-003: Frontend Framework Decision — Vite SPA
 
+> **⚠️ SUPERSEDED 2026-06-02**
+>
+> This ADR's decision (**"Vite SPA is canonical / remove Next.js"**) has been **reversed**.
+> The team standardized on **Next.js (App Router)** as the product frontend for `apps/web/`.
+>
+> **Why the reversal:**
+> - Deployment is via **Coolify**, whose `Dockerfile` builds the **Next.js standalone output**
+>   (`output: 'standalone'` in `next.config.ts`), and `package.json`'s build script is
+>   **`next build --webpack`** — not `vite build`. The Vite SPA was never wired into the
+>   production deploy path.
+> - The Next.js App Router under `apps/web/app/` (with shared code in `apps/web/components/`,
+>   `apps/web/lib/`, `apps/web/hooks/`, `apps/web/providers/`) is the actively served product.
+> - The Vite SPA (`index.html`, `src/main.tsx`, `src/App.tsx`, `src/spa-pages/**`, `src/views/**`,
+>   `src/store(s)/**`, `src/contexts/**`) was dead code and has been **deleted**. A small set of
+>   shared primitives under `src/components/{ui,forms}`, `src/components/PageTransition`,
+>   `src/hooks/*`, and `src/lib/*` are still imported by the Next app and were **kept**.
+> - SPA-only dependencies (`vite`, `@vitejs/plugin-react`, `vite-plugin-pwa`, `vitest`,
+>   `plugin-inspect-react-code`, `react-router`, `react-router-dom`, `happy-dom`, `jsdom`,
+>   `eslint-plugin-react-refresh`) were removed from `apps/web/package.json`.
+>
+> The historical content below is retained for context but **no longer reflects the architecture.**
+
 **Date:** 2026-05-30
-**Status:** Accepted
+**Status:** Superseded (by Next.js decision, 2026-06-02)
 **Scope:** `apps/web/`
 
 ## Context

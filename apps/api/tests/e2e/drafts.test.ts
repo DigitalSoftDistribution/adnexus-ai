@@ -741,7 +741,9 @@ describe('E2E: Draft Workflow', () => {
       const response = await request(app)
         .post(`/api/v1/drafts/${draft.id}/schedule`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({ execute_at: '2024-12-31T23:59:59.000Z' });
+        // Future date — the schedule route rejects past/now timestamps, and a
+        // hard-coded 2024 date is in the past relative to the test clock.
+        .send({ execute_at: '2030-12-31T23:59:59.000Z' });
 
       // Assert
       expect(response.status).toBe(200);
@@ -970,7 +972,8 @@ describe('E2E: Draft Workflow', () => {
       const scheduleResponse = await request(app)
         .post(`/api/v1/drafts/${draftId}/schedule`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({ execute_at: '2024-12-31T23:59:59.000Z' });
+        // Future date — see note above re: past-dated schedule rejection.
+        .send({ execute_at: '2030-12-31T23:59:59.000Z' });
 
       expect(scheduleResponse.status).toBe(200);
       expect(scheduleResponse.body.data.status).toBe('scheduled');

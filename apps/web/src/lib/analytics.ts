@@ -18,7 +18,7 @@
 //   analytics.page('/dashboard');
 // ============================================================================
 
-import { AnalyticsEvent, AnalyticsUserTraits, EventProperties, AnalyticsConfig } from './analytics.types';
+import { AnalyticsEvent, AnalyticsUserTraits, EventProperties, AnalyticsConfig, AnalyticsProvider } from './analytics.types';
 
 // ---------------------------------------------------------------------------
 // Environment-derived configuration
@@ -26,8 +26,9 @@ import { AnalyticsEvent, AnalyticsUserTraits, EventProperties, AnalyticsConfig }
 
 function getConfig(): AnalyticsConfig {
   const provider = (import.meta.env?.VITE_ANALYTICS_PROVIDER ?? 'none').toLowerCase();
+  const knownProviders: readonly AnalyticsProvider[] = ['segment', 'mixpanel', 'plausible', 'self-hosted'];
   return {
-    provider: ['segment', 'mixpanel', 'plausible', 'self-hosted'].includes(provider) ? provider : 'none',
+    provider: knownProviders.includes(provider as AnalyticsProvider) ? (provider as AnalyticsProvider) : 'none',
     apiKey: import.meta.env?.VITE_ANALYTICS_API_KEY ?? '',
     endpoint: import.meta.env?.VITE_ANALYTICS_ENDPOINT ?? '',
     debug: import.meta.env?.VITE_ANALYTICS_DEBUG === 'true',

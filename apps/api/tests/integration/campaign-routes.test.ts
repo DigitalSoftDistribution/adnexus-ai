@@ -5,45 +5,96 @@ import { mockCampaigns, mockWorkspaces, UUIDS, mockAdAccounts } from '../fixture
 import { generateToken } from '../utils/helpers';
 
 // ─── Mock Supabase ───────────────────────────────────────────────
+//
+// The campaign routes read campaign data via raw SQL (db/connection.query),
+// but a few things still go through Supabase:
+//   • the auth middleware verifies the caller via from('users').single()
+//   • createDraft() (used by POST /campaigns) inserts into from('drafts') and
+//     from('audit_log').
+// jest.mock is hoisted, so the factory builds its own mocks and we retrieve the
+// instances afterwards via jest.requireMock().
 
-const mockFrom = jest.fn();
+jest.mock('../../src/lib/supabase', () => {
+  const from = jest.fn();
+  const auth = {
+    admin: {
+      listUsers: jest.fn(),
+      createUser: jest.fn(),
+      deleteUser: jest.fn(),
+      updateUserById: jest.fn(),
+      getUserById: jest.fn(),
+    },
+    signInWithPassword: jest.fn(),
+    getUser: jest.fn(),
+    signOut: jest.fn(),
+  };
+  return { supabase: { from, auth } };
+});
 
-jest.mock('../../src/lib/supabase', () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-  },
-}));
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mockSupabase = (jest.requireMock('../../src/lib/supabase') as any).supabase;
+const mockFrom = mockSupabase.from as jest.Mock;
+// db/connection.query is mocked globally in tests/setup.ts; grab the same mock
+// instance so each test can drive the SQL results the route reads.
+const mockQuery = (jest.requireMock('../../src/db/connection') as any).query as jest.Mock;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** No-op chainable query-builder for tables a test does not configure. */
+function defaultBuilder() {
+  const builder: Record<string, unknown> = {
+    select: jest.fn(() => builder),
+    insert: jest.fn(() => builder),
+    update: jest.fn(() => builder),
+    delete: jest.fn(() => builder),
+    eq: jest.fn(() => builder),
+    order: jest.fn(() => builder),
+    limit: jest.fn(() => builder),
+    range: jest.fn(() => builder),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    then: jest.fn((cb: (r: unknown) => unknown) => Promise.resolve(cb({ data: null, error: null }))),
+  };
+  return builder;
+}
+
+/**
+ * Default from() implementation: the auth middleware looks the caller up via
+ * from('users').select('id').eq().single(); resolve that to a valid user so
+ * authenticated requests pass. Everything else falls back to a no-op builder.
+ */
+function defaultFromImpl(table: string) {
+  if (table === 'users') {
+    const builder = defaultBuilder();
+    (builder.single as jest.Mock).mockResolvedValue({ data: { id: UUIDS.owner }, error: null });
+    return builder;
+  }
+  return defaultBuilder();
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockFrom.mockImplementation(defaultFromImpl);
+  // Default: every SQL query resolves empty. Tests override per-call.
+  mockQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+});
 
 // ─── Suite: GET /campaigns ───────────────────────────────────────
 
 describe('GET /api/v1/campaigns', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should list campaigns for authenticated workspace', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          range: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({
-            data: [
-              { ...mockCampaigns.highSpend, ad_accounts: { platform: 'meta' } },
-              { ...mockCampaigns.lowROAS, ad_accounts: { platform: 'meta' } },
-            ],
-            error: null,
-            count: 2,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // Route runs: (1) COUNT query, (2) data query.
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: 2 }], rowCount: 1 })
+      .mockResolvedValueOnce({
+        rows: [
+          { ...mockCampaigns.highSpend, platform: 'meta' },
+          { ...mockCampaigns.lowROAS, platform: 'meta' },
+        ],
+        rowCount: 2,
+      });
 
     // Act
     const response = await request(app)
@@ -54,34 +105,21 @@ describe('GET /api/v1/campaigns', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data).toBeDefined();
-    expect(response.body.pagination).toBeDefined();
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.total).toBe(2);
+    expect(response.body.page).toBe(1);
   });
 
   it('should filter campaigns by platform', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockImplementation(() => ({
-            eq: jest.fn().mockReturnThis(),
-            order: jest.fn().mockReturnThis(),
-            range: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({
-              data: [{ ...mockCampaigns.highSpend, ad_accounts: { platform: 'meta' } }],
-              error: null,
-              count: 1,
-            }),
-          })),
-          order: jest.fn().mockReturnThis(),
-          range: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: 1 }], rowCount: 1 })
+      .mockResolvedValueOnce({
+        rows: [{ ...mockCampaigns.highSpend, platform: 'meta' }],
+        rowCount: 1,
+      });
 
     // Act
     const response = await request(app)
@@ -97,29 +135,12 @@ describe('GET /api/v1/campaigns', () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockImplementation(function(this: unknown) {
-            return {
-              eq: jest.fn().mockReturnThis(),
-              order: jest.fn().mockReturnThis(),
-              range: jest.fn().mockReturnThis(),
-              then: jest.fn().mockResolvedValue({
-                data: [{ ...mockCampaigns.highSpend, status: 'active', ad_accounts: { platform: 'meta' } }],
-                error: null,
-                count: 1,
-              }),
-            };
-          }),
-          order: jest.fn().mockReturnThis(),
-          range: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: 1 }], rowCount: 1 })
+      .mockResolvedValueOnce({
+        rows: [{ ...mockCampaigns.highSpend, status: 'active', platform: 'meta' }],
+        rowCount: 1,
+      });
 
     // Act
     const response = await request(app)
@@ -135,34 +156,23 @@ describe('GET /api/v1/campaigns', () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          range: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({
-            data: [{ ...mockCampaigns.highSpend, ad_accounts: { platform: 'meta' } }],
-            error: null,
-            count: 50,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: 50 }], rowCount: 1 })
+      .mockResolvedValueOnce({
+        rows: [{ ...mockCampaigns.highSpend, platform: 'meta' }],
+        rowCount: 1,
+      });
 
     // Act
     const response = await request(app)
       .get('/api/v1/campaigns?page=2&limit=10')
       .set('Authorization', `Bearer ${token}`);
 
-    // Assert
+    // Assert — the list route returns pagination fields flat on the envelope.
     expect(response.status).toBe(200);
-    expect(response.body.pagination.page).toBe(2);
-    expect(response.body.pagination.limit).toBe(10);
-    expect(response.body.pagination.total).toBe(50);
-    expect(response.body.pagination.total_pages).toBe(5);
+    expect(response.body.page).toBe(2);
+    expect(response.body.total).toBe(50);
+    expect(response.body.totalPages).toBe(5);
   });
 
   it('should require authentication', async () => {
@@ -179,27 +189,17 @@ describe('GET /api/v1/campaigns', () => {
 // ─── Suite: GET /campaigns/:id ───────────────────────────────────
 
 describe('GET /api/v1/campaigns/:id', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should get a single campaign', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { ...mockCampaigns.highSpend, ad_accounts: { workspace_id: mockWorkspaces.free.id, platform: 'meta' } },
-            error: null,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // Route runs: (1) campaign lookup, (2) ad sets, (3) ads (only if ad sets).
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{ ...mockCampaigns.highSpend, platform: 'meta', ad_account_name: 'Meta Ad Account' }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // ad sets
 
     // Act
     const response = await request(app)
@@ -216,23 +216,12 @@ describe('GET /api/v1/campaigns/:id', () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Not found' },
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // Campaign lookup returns no rows → NotFoundError.
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
     // Act
     const response = await request(app)
-      .get('/api/v1/campaigns/non-existent-id')
+      .get('/api/v1/campaigns/00000000-0000-0000-0000-000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     // Assert
@@ -244,15 +233,16 @@ describe('GET /api/v1/campaigns/:id', () => {
 // ─── Suite: POST /campaigns ──────────────────────────────────────
 
 describe('POST /api/v1/campaigns', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should create a draft instead of live campaign', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
+    // getAdAccountPlatform() runs a SQL lookup returning the ad account platform.
+    mockQuery.mockResolvedValue({ rows: [{ platform: 'meta' }], rowCount: 1 });
+
+    // createDraft() inserts via Supabase.
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return defaultFromImpl('users');
       if (table === 'drafts') {
         return {
           insert: jest.fn().mockImplementation(() => ({
@@ -272,14 +262,7 @@ describe('POST /api/v1/campaigns', () => {
           })),
         };
       }
-      if (table === 'audit_log') {
-        return {
-          insert: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
     // Act
@@ -287,10 +270,11 @@ describe('POST /api/v1/campaigns', () => {
       .post('/api/v1/campaigns')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        ad_account_id: UUIDS.metaAccount,
+        adAccountId: UUIDS.metaAccount,
+        platform: 'meta',
         name: 'Summer Sale 2024',
         objective: 'CONVERSIONS',
-        daily_budget: 200,
+        budget: 200,
       });
 
     // Assert
@@ -298,19 +282,19 @@ describe('POST /api/v1/campaigns', () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.draft_type).toBe('campaign_create');
     expect(response.body.data.status).toBe('pending');
-    expect(response.body.message).toContain('Draft');
+    expect(response.body.message).toContain('drafted');
   });
 
   it('should validate required fields', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    // Act - missing name
+    // Act - missing name and platform
     const response = await request(app)
       .post('/api/v1/campaigns')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        ad_account_id: UUIDS.metaAccount,
+        adAccountId: UUIDS.metaAccount,
         objective: 'CONVERSIONS',
       });
 
@@ -319,7 +303,7 @@ describe('POST /api/v1/campaigns', () => {
     expect(response.body.success).toBe(false);
   });
 
-  it('should validate ad_account_id is a valid UUID', async () => {
+  it('should validate adAccountId is a valid UUID', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
@@ -328,7 +312,8 @@ describe('POST /api/v1/campaigns', () => {
       .post('/api/v1/campaigns')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        ad_account_id: 'not-a-uuid',
+        adAccountId: 'not-a-uuid',
+        platform: 'meta',
         name: 'Test Campaign',
         objective: 'CONVERSIONS',
       });
@@ -338,7 +323,7 @@ describe('POST /api/v1/campaigns', () => {
     expect(response.body.success).toBe(false);
   });
 
-  it('should validate daily_budget is positive', async () => {
+  it('should validate budget is positive', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
@@ -347,10 +332,11 @@ describe('POST /api/v1/campaigns', () => {
       .post('/api/v1/campaigns')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        ad_account_id: UUIDS.metaAccount,
+        adAccountId: UUIDS.metaAccount,
+        platform: 'meta',
         name: 'Test Campaign',
         objective: 'CONVERSIONS',
-        daily_budget: -100,
+        budget: -100,
       });
 
     // Assert
@@ -358,51 +344,43 @@ describe('POST /api/v1/campaigns', () => {
     expect(response.body.success).toBe(false);
   });
 
-  it('should not create live campaign directly', async () => {
+  it('should not create live campaign directly (drafts only)', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
+
+    mockQuery.mockResolvedValue({ rows: [{ platform: 'meta' }], rowCount: 1 });
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return defaultFromImpl('users');
       if (table === 'drafts') {
         return {
           insert: jest.fn().mockImplementation(() => ({
             select: jest.fn().mockImplementation(() => ({
               single: jest.fn().mockResolvedValue({
-                data: {
-                  id: 'new-draft-id',
-                  status: 'pending',
-                  draft_type: 'campaign_create',
-                },
+                data: { id: 'new-draft-id', status: 'pending', draft_type: 'campaign_create' },
                 error: null,
               }),
             })),
           })),
         };
       }
-      if (table === 'audit_log') {
-        return {
-          insert: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return defaultBuilder();
     });
 
-    // Act
+    // Act — the route rejects unknown fields (.strict()), so a client cannot
+    // sneak server-controlled fields like `status` through.
     const response = await request(app)
       .post('/api/v1/campaigns')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        ad_account_id: UUIDS.metaAccount,
+        adAccountId: UUIDS.metaAccount,
+        platform: 'meta',
         name: 'Test Campaign',
         objective: 'CONVERSIONS',
-        status: 'active', // User wants active
       });
 
     // Assert
     expect(response.status).toBe(201);
-    // Should be a draft, not a live campaign
     expect(response.body.data.status).toBe('pending');
     expect(response.body.data.draft_type).toBe('campaign_create');
   });
@@ -411,90 +389,95 @@ describe('POST /api/v1/campaigns', () => {
 // ─── Suite: GET /campaigns/:id/insights ──────────────────────────
 
 describe('GET /api/v1/campaigns/:id/insights', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should return campaign insights', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: mockCampaigns.highSpend,
-            error: null,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // Route runs: (1) verifyCampaignWorkspace, (2) totals, (3) daily breakdown.
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{
+          id: UUIDS.campaign1,
+          name: 'High Spend Campaign',
+          platform: 'meta',
+          platform_campaign_id: UUIDS.platformCampaign1,
+          status: 'active',
+        }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          total_impressions: 500000,
+          total_clicks: 2500,
+          total_spend: 450,
+          total_conversions: 120,
+          total_conversion_value: 1890,
+          total_reach: 238095,
+          avg_ctr: 0.5,
+          avg_cpc: 0.18,
+          avg_cpm: 0.9,
+          avg_cpa: 3.75,
+          avg_roas: 4.2,
+          avg_frequency: 2.1,
+        }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
     // Act
     const response = await request(app)
       .get(`/api/v1/campaigns/${UUIDS.campaign1}/insights`)
       .set('Authorization', `Bearer ${token}`);
 
-    // Assert
+    // Assert — insights returns campaign_id, date_range, totals, daily.
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.campaign_id).toBe(UUIDS.campaign1);
-    expect(response.body.data.spend).toBeDefined();
-    expect(response.body.data.impressions).toBeDefined();
-    expect(response.body.data.clicks).toBeDefined();
-    expect(response.body.data.ctr).toBeDefined();
+    expect(response.body.data.totals).toBeDefined();
+    expect(response.body.data.totals.total_spend).toBeDefined();
+    expect(response.body.data.totals.total_impressions).toBeDefined();
+    expect(response.body.data.totals.total_clicks).toBeDefined();
   });
 
   it('should accept date range parameters', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: mockCampaigns.highSpend,
-            error: null,
-          }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{
+          id: UUIDS.campaign1,
+          name: 'High Spend Campaign',
+          platform: 'meta',
+          platform_campaign_id: UUIDS.platformCampaign1,
+          status: 'active',
+        }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [{}], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
     // Act
     const response = await request(app)
-      .get(`/api/v1/campaigns/${UUIDS.campaign1}/insights?date_start=2024-05-01&date_end=2024-05-31`)
+      .get(`/api/v1/campaigns/${UUIDS.campaign1}/insights?dateFrom=2024-05-01&dateTo=2024-05-31`)
       .set('Authorization', `Bearer ${token}`);
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.body.data.date_range.start).toBe('2024-05-01');
-    expect(response.body.data.date_range.end).toBe('2024-05-31');
+    expect(response.body.data.date_range.from).toBe('2024-05-01');
+    expect(response.body.data.date_range.to).toBe('2024-05-31');
   });
 
   it('should return 404 for non-existent campaign insights', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'campaigns') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
+    // verifyCampaignWorkspace finds no rows → NotFoundError.
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
     // Act
     const response = await request(app)
-      .get('/api/v1/campaigns/non-existent/insights')
+      .get('/api/v1/campaigns/00000000-0000-0000-0000-000000000000/insights')
       .set('Authorization', `Bearer ${token}`);
 
     // Assert

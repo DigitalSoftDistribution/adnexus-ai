@@ -7,6 +7,7 @@ import {
   PlatformAPIError,
   RateLimitError,
 } from '../lib/errors';
+import { HttpError } from '../utils/errors';
 import { getRequestLogger } from '../lib/logger';
 import { isProduction } from '../config';
 
@@ -155,6 +156,27 @@ export function errorHandler(
         isProduction ? 'External service unavailable' : err.message,
         err.code,
         correlationId,
+      ),
+    );
+    return;
+  }
+
+  // ─── HttpError (status-carrying errors from utils/errors) ─
+  // The billing routes throw HttpError(status, message); honour its status
+  // instead of falling through to the generic 500 handler.
+  if (err instanceof HttpError) {
+    const isServerError = err.status >= 500;
+    if (isServerError) {
+      logger.error({ statusCode: err.status }, `HTTP error (${err.status}): ${err.message}`);
+    } else {
+      logger.info({ statusCode: err.status }, `HTTP error (${err.status}): ${err.message}`);
+    }
+    res.status(err.status).json(
+      buildErrorResponse(
+        isProduction && isServerError ? 'Internal server error' : err.message,
+        isServerError ? 'INTERNAL_ERROR' : 'HTTP_ERROR',
+        correlationId,
+        err.stack,
       ),
     );
     return;

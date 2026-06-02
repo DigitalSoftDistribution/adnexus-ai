@@ -540,6 +540,8 @@ interface ChainableConfig {
   onDelete?: (id: string) => void;
   /** Optional join enrichment applied to each row when select() includes a join. */
   enrich?: (row: Record<string, unknown>, selectColumns: string) => Record<string, unknown>;
+  /** When true, ignore all eq/in/gte/... filters (synthetic single-row tables). */
+  skipFilters?: boolean;
 }
 
 type Filter = { op: 'eq' | 'neq' | 'in' | 'gte' | 'lte' | 'gt' | 'lt'; field: string; value: unknown };
@@ -616,7 +618,9 @@ function buildChainableBuilder(config: ChainableConfig) {
     if (config.enrich && selectColumns !== '*') {
       rows = rows.map((r) => config.enrich!(r, selectColumns));
     }
-    rows = applyFilters(rows, filters);
+    if (!config.skipFilters) {
+      rows = applyFilters(rows, filters);
+    }
     const total = rows.length;
     if (rangeBounds) {
       rows = rows.slice(rangeBounds.from, rangeBounds.to + 1);
@@ -896,6 +900,20 @@ function buildWorkspacesQueryBuilder() {
 function buildWorkspaceMembersQueryBuilder() {
   let currentData: { workspaceId: string; userId: string; role: WorkspaceRole } | null = null;
 
+  // Project a stored member (camelCase) into the snake_case row shape the
+  // routes (and real Supabase) read, e.g. `membership.workspace_id`.
+  const toRow = (
+    member: { workspaceId: string; userId: string; role: WorkspaceRole } | null,
+  ) =>
+    member
+      ? {
+          workspace_id: member.workspaceId,
+          user_id: member.userId,
+          role: member.role,
+          created_at: new Date().toISOString(),
+        }
+      : null;
+
   return {
     select: jest.fn().mockReturnThis(),
     insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
@@ -909,7 +927,7 @@ function buildWorkspaceMembersQueryBuilder() {
         testStore.workspaceMembers.set(`${member.workspaceId}:${member.userId}`, member);
         currentData = member;
       }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }) };
+      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }) };
     }),
     update: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
@@ -922,8 +940,45 @@ function buildWorkspaceMembersQueryBuilder() {
             break;
           }
         }
+      } else if (field === 'workspace_id') {
+        for (const member of testStore.workspaceMembers.values()) {
+          if (member.workspaceId === value) {
+            currentData = member;
+            break;
+          }
+        }
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }), order: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis() };
+      return {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockImplementation((innerField: string, innerValue: unknown) => {
+          if (innerField === 'user_id') {
+            for (const member of testStore.workspaceMembers.values()) {
+              if (member.userId === innerValue) {
+                currentData = member;
+                break;
+              }
+            }
+          } else if (innerField === 'workspace_id') {
+            for (const member of testStore.workspaceMembers.values()) {
+              if (member.workspaceId === innerValue) {
+                currentData = member;
+                break;
+              }
+            }
+          }
+          return {
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+            maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+          };
+        }),
+        single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+      };
     }),
     neq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
@@ -937,9 +992,11 @@ function buildWorkspaceMembersQueryBuilder() {
     limit: jest.fn().mockReturnThis(),
     range: jest.fn().mockReturnThis(),
     single: jest.fn().mockImplementation(() => {
-      return Promise.resolve({ data: currentData, error: null });
+      return Promise.resolve({ data: toRow(currentData), error: null });
     }),
-    maybeSingle: jest.fn().mockResolvedValue({ data: currentData, error: null }),
+    maybeSingle: jest.fn().mockImplementation(() => {
+      return Promise.resolve({ data: toRow(currentData), error: null });
+    }),
     count: jest.fn().mockReturnThis(),
     match: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
@@ -947,7 +1004,7 @@ function buildWorkspaceMembersQueryBuilder() {
     or: jest.fn().mockReturnThis(),
     contains: jest.fn().mockReturnThis(),
     then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: Array.from(testStore.workspaceMembers.values()), error: null, count: testStore.workspaceMembers.size })),
+      Promise.resolve(cb({ data: Array.from(testStore.workspaceMembers.values()).map(toRow), error: null, count: testStore.workspaceMembers.size })),
     ),
   };
 }
@@ -1412,83 +1469,36 @@ function buildPasswordResetsQueryBuilder() {
 }
 
 function buildAuditLogQueryBuilder() {
-  return {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
-      const items = Array.isArray(data) ? data : [data];
-      for (const item of items) {
-        const id = randomUUID();
-        const logs = testStore.auditLogs.get('default') || [];
-        logs.push({ id, ...item });
-        testStore.auditLogs.set('default', logs);
-      }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: items[0], error: null }) };
-    }),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    single: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockReturnThis(),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: testStore.auditLogs.get('default') || [], error: null, count: (testStore.auditLogs.get('default') || []).length })),
-    ),
-  };
+  return buildChainableBuilder({
+    listRows: () => testStore.auditLogs.get('default') || [],
+    onInsert: (item) => {
+      const id = randomUUID();
+      const row = { id, ...item };
+      const logs = testStore.auditLogs.get('default') || [];
+      logs.push(row);
+      testStore.auditLogs.set('default', logs);
+      return row;
+    },
+  });
 }
 
 function buildAdAccountsQueryBuilder() {
-  return {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    single: jest.fn().mockImplementation(() =>
-      Promise.resolve({
-        data: { id: randomUUID(), platform: 'meta', account_id: 'act_1234567890', workspace_id: '' },
-        error: null,
-      }),
-    ),
-    maybeSingle: jest.fn().mockReturnThis(),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: [], error: null, count: 0 })),
-    ),
-  };
+  // Provide a single connected Meta ad account that carries an oauth_token so
+  // the draft execution engine's platform-client factory can initialize.
+  // Filters (workspace_id / platform) are ignored — the synthetic account
+  // matches any workspace in the in-memory store.
+  return buildChainableBuilder({
+    listRows: () => [
+      {
+        id: randomUUID(),
+        platform: 'meta',
+        account_id: 'act_1234567890',
+        workspace_id: '',
+        oauth_token: 'test-oauth-token',
+      },
+    ],
+    skipFilters: true,
+  });
 }
 
 // ─── Mock Supabase Auth Admin Builder for E2E Tests ──────────────
