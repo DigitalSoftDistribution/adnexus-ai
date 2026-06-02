@@ -241,22 +241,22 @@ export function CompareSmartlyContent() {
               </button>
             ))}
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.6, ease: easeSmooth }} className="overflow-hidden rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-            <div className="grid items-center" style={{ gridTemplateColumns: '1fr 140px 140px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.6, ease: easeSmooth }} className="overflow-x-auto rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <div className="grid items-center" style={{ gridTemplateColumns: '1fr 140px 140px', minWidth: '520px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
               <div className="px-4 sm:px-6 py-4 font-inter text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Feature</div>
               <div className="px-4 sm:px-6 py-4 font-inter text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#60A5FA' }}>AdNexus AI</div>
               <div className="px-4 sm:px-6 py-4 font-inter text-xs font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Smartly.io</div>
             </div>
             {filteredCategories.map((cat, catIdx) => (
               <div key={cat.name}>
-                <div className="grid items-center px-4 sm:px-6 py-2.5" style={{ gridTemplateColumns: '1fr 140px 140px', background: 'rgba(37,99,235,0.04)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div className="grid items-center px-4 sm:px-6 py-2.5" style={{ gridTemplateColumns: '1fr 140px 140px', minWidth: '520px', background: 'rgba(37,99,235,0.04)', borderBottom: '1px solid var(--border-subtle)' }}>
                   <div className="flex items-center gap-2">
                     <cat.icon size={14} style={{ color: 'var(--accent)' }} />
                     <span className="font-inter text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>{cat.name}</span>
                   </div>
                 </div>
                 {cat.rows.map((row, i) => (
-                  <div key={`${cat.name}-${row.feature}`} className="grid items-center transition-colors duration-100 hover:bg-[#161616]" style={{ gridTemplateColumns: '1fr 140px 140px', borderBottom: catIdx < filteredCategories.length - 1 || i < cat.rows.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <div key={`${cat.name}-${row.feature}`} className="grid items-center transition-colors duration-100 hover:bg-[#161616]" style={{ gridTemplateColumns: '1fr 140px 140px', minWidth: '520px', borderBottom: catIdx < filteredCategories.length - 1 || i < cat.rows.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                     <div className="px-4 sm:px-6 py-4">
                       <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{row.feature}</span>
                       {row.note && <p className="font-inter text-xs mt-0.5 hidden sm:block" style={{ color: 'var(--text-tertiary)' }}>{row.note}</p>}

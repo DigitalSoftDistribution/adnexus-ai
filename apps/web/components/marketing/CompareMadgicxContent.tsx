@@ -391,7 +391,7 @@ export function CompareMadgicxContent() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-50px' }}
             transition={{ duration: 0.6, ease: easeSmooth }}
-            className="overflow-hidden rounded-xl"
+            className="overflow-x-auto rounded-xl"
             style={{
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border-subtle)',
@@ -401,7 +401,7 @@ export function CompareMadgicxContent() {
             <div
               className="grid items-center"
               style={{
-                gridTemplateColumns: '1fr 140px 140px',
+                gridTemplateColumns: '1fr 140px 140px', minWidth: '520px',
                 background: 'var(--bg-secondary)',
                 borderBottom: '1px solid var(--border-subtle)',
               }}
@@ -433,7 +433,7 @@ export function CompareMadgicxContent() {
                 <div
                   className="grid items-center px-4 sm:px-6 py-2.5"
                   style={{
-                    gridTemplateColumns: '1fr 140px 140px',
+                    gridTemplateColumns: '1fr 140px 140px', minWidth: '520px',
                     background: 'rgba(37,99,235,0.04)',
                     borderBottom: '1px solid var(--border-subtle)',
                   }}
@@ -455,7 +455,7 @@ export function CompareMadgicxContent() {
                     key={`${cat.name}-${row.feature}`}
                     className="grid items-center transition-colors duration-100 hover:bg-[#161616]"
                     style={{
-                      gridTemplateColumns: '1fr 140px 140px',
+                      gridTemplateColumns: '1fr 140px 140px', minWidth: '520px',
                       borderBottom:
                         catIdx < filteredCategories.length - 1 || i < cat.rows.length - 1
                           ? '1px solid var(--border-subtle)'
