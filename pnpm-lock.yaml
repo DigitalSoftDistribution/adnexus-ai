@@ -425,8 +425,8 @@ importers:
         specifier: ^16.5.0
         version: 16.5.0
       happy-dom:
-        specifier: ^15.11.7
-        version: 15.11.7
+        specifier: ^20.9.0
+        version: 20.9.0
       postcss:
         specifier: ^8.5.6
         version: 8.5.15
@@ -447,7 +447,7 @@ importers:
         version: 8.60.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       vitest:
         specifier: ^3.2.6
-        version: 3.2.6(@types/node@24.12.4)(happy-dom@15.11.7)(jsdom@27.4.0(@noble/hashes@1.8.0)(canvas@3.2.3))(terser@5.48.0)
+        version: 3.2.6(@types/node@24.12.4)(happy-dom@20.9.0)(jsdom@27.4.0(@noble/hashes@1.8.0)(canvas@3.2.3))(terser@5.48.0)
 
   packages/config:
     devDependencies:
@@ -3779,10 +3779,6 @@ packages:
     resolution: {integrity: sha512-rRqJg/6gd538VHvR3PSrdRBb/1Vy2YfzHqzvbhGIQpDRKIa4FgV/54b5Q1xYSxOOwKvjXweS26E0Q+nAMwp2pQ==}
     engines: {node: '>=8.6'}
 
-  entities@4.5.0:
-    resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
-    engines: {node: '>=0.12'}
-
   entities@7.0.1:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
@@ -4181,10 +4177,6 @@ packages:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
     engines: {node: '>=0.4.7'}
     hasBin: true
-
-  happy-dom@15.11.7:
-    resolution: {integrity: sha512-KyrFvnl+J9US63TEzwoiJOQzZBJY7KgBushJA8X61DMbNsH+2ONkDuLDnCnwUiPTF42tLoEmrPyoqbenVA5zrg==}
-    engines: {node: '>=18.0.0'}
 
   happy-dom@20.9.0:
     resolution: {integrity: sha512-GZZ9mKe8r646NUAf/zemnGbjYh4Bt8/MqASJY+pSm5ZDtc3YQox+4gsLI7yi1hba6o+eCsGxpHn5+iEVn31/FQ==}
@@ -6154,10 +6146,6 @@ packages:
 
   webdriver-bidi-protocol@0.4.2:
     resolution: {integrity: sha512-VSV+fzfChirL3e7jay2yUC7B4HQCGtEWEg/MSSQbK+qWbqeGlRLlXTzPpYr3XGUvbpDHumWZBJxgesg4N7dbtA==}
-
-  webidl-conversions@7.0.0:
-    resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
-    engines: {node: '>=12'}
 
   webidl-conversions@8.0.1:
     resolution: {integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==}
@@ -8532,8 +8520,7 @@ snapshots:
 
   '@types/uuid@10.0.0': {}
 
-  '@types/whatwg-mimetype@3.0.2':
-    optional: true
+  '@types/whatwg-mimetype@3.0.2': {}
 
   '@types/ws@8.18.1':
     dependencies:
@@ -9431,10 +9418,7 @@ snapshots:
       ansi-colors: 4.1.3
       strip-ansi: 6.0.1
 
-  entities@4.5.0: {}
-
-  entities@7.0.1:
-    optional: true
+  entities@7.0.1: {}
 
   entities@8.0.0:
     optional: true
@@ -9945,12 +9929,6 @@ snapshots:
     optionalDependencies:
       uglify-js: 3.19.3
 
-  happy-dom@15.11.7:
-    dependencies:
-      entities: 4.5.0
-      webidl-conversions: 7.0.0
-      whatwg-mimetype: 3.0.0
-
   happy-dom@20.9.0:
     dependencies:
       '@types/node': 24.12.4
@@ -9962,7 +9940,6 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    optional: true
 
   has-flag@4.0.0: {}
 
@@ -12211,7 +12188,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@3.2.6(@types/node@24.12.4)(happy-dom@15.11.7)(jsdom@27.4.0(@noble/hashes@1.8.0)(canvas@3.2.3))(terser@5.48.0):
+  vitest@3.2.6(@types/node@24.12.4)(happy-dom@20.9.0)(jsdom@27.4.0(@noble/hashes@1.8.0)(canvas@3.2.3))(terser@5.48.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.6
@@ -12238,7 +12215,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.12.4
-      happy-dom: 15.11.7
+      happy-dom: 20.9.0
       jsdom: 27.4.0(@noble/hashes@1.8.0)(canvas@3.2.3)
     transitivePeerDependencies:
       - less
@@ -12261,8 +12238,6 @@ snapshots:
       makeerror: 1.0.12
 
   webdriver-bidi-protocol@0.4.2: {}
-
-  webidl-conversions@7.0.0: {}
 
   webidl-conversions@8.0.1:
     optional: true
