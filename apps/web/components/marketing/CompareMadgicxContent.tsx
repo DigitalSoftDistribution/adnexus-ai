@@ -95,8 +95,8 @@ const comparisonCategories: ComparisonCategory[] = [
     icon: DollarSign,
     rows: [
       { feature: 'Free Tier', adnexus: true, madgicx: false },
-      { feature: 'Pro Plan', adnexus: '$99/mo flat', madgicx: '$99 + $49 tracking' },
-      { feature: 'Agency Plan', adnexus: '$499/mo flat', madgicx: '$298+/mo' },
+      { feature: 'Pro Plan', adnexus: '$149/mo flat', madgicx: '$99 + $49 tracking' },
+      { feature: 'Agency Plan', adnexus: '$399/mo flat', madgicx: '$298+/mo' },
       { feature: 'Price Scales with Spend', adnexus: false, madgicx: true, note: 'Hidden cost escalation' },
     ],
   },
@@ -134,7 +134,7 @@ const differentiators = [
     icon: DollarSign,
     title: 'Truly Flat Pricing',
     description:
-      '$99/mo for everything. Madgicx charges $49-$99 PLUS $49 for tracking, and prices scale with ad spend.',
+      '$149/mo flat for everything. Madgicx charges $49-$99 PLUS $49 for tracking, and prices scale with ad spend.',
     gradient: 'from-emerald-500/20 to-teal-500/10',
     iconColor: '#34D399',
   },
@@ -583,7 +583,7 @@ export function CompareMadgicxContent() {
                     className="font-space text-4xl font-bold"
                     style={{ color: 'var(--text-primary)' }}
                   >
-                    $99
+                    $149
                   </span>
                   <span className="font-inter text-sm" style={{ color: 'var(--text-secondary)' }}>
                     /mo

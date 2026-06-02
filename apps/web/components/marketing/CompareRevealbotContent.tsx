@@ -102,7 +102,7 @@ const comparisonCategories: ComparisonCategory[] = [
     rows: [
       { feature: 'Free Tier', adnexus: true, birch: false },
       { feature: 'Starter Plan', adnexus: '$49/mo', birch: '$49/mo' },
-      { feature: 'Pro Plan', adnexus: '$99/mo flat', birch: '$99/mo' },
+      { feature: 'Pro Plan', adnexus: '$149/mo flat', birch: '$99/mo' },
       { feature: 'Agency Plan', adnexus: '$399/mo flat', birch: 'Limited' },
       { feature: 'Hidden Fees', adnexus: false, birch: true, note: 'Add-ons for advanced features' },
     ],

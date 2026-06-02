@@ -104,7 +104,7 @@ const comparisonCategories: ComparisonCategory[] = [
     rows: [
       { feature: 'Free Tier', adnexus: true, smartly: false },
       { feature: 'Starter Plan', adnexus: '$49/mo', smartly: 'Custom' },
-      { feature: 'Pro Plan', adnexus: '$99/mo flat', smartly: 'Custom', note: 'Enterprise pricing only' },
+      { feature: 'Pro Plan', adnexus: '$149/mo flat', smartly: 'Custom', note: 'Enterprise pricing only' },
       { feature: 'Transparent Pricing', adnexus: true, smartly: false, note: 'No pricing page on Smartly' },
       { feature: 'Self-Serve Checkout', adnexus: true, smartly: false },
     ],

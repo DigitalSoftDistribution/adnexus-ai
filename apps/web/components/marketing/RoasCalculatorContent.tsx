@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Calculator,
@@ -291,12 +292,12 @@ export function RoasCalculatorContent() {
             <p className="mx-auto mt-4 max-w-xl text-zinc-400">
               Connect your ad account and AdNexus AI will track ROAS, CPA, and all metrics automatically with AI-powered recommendations to improve them.
             </p>
-            <a
+            <Link
               href="/auth/signup"
               className="mt-8 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400"
             >
               Start Free Trial <ArrowRight size={16} />
-            </a>
+            </Link>
           </motion.div>
         </div>
       </section>
