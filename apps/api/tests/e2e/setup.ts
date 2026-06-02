@@ -504,7 +504,7 @@ export function buildE2EMockFrom(): jest.Mock {
       case 'auth_passwords':
         return buildAuthPasswordsQueryBuilder();
       case 'campaigns':
-        return buildCampaignsQueryBuilder();
+        return buildCampaignsChainable();
       case 'drafts':
         return buildDraftsQueryBuilder();
       case 'password_resets':
@@ -1074,6 +1074,65 @@ function buildAuthPasswordsQueryBuilder() {
       Promise.resolve(cb({ data: Array.from(testStore.passwordHashes.entries()).map(([userId, hash]) => ({ user_id: userId, password_hash: hash })), error: null, count: testStore.passwordHashes.size })),
     ),
   };
+}
+
+/**
+ * Generic-chainable campaigns builder backed by the in-memory store. Used by
+ * the draft execution engine's CampaignStore, which reads campaigns via
+ * supabase `.select('*').eq('id', id).single()` and a `platform_campaign_id`
+ * + `ad_accounts!inner(platform)` join. The order of select()/eq() varies, so
+ * the generic filter-applying builder is more robust than the bespoke one.
+ */
+function campaignToSnakeRow(c: TestCampaign): Record<string, unknown> {
+  return {
+    id: c.id,
+    workspace_id: c.workspaceId,
+    ad_account_id: c.adAccountId,
+    name: c.name,
+    status: c.status,
+    objective: c.objective,
+    daily_budget: c.dailyBudget,
+    platform: c.platform,
+    // Engine reads platform_campaign_id as the external id.
+    platform_campaign_id: `pcid-${c.id}`,
+  };
+}
+
+function buildCampaignsChainable() {
+  return buildChainableBuilder({
+    listRows: () =>
+      Array.from(testStore.campaigns.values()).map((c) => campaignToSnakeRow(c as TestCampaign)),
+    enrich: (row, selectColumns) => {
+      if (selectColumns.includes('ad_accounts')) {
+        return { ...row, ad_accounts: { platform: row.platform, workspace_id: row.workspace_id } };
+      }
+      return row;
+    },
+    onInsert: (item) => {
+      const campaign: TestCampaign = {
+        id: (item.id as string) || randomUUID(),
+        workspaceId: (item.workspace_id as string) || '',
+        adAccountId: (item.ad_account_id as string) || '',
+        name: (item.name as string) || 'Test Campaign',
+        status: (item.status as string) || 'active',
+        objective: (item.objective as string) || 'CONVERSIONS',
+        dailyBudget: (item.daily_budget as number) || 0,
+        platform: (item.platform as string) || 'meta',
+      };
+      testStore.campaigns.set(campaign.id, campaign);
+      return campaignToSnakeRow(campaign);
+    },
+    onUpdate: (id, patch) => {
+      const existing = testStore.campaigns.get(id) as TestCampaign | undefined;
+      if (!existing) return null;
+      const updated = { ...existing, ...patch } as TestCampaign;
+      testStore.campaigns.set(id, updated);
+      return campaignToSnakeRow(updated);
+    },
+    onDelete: (id) => {
+      testStore.campaigns.delete(id);
+    },
+  });
 }
 
 function buildCampaignsQueryBuilder() {

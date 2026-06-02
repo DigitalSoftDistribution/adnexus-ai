@@ -43,7 +43,7 @@ describe('DeleteCampaignUseCase', () => {
     const repo = makeRepo();
     const result = await new DeleteCampaignUseCase(repo).execute({ ...baseInput, userRole: 'editor' });
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(403);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
     expect(repo.delete).not.toHaveBeenCalled();
   });
 
@@ -51,14 +51,14 @@ describe('DeleteCampaignUseCase', () => {
     const repo = makeRepo();
     const result = await new DeleteCampaignUseCase(repo).execute({ ...baseInput, userRole: 'viewer' });
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(403);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
   });
 
   it('returns 404 when the campaign does not exist', async () => {
     const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
     const result = await new DeleteCampaignUseCase(repo).execute(baseInput);
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(404);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(404);
     expect(repo.delete).not.toHaveBeenCalled();
   });
 });

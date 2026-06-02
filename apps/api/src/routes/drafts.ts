@@ -1460,8 +1460,9 @@ router.post(
     const userId = req.user!.sub;
     const workspaceId = req.workspaceId!;
 
+    // Reason is optional — mirrors the v2 RejectDraftUseCase contract.
     const schema = z.object({
-      reason: z.string().min(1, 'Rejection reason is required'),
+      reason: z.string().optional(),
     });
     const body = schema.parse(req.body);
 

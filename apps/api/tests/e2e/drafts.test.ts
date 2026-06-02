@@ -17,6 +17,7 @@ import {
   addUserToWorkspace,
   generateAuthToken,
   createTestDraft,
+  createTestCampaign,
   buildE2EMockFrom,
   type TestUser,
   type TestWorkspace,
@@ -45,6 +46,33 @@ jest.mock('../../src/lib/supabase', () => ({
 jest.mock('../../src/services/meta-api', () => ({
   updateMetaCampaign: jest.fn().mockResolvedValue(undefined),
   createMetaCampaign: jest.fn().mockResolvedValue('new-campaign-id'),
+}));
+
+// The approve route builds a real MetaApiClient (../platforms/meta/client) and
+// drives it through the DraftExecutionEngine (validate -> apply -> verify).
+// This stateful stub records updateCampaign() and reflects it back in
+// getCampaign() so the engine's verify step legitimately matches the proposed
+// change and execution reports SUCCESS — without any real Meta HTTP call.
+const metaCampaignState: Record<string, Record<string, unknown>> = {};
+
+jest.mock('../../src/platforms/meta/client', () => ({
+  MetaApiClient: jest.fn().mockImplementation(() => ({
+    setAccessToken: jest.fn(),
+    getCampaign: jest.fn((externalId: string) =>
+      Promise.resolve({
+        id: externalId,
+        name: 'Mock Campaign',
+        status: (metaCampaignState[externalId]?.status as string) ?? 'ACTIVE',
+        daily_budget: (metaCampaignState[externalId]?.daily_budget as number) ?? 10000,
+        lifetime_budget: (metaCampaignState[externalId]?.lifetime_budget as number) ?? 0,
+        objective: 'OUTCOME_TRAFFIC',
+      }),
+    ),
+    updateCampaign: jest.fn((externalId: string, data: Record<string, unknown>) => {
+      metaCampaignState[externalId] = { ...metaCampaignState[externalId], ...data };
+      return Promise.resolve({ id: externalId, ...metaCampaignState[externalId] });
+    }),
+  })),
 }));
 
 // ─── Suite Setup ─────────────────────────────────────────────────
@@ -358,8 +386,12 @@ describe('E2E: Draft Workflow', () => {
 
   describe('POST /api/v1/drafts/:id/approve', () => {
     it('should approve a pending draft and return applied status', async () => {
-      // Arrange
+      // Arrange — the execution engine validates the target campaign exists,
+      // so create one and point the draft at it.
+      const campaign = await createTestCampaign(workspace.id, { platform: 'meta', status: 'active' });
       const draft = await createTestDraft(workspace.id, {
+        campaignId: campaign.id,
+        platform: 'meta',
         status: 'pending',
         draftType: 'budget_change',
         changeSummary: 'Approve this budget change',
@@ -455,11 +487,15 @@ describe('E2E: Draft Workflow', () => {
     });
 
     it('should allow admin to approve a draft', async () => {
-      // Arrange
+      // Arrange — engine validates the target campaign exists.
+      const campaign = await createTestCampaign(workspace.id, { platform: 'meta', status: 'active' });
       const draft = await createTestDraft(workspace.id, {
+        campaignId: campaign.id,
+        platform: 'meta',
         status: 'pending',
-        draftType: 'status_change',
+        draftType: 'budget_change',
         changeSummary: 'Admin approval test',
+        changeDetail: { field: 'daily_budget', old_value: 100, new_value: 130 },
       });
 
       mockFrom.mockImplementation(buildE2EMockFrom());
@@ -469,7 +505,7 @@ describe('E2E: Draft Workflow', () => {
         .post(`/api/v1/drafts/${draft.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`);
 
-      // Assert
+      // Assert — admin (not just owner) can approve and apply a draft
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.status).toBe('approved');
@@ -863,6 +899,10 @@ describe('E2E: Draft Workflow', () => {
 
   describe('complete draft lifecycle workflow', () => {
     it('should handle full create -> approve workflow', async () => {
+      // The approval step's execution engine validates the target campaign,
+      // so create one with the referenced id first.
+      await createTestCampaign(workspace.id, { id: UUIDS.campaign1, platform: 'meta', status: 'active' });
+
       // Step 1: Create a draft
       const createResponse = await request(app)
         .post('/api/v1/drafts')

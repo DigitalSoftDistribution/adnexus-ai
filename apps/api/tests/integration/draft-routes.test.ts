@@ -451,8 +451,8 @@ describe('POST /api/v1/drafts/:id/approve', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
-    // Assert
-    expect(response.status).toBe(400);
+    // Assert — approving an already-resolved draft is a conflict (409)
+    expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
   });
 
@@ -525,9 +525,19 @@ describe('POST /api/v1/drafts/:id/reject', () => {
     expect(response.body.message).toContain('rejected');
   });
 
-  it('should reject without a reason (validation error)', async () => {
-    // Arrange — the reject route requires a non-empty reason.
+  it('should reject a pending draft without a reason (reason is optional)', async () => {
+    // Arrange — reason is optional, mirroring the v2 RejectDraftUseCase contract.
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
+      if (table === 'drafts') {
+        return builder({
+          single: { data: { ...mockDrafts.pendingBudget, status: 'pending', campaigns: null }, error: null },
+        });
+      }
+      return builder();
+    });
 
     // Act
     const response = await request(app)
@@ -535,9 +545,9 @@ describe('POST /api/v1/drafts/:id/reject', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
-    // Assert
-    expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
+    // Assert — succeeds even with no reason supplied
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
   });
 
   it('should reject rejection of already-approved draft', async () => {

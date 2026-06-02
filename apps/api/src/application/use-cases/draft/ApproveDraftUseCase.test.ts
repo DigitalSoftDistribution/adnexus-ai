@@ -74,7 +74,7 @@ describe('ApproveDraftUseCase', () => {
     const useCase = new ApproveDraftUseCase(makeRepo(), makeEventBus(), makeAudit());
     const result = await useCase.execute({ ...baseInput, userRole: 'viewer' });
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(403);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
   });
 
   it('returns 404 when the draft does not exist', async () => {
@@ -82,7 +82,7 @@ describe('ApproveDraftUseCase', () => {
     const useCase = new ApproveDraftUseCase(repo, makeEventBus(), makeAudit());
     const result = await useCase.execute(baseInput);
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(404);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(404);
   });
 
   it('rejects approval of a non-pending draft (validation)', async () => {
@@ -95,7 +95,7 @@ describe('ApproveDraftUseCase', () => {
     const result = await useCase.execute(baseInput);
 
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(400);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(400);
     expect(repo.approve).not.toHaveBeenCalled();
     expect(eventBus.publish).not.toHaveBeenCalled();
   });

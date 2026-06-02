@@ -65,7 +65,7 @@ describe('RejectDraftUseCase', () => {
     const useCase = new RejectDraftUseCase(makeRepo());
     const result = await useCase.execute({ ...baseInput, userRole: 'viewer' });
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(403);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
   });
 
   it('returns 404 when the draft does not exist', async () => {
@@ -73,7 +73,7 @@ describe('RejectDraftUseCase', () => {
     const useCase = new RejectDraftUseCase(repo);
     const result = await useCase.execute(baseInput);
     expect(result.success).toBe(false);
-    if (!result.success) expect((result.error as { statusCode: number }).statusCode).toBe(404);
+    if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(404);
   });
 
   it('refuses to reject a non-pending draft', async () => {

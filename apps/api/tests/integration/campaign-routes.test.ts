@@ -68,6 +68,13 @@ function defaultFromImpl(table: string) {
     (builder.single as jest.Mock).mockResolvedValue({ data: { id: UUIDS.owner }, error: null });
     return builder;
   }
+  if (table === 'workspace_members') {
+    // requireRole() resolves the caller's role here; the suite authenticates as
+    // the workspace owner, so return an owner membership.
+    const builder = defaultBuilder();
+    (builder.single as jest.Mock).mockResolvedValue({ data: { role: 'owner' }, error: null });
+    return builder;
+  }
   return defaultBuilder();
 }
 
@@ -242,7 +249,7 @@ describe('POST /api/v1/campaigns', () => {
 
     // createDraft() inserts via Supabase.
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') return defaultFromImpl('users');
+      if (table === 'users' || table === 'workspace_members') return defaultFromImpl(table);
       if (table === 'drafts') {
         return {
           insert: jest.fn().mockImplementation(() => ({
@@ -351,7 +358,7 @@ describe('POST /api/v1/campaigns', () => {
     mockQuery.mockResolvedValue({ rows: [{ platform: 'meta' }], rowCount: 1 });
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') return defaultFromImpl('users');
+      if (table === 'users' || table === 'workspace_members') return defaultFromImpl(table);
       if (table === 'drafts') {
         return {
           insert: jest.fn().mockImplementation(() => ({
