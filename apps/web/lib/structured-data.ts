@@ -87,10 +87,18 @@ export function breadcrumbSchema(items: ReadonlyArray<{ name: string; path: stri
  * Convert a human-readable date (e.g. "May 15, 2026") to an ISO 8601 date
  * ("2026-05-15"), which schema.org / Google Rich Results require. Falls back
  * to the original string if it can't be parsed.
+ *
+ * `new Date("May 15, 2026")` is parsed as local-time midnight, so we read the
+ * local date components (not UTC) to avoid an off-by-one shift on build servers
+ * east of UTC.
  */
 function toIsoDate(date: string): string {
   const parsed = new Date(date);
-  return Number.isNaN(parsed.getTime()) ? date : parsed.toISOString().slice(0, 10);
+  if (Number.isNaN(parsed.getTime())) return date;
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function articleSchema(post: {
@@ -107,7 +115,12 @@ export function articleSchema(post: {
     description: post.excerpt,
     url: `${SITE_URL}/blog/${post.slug}`,
     author: { '@type': 'Person', name: post.author },
-    publisher: organizationSchema(),
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/og-default.png`,
+    },
     datePublished: toIsoDate(post.date),
   };
 }
