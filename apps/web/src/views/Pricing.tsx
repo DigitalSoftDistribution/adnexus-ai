@@ -54,6 +54,7 @@ const tiers = [
     icon: Shield,
     features: [
       { text: '1 ad account (Meta or Google)', icon: Globe },
+      { text: '~100 AI credits / month', icon: Zap },
       { text: 'Read-only performance audit', icon: BarChart3 },
       { text: '5 saved reports / month', icon: Bell },
       { text: 'Draft preview (no execution)', icon: Bot },
@@ -72,8 +73,8 @@ const tiers = [
     id: 'growth',
     name: 'Growth',
     description: 'For solo marketers with $5–50K/mo ad spend',
-    monthlyPrice: 49,
-    annualPrice: 408,
+    monthlyPrice: 39,
+    annualPrice: 390,
     cta: 'Start 14-Day Trial',
     ctaLink: '/signup',
     ctaStyle: 'secondary' as const,
@@ -81,6 +82,7 @@ const tiers = [
     icon: TrendingUp,
     features: [
       { text: '3 ad accounts (Meta + Google)', icon: Globe },
+      { text: '~1,500 AI credits / month', icon: Zap },
       { text: 'AI Agent with draft-first approval', icon: Bot },
       { text: 'Campaign dashboard + creation', icon: BarChart3 },
       { text: 'Weekly email digests', icon: Bell },
@@ -110,6 +112,7 @@ const tiers = [
     icon: Zap,
     features: [
       { text: 'Everything in Growth +', icon: Star, highlight: true },
+      { text: '~6,000 AI credits / month', icon: Zap },
       { text: '10 pooled ad accounts', icon: Globe },
       { text: 'All 4 platforms (Meta, Google, TikTok, Snap)', icon: Layers },
       { text: 'Full AI Agent with optimization', icon: Bot },
@@ -137,6 +140,7 @@ const tiers = [
     icon: Building2,
     features: [
       { text: 'Everything in Team +', icon: Star, highlight: true },
+      { text: '~20,000 AI credits / month + top-ups', icon: Zap },
       { text: '25 pooled ad accounts', icon: Globe },
       { text: 'White-label client portal', icon: Globe },
       { text: 'API access + webhooks', icon: Lock },

@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest'
 describe('Pricing Configuration', () => {
   const tiers = [
     { id: 'free', name: 'Free', monthlyPrice: 0, accounts: 1 },
-    { id: 'growth', name: 'Growth', monthlyPrice: 49, accounts: 3 },
+    { id: 'growth', name: 'Growth', monthlyPrice: 39, accounts: 3 },
     { id: 'team', name: 'Team', monthlyPrice: 149, accounts: 10 },
     { id: 'agency', name: 'Agency', monthlyPrice: 399, accounts: 25 },
   ]
@@ -30,8 +30,8 @@ describe('Pricing Configuration', () => {
   it('Growth tier is priced competitively vs Pipeboard', () => {
     const growth = tiers.find((t) => t.id === 'growth')!
     // Pipeboard Pro is $29.90/mo with limited features
-    // AdNexus Growth at $49/mo should include more value
-    expect(growth.monthlyPrice).toBe(49)
+    // AdNexus Growth at $39/mo undercuts Madgicx ($49) and Revealbot ($99)
+    expect(growth.monthlyPrice).toBe(39)
     expect(growth.accounts).toBe(3)
   })
 
