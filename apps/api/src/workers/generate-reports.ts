@@ -537,6 +537,10 @@ export class ReportGenerationWorker {
         throw new ReportGenerationError(`Schedule not found: ${scheduleId}`, 'data-loading', false);
       }
 
+      if (!schedule.isActive) {
+        throw new ReportGenerationError('Schedule is inactive', 'validation', false);
+      }
+
       const result = await this.generateReport(schedule.reportParams, undefined, tempManager);
 
       if (schedule.emailRecipients && schedule.emailRecipients.length > 0) {

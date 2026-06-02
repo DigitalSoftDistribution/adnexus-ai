@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import {
   AppError,
   UnauthorizedError,
@@ -14,14 +15,18 @@ import { isProduction } from '../config';
  * Consistent shape across all error types.
  */
 interface ErrorResponse {
-  error: string;
-  code: string;
+  /** Always false for error responses — mirrors the `{ success, data }` success contract. */
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    /** Additional error details (validation issues, etc.) */
+    details?: Record<string, unknown>;
+  };
   timestamp: string;
   correlationId?: string;
   /** Stack traces only included in non-production environments */
   stack?: string;
-  /** Additional error details (validation errors, etc.) */
-  details?: Record<string, unknown>;
 }
 
 /**
@@ -35,18 +40,18 @@ function buildErrorResponse(
   details?: Record<string, unknown>,
 ): ErrorResponse {
   const response: ErrorResponse = {
-    error: message,
-    code,
+    success: false,
+    error: {
+      code,
+      message,
+      ...(details ? { details } : {}),
+    },
     timestamp: new Date().toISOString(),
     ...(correlationId ? { correlationId } : {}),
   };
 
   if (!isProduction && stack) {
     response.stack = stack;
-  }
-
-  if (details) {
-    response.details = details;
   }
 
   return response;
@@ -92,6 +97,22 @@ export function errorHandler(
     logger.warn({ errCode: err.code }, `Authentication error: ${err.message}`);
     res.status(401).json(
       buildErrorResponse(err.message, err.code, correlationId),
+    );
+    return;
+  }
+
+  // ─── Zod Schema Validation Errors ─────────────────────────
+
+  if (err instanceof ZodError) {
+    const fields = err.issues.map((issue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+    }));
+    logger.info({ fields }, 'Request validation failed');
+    res.status(400).json(
+      buildErrorResponse('Validation failed', 'VALIDATION_ERROR', correlationId, undefined, {
+        fields,
+      }),
     );
     return;
   }

@@ -188,7 +188,7 @@ describe('POST /api/v1/auth/signin', () => {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
-            data: { password_hash: await bcrypt.hash('CorrectPass123!', 12) },
+            data: { password_hash: bcrypt.hashSync('CorrectPass123!', 12) },
             error: null,
           }),
         };
@@ -250,7 +250,7 @@ describe('POST /api/v1/auth/signin', () => {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
-            data: { password_hash: await bcrypt.hash('CorrectPass123!', 12) },
+            data: { password_hash: bcrypt.hashSync('CorrectPass123!', 12) },
             error: null,
           }),
         };
