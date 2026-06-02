@@ -458,8 +458,11 @@ function mapDbDraftToEngineDraft(db: AppDraft): Draft {
       actorType: db.actor_type,
       ruleId: db.rule_id,
     },
-    // Hydrated fields (campaign, full snapshot) will be loaded on demand
-    campaign: null as unknown as Campaign,
+    // The execution engine's change-applier dereferences draft.campaign.externalId
+    // (and verifyChange does the same), so hydrate it from the snapshot state we
+    // already build. Leaving this null caused approval/execution to crash with
+    // "Cannot read properties of null (reading 'externalId')".
+    campaign: buildSnapshotState(db),
   };
 }
 

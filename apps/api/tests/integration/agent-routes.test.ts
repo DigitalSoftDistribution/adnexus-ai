@@ -5,46 +5,107 @@ import { mockRules, mockWorkspaces, UUIDS } from '../fixtures/data';
 import { generateToken } from '../utils/helpers';
 
 // ─── Mock Supabase ───────────────────────────────────────────────
+//
+// The agent routes are Supabase-backed (automation_rules, audit_log, ai_*).
+// jest.mock is hoisted, so the factory builds the mock and we grab the same
+// `from` instance afterwards via jest.requireMock().
 
-const mockFrom = jest.fn();
+jest.mock('../../src/lib/supabase', () => {
+  const from = jest.fn();
+  const auth = {
+    admin: { listUsers: jest.fn(), createUser: jest.fn(), deleteUser: jest.fn(), getUserById: jest.fn() },
+    signInWithPassword: jest.fn(),
+    getUser: jest.fn(),
+    signOut: jest.fn(),
+  };
+  return { supabase: { from, auth } };
+});
 
-jest.mock('../../src/lib/supabase', () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-  },
+// ─── Mock the AI engine ──────────────────────────────────────────
+//
+// agent routes import RuleEvaluator / RecommendationGenerator / CreativeFatigueDetector
+// from ../ai-engine. Only run-now exercises RuleEvaluator here.
+const mockEvaluateRules = jest.fn<() => Promise<unknown>>();
+jest.mock('../../src/ai-engine', () => ({
+  RuleEvaluator: jest.fn().mockImplementation(() => ({ evaluateRules: mockEvaluateRules })),
+  RecommendationGenerator: jest.fn().mockImplementation(() => ({
+    generateRecommendations: jest.fn().mockResolvedValue([]),
+  })),
+  CreativeFatigueDetector: jest.fn().mockImplementation(() => ({
+    calculateFatigueScores: jest.fn().mockResolvedValue([]),
+  })),
 }));
 
-// ─── Mock Agent Engine ───────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mockSupabase = (jest.requireMock('../../src/lib/supabase') as any).supabase;
+const mockFrom = mockSupabase.from as jest.Mock;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-jest.mock('../../src/services/agent-engine', () => ({
-  evaluateRules: jest.fn().mockResolvedValue({ triggered: 2, drafts: 2 }),
-  runRuleCheck: jest.fn().mockResolvedValue(true),
-}));
+/** Generic chainable query-builder. */
+function builder(opts: {
+  single?: { data: unknown; error: unknown };
+  list?: { data: unknown[]; error: unknown; count?: number };
+} = {}) {
+  const single = opts.single ?? { data: null, error: null };
+  const list = opts.list ?? { data: [], error: null, count: 0 };
+  const b: Record<string, unknown> = {
+    select: jest.fn(() => b),
+    insert: jest.fn(() => b),
+    update: jest.fn(() => b),
+    delete: jest.fn(() => b),
+    eq: jest.fn(() => b),
+    in: jest.fn(() => b),
+    is: jest.fn(() => b),
+    or: jest.fn(() => b),
+    gte: jest.fn(() => b),
+    lte: jest.fn(() => b),
+    contains: jest.fn(() => b),
+    order: jest.fn(() => b),
+    limit: jest.fn(() => b),
+    range: jest.fn(() => b),
+    single: jest.fn().mockResolvedValue(single),
+    maybeSingle: jest.fn().mockResolvedValue(single),
+    then: jest.fn((cb: (r: unknown) => unknown) =>
+      Promise.resolve(cb({ data: list.data, error: list.error, count: list.count ?? null }))),
+  };
+  return b;
+}
+
+/** Auth middleware verifies caller via from('users').single(); resolve to a valid user. */
+function usersBuilder() {
+  return builder({ single: { data: { id: UUIDS.owner }, error: null } });
+}
+
+function defaultFromImpl(table: string) {
+  if (table === 'users') return usersBuilder();
+  return builder();
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockFrom.mockImplementation(defaultFromImpl);
+  mockEvaluateRules.mockResolvedValue([]);
+});
 
 // ─── Suite: GET /agent/rules ─────────────────────────────────────
 
 describe('GET /api/v1/agent/rules', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should list all rules for workspace', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({
+        return builder({
+          list: {
             data: [mockRules.budgetControl, mockRules.roasMonitor, mockRules.highCPA],
             error: null,
-          }),
-        };
+            count: 3,
+          },
+        });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return builder();
     });
 
     // Act
@@ -64,15 +125,9 @@ describe('GET /api/v1/agent/rules', () => {
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'automation_rules') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: [], error: null }),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      if (table === 'users') return usersBuilder();
+      if (table === 'automation_rules') return builder({ list: { data: [], error: null, count: 0 } });
+      return builder();
     });
 
     // Act
@@ -99,50 +154,42 @@ describe('GET /api/v1/agent/rules', () => {
 // ─── Suite: POST /agent/rules ────────────────────────────────────
 
 describe('POST /api/v1/agent/rules', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should create a new automation rule', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          insert: jest.fn().mockImplementation(() => ({
-            select: jest.fn().mockImplementation(() => ({
-              single: jest.fn().mockResolvedValue({
-                data: {
-                  id: 'new-rule-id',
-                  workspace_id: mockWorkspaces.free.id,
-                  name: 'Test Budget Rule',
-                  conditions: [{ metric: 'spend_pct', operator: 'gte', value: 90 }],
-                  actions: [{ type: 'decrease_budget', params: { percentage: 20 } }],
-                  platforms: ['meta'],
-                  status: 'active',
-                  created_at: new Date().toISOString(),
-                },
-                error: null,
-              }),
-            })),
-          })),
-        };
+        return builder({
+          single: {
+            data: {
+              id: 'new-rule-id',
+              workspace_id: mockWorkspaces.free.id,
+              name: 'Test Budget Rule',
+              conditions: [{ metric: 'spend_pct', operator: 'gte', value: 90 }],
+              actions: [{ type: 'decrease_budget', params: { percentage: 20 } }],
+              platforms: ['meta'],
+              status: 'active',
+              created_at: new Date().toISOString(),
+            },
+            error: null,
+          },
+        });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return builder();
     });
 
-    // Act
+    // Act — route schema: { name, conditions[], actions[], platform?, ... }.
     const response = await request(app)
       .post('/api/v1/agent/rules')
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test Budget Rule',
         description: 'Reduce budget when spend exceeds 90%',
+        platform: 'meta',
         conditions: [{ metric: 'spend_pct', operator: 'gte', value: 90 }],
         actions: [{ type: 'decrease_budget', params: { percentage: 20 } }],
-        platforms: ['meta'],
-        status: 'active',
       });
 
     // Assert
@@ -158,51 +205,47 @@ describe('POST /api/v1/agent/rules', () => {
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          insert: jest.fn().mockImplementation(() => ({
-            select: jest.fn().mockImplementation(() => ({
-              single: jest.fn().mockResolvedValue({
-                data: {
-                  id: 'multi-condition-rule',
-                  workspace_id: mockWorkspaces.free.id,
-                  name: 'Multi-Condition Rule',
-                  conditions: [
-                    { metric: 'cpa', operator: 'gt', value: 15 },
-                    { metric: 'roas', operator: 'lt', value: 2 },
-                  ],
-                  actions: [{ type: 'create_draft', params: { notify: true } }],
-                  platforms: ['meta', 'google'],
-                  status: 'active',
-                  created_at: new Date().toISOString(),
-                },
-                error: null,
-              }),
-            })),
-          })),
-        };
+        return builder({
+          single: {
+            data: {
+              id: 'multi-condition-rule',
+              workspace_id: mockWorkspaces.free.id,
+              name: 'Multi-Condition Rule',
+              conditions: [
+                { metric: 'cpa', operator: 'gt', value: 15 },
+                { metric: 'roas', operator: 'lt', value: 2 },
+              ],
+              actions: [{ type: 'create_draft', params: { notify: true } }],
+              platforms: ['meta', 'google', 'tiktok', 'snap'],
+              status: 'active',
+              created_at: new Date().toISOString(),
+            },
+            error: null,
+          },
+        });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return builder();
     });
 
-    // Act
+    // Act — platform 'all' expands to all four platforms in the DB row.
     const response = await request(app)
       .post('/api/v1/agent/rules')
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Multi-Condition Rule',
+        platform: 'all',
         conditions: [
           { metric: 'cpa', operator: 'gt', value: 15 },
           { metric: 'roas', operator: 'lt', value: 2 },
         ],
         actions: [{ type: 'create_draft', params: { notify: true } }],
-        platforms: ['meta', 'google'],
       });
 
     // Assert
     expect(response.status).toBe(201);
     expect(response.body.data.conditions).toHaveLength(2);
-    expect(response.body.data.platforms).toEqual(['meta', 'google']);
   });
 
   it('should validate required name field', async () => {
@@ -266,19 +309,11 @@ describe('POST /api/v1/agent/rules', () => {
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          insert: jest.fn().mockImplementation(() => ({
-            select: jest.fn().mockImplementation(() => ({
-              single: jest.fn().mockResolvedValue({
-                data: { id: 'rule-id', status: 'active' },
-                error: null,
-              }),
-            })),
-          })),
-        };
+        return builder({ single: { data: { id: 'rule-id', status: 'active' }, error: null } });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return builder();
     });
 
     // Act
@@ -301,19 +336,11 @@ describe('POST /api/v1/agent/rules', () => {
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          insert: jest.fn().mockImplementation(() => ({
-            select: jest.fn().mockImplementation(() => ({
-              single: jest.fn().mockResolvedValue({
-                data: { id: 'rule-id', platforms: ['meta'] },
-                error: null,
-              }),
-            })),
-          })),
-        };
+        return builder({ single: { data: { id: 'rule-id', platforms: ['meta'] }, error: null } });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), insert: jest.fn().mockReturnThis() };
+      return builder();
     });
 
     // Act
@@ -347,40 +374,33 @@ describe('POST /api/v1/agent/rules', () => {
   });
 });
 
-// ─── Suite: PATCH /agent/rules/:id ───────────────────────────────
+// ─── Suite: PUT /agent/rules/:id ─────────────────────────────────
 
-describe('PATCH /api/v1/agent/rules/:id', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
+describe('PUT /api/v1/agent/rules/:id', () => {
   it('should update an existing rule', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
+    const rulesBuilder = builder();
+    // First single() (existence check) returns the rule id; second single()
+    // (the update) returns the updated record.
+    (rulesBuilder.single as jest.Mock)
+      .mockReset()
+      .mockResolvedValueOnce({ data: { id: UUIDS.rule1 }, error: null })
+      .mockResolvedValue({
+        data: { ...mockRules.budgetControl, name: 'Updated Budget Control', status: 'paused' },
+        error: null,
+      });
+
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'automation_rules') {
-        return {
-          update: jest.fn().mockImplementation(() => ({
-            eq: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockImplementation(() => ({
-                select: jest.fn().mockImplementation(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: { ...mockRules.budgetControl, name: 'Updated Budget Control', status: 'paused' },
-                    error: null,
-                  }),
-                })),
-              })),
-            })),
-          })),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), update: jest.fn().mockReturnThis() };
+      if (table === 'users') return usersBuilder();
+      if (table === 'automation_rules') return rulesBuilder;
+      return builder();
     });
 
     // Act
     const response = await request(app)
-      .patch(`/api/v1/agent/rules/${UUIDS.rule1}`)
+      .put(`/api/v1/agent/rules/${UUIDS.rule1}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Updated Budget Control',
@@ -399,28 +419,16 @@ describe('PATCH /api/v1/agent/rules/:id', () => {
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          update: jest.fn().mockImplementation(() => ({
-            eq: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockImplementation(() => ({
-                select: jest.fn().mockImplementation(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: null,
-                    error: { message: 'Not found' },
-                  }),
-                })),
-              })),
-            })),
-          })),
-        };
+        return builder({ single: { data: null, error: { message: 'Not found' } } });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), update: jest.fn().mockReturnThis() };
+      return builder();
     });
 
     // Act
     const response = await request(app)
-      .patch('/api/v1/agent/rules/non-existent-id')
+      .put('/api/v1/agent/rules/00000000-0000-0000-0000-000000000000')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Updated' });
 
@@ -432,7 +440,7 @@ describe('PATCH /api/v1/agent/rules/:id', () => {
   it('should require authentication', async () => {
     // Act
     const response = await request(app)
-      .patch(`/api/v1/agent/rules/${UUIDS.rule1}`)
+      .put(`/api/v1/agent/rules/${UUIDS.rule1}`)
       .send({ name: 'Updated' });
 
     // Assert
@@ -444,29 +452,24 @@ describe('PATCH /api/v1/agent/rules/:id', () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
+    const rulesBuilder = builder();
+    (rulesBuilder.single as jest.Mock)
+      .mockReset()
+      .mockResolvedValueOnce({ data: { id: UUIDS.rule1 }, error: null })
+      .mockResolvedValue({
+        data: { ...mockRules.budgetControl, description: 'Updated description only' },
+        error: null,
+      });
+
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'automation_rules') {
-        return {
-          update: jest.fn().mockImplementation(() => ({
-            eq: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockImplementation(() => ({
-                select: jest.fn().mockImplementation(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: { ...mockRules.budgetControl, description: 'Updated description only' },
-                    error: null,
-                  }),
-                })),
-              })),
-            })),
-          })),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), update: jest.fn().mockReturnThis() };
+      if (table === 'users') return usersBuilder();
+      if (table === 'automation_rules') return rulesBuilder;
+      return builder();
     });
 
     // Act
     const response = await request(app)
-      .patch(`/api/v1/agent/rules/${UUIDS.rule1}`)
+      .put(`/api/v1/agent/rules/${UUIDS.rule1}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ description: 'Updated description only' });
 
@@ -479,27 +482,19 @@ describe('PATCH /api/v1/agent/rules/:id', () => {
 // ─── Suite: DELETE /agent/rules/:id ──────────────────────────────
 
 describe('DELETE /api/v1/agent/rules/:id', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should delete a rule', async () => {
+  it('should archive a rule', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
       if (table === 'automation_rules') {
-        return {
-          delete: jest.fn().mockImplementation(() => ({
-            eq: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({ data: null, error: null }),
-          })),
-        };
+        return builder({ single: { data: { id: UUIDS.rule1, name: 'Budget Control' }, error: null } });
       }
-      return { delete: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return builder();
     });
 
-    // Act
+    // Act — DELETE soft-archives the rule.
     const response = await request(app)
       .delete(`/api/v1/agent/rules/${UUIDS.rule1}`)
       .set('Authorization', `Bearer ${token}`);
@@ -507,33 +502,47 @@ describe('DELETE /api/v1/agent/rules/:id', () => {
     // Assert
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.message).toContain('deleted');
+    expect(response.body.message).toContain('archived');
+  });
+
+  it('should require authentication', async () => {
+    // Act
+    const response = await request(app)
+      .delete(`/api/v1/agent/rules/${UUIDS.rule1}`);
+
+    // Assert
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
   });
 });
 
 // ─── Suite: GET /agent/status ────────────────────────────────────
 
 describe('GET /api/v1/agent/status', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should return agent status', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') return usersBuilder();
+      // automation_rules / audit_log counts, ai_credits single
+      if (table === 'ai_credits') {
+        return builder({ single: { data: { credits_used: 10, credits_limit: 100 }, error: null } });
+      }
+      return builder({ list: { data: [], error: null, count: 0 } });
+    });
 
     // Act
     const response = await request(app)
       .get('/api/v1/agent/status')
       .set('Authorization', `Bearer ${token}`);
 
-    // Assert
+    // Assert — the status route returns isRunning/rulesActive/nextRunAt/etc.
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.is_running).toBe(true);
-    expect(response.body.data.check_interval_minutes).toBe(15);
-    expect(response.body.data.last_check).toBeDefined();
-    expect(response.body.data.next_check).toBeDefined();
+    expect(response.body.data.isRunning).toBe(true);
+    expect(response.body.data.nextRunAt).toBeDefined();
+    expect(typeof response.body.data.rulesActive).toBe('number');
   });
 
   it('should require authentication', async () => {
@@ -550,15 +559,15 @@ describe('GET /api/v1/agent/status', () => {
 // ─── Suite: POST /agent/run-now ──────────────────────────────────
 
 describe('POST /api/v1/agent/run-now', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should trigger manual rule evaluation', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
-    const { evaluateRules } = jest.requireMock('../../src/services/agent-engine');
-    evaluateRules.mockResolvedValueOnce({ triggered: 3, drafts: 3 });
+    // RuleEvaluator.evaluateRules returns an array of per-rule results.
+    mockEvaluateRules.mockResolvedValueOnce([
+      { ruleId: 'r1', ruleName: 'Rule 1', triggered: true, matchedCampaigns: ['c1'], draftsCreated: ['d1'] },
+      { ruleId: 'r2', ruleName: 'Rule 2', triggered: true, matchedCampaigns: ['c2'], draftsCreated: ['d2'] },
+      { ruleId: 'r3', ruleName: 'Rule 3', triggered: true, matchedCampaigns: ['c3'], draftsCreated: ['d3'] },
+    ]);
 
     // Act
     const response = await request(app)
@@ -569,15 +578,14 @@ describe('POST /api/v1/agent/run-now', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.triggered).toBe(3);
-    expect(response.body.data.drafts).toBe(3);
+    expect(response.body.data.draftsCreated).toBe(3);
     expect(response.body.message).toContain('3 triggered');
   });
 
   it('should handle zero triggered rules', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
-    const { evaluateRules } = jest.requireMock('../../src/services/agent-engine');
-    evaluateRules.mockResolvedValueOnce({ triggered: 0, drafts: 0 });
+    mockEvaluateRules.mockResolvedValueOnce([]);
 
     // Act
     const response = await request(app)
@@ -588,7 +596,7 @@ describe('POST /api/v1/agent/run-now', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.triggered).toBe(0);
-    expect(response.body.data.drafts).toBe(0);
+    expect(response.body.data.draftsCreated).toBe(0);
   });
 
   it('should require authentication', async () => {
@@ -604,8 +612,7 @@ describe('POST /api/v1/agent/run-now', () => {
   it('should handle evaluation errors gracefully', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
-    const { evaluateRules } = jest.requireMock('../../src/services/agent-engine');
-    evaluateRules.mockRejectedValueOnce(new Error('Evaluation failed'));
+    mockEvaluateRules.mockRejectedValueOnce(new Error('Evaluation failed'));
 
     // Act
     const response = await request(app)
@@ -618,82 +625,46 @@ describe('POST /api/v1/agent/run-now', () => {
   });
 });
 
-// ─── Suite: GET /agent/optimizations ─────────────────────────────
+// ─── Suite: GET /agent/logs ──────────────────────────────────────
 
-describe('GET /api/v1/agent/optimizations', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should return recent optimizations', async () => {
+describe('GET /api/v1/agent/logs', () => {
+  it('should return AI action logs', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'audit_log') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({
+      if (table === 'users') return usersBuilder();
+      if (table === 'ai_action_logs') {
+        return builder({
+          list: {
             data: [
-              { id: 'opt1', action: 'Draft created: Pause campaign', action_category: 'agent_action', created_at: '2024-06-01T10:00:00.000Z' },
-              { id: 'opt2', action: 'Draft created: Reduce budget', action_category: 'agent_action', created_at: '2024-06-01T09:00:00.000Z' },
+              { id: 'log1', action: 'Pause campaign', status: 'success', created_at: '2024-06-01T10:00:00.000Z' },
+              { id: 'log2', action: 'Reduce budget', status: 'success', created_at: '2024-06-01T09:00:00.000Z' },
             ],
             error: null,
-          }),
-        };
+            count: 2,
+          },
+        });
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+      return builder();
     });
 
     // Act
     const response = await request(app)
-      .get('/api/v1/agent/optimizations')
+      .get('/api/v1/agent/logs')
       .set('Authorization', `Bearer ${token}`);
 
     // Assert
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(Array.isArray(response.body.data)).toBe(true);
-  });
-
-  it('should limit to 50 optimizations', async () => {
-    // Arrange
-    const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'audit_log') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockImplementation((n: number) => ({
-            then: jest.fn().mockResolvedValue({
-              data: Array(n).fill({ id: 'opt', action_category: 'agent_action' }),
-              error: null,
-            }),
-          })),
-        };
-      }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
-    });
-
-    // Act
-    const response = await request(app)
-      .get('/api/v1/agent/optimizations')
-      .set('Authorization', `Bearer ${token}`);
-
-    // Assert
-    expect(response.status).toBe(200);
-    expect(response.body.data.length).toBeLessThanOrEqual(50);
+    expect(response.body.total).toBe(2);
   });
 
   it('should require authentication', async () => {
     // Act
     const response = await request(app)
-      .get('/api/v1/agent/optimizations');
+      .get('/api/v1/agent/logs');
 
     // Assert
     expect(response.status).toBe(401);

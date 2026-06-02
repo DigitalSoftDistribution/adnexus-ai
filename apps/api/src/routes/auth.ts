@@ -465,6 +465,12 @@ router.get(
         email: userRecord.email,
         name: userRecord.name,
         role,
+        user: {
+          id: userRecord.id,
+          email: userRecord.email,
+          name: userRecord.name,
+          role,
+        },
         workspace,
         connectedAccounts: connectedAccounts ?? [],
       },
@@ -482,7 +488,7 @@ router.get(
  * @returns { message: string }
  */
 router.post(
-  '/reset-password',
+  ['/reset-password', '/forgot-password'],
   asyncHandler(async (req, res) => {
     const body = resetPasswordRequestSchema.parse(req.body);
 

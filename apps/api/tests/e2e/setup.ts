@@ -519,6 +519,215 @@ export function buildE2EMockFrom(): jest.Mock {
   });
 }
 
+// ─── Generic Chainable Store-Backed Query Builder ────────────────
+
+/**
+ * Configuration for a chainable supabase-like query builder backed by the
+ * in-memory test store.
+ *
+ * `listRows()` returns ALL rows for the table (snake_case shaped) so filters,
+ * ordering, ranges, counts, joins and terminal resolvers can be applied
+ * generically — mirroring the parts of the supabase-js builder our routes use.
+ */
+interface ChainableConfig {
+  /** Return the full snake_case row set for this table from the store. */
+  listRows: () => Record<string, unknown>[];
+  /** Insert handler — receives a row, persists it, returns the stored row. */
+  onInsert?: (row: Record<string, unknown>) => Record<string, unknown>;
+  /** Update handler — receives (id, patch), mutates store, returns updated row. */
+  onUpdate?: (id: string, patch: Record<string, unknown>) => Record<string, unknown> | null;
+  /** Delete handler — receives id, removes from store. */
+  onDelete?: (id: string) => void;
+  /** Optional join enrichment applied to each row when select() includes a join. */
+  enrich?: (row: Record<string, unknown>, selectColumns: string) => Record<string, unknown>;
+  /** When true, ignore all eq/in/gte/... filters (synthetic single-row tables). */
+  skipFilters?: boolean;
+}
+
+type Filter = { op: 'eq' | 'neq' | 'in' | 'gte' | 'lte' | 'gt' | 'lt'; field: string; value: unknown };
+
+function applyFilters(rows: Record<string, unknown>[], filters: Filter[]): Record<string, unknown>[] {
+  return rows.filter((row) =>
+    filters.every((f) => {
+      const v = row[f.field];
+      switch (f.op) {
+        case 'eq':
+          return v === f.value;
+        case 'neq':
+          return v !== f.value;
+        case 'in':
+          return Array.isArray(f.value) && (f.value as unknown[]).includes(v);
+        case 'gte':
+          return v != null && (v as string | number) >= (f.value as string | number);
+        case 'lte':
+          return v != null && (v as string | number) <= (f.value as string | number);
+        case 'gt':
+          return v != null && (v as string | number) > (f.value as string | number);
+        case 'lt':
+          return v != null && (v as string | number) < (f.value as string | number);
+        default:
+          return true;
+      }
+    }),
+  );
+}
+
+/**
+ * Build a fully chainable supabase-like query builder. Every filter/order/range
+ * method returns `this`, so arbitrary chains (`.eq().eq().in().gte().order().range()`)
+ * resolve correctly. The builder is a thenable: awaiting it (or calling `.then`)
+ * resolves `{ data, error, count }`. `.single()` / `.maybeSingle()` resolve a
+ * single record. Insert/update/delete are supported via the config handlers.
+ */
+function buildChainableBuilder(config: ChainableConfig) {
+  const filters: Filter[] = [];
+  let selectColumns = '*';
+  let countRequested = false;
+  let headOnly = false;
+  let pendingInsert: Record<string, unknown> | Record<string, unknown>[] | null = null;
+  let pendingUpdate: Record<string, unknown> | null = null;
+  let isDelete = false;
+  let rangeBounds: { from: number; to: number } | null = null;
+  let returnInserted: Record<string, unknown>[] = [];
+
+  const resolveRows = (): { data: Record<string, unknown>[]; count: number } => {
+    // Mutation paths first
+    if (pendingInsert !== null) {
+      const items = Array.isArray(pendingInsert) ? pendingInsert : [pendingInsert];
+      const inserted = items.map((item) => (config.onInsert ? config.onInsert(item) : item));
+      returnInserted = inserted;
+      return { data: inserted, count: inserted.length };
+    }
+    if (pendingUpdate !== null) {
+      const idFilter = filters.find((f) => f.field === 'id' && f.op === 'eq');
+      const updated: Record<string, unknown>[] = [];
+      if (idFilter && config.onUpdate) {
+        const row = config.onUpdate(idFilter.value as string, pendingUpdate);
+        if (row) updated.push(row);
+      }
+      return { data: updated, count: updated.length };
+    }
+    if (isDelete) {
+      const idFilter = filters.find((f) => f.field === 'id' && f.op === 'eq');
+      if (idFilter && config.onDelete) config.onDelete(idFilter.value as string);
+      return { data: [], count: 0 };
+    }
+
+    // Read path
+    let rows = config.listRows();
+    if (config.enrich && selectColumns !== '*') {
+      rows = rows.map((r) => config.enrich!(r, selectColumns));
+    }
+    if (!config.skipFilters) {
+      rows = applyFilters(rows, filters);
+    }
+    const total = rows.length;
+    if (rangeBounds) {
+      rows = rows.slice(rangeBounds.from, rangeBounds.to + 1);
+    }
+    if (headOnly) {
+      return { data: [], count: total };
+    }
+    return { data: rows, count: total };
+  };
+
+  const builder = {
+    select: jest.fn((columns?: string, opts?: { count?: string; head?: boolean }) => {
+      if (typeof columns === 'string') selectColumns = columns;
+      if (opts?.count) countRequested = true;
+      if (opts?.head) headOnly = true;
+      // After an insert/update, select() marks that we want the row(s) back.
+      return builder;
+    }),
+    insert: jest.fn((data: Record<string, unknown> | Record<string, unknown>[]) => {
+      pendingInsert = data;
+      return builder;
+    }),
+    update: jest.fn((data: Record<string, unknown>) => {
+      pendingUpdate = data;
+      return builder;
+    }),
+    delete: jest.fn(() => {
+      isDelete = true;
+      return builder;
+    }),
+    upsert: jest.fn((data: Record<string, unknown>) => {
+      pendingInsert = data;
+      return builder;
+    }),
+    eq: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'eq', field, value });
+      return builder;
+    }),
+    neq: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'neq', field, value });
+      return builder;
+    }),
+    in: jest.fn((field: string, value: unknown[]) => {
+      filters.push({ op: 'in', field, value });
+      return builder;
+    }),
+    gt: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'gt', field, value });
+      return builder;
+    }),
+    lt: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'lt', field, value });
+      return builder;
+    }),
+    gte: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'gte', field, value });
+      return builder;
+    }),
+    lte: jest.fn((field: string, value: unknown) => {
+      filters.push({ op: 'lte', field, value });
+      return builder;
+    }),
+    like: jest.fn(() => builder),
+    ilike: jest.fn(() => builder),
+    or: jest.fn(() => builder),
+    match: jest.fn(() => builder),
+    is: jest.fn(() => builder),
+    not: jest.fn(() => builder),
+    contains: jest.fn(() => builder),
+    order: jest.fn(() => builder),
+    limit: jest.fn(() => builder),
+    range: jest.fn((from: number, to: number) => {
+      rangeBounds = { from, to };
+      return builder;
+    }),
+    single: jest.fn(() => {
+      // For insert/update, return the affected row.
+      if (pendingInsert !== null) {
+        const { data } = resolveRows();
+        const row = data[0] ?? null;
+        return Promise.resolve({ data: row, error: row ? null : { message: 'Insert failed' } });
+      }
+      if (pendingUpdate !== null) {
+        const { data } = resolveRows();
+        const row = data[0] ?? null;
+        return Promise.resolve({ data: row, error: row ? null : { message: 'Not found' } });
+      }
+      const { data } = resolveRows();
+      const row = data[0] ?? null;
+      return Promise.resolve({ data: row, error: row ? null : { message: 'Not found' } });
+    }),
+    maybeSingle: jest.fn(() => {
+      const { data } = resolveRows();
+      return Promise.resolve({ data: data[0] ?? null, error: null });
+    }),
+    count: jest.fn(() => builder),
+    then: jest.fn((onFulfilled: (result: { data: unknown; error: unknown; count: number | null }) => unknown) => {
+      const { data, count } = resolveRows();
+      return Promise.resolve(
+        onFulfilled({ data, error: null, count: countRequested ? count : count }),
+      );
+    }),
+  };
+
+  return builder;
+}
+
 // ─── Query Builder Factories ─────────────────────────────────────
 
 function buildDefaultQueryBuilder() {
@@ -691,6 +900,20 @@ function buildWorkspacesQueryBuilder() {
 function buildWorkspaceMembersQueryBuilder() {
   let currentData: { workspaceId: string; userId: string; role: WorkspaceRole } | null = null;
 
+  // Project a stored member (camelCase) into the snake_case row shape the
+  // routes (and real Supabase) read, e.g. `membership.workspace_id`.
+  const toRow = (
+    member: { workspaceId: string; userId: string; role: WorkspaceRole } | null,
+  ) =>
+    member
+      ? {
+          workspace_id: member.workspaceId,
+          user_id: member.userId,
+          role: member.role,
+          created_at: new Date().toISOString(),
+        }
+      : null;
+
   return {
     select: jest.fn().mockReturnThis(),
     insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
@@ -704,7 +927,7 @@ function buildWorkspaceMembersQueryBuilder() {
         testStore.workspaceMembers.set(`${member.workspaceId}:${member.userId}`, member);
         currentData = member;
       }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }) };
+      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }) };
     }),
     update: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
@@ -717,8 +940,45 @@ function buildWorkspaceMembersQueryBuilder() {
             break;
           }
         }
+      } else if (field === 'workspace_id') {
+        for (const member of testStore.workspaceMembers.values()) {
+          if (member.workspaceId === value) {
+            currentData = member;
+            break;
+          }
+        }
       }
-      return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }), order: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis() };
+      return {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockImplementation((innerField: string, innerValue: unknown) => {
+          if (innerField === 'user_id') {
+            for (const member of testStore.workspaceMembers.values()) {
+              if (member.userId === innerValue) {
+                currentData = member;
+                break;
+              }
+            }
+          } else if (innerField === 'workspace_id') {
+            for (const member of testStore.workspaceMembers.values()) {
+              if (member.workspaceId === innerValue) {
+                currentData = member;
+                break;
+              }
+            }
+          }
+          return {
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+            maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+          };
+        }),
+        single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+      };
     }),
     neq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
@@ -732,9 +992,11 @@ function buildWorkspaceMembersQueryBuilder() {
     limit: jest.fn().mockReturnThis(),
     range: jest.fn().mockReturnThis(),
     single: jest.fn().mockImplementation(() => {
-      return Promise.resolve({ data: currentData, error: null });
+      return Promise.resolve({ data: toRow(currentData), error: null });
     }),
-    maybeSingle: jest.fn().mockResolvedValue({ data: currentData, error: null }),
+    maybeSingle: jest.fn().mockImplementation(() => {
+      return Promise.resolve({ data: toRow(currentData), error: null });
+    }),
     count: jest.fn().mockReturnThis(),
     match: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
@@ -742,7 +1004,7 @@ function buildWorkspaceMembersQueryBuilder() {
     or: jest.fn().mockReturnThis(),
     contains: jest.fn().mockReturnThis(),
     then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: Array.from(testStore.workspaceMembers.values()), error: null, count: testStore.workspaceMembers.size })),
+      Promise.resolve(cb({ data: Array.from(testStore.workspaceMembers.values()).map(toRow), error: null, count: testStore.workspaceMembers.size })),
     ),
   };
 }
@@ -931,7 +1193,95 @@ function buildCampaignsQueryBuilder() {
   };
 }
 
+/**
+ * Map a stored TestDraft (camelCase) to the snake_case DB row shape the
+ * routes/services expect from supabase.
+ */
+function draftToRow(d: TestDraft & Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: d.id,
+    workspace_id: d.workspaceId,
+    campaign_id: d.campaignId,
+    campaign_name: (d.campaignName as string) ?? null,
+    ad_id: (d.adId as string) ?? null,
+    draft_type: d.draftType,
+    platform: d.platform,
+    status: d.status,
+    change_summary: d.changeSummary,
+    change_detail: d.changeDetail,
+    ai_reasoning: (d.aiReasoning as string) ?? null,
+    impact_estimate: (d.impactEstimate as string) ?? null,
+    actor_type: d.actorType,
+    actor_id: d.actorId,
+    actor_name: (d.actorName as string) ?? null,
+    rule_id: (d.ruleId as string) ?? null,
+    approver_id: d.approverId ?? null,
+    approval_note: d.approvalNote ?? null,
+    scheduled_at: (d.scheduledAt as string) ?? null,
+    executed_at: (d.executedAt as string) ?? null,
+    resolved_at: (d.resolvedAt as string) ?? null,
+    error_message: (d.errorMessage as string) ?? null,
+    created_at: d.createdAt,
+    // Joined campaign relation is null in the in-memory store.
+    campaigns: null,
+  };
+}
+
+/** Apply a snake_case DB patch back onto the stored TestDraft (camelCase). */
+function applyDraftPatch(id: string, patch: Record<string, unknown>): Record<string, unknown> | null {
+  const existing = testStore.drafts.get(id) as (TestDraft & Record<string, unknown>) | undefined;
+  if (!existing) return null;
+  if (patch.status !== undefined) existing.status = patch.status as TestDraft['status'];
+  if (patch.approver_id !== undefined) existing.approverId = patch.approver_id as string;
+  if (patch.approval_note !== undefined) existing.approvalNote = patch.approval_note as string;
+  if (patch.scheduled_at !== undefined) (existing as Record<string, unknown>).scheduledAt = patch.scheduled_at;
+  if (patch.executed_at !== undefined) (existing as Record<string, unknown>).executedAt = patch.executed_at;
+  if (patch.resolved_at !== undefined) (existing as Record<string, unknown>).resolvedAt = patch.resolved_at;
+  if (patch.error_message !== undefined) (existing as Record<string, unknown>).errorMessage = patch.error_message;
+  testStore.drafts.set(id, existing);
+  return draftToRow(existing);
+}
+
 function buildDraftsQueryBuilder() {
+  return buildChainableBuilder({
+    listRows: () =>
+      Array.from(testStore.drafts.values()).map((d) => draftToRow(d as TestDraft & Record<string, unknown>)),
+    onInsert: (item) => {
+      const draft: TestDraft = {
+        id: (item.id as string) || randomUUID(),
+        workspaceId: (item.workspace_id as string) || '',
+        campaignId: (item.campaign_id as string) || '',
+        draftType: (item.draft_type as string) || 'budget_change',
+        platform: (item.platform as string) || 'meta',
+        status: (item.status as TestDraft['status']) || 'pending',
+        changeSummary: (item.change_summary as string) || '',
+        changeDetail: (item.change_detail as Record<string, unknown>) || {},
+        actorType: (item.actor_type as string) || 'user',
+        actorId: (item.actor_id as string) || '',
+        approverId: item.approver_id as string | undefined,
+        approvalNote: item.approval_note as string | undefined,
+        createdAt: new Date().toISOString(),
+      };
+      // Preserve extra columns (campaign_name, ad_id, ai_reasoning, etc.)
+      const stored = Object.assign(draft, {
+        campaignName: item.campaign_name,
+        adId: item.ad_id,
+        aiReasoning: item.ai_reasoning,
+        impactEstimate: item.impact_estimate,
+        actorName: item.actor_name,
+        ruleId: item.rule_id,
+      });
+      testStore.drafts.set(draft.id, stored);
+      return draftToRow(stored as TestDraft & Record<string, unknown>);
+    },
+    onUpdate: (id, patch) => applyDraftPatch(id, patch),
+    onDelete: (id) => {
+      testStore.drafts.delete(id);
+    },
+  });
+}
+
+function _legacyBuildDraftsQueryBuilder() {
   let currentData: Record<string, unknown> | null = null;
   let filterField: string | null = null;
   let filterValue: unknown = null;
@@ -1119,82 +1469,179 @@ function buildPasswordResetsQueryBuilder() {
 }
 
 function buildAuditLogQueryBuilder() {
-  return {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
-      const items = Array.isArray(data) ? data : [data];
-      for (const item of items) {
-        const id = randomUUID();
-        const logs = testStore.auditLogs.get('default') || [];
-        logs.push({ id, ...item });
-        testStore.auditLogs.set('default', logs);
-      }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: items[0], error: null }) };
-    }),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    single: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockReturnThis(),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: testStore.auditLogs.get('default') || [], error: null, count: (testStore.auditLogs.get('default') || []).length })),
-    ),
-  };
+  return buildChainableBuilder({
+    listRows: () => testStore.auditLogs.get('default') || [],
+    onInsert: (item) => {
+      const id = randomUUID();
+      const row = { id, ...item };
+      const logs = testStore.auditLogs.get('default') || [];
+      logs.push(row);
+      testStore.auditLogs.set('default', logs);
+      return row;
+    },
+  });
 }
 
 function buildAdAccountsQueryBuilder() {
+  // Provide a single connected Meta ad account that carries an oauth_token so
+  // the draft execution engine's platform-client factory can initialize.
+  // Filters (workspace_id / platform) are ignored — the synthetic account
+  // matches any workspace in the in-memory store.
+  return buildChainableBuilder({
+    listRows: () => [
+      {
+        id: randomUUID(),
+        platform: 'meta',
+        account_id: 'act_1234567890',
+        workspace_id: '',
+        oauth_token: 'test-oauth-token',
+      },
+    ],
+    skipFilters: true,
+  });
+}
+
+// ─── Mock Supabase Auth Admin Builder for E2E Tests ──────────────
+
+/**
+ * Build a comprehensive mock of the Supabase `auth` namespace (including
+ * `auth.admin.*`) backed by the same in-memory `testStore`. This lets E2E
+ * tests exercise signup/signin/forgot-password/change-password flows that
+ * rely on the Supabase Auth Admin API without a real Supabase project.
+ *
+ * Backing semantics:
+ * - `admin.listUsers()` reflects every user currently in `testStore.users`,
+ *   so duplicate-email detection works for both `createTestUser()` and users
+ *   created via `admin.createUser()` within the same test.
+ * - `admin.createUser()` inserts a new user into `testStore.users` (so it is
+ *   discoverable by subsequent `listUsers()` calls) and returns its id/email.
+ * - `signInWithPassword()` verifies the supplied password against the stored
+ *   bcrypt hash, so correct passwords succeed and wrong/unknown ones fail.
+ */
+export function buildE2EAuthMock() {
+  const findUserByEmail = (email: string): TestUser | undefined => {
+    const lower = email.toLowerCase();
+    for (const user of testStore.users.values()) {
+      if (user.email.toLowerCase() === lower) {
+        return user;
+      }
+    }
+    return undefined;
+  };
+
+  const toAuthUser = (user: TestUser) => ({
+    id: user.id,
+    email: user.email,
+    user_metadata: { name: user.name },
+    app_metadata: {},
+    aud: 'authenticated',
+    created_at: user.createdAt,
+  });
+
   return {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    single: jest.fn().mockImplementation(() =>
-      Promise.resolve({
-        data: { id: randomUUID(), platform: 'meta', account_id: 'act_1234567890', workspace_id: '' },
+    // ── Standard (non-admin) auth surface ──
+    getUser: jest.fn(async (_token?: string) => {
+      return { data: { user: null }, error: null };
+    }),
+    signInWithPassword: jest.fn(async (credentials: { email: string; password: string }) => {
+      const user = findUserByEmail(credentials.email);
+      if (!user) {
+        return {
+          data: { user: null, session: null },
+          error: { message: 'Invalid login credentials', status: 400 },
+        };
+      }
+      const hash = user.passwordHash || testStore.passwordHashes.get(user.id);
+      const passwordValid = hash
+        ? await bcrypt.compare(credentials.password, hash)
+        : credentials.password === user.password;
+      if (!passwordValid) {
+        return {
+          data: { user: null, session: null },
+          error: { message: 'Invalid login credentials', status: 400 },
+        };
+      }
+      return {
+        data: {
+          user: toAuthUser(user),
+          session: { access_token: 'mock-access-token', refresh_token: 'mock-refresh-token' },
+        },
         error: null,
+      };
+    }),
+    signOut: jest.fn(async () => ({ error: null })),
+    resetPasswordForEmail: jest.fn(async (_email: string, _opts?: Record<string, unknown>) => ({
+      data: {},
+      error: null,
+    })),
+
+    // ── Admin auth surface (service-role) ──
+    admin: {
+      listUsers: jest.fn(async () => ({
+        data: { users: Array.from(testStore.users.values()).map(toAuthUser) },
+        error: null,
+      })),
+      createUser: jest.fn(async (attrs: {
+        email: string;
+        password?: string;
+        email_confirm?: boolean;
+        user_metadata?: { name?: string };
+      }) => {
+        const id = randomUUID();
+        const name = attrs.user_metadata?.name || 'Test User';
+        const passwordHash = attrs.password ? await bcrypt.hash(attrs.password, 12) : '';
+        const user: TestUser = {
+          id,
+          email: attrs.email,
+          name,
+          password: attrs.password || '',
+          passwordHash,
+          role: 'owner',
+          workspaceId: '',
+          createdAt: new Date().toISOString(),
+        };
+        testStore.users.set(id, user);
+        if (passwordHash) {
+          testStore.passwordHashes.set(id, passwordHash);
+        }
+        return { data: { user: toAuthUser(user) }, error: null };
       }),
-    ),
-    maybeSingle: jest.fn().mockReturnThis(),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: [], error: null, count: 0 })),
-    ),
+      deleteUser: jest.fn(async (id: string) => {
+        testStore.users.delete(id);
+        testStore.passwordHashes.delete(id);
+        return { data: { user: null }, error: null };
+      }),
+      updateUserById: jest.fn(async (
+        id: string,
+        attrs: { password?: string; email?: string; user_metadata?: { name?: string } },
+      ) => {
+        const user = testStore.users.get(id);
+        if (!user) {
+          return { data: { user: null }, error: { message: 'User not found', status: 404 } };
+        }
+        if (attrs.password) {
+          const passwordHash = await bcrypt.hash(attrs.password, 12);
+          user.password = attrs.password;
+          user.passwordHash = passwordHash;
+          testStore.passwordHashes.set(id, passwordHash);
+        }
+        if (attrs.email) {
+          user.email = attrs.email;
+        }
+        if (attrs.user_metadata?.name) {
+          user.name = attrs.user_metadata.name;
+        }
+        testStore.users.set(id, user);
+        return { data: { user: toAuthUser(user) }, error: null };
+      }),
+      getUserById: jest.fn(async (id: string) => {
+        const user = testStore.users.get(id);
+        return {
+          data: { user: user ? toAuthUser(user) : null },
+          error: null,
+        };
+      }),
+    },
   };
 }
 
