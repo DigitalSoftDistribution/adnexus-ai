@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto';
 import { config } from '../../src/config';
 import { supabase } from '../../src/lib/supabase';
 import type { WorkspaceRole } from '../../src/types';
+import { UUIDS } from '../fixtures/data';
 
 // ─── Environment Configuration ───────────────────────────────────
 
@@ -75,7 +76,242 @@ const testStore = {
   drafts: new Map<string, Record<string, unknown>>(),
   auditLogs: new Map<string, Record<string, unknown>[]>(),
   passwordResets: new Map<string, { token: string; expiresAt: Date }>(),
+  // Synthetic ad-account registry. The campaigns route resolves a campaign's
+  // platform via SELECT ... FROM ad_accounts; there is no first-class ad_accounts
+  // helper, so we seed it from fixtures + createTestCampaign.
+  adAccounts: new Map<string, { id: string; workspaceId: string; platform: string; accountId: string; name: string }>(),
 };
+
+// Seed the two fixture ad accounts so POST /campaigns (which sends
+// UUIDS.metaAccount / UUIDS.googleAccount) can resolve a platform. These are
+// workspace-agnostic: getAdAccountPlatform matches on id, and the per-test
+// workspace id is dynamic.
+function seedDefaultAdAccounts(): void {
+  testStore.adAccounts.set(UUIDS.metaAccount, {
+    id: UUIDS.metaAccount, workspaceId: '', platform: 'meta', accountId: 'act_1234567890', name: 'Meta Ad Account',
+  });
+  testStore.adAccounts.set(UUIDS.googleAccount, {
+    id: UUIDS.googleAccount, workspaceId: '', platform: 'google', accountId: '123-456-7890', name: 'Google Ad Account',
+  });
+}
+
+// ─── Store-backed raw SQL query() mock ───────────────────────────
+//
+// The campaigns route (src/routes/campaigns.ts) reads/writes via raw SQL using
+// query() from src/db/connection — NOT via supabase. tests/setup.ts mocks that
+// module so query() always returns { rows: [], rowCount: 0 }, which makes the
+// campaigns e2e suite see an empty DB (lists empty, get-by-id 404, create 404).
+//
+// Here we replace that mock's implementation with one backed by the in-memory
+// testStore. We match the SQL the route issues loosely (case-insensitive key
+// substrings) and honor the positional $1..$n params. The route projects the
+// campaign columns in snake_case plus the joined ad-account columns, so we shape
+// rows accordingly.
+
+interface AdAccountRow {
+  id: string;
+  workspaceId: string;
+  platform: string;
+  accountId: string;
+  name: string;
+}
+
+/** Build the snake_case "campaign joined with ad_account" row the route selects. */
+function campaignJoinRow(c: TestCampaign): Record<string, unknown> | null {
+  const account = testStore.adAccounts.get(c.adAccountId);
+  const platform = account?.platform ?? c.platform;
+  const workspaceId = c.workspaceId;
+  return {
+    // campaign columns (c.*)
+    id: c.id,
+    workspace_id: workspaceId,
+    ad_account_id: c.adAccountId,
+    name: c.name,
+    status: c.status,
+    objective: c.objective,
+    daily_budget: c.dailyBudget,
+    platform_campaign_id: `ext_${c.id.slice(0, 8)}`,
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    roas: 0,
+    conversions: 0,
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+    // joined ad_account columns
+    platform,
+    ad_account_account_id: account?.accountId ?? `act_${c.adAccountId.slice(0, 8)}`,
+    ad_account_name: account?.name ?? `${platform} Ad Account`,
+  };
+}
+
+/** Resolve campaigns for a workspace honoring optional platform/status/name filters. */
+function filterCampaigns(
+  workspaceId: string,
+  opts: { platform?: string; status?: string; nameLike?: string } = {},
+): Record<string, unknown>[] {
+  let rows = Array.from(testStore.campaigns.values())
+    .map((c) => c as unknown as TestCampaign)
+    .filter((c) => c.workspaceId === workspaceId)
+    .map((c) => campaignJoinRow(c))
+    .filter((r): r is Record<string, unknown> => r !== null);
+
+  if (opts.platform) rows = rows.filter((r) => r.platform === opts.platform);
+  if (opts.status) rows = rows.filter((r) => r.status === opts.status);
+  if (opts.nameLike) {
+    const needle = opts.nameLike.replace(/%/g, '').toLowerCase();
+    rows = rows.filter((r) => String(r.name).toLowerCase().includes(needle));
+  }
+  return rows;
+}
+
+/**
+ * Parse the dynamic WHERE filters the list/count queries build. The route always
+ * puts workspace_id at $1, then appends a.platform / c.status / c.name ILIKE in
+ * that order using the remaining params (before the trailing LIMIT/OFFSET pair).
+ */
+function parseListFilters(
+  sqlLower: string,
+  params: unknown[],
+): { workspaceId: string; platform?: string; status?: string; nameLike?: string } {
+  const workspaceId = params[0] as string;
+  let idx = 1;
+  const out: { workspaceId: string; platform?: string; status?: string; nameLike?: string } = { workspaceId };
+  if (sqlLower.includes('a.platform =')) out.platform = params[idx++] as string;
+  if (sqlLower.includes('c.status =')) out.status = params[idx++] as string;
+  if (sqlLower.includes('c.name ilike')) out.nameLike = params[idx++] as string;
+  return out;
+}
+
+function storeBackedQuery(sql: string, params: unknown[] = []): { rows: Record<string, unknown>[]; rowCount: number } {
+  const s = sql.toLowerCase();
+  const wrap = (rows: Record<string, unknown>[]) => ({ rows, rowCount: rows.length });
+
+  // getAdAccountPlatform: SELECT platform FROM ad_accounts WHERE id = $1 AND workspace_id = $2
+  if (s.includes('from ad_accounts') && s.includes('select platform')) {
+    const account = testStore.adAccounts.get(params[0] as string);
+    return wrap(account ? [{ platform: account.platform }] : []);
+  }
+
+  // verifyCampaignWorkspace: SELECT c.id, c.name, a.platform, c.platform_campaign_id, c.status ... WHERE c.id = $1 AND a.workspace_id = $2
+  if (s.includes('from campaigns c') && s.includes('c.platform_campaign_id') && s.includes('where c.id =')) {
+    const c = testStore.campaigns.get(params[0] as string) as unknown as TestCampaign | undefined;
+    const ws = params[1] as string;
+    if (!c || c.workspaceId !== ws) return wrap([]);
+    const row = campaignJoinRow(c)!;
+    return wrap([{
+      id: row.id,
+      name: row.name,
+      platform: row.platform,
+      platform_campaign_id: row.platform_campaign_id,
+      status: row.status,
+    }]);
+  }
+
+  // get-by-id detail: SELECT c.*, a.platform, a.name AS ad_account_name ... WHERE c.id = $1 AND a.workspace_id = $2 LIMIT 1
+  if (
+    s.includes('from campaigns c') &&
+    s.includes('where c.id =') &&
+    s.includes('a.workspace_id =') &&
+    s.includes('c.*')
+  ) {
+    const c = testStore.campaigns.get(params[0] as string) as unknown as TestCampaign | undefined;
+    const ws = params[1] as string;
+    if (!c || c.workspaceId !== ws) return wrap([]);
+    return wrap([campaignJoinRow(c)!]);
+  }
+
+  // Count: SELECT COUNT(*)::int AS total FROM campaigns c JOIN ad_accounts a ...
+  if (s.includes('count(*)::int as total') && s.includes('from campaigns c')) {
+    const f = parseListFilters(s, params);
+    const rows = filterCampaigns(f.workspaceId, f);
+    return wrap([{ total: rows.length }]);
+  }
+
+  // Data list: SELECT c.*, a.platform, a.account_id AS ad_account_account_id ... ORDER BY ... LIMIT $ OFFSET $
+  if (s.includes('from campaigns c') && s.includes('ad_account_account_id')) {
+    const f = parseListFilters(s, params);
+    let rows = filterCampaigns(f.workspaceId, f);
+    // ORDER BY created_at DESC is the route default; store rows share a created_at
+    // so insertion order (Map order) is a stable proxy. Honor LIMIT/OFFSET.
+    const limit = Number(params[params.length - 2]);
+    const offset = Number(params[params.length - 1]);
+    if (!Number.isNaN(offset)) rows = rows.slice(offset);
+    if (!Number.isNaN(limit)) rows = rows.slice(0, limit);
+    return wrap(rows);
+  }
+
+  // Summary aggregate (total/active/spend/...)
+  if (s.includes('total_campaigns') && s.includes('from campaigns c')) {
+    const ws = params[0] as string;
+    const rows = filterCampaigns(ws);
+    const active = rows.filter((r) => r.status === 'active').length;
+    return wrap([{
+      total_campaigns: rows.length,
+      active_campaigns: active,
+      total_spend: 0,
+      total_conversions: 0,
+      avg_ctr: 0,
+      avg_roas: 0,
+    }]);
+  }
+
+  // Summary platform breakdown
+  if (s.includes('group by a.platform') && s.includes('from campaigns c')) {
+    const ws = params[0] as string;
+    const rows = filterCampaigns(ws);
+    const byPlatform = new Map<string, { platform: string; count: number; active_count: number; total_spend: number }>();
+    for (const r of rows) {
+      const p = String(r.platform);
+      const entry = byPlatform.get(p) ?? { platform: p, count: 0, active_count: 0, total_spend: 0 };
+      entry.count++;
+      if (r.status === 'active') entry.active_count++;
+      byPlatform.set(p, entry);
+    }
+    return wrap(Array.from(byPlatform.values()));
+  }
+
+  // Summary status breakdown
+  if (s.includes('group by c.status') && s.includes('from campaigns c')) {
+    const ws = params[0] as string;
+    const rows = filterCampaigns(ws);
+    const byStatus = new Map<string, { status: string; count: number }>();
+    for (const r of rows) {
+      const st = String(r.status);
+      const entry = byStatus.get(st) ?? { status: st, count: 0 };
+      entry.count++;
+      byStatus.set(st, entry);
+    }
+    return wrap(Array.from(byStatus.values()));
+  }
+
+  // adsets / ads / campaign_metrics / duplicate-detail campaigns lookup → empty.
+  // The route handles empty rows gracefully (empty ad_sets, zeroed insights).
+  return wrap([]);
+}
+
+/**
+ * Install the store-backed implementation onto the globally-mocked query().
+ * tests/setup.ts mocks src/db/connection; we grab the same mock instance and
+ * drive it from the in-memory store.
+ */
+function installStoreBackedDbQuery(): void {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const dbMock = jest.requireMock('../../src/db/connection') as any;
+  if (dbMock?.query?.mockImplementation) {
+    (dbMock.query as jest.Mock).mockImplementation((sql: string, params?: unknown[]) =>
+      Promise.resolve(storeBackedQuery(sql, params ?? [])),
+    );
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+// Install immediately on module load so it is active for every e2e suite that
+// imports this setup (campaigns, drafts, auth, ...). beforeEach's
+// jest.clearAllMocks() clears call history but preserves implementations.
+installStoreBackedDbQuery();
+
 
 // ─── Test Database Setup ─────────────────────────────────────────
 
@@ -95,6 +331,8 @@ export async function setupTestDB(): Promise<TestDBConfig> {
   testStore.drafts.clear();
   testStore.auditLogs.clear();
   testStore.passwordResets.clear();
+  testStore.adAccounts.clear();
+  seedDefaultAdAccounts();
 
   const dbConfig: TestDBConfig = {
     databaseName,
@@ -118,6 +356,7 @@ export async function teardownTestDB(_dbConfig?: TestDBConfig): Promise<void> {
   testStore.drafts.clear();
   testStore.auditLogs.clear();
   testStore.passwordResets.clear();
+  testStore.adAccounts.clear();
 
   // Clear all Jest mocks
   jest.clearAllMocks();
@@ -134,6 +373,8 @@ export async function cleanupTables(tables?: string[]): Promise<void> {
     switch (table) {
       case 'campaigns':
         testStore.campaigns.clear();
+        testStore.adAccounts.clear();
+        seedDefaultAdAccounts();
         break;
       case 'drafts':
         testStore.drafts.clear();
@@ -149,6 +390,8 @@ export async function cleanupTables(tables?: string[]): Promise<void> {
         testStore.drafts.clear();
         testStore.auditLogs.clear();
         testStore.passwordResets.clear();
+        testStore.adAccounts.clear();
+        seedDefaultAdAccounts();
         break;
     }
   }
@@ -435,6 +678,19 @@ export async function createTestCampaign(
   };
 
   testStore.campaigns.set(id, campaign);
+
+  // Register a synthetic ad account for this campaign so the campaigns route's
+  // SQL JOIN (campaigns -> ad_accounts) and getAdAccountPlatform() resolve.
+  if (!testStore.adAccounts.has(campaign.adAccountId)) {
+    testStore.adAccounts.set(campaign.adAccountId, {
+      id: campaign.adAccountId,
+      workspaceId,
+      platform: campaign.platform,
+      accountId: `act_${campaign.adAccountId.slice(0, 10)}`,
+      name: `${campaign.platform} Ad Account`,
+    });
+  }
+
   return campaign;
 }
 
@@ -465,12 +721,28 @@ export async function createTestDraft(
 ): Promise<TestDraft> {
   const id = overrides.id || randomUUID();
 
+  const campaignId = overrides.campaignId || randomUUID();
+  const platform = overrides.platform || 'meta';
+
+  // Ensure the campaign the draft references exists in the store so the
+  // execution engine's validator (checkCampaignExists -> getCampaign) passes.
+  // Without this, approve/reject/cancel flows fail validation with
+  // CAMPAIGN_NOT_FOUND -> 500 EXECUTION_FAILED.
+  if (!testStore.campaigns.has(campaignId)) {
+    await createTestCampaign(workspaceId, {
+      id: campaignId,
+      platform: platform as TestCampaign['platform'],
+      status: 'active',
+      dailyBudget: 100,
+    });
+  }
+
   const draft: TestDraft = {
     id,
     workspaceId,
-    campaignId: overrides.campaignId || randomUUID(),
+    campaignId,
     draftType: overrides.draftType || 'budget_change',
-    platform: overrides.platform || 'meta',
+    platform,
     status: overrides.status || 'pending',
     changeSummary: overrides.changeSummary || `Test draft ${id.slice(0, 4)}`,
     changeDetail: overrides.changeDetail || { field: 'daily_budget', old_value: 100, new_value: 120 },
@@ -898,115 +1170,29 @@ function buildWorkspacesQueryBuilder() {
 }
 
 function buildWorkspaceMembersQueryBuilder() {
-  let currentData: { workspaceId: string; userId: string; role: WorkspaceRole } | null = null;
+  // Delegate to the generic store-backed chainable builder so that arbitrary
+  // chains the routes use (e.g. `.select('user_id').eq('workspace_id', x).in('role', [...])`
+  // in notifyApprovers) resolve correctly. Members are stored camelCase; project
+  // them to the snake_case row shape the routes (and real Supabase) read.
+  const toRow = (m: { workspaceId: string; userId: string; role: WorkspaceRole }) => ({
+    workspace_id: m.workspaceId,
+    user_id: m.userId,
+    role: m.role,
+    created_at: new Date().toISOString(),
+  });
 
-  // Project a stored member (camelCase) into the snake_case row shape the
-  // routes (and real Supabase) read, e.g. `membership.workspace_id`.
-  const toRow = (
-    member: { workspaceId: string; userId: string; role: WorkspaceRole } | null,
-  ) =>
-    member
-      ? {
-          workspace_id: member.workspaceId,
-          user_id: member.userId,
-          role: member.role,
-          created_at: new Date().toISOString(),
-        }
-      : null;
-
-  return {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
-      const items = Array.isArray(data) ? data : [data];
-      for (const item of items) {
-        const member = {
-          workspaceId: (item.workspace_id as string) || '',
-          userId: (item.user_id as string) || '',
-          role: (item.role as WorkspaceRole) || 'analyst',
-        };
-        testStore.workspaceMembers.set(`${member.workspaceId}:${member.userId}`, member);
-        currentData = member;
-      }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }) };
-    }),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockImplementation((field: string, value: unknown) => {
-      if (field === 'user_id') {
-        for (const member of testStore.workspaceMembers.values()) {
-          if (member.userId === value) {
-            currentData = member;
-            break;
-          }
-        }
-      } else if (field === 'workspace_id') {
-        for (const member of testStore.workspaceMembers.values()) {
-          if (member.workspaceId === value) {
-            currentData = member;
-            break;
-          }
-        }
-      }
-      return {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockImplementation((innerField: string, innerValue: unknown) => {
-          if (innerField === 'user_id') {
-            for (const member of testStore.workspaceMembers.values()) {
-              if (member.userId === innerValue) {
-                currentData = member;
-                break;
-              }
-            }
-          } else if (innerField === 'workspace_id') {
-            for (const member of testStore.workspaceMembers.values()) {
-              if (member.workspaceId === innerValue) {
-                currentData = member;
-                break;
-              }
-            }
-          }
-          return {
-            select: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
-            maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
-            order: jest.fn().mockReturnThis(),
-            limit: jest.fn().mockReturnThis(),
-          };
-        }),
-        single: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
-        maybeSingle: jest.fn().mockResolvedValue({ data: toRow(currentData), error: null }),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
+  return buildChainableBuilder({
+    listRows: () => Array.from(testStore.workspaceMembers.values()).map(toRow),
+    onInsert: (item) => {
+      const member = {
+        workspaceId: (item.workspace_id as string) || '',
+        userId: (item.user_id as string) || '',
+        role: (item.role as WorkspaceRole) || 'analyst',
       };
-    }),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    single: jest.fn().mockImplementation(() => {
-      return Promise.resolve({ data: toRow(currentData), error: null });
-    }),
-    maybeSingle: jest.fn().mockImplementation(() => {
-      return Promise.resolve({ data: toRow(currentData), error: null });
-    }),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: Array.from(testStore.workspaceMembers.values()).map(toRow), error: null, count: testStore.workspaceMembers.size })),
-    ),
-  };
+      testStore.workspaceMembers.set(`${member.workspaceId}:${member.userId}`, member);
+      return toRow(member);
+    },
+  });
 }
 
 function buildAuthPasswordsQueryBuilder() {
@@ -1052,145 +1238,65 @@ function buildAuthPasswordsQueryBuilder() {
 }
 
 function buildCampaignsQueryBuilder() {
-  let currentData: Record<string, unknown> | null = null;
-  let filterField: string | null = null;
-  let filterValue: unknown = null;
-
-  return {
-    select: jest.fn().mockImplementation((columns?: string) => {
-      // Support join-style selects (e.g., '*, ad_accounts!inner(platform, workspace_id)')
-      if (columns && columns.includes('ad_accounts')) {
-        // Return campaigns enriched with ad_accounts data
-        const campaigns = Array.from(testStore.campaigns.values());
-        const enriched = campaigns.map(c => ({
-          ...c,
-          ad_accounts: { platform: (c as TestCampaign).platform || 'meta', workspace_id: (c as TestCampaign).workspaceId },
-        }));
-        return {
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          range: jest.fn().mockImplementation((_from: number, _to: number) => ({
-            then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-              Promise.resolve(cb({ data: enriched, error: null, count: campaigns.length })),
-            ),
-          })),
-          then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-            Promise.resolve(cb({ data: enriched, error: null, count: campaigns.length })),
-          ),
-        };
-      }
-      return {
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: currentData, error: null }),
-        then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-          Promise.resolve(cb({ data: Array.from(testStore.campaigns.values()), error: null, count: testStore.campaigns.size })),
-        ),
-      };
-    }),
-    insert: jest.fn().mockImplementation((data: Record<string, unknown> | Record<string, unknown>[]) => {
-      const items = Array.isArray(data) ? data : [data];
-      for (const item of items) {
-        const campaign: TestCampaign = {
-          id: (item.id as string) || randomUUID(),
-          workspaceId: (item.workspace_id as string) || '',
-          adAccountId: (item.ad_account_id as string) || '',
-          name: (item.name as string) || 'Test Campaign',
-          status: (item.status as string) || 'active',
-          objective: (item.objective as string) || 'CONVERSIONS',
-          dailyBudget: (item.daily_budget as number) || 0,
-          platform: 'meta',
-        };
-        testStore.campaigns.set(campaign.id, campaign);
-        currentData = campaign as unknown as Record<string, unknown>;
-      }
-      return { select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }) };
-    }),
-    update: jest.fn().mockImplementation((data: Record<string, unknown>) => {
-      if (currentData && filterValue) {
-        const updated = { ...currentData, ...data };
-        testStore.campaigns.set(filterValue as string, updated);
-        currentData = updated;
-      }
-      return { eq: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: currentData, error: null }) };
-    }),
-    delete: jest.fn().mockImplementation(() => {
-      if (filterValue) {
-        testStore.campaigns.delete(filterValue as string);
-      }
-      return { eq: jest.fn().mockReturnThis() };
-    }),
-    upsert: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockImplementation((field: string, value: unknown) => {
-      filterField = field;
-      filterValue = value;
-      if (field === 'id') {
-        currentData = testStore.campaigns.get(value as string) || null;
-      }
-      return {
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockReturnThis(),
-        single: jest.fn().mockImplementation(() => {
-          const campaign = testStore.campaigns.get(value as string);
-          return Promise.resolve({
-            data: campaign ? { ...campaign, ad_accounts: { workspace_id: (campaign as TestCampaign).workspaceId, platform: (campaign as TestCampaign).platform } } : null,
-            error: campaign ? null : { message: 'Not found' },
-          });
-        }),
-        select: jest.fn().mockImplementation((columns?: string) => {
-          if (columns && columns.includes('ad_accounts')) {
-            const campaign = testStore.campaigns.get(value as string);
-            return {
-              single: jest.fn().mockResolvedValue({
-                data: campaign ? { ...campaign, ad_accounts: { workspace_id: (campaign as TestCampaign).workspaceId, platform: (campaign as TestCampaign).platform } } : null,
-                error: campaign ? null : { message: 'Not found' },
-              }),
-            };
-          }
-          return { single: jest.fn().mockResolvedValue({ data: currentData, error: null }) };
-        }),
-        then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) => {
-          const campaigns = Array.from(testStore.campaigns.values()).filter(c => (c as TestCampaign).workspaceId === value);
-          return Promise.resolve(cb({ data: campaigns, error: null, count: campaigns.length }));
-        }),
-      };
-    }),
-    neq: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockImplementation((_from: number, _to: number) => ({
-      then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) => {
-        const campaigns = Array.from(testStore.campaigns.values());
-        return Promise.resolve(cb({ data: campaigns, error: null, count: campaigns.length }));
-      }),
-    })),
-    single: jest.fn().mockImplementation(() => {
-      const campaign = filterValue ? testStore.campaigns.get(filterValue as string) : null;
-      return Promise.resolve({
-        data: campaign || null,
-        error: campaign ? null : { message: 'Not found' },
-      });
-    }),
-    maybeSingle: jest.fn().mockResolvedValue({ data: currentData, error: null }),
-    count: jest.fn().mockReturnThis(),
-    match: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    not: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    then: jest.fn().mockImplementation((cb: (result: unknown) => unknown) =>
-      Promise.resolve(cb({ data: Array.from(testStore.campaigns.values()), error: null, count: testStore.campaigns.size })),
-    ),
+  // Project stored campaigns (camelCase) into the snake_case row shape the
+  // routes and engine mappers read (e.g. mapDbCampaignToEngineCampaign reads
+  // `daily_budget`, `created_at`, `ad_account_id`). Delegate to the generic
+  // store-backed chainable builder so chains like
+  // `.select('*').eq('id', x).single()` resolve from the store, and join
+  // selects (`*, ad_accounts!inner(...)`) get enriched.
+  const toRow = (c: Record<string, unknown>) => {
+    const tc = c as TestCampaign;
+    return {
+      id: tc.id,
+      workspace_id: tc.workspaceId,
+      ad_account_id: tc.adAccountId,
+      name: tc.name,
+      status: tc.status,
+      objective: tc.objective,
+      daily_budget: tc.dailyBudget,
+      platform: tc.platform,
+      platform_campaign_id: (c.platformCampaignId as string) ?? tc.id,
+      created_at: (c.createdAt as string) ?? new Date().toISOString(),
+      updated_at: (c.updatedAt as string) ?? new Date().toISOString(),
+    };
   };
+
+  return buildChainableBuilder({
+    listRows: () => Array.from(testStore.campaigns.values()).map(toRow),
+    onInsert: (item) => {
+      const campaign: TestCampaign = {
+        id: (item.id as string) || randomUUID(),
+        workspaceId: (item.workspace_id as string) || '',
+        adAccountId: (item.ad_account_id as string) || '',
+        name: (item.name as string) || 'Test Campaign',
+        status: (item.status as string) || 'active',
+        objective: (item.objective as string) || 'CONVERSIONS',
+        dailyBudget: (item.daily_budget as number) || 0,
+        platform: (item.platform as TestCampaign['platform']) || 'meta',
+      };
+      testStore.campaigns.set(campaign.id, campaign);
+      return toRow(campaign as unknown as Record<string, unknown>);
+    },
+    onUpdate: (id, patch) => {
+      const existing = testStore.campaigns.get(id);
+      if (!existing) return null;
+      const updated = { ...existing, ...patch } as Record<string, unknown>;
+      testStore.campaigns.set(id, updated);
+      return toRow(updated);
+    },
+    onDelete: (id) => {
+      testStore.campaigns.delete(id);
+    },
+    enrich: (row, columns) => {
+      if (columns.includes('ad_accounts')) {
+        return {
+          ...row,
+          ad_accounts: { platform: row.platform, workspace_id: row.workspace_id },
+        };
+      }
+      return row;
+    },
+  });
 }
 
 /**

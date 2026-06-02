@@ -1,12 +1,21 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db/connection';
-import { ValidationError, NotFoundError } from '../lib/errors';
+import { ValidationError, NotFoundError, ForbiddenError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
 import { createDraft } from '../services/drafts-service';
 import type { UnifiedCampaign, CampaignStatus, DraftType, Platform } from '../types';
 
 const router = Router();
+
+// Mutating campaign operations require a non-viewer role.
+// Role is read from the verified JWT (req.user.role) — no DB round-trip —
+// so it works uniformly across unit/integration/e2e harnesses.
+function requireWriteRole(req: { user?: { role?: string } }): void {
+  if (req.user?.role === 'viewer') {
+    throw new ForbiddenError('Viewers cannot modify campaigns');
+  }
+}
 
 // ─── Allowed sort columns (whitelist for SQL ordering) ───────
 
@@ -322,6 +331,7 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
+    requireWriteRole(req);
     const workspaceId = req.workspaceId!;
 
     const schema = z.object({
@@ -388,6 +398,7 @@ router.post(
 router.put(
   '/:id',
   asyncHandler(async (req, res) => {
+    requireWriteRole(req);
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
 
@@ -512,6 +523,7 @@ router.put(
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
+    requireWriteRole(req);
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
 
@@ -549,6 +561,7 @@ router.delete(
 router.post(
   '/:id/pause',
   asyncHandler(async (req, res) => {
+    requireWriteRole(req);
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
 

@@ -105,10 +105,11 @@ describe('E2E: Campaign CRUD', () => {
       expect(response.body.data).toBeDefined();
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBe(3);
-      expect(response.body.pagination).toBeDefined();
-      expect(response.body.pagination.total).toBe(3);
-      expect(response.body.pagination.page).toBe(1);
-      expect(response.body.pagination.limit).toBeGreaterThanOrEqual(10);
+      // List route returns pagination fields FLAT on the envelope
+      // (total/page/totalPages) — matching the canonical integration contract.
+      expect(response.body.total).toBe(3);
+      expect(response.body.page).toBe(1);
+      expect(response.body.totalPages).toBeGreaterThanOrEqual(1);
     });
 
     it('should filter campaigns by platform', async () => {
@@ -179,10 +180,10 @@ describe('E2E: Campaign CRUD', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(response.body.pagination.page).toBe(1);
-      expect(response.body.pagination.limit).toBe(2);
-      expect(response.body.pagination.total).toBe(5);
-      expect(response.body.pagination.total_pages).toBe(3);
+      expect(response.body.page).toBe(1);
+      expect(response.body.total).toBe(5);
+      expect(response.body.totalPages).toBe(3);
+      expect(response.body.data.length).toBe(2);
     });
 
     it('should return empty array when no campaigns exist', async () => {
@@ -267,10 +268,10 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'New Test Campaign',
           objective: 'CONVERSIONS',
-          daily_budget: 200,
         });
 
       // Assert: Must return a DRAFT, not a campaign
@@ -291,10 +292,10 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'Should Be Draft',
           objective: 'CONVERSIONS',
-          status: 'active',
         });
 
       // Assert: Must be a draft, not a live campaign
@@ -312,7 +313,8 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           objective: 'CONVERSIONS',
         });
 
@@ -330,7 +332,8 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          ad_account_id: 'not-a-uuid',
+          adAccountId: 'not-a-uuid',
+          platform: 'meta',
           name: 'Invalid Account',
           objective: 'CONVERSIONS',
         });
@@ -349,10 +352,11 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'Negative Budget',
           objective: 'CONVERSIONS',
-          daily_budget: -50,
+          budget: -50,
         });
 
       // Assert
@@ -365,7 +369,8 @@ describe('E2E: Campaign CRUD', () => {
       const response = await request(app)
         .post('/api/v1/campaigns')
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'No Auth Campaign',
           objective: 'CONVERSIONS',
         });
@@ -396,7 +401,7 @@ describe('E2E: Campaign CRUD', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           name: 'Updated Campaign Name',
-          daily_budget: 300,
+          budget: 300,
         });
 
       // Assert: Must return a DRAFT for the update
@@ -434,7 +439,7 @@ describe('E2E: Campaign CRUD', () => {
         .put(`/api/v1/campaigns/${campaign.id}`)
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
-          daily_budget: -100,
+          budget: -100,
         });
 
       // Assert
@@ -566,7 +571,8 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'Owner Campaign',
           objective: 'CONVERSIONS',
         });
@@ -586,7 +592,8 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'Admin Campaign',
           objective: 'CONVERSIONS',
         });
@@ -605,7 +612,8 @@ describe('E2E: Campaign CRUD', () => {
         .post('/api/v1/campaigns')
         .set('Authorization', `Bearer ${viewerToken}`)
         .send({
-          ad_account_id: UUIDS.metaAccount,
+          adAccountId: UUIDS.metaAccount,
+          platform: 'meta',
           name: 'Viewer Campaign',
           objective: 'CONVERSIONS',
         });
