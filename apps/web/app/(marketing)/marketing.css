@@ -4,6 +4,16 @@
    shadcn theme stays untouched.
    ═════════════════════════════════════════════ */
 
+/* Carry the dark marketing background up to html/body so overscroll,
+   rubber-band scrolling, and any sub-pixel gaps stay dark instead of
+   flashing the root layout's (light) shadcn background. Scoped via :has()
+   so the dashboard's theme is untouched. */
+html:has(.marketing-root),
+body:has(.marketing-root) {
+  background-color: #050505;
+  color-scheme: dark;
+}
+
 .marketing-root {
   /* ── Base theme (dark) ── */
   --bg-primary: #050505;
