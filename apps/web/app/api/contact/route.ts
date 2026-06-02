@@ -20,9 +20,10 @@ export async function POST(request: Request) {
 
   const { name, email, company, message } = parsed.data;
 
-  // Always log the submission so it is never silently lost, even if the
-  // upstream delivery path below fails.
-  console.log('[contact] message received', { name, email, company, message });
+  // Redacted identifier for observability — avoids writing PII (full name,
+  // email, message body) into log aggregators where it would be hard to purge.
+  const redactedEmail = email.replace(/^(.).*(@.*)$/, '$1***$2');
+  const submissionRef = { emailHint: redactedEmail, messageLength: message.length };
 
   const apiUrl = process.env.ADNEXUS_API_URL;
 
@@ -34,18 +35,18 @@ export async function POST(request: Request) {
         body: JSON.stringify({ name, email, company, message }),
       });
       if (!res.ok) {
-        console.error(
-          '[contact] upstream rejected — submission retained in logs',
-          { status: res.status, body: await res.text().catch(() => '') },
-        );
+        // Surface the delivery failure (without PII) so it is never silent.
+        console.error('[contact] upstream rejected', { ...submissionRef, status: res.status });
         return NextResponse.json({ ok: true }, { status: 202 });
       }
       return NextResponse.json({ ok: true }, { status: 201 });
     } catch (err) {
-      console.error('[contact] upstream unreachable — submission retained in logs', err);
+      console.error('[contact] upstream unreachable', { ...submissionRef, err: String(err) });
       return NextResponse.json({ ok: true }, { status: 202 });
     }
   }
 
+  // No upstream configured: record only a redacted reference, not the PII payload.
+  console.log('[contact] submission received (no upstream configured)', submissionRef);
   return NextResponse.json({ ok: true }, { status: 202 });
 }

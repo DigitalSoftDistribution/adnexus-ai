@@ -583,7 +583,7 @@ export function BlogPostContent({ slug }: { slug: string }) {
                     className="px-5 py-2.5 rounded-lg font-inter text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
                     style={{
                       background: 'var(--accent)',
-                      color: 'white',
+                      color: '#0a0a0a',
                     }}
                   >
                     Subscribe
