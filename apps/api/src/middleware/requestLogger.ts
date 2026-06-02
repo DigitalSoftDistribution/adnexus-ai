@@ -7,6 +7,7 @@ import { isProduction } from '../config';
 // ─── Extend Express Request ──────────────────────────────────
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- Express type augmentation requires namespace
   namespace Express {
     interface Request {
       /** Unique correlation ID for request tracing */

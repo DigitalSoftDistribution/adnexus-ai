@@ -4,7 +4,7 @@ import { config } from '../config';
 import { supabase } from '../lib/supabase';
 import { createDraft } from '../services/drafts-service';
 import { broadcastToWorkspace, createNotification } from '../services/notification-service';
-import type { AutomationRule, RuleCondition, RuleAction, Platform, DraftType, UnifiedCampaign } from '../types';
+import type { AutomationRule, RuleCondition, RuleAction, Platform } from '../types';
 
 // ─── Redis Connection ──────────────────────────────────────
 

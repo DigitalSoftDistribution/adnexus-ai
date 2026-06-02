@@ -8,7 +8,7 @@
  * and creates creative drafts when critical thresholds are crossed.
  */
 
-import { Queue, Worker, Job, FlowProducer } from 'bullmq';
+import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { linearRegression } from 'simple-statistics';
 import { PrismaClient } from '@prisma/client';

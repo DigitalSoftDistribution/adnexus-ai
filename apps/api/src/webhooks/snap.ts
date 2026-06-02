@@ -14,7 +14,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { campaigns, ad_accounts, notifications, webhookEvents, ads } from "../db/schema";
+import { campaigns, ad_accounts, webhookEvents, ads } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import { createNotification } from "../services/notifications";

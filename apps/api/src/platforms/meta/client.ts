@@ -51,8 +51,6 @@ import crypto from "crypto";
 import {
   // Campaign types
   MetaCampaign,
-  MetaCampaignStatus,
-  MetaCampaignObjective,
   GetCampaignsParams,
   CreateCampaignData,
   UpdateCampaignData,
@@ -62,17 +60,14 @@ import {
   // Ad & Creative types
   MetaAd,
   MetaAdCreative,
-  MetaAdStatus,
   GetAdsParams,
   CreateAdData,
   UpdateAdData,
   // Insight types
   MetaInsight,
   MetaInsightField,
-  MetaDatePreset,
   GetInsightsParams,
   MetaPerformanceMetrics,
-  MetaInsightBreakdown,
   // Audience types
   MetaAudience,
   GetAudiencesParams,
@@ -82,7 +77,6 @@ import {
   MetaTokenResponse,
   MetaLongLivedTokenResponse,
   MetaStoredToken,
-  MetaOAuthConfig,
   MetaAuthState,
   TokenRefreshResult,
   // Error types

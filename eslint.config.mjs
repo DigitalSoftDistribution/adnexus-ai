@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import unusedImports from 'eslint-plugin-unused-imports';
 
 const commonGlobals = {
   AbortController: 'readonly',
@@ -42,12 +43,34 @@ export default [
       sourceType: 'module',
       globals: commonGlobals,
     },
+    plugins: {
+      'unused-imports': unusedImports,
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': [
+      // Allow ts-directives when accompanied by an explanation. Unported
+      // workers use `@ts-nocheck — <reason>`; keep that documented escape hatch.
+      '@typescript-eslint/ban-ts-comment': [
         'error',
         {
+          'ts-nocheck': 'allow-with-description',
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': 'allow-with-description',
+          minimumDescriptionLength: 5,
+        },
+      ],
+      // Auto-removable unused imports (fixable) handled by the plugin; the base
+      // rule is disabled in favour of unused-imports to avoid double-reporting.
+      '@typescript-eslint/no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
           argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
     },

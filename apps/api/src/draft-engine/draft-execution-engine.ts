@@ -20,11 +20,10 @@ import type {
   Draft,
   ExecutionResult,
   Snapshot,
-  Campaign,
   ExecutionStep,
   DraftStatus,
 } from './types';
-import { ExecutionStatus, ChangeType, AdPlatform } from './types';
+import { ExecutionStatus, AdPlatform } from './types';
 import { DraftValidator, type CampaignStore } from './draft-validator';
 import { ChangeApplier, type PlatformApiClient } from './change-applier';
 import { RollbackManager, type SnapshotStore } from './rollback-manager';
@@ -33,14 +32,7 @@ import { NotificationDispatcher, type ChannelRegistry } from './notification-dis
 import {
   DraftEngineError,
   ValidationError,
-  CampaignNotFoundError,
-  StateMismatchError,
-  PolicyViolationError,
-  PlatformTimeoutError,
-  PlatformApiError,
-  PartialApplicationError,
   RollbackError,
-  RollbackVerificationError,
   ExecutionError,
   classifyError,
 } from './errors';
@@ -357,7 +349,7 @@ export class DraftExecutionEngine {
 
     // Attempt rollback if we have a snapshot and rollback is warranted
     let rollbackResult: ExecutionResult['rollbackResult'] = undefined;
-    let requiresRollback = classification.shouldRollback;
+    const requiresRollback = classification.shouldRollback;
 
     if (snapshot && draft && this.autoRollback && classification.shouldRollback) {
       tracker.start('apply_change'); // re-use apply_change step for rollback tracking

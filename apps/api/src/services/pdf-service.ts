@@ -4,7 +4,6 @@
 // ============================================================================
 
 import puppeteer from 'puppeteer';
-import * as path from 'path';
 import { ReportResult, ChartImage, ReportSummary, PlatformBreakdown } from '../types/report';
 import { tempFileManager } from '../utils/temp-file-manager';
 type TempFileManager = typeof tempFileManager;

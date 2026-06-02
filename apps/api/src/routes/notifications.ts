@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { supabase } from '../lib/supabase';
-import { NotFoundError, ForbiddenError, ValidationError } from '../lib/errors';
+import { NotFoundError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();

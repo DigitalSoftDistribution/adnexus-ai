@@ -23,7 +23,7 @@
 //   - DLQ jobs are stored with full context for manual inspection
 // ============================================================================
 
-import { Worker, Job, Queue, QueueEvents } from 'bullmq';
+import { Worker, Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -43,11 +43,11 @@ import {
 
 import { tempFileManager } from '../utils/temp-file-manager';
 type TempFileManager = typeof tempFileManager;
-import { ChartService, ChartRenderError } from '../services/chart-service';
+import { ChartService } from '../services/chart-service';
 import { PdfService } from '../services/pdf-service';
-import { ExportService, ExportError } from '../services/export-service';
+import { ExportService } from '../services/export-service';
 import { EmailService, EmailConfig } from '../services/email-service';
-import { DataAggregationService, AggregationError } from '../services/data-aggregation-service';
+import { DataAggregationService } from '../services/data-aggregation-service';
 
 // ---------------------------------------------------------------------------
 // Constants

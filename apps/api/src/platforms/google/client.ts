@@ -29,22 +29,12 @@ import {
   AdGroupAd,
   AdData,
   CreateAdData,
-  ResponsiveSearchAd,
-  ResponsiveDisplayAd,
 
   // Metrics types
   CampaignMetrics,
   AccountSummary,
   DateRange,
   ConversionAction,
-
-  // GAQL types
-  GAQLResource,
-  GAQLCampaignField,
-  GAQLAdGroupField,
-  GAQLAdField,
-  GAQLMetricsField,
-  GAQLSegmentsField,
 
   // Response types
   PaginatedResponse,
@@ -66,7 +56,6 @@ import {
   RetryHandler,
   ErrorParser,
   hasPartialFailure,
-  DEFAULT_RATE_LIMIT_CONFIG,
   DEFAULT_RETRY_CONFIG,
 } from "./error-handler";
 

@@ -1,5 +1,4 @@
 import Redis from 'ioredis';
-import { config } from '../config';
 
 // ─── Rate Limit Tiers ───
 
