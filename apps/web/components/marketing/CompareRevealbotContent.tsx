@@ -195,7 +195,7 @@ export function CompareRevealbotContent() {
             Draft-first approval. AI agents built in. MCP-native integration. Simple, predictable pricing with no hidden fees.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3, ease: easeSmooth }} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>Start Free Audit
+            <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: '#0a0a0a', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>Start Free Audit
               <ArrowRight size={16} />
             </Link>
             <button onClick={scrollToTable} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>
@@ -331,7 +331,7 @@ export function CompareRevealbotContent() {
               <h2 className="font-space text-2xl sm:text-3xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Get Your Free Ad Account Audit</h2>
               <p className="font-inter text-base max-w-xl mx-auto mb-8" style={{ color: 'var(--text-secondary)' }}>Connect your accounts in 2 minutes. Our AI audits your campaigns and finds opportunities Revealbot would never surface.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>Start Free Audit
+                <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'var(--accent)', color: '#0a0a0a', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}>Start Free Audit
                   <ArrowRight size={16} />
                 </Link>
                 <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]" style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>Talk to Founder

@@ -255,7 +255,7 @@ export function ComparePipeboardContent() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]"
               style={{
                 background: 'var(--accent)',
-                color: 'white',
+                color: '#0a0a0a',
                 boxShadow: '0 0 30px rgba(37,99,235,0.2)',
               }}
             >Start Free
@@ -676,7 +676,7 @@ export function ComparePipeboardContent() {
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]"
                   style={{
                     background: 'var(--accent)',
-                    color: 'white',
+                    color: '#0a0a0a',
                     boxShadow: '0 0 30px rgba(37,99,235,0.2)',
                   }}
                 >Start Free Trial
