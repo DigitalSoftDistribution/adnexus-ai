@@ -255,8 +255,8 @@ export function RoasCalculatorContent() {
           <p className="mb-8 text-center text-zinc-400">
             A good ROAS is generally considered <span className="text-sky-400 font-semibold">4:1 or higher</span> (meaning $4 revenue for every $1 spent).
           </p>
-          <div className="overflow-hidden rounded-xl border border-white/10">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.03]">
                   <th className="px-4 py-3 text-left font-medium text-zinc-400">Channel</th>

@@ -201,8 +201,8 @@ export function CompareAdKitContent() {
                   <cat.icon size={20} />
                   {cat.name}
                 </div>
-                <div className="overflow-hidden rounded-xl border border-white/10">
-                  <table className="w-full text-sm">
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full min-w-[480px] text-sm">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.03]">
                         <th className="px-4 py-3 text-left font-medium text-zinc-400">Feature</th>
