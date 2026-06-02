@@ -500,7 +500,7 @@ export function buildE2EMockFrom(): jest.Mock {
       case 'workspaces':
         return buildWorkspacesQueryBuilder();
       case 'workspace_members':
-        return buildWorkspaceMembersQueryBuilder();
+        return buildWorkspaceMembersChainable();
       case 'auth_passwords':
         return buildAuthPasswordsQueryBuilder();
       case 'campaigns':
@@ -895,6 +895,31 @@ function buildWorkspacesQueryBuilder() {
       Promise.resolve(cb({ data: Array.from(testStore.workspaces.values()), error: null, count: testStore.workspaces.size })),
     ),
   };
+}
+
+/**
+ * Generic-chainable workspace_members builder backed by the in-memory store.
+ * Supports the full Supabase chain incl. `.in('role', [...])` (used by
+ * notifyApprovers) and `.eq().eq().single()` (used by requireRole/auth).
+ */
+function buildWorkspaceMembersChainable() {
+  return buildChainableBuilder({
+    listRows: () =>
+      Array.from(testStore.workspaceMembers.values()).map((m) => ({
+        workspace_id: m.workspaceId,
+        user_id: m.userId,
+        role: m.role,
+      })),
+    onInsert: (row) => {
+      const member = {
+        workspaceId: (row.workspace_id as string) || '',
+        userId: (row.user_id as string) || '',
+        role: (row.role as WorkspaceRole) || 'analyst',
+      };
+      testStore.workspaceMembers.set(`${member.workspaceId}:${member.userId}`, member);
+      return { workspace_id: member.workspaceId, user_id: member.userId, role: member.role };
+    },
+  });
 }
 
 function buildWorkspaceMembersQueryBuilder() {
@@ -1673,6 +1698,23 @@ export function getTestCampaign(campaignId: string): Record<string, unknown> | u
  */
 export function getTestDraft(draftId: string): Record<string, unknown> | undefined {
   return testStore.drafts.get(draftId);
+}
+
+/**
+ * Return ALL campaigns from the in-memory store (camelCase TestCampaign shape).
+ * Used by the e2e `query()` (raw-SQL) mock in campaigns.test.ts to back the
+ * v1 campaigns route, which reads via `query()` from `../db/connection`
+ * rather than Supabase.
+ */
+export function listTestCampaigns(): TestCampaign[] {
+  return Array.from(testStore.campaigns.values()) as unknown as TestCampaign[];
+}
+
+/**
+ * Look up a single campaign by id from the in-memory store (or undefined).
+ */
+export function findTestCampaignById(id: string): TestCampaign | undefined {
+  return testStore.campaigns.get(id) as unknown as TestCampaign | undefined;
 }
 
 /**

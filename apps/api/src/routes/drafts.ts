@@ -28,6 +28,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import {
   NotFoundError,
   ValidationError,
+  ConflictError,
   ForbiddenError,
   AppError,
   PlatformAPIError,
@@ -1235,8 +1236,10 @@ router.post(
     const draft = draftRow as Record<string, unknown>;
 
     // ── Step 2: Validate draft state ──
+    // Already-resolved drafts (approved/rejected/cancelled) are a conflict, not
+    // a malformed request — return 409 so clients can distinguish the two.
     if (draft.status !== 'pending') {
-      throw new ValidationError(`Draft is ${draft.status as string}, not pending. Only pending drafts can be approved.`);
+      throw new ConflictError(`Draft is ${draft.status as string}, not pending. Only pending drafts can be approved.`);
     }
 
     // Check if draft is expired (7-day expiry)

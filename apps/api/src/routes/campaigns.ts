@@ -3,8 +3,13 @@ import { z } from 'zod';
 import { query } from '../db/connection';
 import { ValidationError, NotFoundError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
+import { requireRole } from '../middleware/authenticate';
 import { createDraft } from '../services/drafts-service';
 import type { UnifiedCampaign, CampaignStatus, DraftType, Platform } from '../types';
+
+// Mutating campaign operations are restricted to roles that can edit.
+// Viewers (and non-members) get a 403 before any request-body validation runs.
+const requireEditor = requireRole('owner', 'admin', 'analyst');
 
 const router = Router();
 
@@ -321,6 +326,7 @@ router.get(
 
 router.post(
   '/',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
 
@@ -387,6 +393,7 @@ router.post(
 
 router.put(
   '/:id',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -511,6 +518,7 @@ router.put(
 
 router.delete(
   '/:id',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -548,6 +556,7 @@ router.delete(
 
 router.post(
   '/:id/pause',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -589,6 +598,7 @@ router.post(
 
 router.post(
   '/:id/resume',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -630,6 +640,7 @@ router.post(
 
 router.post(
   '/:id/duplicate',
+  requireEditor,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;

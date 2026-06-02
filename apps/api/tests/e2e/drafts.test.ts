@@ -244,9 +244,9 @@ describe('E2E: Draft Workflow', () => {
         .send({
           platform: 'meta',
           campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Increase budget by 20%',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 120 },
+          type: 'budget_change',
+          title: 'Increase budget by 20%',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 120 },
         });
 
       // Assert
@@ -267,9 +267,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          draft_type: 'campaign_create',
-          change_summary: 'Create new conversion campaign',
-          change_detail: { name: 'New Campaign', objective: 'CONVERSIONS', daily_budget: 100 },
+          type: 'campaign_create',
+          title: 'Create new conversion campaign',
+          proposedChanges: { name: 'New Campaign', objective: 'CONVERSIONS', daily_budget: 100 },
         });
 
       // Assert
@@ -289,8 +289,8 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'meta',
-          draft_type: 'budget_change',
-          change_detail: { field: 'daily_budget' },
+          type: 'budget_change',
+          proposedChanges: { field: 'daily_budget' },
         });
 
       // Assert
@@ -308,9 +308,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'invalid_platform',
-          draft_type: 'budget_change',
-          change_summary: 'Test',
-          change_detail: {},
+          type: 'budget_change',
+          title: 'Test',
+          proposedChanges: {},
         });
 
       // Assert
@@ -328,9 +328,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'meta',
-          draft_type: 'invalid_type',
-          change_summary: 'Test',
-          change_detail: {},
+          type: 'invalid_type',
+          title: 'Test',
+          proposedChanges: {},
         });
 
       // Assert
@@ -344,8 +344,8 @@ describe('E2E: Draft Workflow', () => {
         .post('/api/v1/drafts')
         .send({
           platform: 'meta',
-          draft_type: 'budget_change',
-          change_summary: 'Test',
+          type: 'budget_change',
+          title: 'Test',
         });
 
       // Assert
@@ -869,10 +869,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'End-to-end budget increase',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 150 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'End-to-end budget increase',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 150 },
           ai_reasoning: 'High ROAS justifies budget increase',
         });
 
@@ -899,10 +899,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'status_change',
-          change_summary: 'Pause underperforming campaign',
-          change_detail: { field: 'status', old_value: 'ACTIVE', new_value: 'PAUSED' },
+          campaignId: UUIDS.campaign1,
+          type: 'status_change',
+          title: 'Pause underperforming campaign',
+          proposedChanges: { field: 'status', old_value: 'ACTIVE', new_value: 'PAUSED' },
         });
 
       expect(createResponse.status).toBe(201);
@@ -928,10 +928,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Budget change to cancel',
-          change_detail: { field: 'daily_budget', old_value: 200, new_value: 300 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'Budget change to cancel',
+          proposedChanges: { field: 'daily_budget', old_value: 200, new_value: 300 },
         });
 
       expect(createResponse.status).toBe(201);
@@ -956,10 +956,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Scheduled budget change',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 200 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'Scheduled budget change',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 200 },
         });
 
       expect(createResponse.status).toBe(201);
