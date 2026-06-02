@@ -1,16 +1,39 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Send, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 export function ContactForm() {
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });
 
-  function handleSubmit(e: FormEvent) {
+  const submitted = status === 'success';
+  const submitting = status === 'submitting';
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // No backend endpoint wired yet — acknowledge locally and let the user know.
-    setSubmitted(true);
+    setStatus('submitting');
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const firstError =
+          data?.error && typeof data.error === 'object'
+            ? Object.values(data.error).flat()[0]
+            : undefined;
+        throw new Error((firstError as string) || 'Something went wrong. Please try again.');
+      }
+      setStatus('success');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setStatus('error');
+    }
   }
 
   if (submitted) {
@@ -76,13 +99,28 @@ export function ContactForm() {
           style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}
         />
       </label>
+      {status === 'error' && (
+        <p className="text-[13px]" role="alert" style={{ color: 'var(--status-error)' }}>
+          {errorMsg}
+        </p>
+      )}
       <button
         type="submit"
-        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-transform hover:scale-[1.01]"
+        disabled={submitting}
+        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed"
         style={{ background: '#c3f53b', color: '#0a0a0a' }}
       >
-        Send message
-        <Send size={15} aria-hidden="true" />
+        {submitting ? (
+          <>
+            <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+            Sending…
+          </>
+        ) : (
+          <>
+            Send message
+            <Send size={15} aria-hidden="true" />
+          </>
+        )}
       </button>
     </form>
   );

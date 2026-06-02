@@ -10,20 +10,43 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <LegalPage title="Cookie Policy" updated="June 2026">
-      <LegalSection heading="What cookies we use">
-        Essential cookies keep you signed in and the app functioning. We may use limited analytics cookies
-        to understand product usage in aggregate.
+    <LegalPage title="Cookie Policy" updated="June 2, 2026">
+      <LegalSection heading="1. What cookies are">
+        Cookies are small text files placed on your device when you visit a website. They help the
+        site function, remember your preferences, and understand how the site is used.
       </LegalSection>
-      <LegalSection heading="Managing cookies">
-        You can control cookies through your browser settings. Disabling essential cookies may prevent
-        parts of the service from working.
+
+      <LegalSection heading="2. Cookies we use">
+        <strong>Strictly necessary cookies:</strong> required to keep you signed in, maintain your
+        session, and operate core features. The Service cannot function properly without these.
+        <br /><br />
+        <strong>Preference cookies:</strong> remember choices such as theme and display settings.
+        <br /><br />
+        <strong>Analytics cookies:</strong> help us understand aggregate product usage so we can
+        improve the Service. These do not identify you individually.
       </LegalSection>
-      <LegalSection heading="Third parties">
-        Any third-party analytics we use are listed in our sub-processor list, available on request.
+
+      <LegalSection heading="3. Third-party cookies">
+        Some analytics and infrastructure providers may set cookies on our behalf. Any such providers
+        are listed in our sub-processor list, available on request, and are bound by contractual
+        confidentiality and data-protection obligations.
       </LegalSection>
-      <LegalSection heading="Contact">
-        Questions about cookies? Email legal@adnexus.ai.
+
+      <LegalSection heading="4. Managing cookies">
+        You can control and delete cookies through your browser settings. Most browsers let you block
+        or remove cookies, though disabling strictly necessary cookies may prevent parts of the Service
+        from working. Where required by law, we request your consent before setting non-essential
+        cookies.
+      </LegalSection>
+
+      <LegalSection heading="5. Updates to this policy">
+        We may update this Cookie Policy as our practices evolve. Material changes will be reflected on
+        this page with an updated effective date.
+      </LegalSection>
+
+      <LegalSection heading="6. Contact">
+        Questions about our use of cookies? Email{' '}
+        <a href="mailto:legal@adnexus.ai" style={{ color: '#c3f53b' }}>legal@adnexus.ai</a>.
       </LegalSection>
     </LegalPage>
   );
