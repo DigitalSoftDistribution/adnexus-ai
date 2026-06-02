@@ -26,11 +26,10 @@ const ROUTES = [
   '/compare/revealbot',
   '/compare/smartly',
   '/compare/adkit',
-  '/legal/privacy',
-  '/legal/terms',
-  '/legal/dpa',
-  '/legal/cookies',
 ];
+// Legal pages (/legal/*) are intentionally excluded — they set
+// `robots: { index: false }`, so listing them here would send conflicting
+// signals to crawlers.
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

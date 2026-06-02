@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Check,
@@ -156,9 +157,9 @@ export function CompareAdKitContent() {
             >
               See Your Opportunities
             </button>
-            <a href="/pricing" className="rounded-lg border border-white/10 px-6 py-3 font-semibold text-zinc-300 transition hover:bg-white/5">
+            <Link href="/pricing" className="rounded-lg border border-white/10 px-6 py-3 font-semibold text-zinc-300 transition hover:bg-white/5">
               View Pricing
-            </a>
+            </Link>
           </motion.div>
         </div>
       </section>
@@ -287,12 +288,12 @@ export function CompareAdKitContent() {
               Get a free AI-powered audit of your ad accounts. No credit card required.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <a href="/auth/signup" className="rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400">
+              <Link href="/auth/signup" className="rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400">
                 Start Free Audit
-              </a>
-              <a href="/compare/pipeboard" className="rounded-lg border border-white/10 px-8 py-3 font-semibold text-zinc-300 transition hover:bg-white/5">
+              </Link>
+              <Link href="/compare/pipeboard" className="rounded-lg border border-white/10 px-8 py-3 font-semibold text-zinc-300 transition hover:bg-white/5">
                 Compare vs Pipeboard
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
