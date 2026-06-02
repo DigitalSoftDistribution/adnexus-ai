@@ -1,10 +1,10 @@
-'use client';
-
-import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, MessageSquare, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CompareData, ComparisonValue } from '../_data';
+import { ScrollToTableButton, CategoryFilter } from './compare-interactive';
+
+const TABLE_ID = 'feature-comparison';
 
 function Cell({ value, highlight }: { value: ComparisonValue; highlight: boolean }) {
   if (typeof value === 'boolean') {
@@ -34,17 +34,6 @@ function Cell({ value, highlight }: { value: ComparisonValue; highlight: boolean
 }
 
 export function CompareContent({ data }: { data: CompareData }) {
-  const tableRef = useRef<HTMLDivElement>(null);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const scrollToTable = () => {
-    tableRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const filteredCategories = activeCategory
-    ? data.categories.filter((c) => c.name === activeCategory)
-    : data.categories;
-
   return (
     <>
       {/* Hero */}
@@ -68,13 +57,7 @@ export function CompareContent({ data }: { data: CompareData }) {
             >
               {data.ctaLabel} <ArrowRight size={16} />
             </Link>
-            <button
-              type="button"
-              onClick={scrollToTable}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-            >
-              See Feature Comparison
-            </button>
+            <ScrollToTableButton targetId={TABLE_ID} />
           </div>
         </div>
       </section>
@@ -97,44 +80,15 @@ export function CompareContent({ data }: { data: CompareData }) {
       </section>
 
       {/* Comparison table */}
-      <section ref={tableRef} className="border-t border-white/5 py-20">
+      <section id={TABLE_ID} className="border-t border-white/5 py-20" data-compare-table>
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold sm:text-4xl">Feature Comparison</h2>
             <p className="mt-4 text-gray-400">See how AdNexus AI stacks up against {data.competitor}.</p>
           </div>
 
-          {/* Category filter pills */}
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveCategory(null)}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                activeCategory === null
-                  ? 'bg-[#c3f53b]/15 text-[#c3f53b]'
-                  : 'border border-white/10 text-gray-400 hover:text-white',
-              )}
-            >
-              All
-            </button>
-            {data.categories.map((cat) => (
-              <button
-                key={cat.name}
-                type="button"
-                onClick={() => setActiveCategory(cat.name)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                  activeCategory === cat.name
-                    ? 'bg-[#c3f53b]/15 text-[#c3f53b]'
-                    : 'border border-white/10 text-gray-400 hover:text-white',
-                )}
-              >
-                <cat.icon size={14} aria-hidden="true" />
-                {cat.name}
-              </button>
-            ))}
-          </div>
+          {/* Category filter pills (client island) */}
+          <CategoryFilter categories={data.categories.map((c) => c.name)} />
 
           {/* Table */}
           <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
@@ -153,8 +107,8 @@ export function CompareContent({ data }: { data: CompareData }) {
               </div>
             </div>
 
-            {filteredCategories.map((cat) => (
-              <div key={cat.name}>
+            {data.categories.map((cat) => (
+              <div key={cat.name} data-category={cat.name}>
                 <div
                   className="grid items-center border-b border-white/10 bg-[#c3f53b]/[0.03] px-4 py-2.5 sm:px-6"
                   style={{ gridTemplateColumns: '1fr 140px 140px' }}

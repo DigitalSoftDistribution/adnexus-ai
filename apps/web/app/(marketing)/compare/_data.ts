@@ -173,8 +173,8 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         rows: [
           { feature: 'Free Tier', adnexus: true, competitor: true },
-          { feature: 'Pro Plan', adnexus: '$99/mo flat', competitor: '$149/mo' },
-          { feature: 'Agency Plan', adnexus: '$499/mo flat', competitor: 'Custom pricing' },
+          { feature: 'Team Plan', adnexus: '$149/mo flat', competitor: '$149/mo' },
+          { feature: 'Agency Plan', adnexus: '$399/mo flat', competitor: 'Custom pricing' },
           { feature: 'Hidden Fees', adnexus: false, competitor: true, note: 'Tracking costs extra' },
         ],
       },
@@ -240,7 +240,7 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         title: 'Truly Flat Pricing',
         description:
-          '$99/mo for everything. Madgicx charges $49-$99 PLUS $49 for tracking, and prices scale with ad spend.',
+          'Flat $149/mo for the full Team plan — no spend-based markup. Madgicx charges $49-$99 PLUS $49 for tracking, and prices scale with ad spend.',
         iconColor: '#34D399',
       },
     ],
@@ -294,8 +294,8 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         rows: [
           { feature: 'Free Tier', adnexus: true, competitor: false },
-          { feature: 'Pro Plan', adnexus: '$99/mo flat', competitor: '$99 + $49 tracking' },
-          { feature: 'Agency Plan', adnexus: '$499/mo flat', competitor: '$298+/mo' },
+          { feature: 'Team Plan', adnexus: '$149/mo flat', competitor: '$99 + $49 tracking' },
+          { feature: 'Agency Plan', adnexus: '$399/mo flat', competitor: '$298+/mo' },
           { feature: 'Price Scales with Spend', adnexus: false, competitor: true, note: 'Hidden cost escalation' },
         ],
       },
@@ -424,8 +424,8 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         rows: [
           { feature: 'Free Tier', adnexus: true, competitor: false },
-          { feature: 'Starter Plan', adnexus: '$49/mo', competitor: '$49/mo' },
-          { feature: 'Pro Plan', adnexus: '$99/mo flat', competitor: '$99/mo' },
+          { feature: 'Growth Plan', adnexus: '$39/mo', competitor: '$49/mo' },
+          { feature: 'Team Plan', adnexus: '$149/mo flat', competitor: '$99/mo' },
           { feature: 'Agency Plan', adnexus: '$399/mo flat', competitor: 'Limited' },
           { feature: 'Hidden Fees', adnexus: false, competitor: true, note: 'Add-ons for advanced features' },
         ],
@@ -547,8 +547,8 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         rows: [
           { feature: 'Free Tier', adnexus: true, competitor: false },
-          { feature: 'Starter Plan', adnexus: '$49/mo', competitor: 'Custom' },
-          { feature: 'Pro Plan', adnexus: '$99/mo flat', competitor: 'Custom', note: 'Enterprise pricing only' },
+          { feature: 'Growth Plan', adnexus: '$39/mo', competitor: 'Custom' },
+          { feature: 'Team Plan', adnexus: '$149/mo flat', competitor: 'Custom', note: 'Enterprise pricing only' },
           { feature: 'Transparent Pricing', adnexus: true, competitor: false, note: 'No pricing page on Smartly' },
           { feature: 'Self-Serve Checkout', adnexus: true, competitor: false },
         ],
@@ -671,7 +671,7 @@ export const COMPARE_DATA: Record<string, CompareData> = {
         icon: DollarSign,
         rows: [
           { feature: 'Free tier', adnexus: true, competitor: true },
-          { feature: 'Starting price', adnexus: '$49/mo', competitor: '$49/mo' },
+          { feature: 'Starting price', adnexus: '$39/mo', competitor: '$49/mo' },
           { feature: 'Team plan', adnexus: '$149/mo', competitor: '$97/mo' },
           { feature: 'Agency plan', adnexus: '$399/mo', competitor: 'N/A' },
           { feature: 'Transparent self-serve pricing', adnexus: true, competitor: true },

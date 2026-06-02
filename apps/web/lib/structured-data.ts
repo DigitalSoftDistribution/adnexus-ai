@@ -83,6 +83,16 @@ export function breadcrumbSchema(items: ReadonlyArray<{ name: string; path: stri
   };
 }
 
+/**
+ * Convert a human-readable date (e.g. "May 15, 2026") to an ISO 8601 date
+ * ("2026-05-15"), which schema.org / Google Rich Results require. Falls back
+ * to the original string if it can't be parsed.
+ */
+function toIsoDate(date: string): string {
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? date : parsed.toISOString().slice(0, 10);
+}
+
 export function articleSchema(post: {
   title: string;
   excerpt: string;
@@ -98,7 +108,7 @@ export function articleSchema(post: {
     url: `${SITE_URL}/blog/${post.slug}`,
     author: { '@type': 'Person', name: post.author },
     publisher: organizationSchema(),
-    datePublished: post.date,
+    datePublished: toIsoDate(post.date),
   };
 }
 

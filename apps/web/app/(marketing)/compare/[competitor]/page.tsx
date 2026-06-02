@@ -8,12 +8,13 @@ export function generateStaticParams() {
   return COMPARE_SLUGS.map((competitor) => ({ competitor }));
 }
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
-  params: { competitor: string };
-}): Metadata {
-  const data = COMPARE_DATA[params.competitor];
+  params: Promise<{ competitor: string }>;
+}): Promise<Metadata> {
+  const { competitor } = await params;
+  const data = COMPARE_DATA[competitor];
   if (!data) {
     return { title: 'Comparison Not Found' };
   }
@@ -31,12 +32,13 @@ export function generateMetadata({
   };
 }
 
-export default function ComparePage({
+export default async function ComparePage({
   params,
 }: {
-  params: { competitor: string };
+  params: Promise<{ competitor: string }>;
 }) {
-  const data = COMPARE_DATA[params.competitor];
+  const { competitor } = await params;
+  const data = COMPARE_DATA[competitor];
   if (!data) {
     notFound();
   }
