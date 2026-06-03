@@ -187,6 +187,31 @@ export class CampaignRepository implements ICampaignRepository {
     );
 
     const row = rows[0];
+
+    // Trailing 14-day daily series, aggregated across the workspace's campaigns.
+    interface SeriesRow {
+      date: string;
+      spend: string | number;
+      impressions: string | number;
+      clicks: string | number;
+      conversions: string | number;
+    }
+    const { rows: seriesRows } = await query<SeriesRow>(
+      `SELECT to_char(m.date, 'YYYY-MM-DD') AS date,
+              COALESCE(SUM(m.spend), 0) AS spend,
+              COALESCE(SUM(m.impressions), 0) AS impressions,
+              COALESCE(SUM(m.clicks), 0) AS clicks,
+              COALESCE(SUM(m.conversions), 0) AS conversions
+       FROM campaign_metrics m
+       JOIN campaigns c ON c.id = m.campaign_id
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+       WHERE a.workspace_id = $1
+         AND m.date >= (CURRENT_DATE - INTERVAL '13 days')
+       GROUP BY m.date
+       ORDER BY m.date ASC`,
+      [workspaceId],
+    );
+
     return {
       totalCampaigns: row?.total_campaigns ?? 0,
       activeCount: row?.active_count ?? 0,
@@ -200,6 +225,13 @@ export class CampaignRepository implements ICampaignRepository {
       avgRoas: Number(row?.avg_roas ?? 0),
       platformBreakdown: row?.platform_breakdown ?? {},
       statusBreakdown: row?.status_breakdown ?? {},
+      spendSeries: seriesRows.map((s) => ({
+        date: s.date,
+        spend: Number(s.spend),
+        impressions: Number(s.impressions),
+        clicks: Number(s.clicks),
+        conversions: Number(s.conversions),
+      })),
     };
   }
 
