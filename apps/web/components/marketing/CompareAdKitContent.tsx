@@ -170,7 +170,7 @@ export function CompareAdKitContent() {
           {[
             { label: 'Platforms', adnexus: '4', adkit: '3', icon: Layers },
             { label: 'Starting Price', adnexus: '$49/mo', adkit: '$49/mo', icon: DollarSign },
-            { label: 'Team Workspaces', adnexus: 'Up to 25', adkit: 'None', icon: Users },
+            { label: 'Team Workspaces', adnexus: 'Up to unlimited', adkit: 'None', icon: Users },
           ].map((item, i) => (
             <motion.div
               key={item.label}

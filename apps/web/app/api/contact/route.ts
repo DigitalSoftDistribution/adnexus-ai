@@ -25,7 +25,9 @@ export async function POST(request: Request) {
   const redactedEmail = email.replace(/^(.).*(@.*)$/, '$1***$2');
   const submissionRef = { emailHint: redactedEmail, messageLength: message.length };
 
-  const apiUrl = process.env.ADNEXUS_API_URL;
+  // Prefer the dedicated contact var, then fall back to the app-wide API_URL
+  // that the Next proxy in next.config.ts already uses.
+  const apiUrl = process.env.ADNEXUS_API_URL || process.env.API_URL;
 
   if (apiUrl) {
     try {
