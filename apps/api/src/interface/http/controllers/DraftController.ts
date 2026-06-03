@@ -45,6 +45,17 @@ export function createDraftController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    stats: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getDraftStats.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) {
+        throw result.error;
+      }
+      res.json({ success: true, data: result.data });
+    }),
+
     list: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.listDrafts.execute({
         workspaceId: req.user!.workspaceId,

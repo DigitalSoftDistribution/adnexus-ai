@@ -42,6 +42,7 @@ import { ActivateCampaignUseCase } from '../use-cases/campaign/ActivateCampaignU
 import { DuplicateCampaignUseCase } from '../use-cases/campaign/DuplicateCampaignUseCase';
 import { CreateDraftUseCase } from '../use-cases/draft/CreateDraftUseCase';
 import { ListDraftsUseCase } from '../use-cases/draft/ListDraftsUseCase';
+import { GetDraftStatsUseCase } from '../use-cases/draft/GetDraftStatsUseCase';
 import { GetDraftByIdUseCase } from '../use-cases/draft/GetDraftByIdUseCase';
 import { ApproveDraftUseCase } from '../use-cases/draft/ApproveDraftUseCase';
 import { RejectDraftUseCase } from '../use-cases/draft/RejectDraftUseCase';
@@ -175,6 +176,7 @@ export class Container {
   readonly duplicateCampaign: DuplicateCampaignUseCase;
   readonly createDraft: CreateDraftUseCase;
   readonly listDrafts: ListDraftsUseCase;
+  readonly getDraftStats: GetDraftStatsUseCase;
   readonly getDraftById: GetDraftByIdUseCase;
   readonly approveDraft: ApproveDraftUseCase;
   readonly rejectDraft: RejectDraftUseCase;
@@ -292,6 +294,7 @@ export class Container {
       config.auditLogger,
     );
     this.listDrafts = new ListDraftsUseCase(config.draftRepository);
+    this.getDraftStats = new GetDraftStatsUseCase(config.draftRepository);
     this.getDraftById = new GetDraftByIdUseCase(config.draftRepository);
 
     this.approveDraft = new ApproveDraftUseCase(
