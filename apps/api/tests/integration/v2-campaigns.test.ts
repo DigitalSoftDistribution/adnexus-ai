@@ -62,6 +62,7 @@ describe('V2 runtime mount — /api/v2/campaigns', () => {
               platform: 'meta',
               status: 'active',
               objective: 'sales',
+              platform: 'meta',
               spend: 50,
               impressions: 1000,
               clicks: 10,

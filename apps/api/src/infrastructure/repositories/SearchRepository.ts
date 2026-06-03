@@ -9,8 +9,12 @@ export class SearchRepository implements ISearchRepository {
 
     // Search campaigns
     if (!filters.types || filters.types.includes('campaign')) {
+      // workspace_id + platform live on ad_accounts; campaigns join through it.
       const { rows } = await query<{ id: string; name: string; status: string; platform: string }>(
-        `SELECT id, name, status, platform FROM campaigns WHERE workspace_id = $1 AND name ILIKE $2 LIMIT $3`,
+        `SELECT c.id, c.name, c.status, a.platform
+           FROM campaigns c
+           JOIN ad_accounts a ON a.id = c.ad_account_id
+          WHERE a.workspace_id = $1 AND c.name ILIKE $2 LIMIT $3`,
         [filters.workspaceId, searchTerm, Math.ceil(limit / 3)],
       );
       results.push(...rows.map((r) => ({
