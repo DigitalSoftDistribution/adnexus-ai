@@ -65,7 +65,8 @@ describe('CampaignsContent', () => {
     expect(screen.getByText('Brand Awareness')).toBeInTheDocument();
     // The "New Campaign" CTA links to the create page.
     const newLink = screen.getByRole('link', { name: /new campaign/i });
-    expect(newLink).toHaveAttribute('href', '/dashboard/campaigns/new');
+    // The locale-aware Link prepends the active locale prefix.
+    expect(newLink).toHaveAttribute('href', '/en/dashboard/campaigns/new');
   });
 
   it('requests the v2 campaigns endpoint with pagination params', async () => {
