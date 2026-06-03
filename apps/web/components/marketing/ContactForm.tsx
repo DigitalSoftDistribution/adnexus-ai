@@ -64,7 +64,7 @@ export function ContactForm() {
   if (status === 'fallback') {
     const subject = encodeURIComponent('AdNexus AI — contact');
     const bodyText = encodeURIComponent(
-      `Name: ${form.name}\nCompany: ${form.company}\n\n${form.message}`,
+      `Name: ${form.name}\nEmail: ${form.email}\nCompany: ${form.company}\n\n${form.message}`,
     );
     return (
       <div className="card-surface p-8 text-center">

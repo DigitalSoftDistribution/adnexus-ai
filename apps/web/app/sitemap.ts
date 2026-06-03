@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { BLOG_SLUGS } from '@/lib/marketing/blog-posts';
 
 const BASE = 'https://adnexus.ai';
 
@@ -26,6 +27,7 @@ const ROUTES = [
   '/compare/revealbot',
   '/compare/smartly',
   '/compare/adkit',
+  ...BLOG_SLUGS.map((slug) => `/blog/${slug}`),
 ];
 // Legal pages (/legal/*) are intentionally excluded — they set
 // `robots: { index: false }`, so listing them here would send conflicting
