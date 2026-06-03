@@ -107,7 +107,9 @@
     "by": "Door",
     "system": "Systeem",
     "campaign": "Campagne",
-    "changes": "wijziging(en)"
+    "changes": "wijziging(en)",
+    "active": "Actief",
+    "paused": "Gepauzeerd"
   },
   "auth": {
     "signIn": "Aanmelden",

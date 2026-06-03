@@ -107,7 +107,9 @@
     "by": "Von",
     "system": "System",
     "campaign": "Kampagne",
-    "changes": "Änderung(en)"
+    "changes": "Änderung(en)",
+    "active": "Aktiv",
+    "paused": "Pausiert"
   },
   "auth": {
     "signIn": "Anmelden",

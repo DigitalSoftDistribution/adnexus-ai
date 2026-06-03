@@ -69,8 +69,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetch('/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
-      .then((body) => {
+      .then(async (res) => {
+        // Only treat genuine auth failures (401/403) as an invalid session.
+        // Transient failures (429 rate limit, 5xx, network) must NOT log the
+        // user out — keep the token and let the next request retry.
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('adnexus_token');
+          return;
+        }
+        if (!res.ok) return;
+
+        const body = await res.json();
         // /api/v1/auth/me returns { success, data: { id, email, name, role,
         // user: {...}, workspace: {...} } }. The user fields live under `data`
         // (with a nested `user`), not at the top level.
@@ -86,12 +95,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             workspaceId: ws?.id ?? u.workspaceId ?? u.workspace_id ?? '',
             role: u.role ?? payload?.role ?? 'viewer',
           });
-        } else {
-          localStorage.removeItem('adnexus_token');
         }
       })
       .catch(() => {
-        localStorage.removeItem('adnexus_token');
+        // Network error — keep the token; do not force a logout.
       })
       .finally(() => setIsLoading(false));
   }, []);

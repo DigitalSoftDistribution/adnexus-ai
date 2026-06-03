@@ -107,7 +107,9 @@
     "by": "Przez",
     "system": "System",
     "campaign": "Kampania",
-    "changes": "zmiana(y)"
+    "changes": "zmiana(y)",
+    "active": "Aktywny",
+    "paused": "Wstrzymany"
   },
   "auth": {
     "signIn": "Zaloguj się",

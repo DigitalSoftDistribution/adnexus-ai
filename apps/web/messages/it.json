@@ -107,7 +107,9 @@
     "by": "Da",
     "system": "Sistema",
     "campaign": "Campagna",
-    "changes": "modifica(che)"
+    "changes": "modifica(che)",
+    "active": "Attivo",
+    "paused": "In pausa"
   },
   "auth": {
     "signIn": "Accedi",
