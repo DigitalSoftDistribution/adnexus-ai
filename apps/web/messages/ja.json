@@ -503,12 +503,20 @@
     "status": {
       "connected": "接続済み",
       "available": "利用可能"
-    }
+    },
+    "available": "利用可能",
+    "disconnect": "切断"
   },
   "webhooks": {
     "title": "Webhookビルダー",
     "description": "イベント通知用の送信Webhookを構成します。",
-    "comingSoon": "Webhookビルダーは近日公開予定です。"
+    "comingSoon": "Webhookビルダーは近日公開予定です。",
+    "addWebhook": "Webhookを追加",
+    "empty": "Webhookが設定されていません",
+    "emptyDescription": "リアルタイムイベントを受信するにはWebhookを作成します。",
+    "endpoint": "エンドポイントURL",
+    "events": "イベント",
+    "active": "有効"
   },
   "errors": {
     "failedToFetchSummary": "サマリーの取得に失敗しました",
@@ -521,5 +529,36 @@
     "title": "通知",
     "markAllRead": "すべて既読にする",
     "empty": "通知はまだありません"
+  },
+  "onboarding": {
+    "title": "AdNexus AIへようこそ",
+    "description": "数ステップでワークスペースを設定しましょう。",
+    "stepConnect": "プラットフォームを接続",
+    "stepConnectDesc": "Meta、Google、TikTok、Snapを連携してキャンペーンをインポートします。",
+    "stepTeam": "チームを招待",
+    "stepTeamDesc": "メンバーを追加して共同作業します。",
+    "stepCampaign": "最初のキャンペーンを作成",
+    "stepCampaignDesc": "キャンペーンを開始または下書きします。",
+    "skip": "今はスキップ",
+    "finish": "ダッシュボードへ",
+    "completed": "完了"
+  },
+  "goals": {
+    "title": "目標",
+    "description": "キャンペーン全体のパフォーマンス目標を追跡します。",
+    "metric": "指標",
+    "target": "目標値",
+    "empty": "目標がまだありません",
+    "emptyDescription": "ROAS、CPA、コンバージョンなどを追跡する目標を作成します。"
+  },
+  "auditLog": {
+    "title": "監査ログ",
+    "description": "ワークスペース内のすべての変更の記録。",
+    "actor": "実行者",
+    "action": "アクション",
+    "category": "カテゴリ",
+    "entity": "エンティティ",
+    "empty": "アクティビティがまだありません",
+    "emptyDescription": "ワークスペースのアクティビティがここに表示されます。"
   }
 }

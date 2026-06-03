@@ -503,12 +503,20 @@
     "status": {
       "connected": "verbunden",
       "available": "verfügbar"
-    }
+    },
+    "available": "Verfügbar",
+    "disconnect": "Trennen"
   },
   "webhooks": {
     "title": "Webhook-Ersteller",
     "description": "Konfigurieren Sie ausgehende Webhooks für Ereignisbenachrichtigungen.",
-    "comingSoon": "Webhook-Ersteller demnächst verfügbar."
+    "comingSoon": "Webhook-Ersteller demnächst verfügbar.",
+    "addWebhook": "Webhook hinzufügen",
+    "empty": "Keine Webhooks konfiguriert",
+    "emptyDescription": "Erstellen Sie einen Webhook, um Echtzeit-Ereignisse zu empfangen.",
+    "endpoint": "Endpunkt-URL",
+    "events": "Ereignisse",
+    "active": "Aktiv"
   },
   "errors": {
     "failedToFetchSummary": "Zusammenfassung konnte nicht abgerufen werden",
@@ -521,5 +529,36 @@
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
     "empty": "Noch keine Benachrichtigungen"
+  },
+  "onboarding": {
+    "title": "Willkommen bei AdNexus AI",
+    "description": "Richten wir Ihren Arbeitsbereich in wenigen Schritten ein.",
+    "stepConnect": "Plattform verbinden",
+    "stepConnectDesc": "Verbinden Sie Meta, Google, TikTok oder Snap, um Kampagnen zu importieren.",
+    "stepTeam": "Team einladen",
+    "stepTeamDesc": "Fügen Sie Teammitglieder zur Zusammenarbeit hinzu.",
+    "stepCampaign": "Erste Kampagne erstellen",
+    "stepCampaignDesc": "Starten oder entwerfen Sie eine Kampagne.",
+    "skip": "Vorerst überspringen",
+    "finish": "Zum Dashboard",
+    "completed": "Abgeschlossen"
+  },
+  "goals": {
+    "title": "Ziele",
+    "description": "Verfolgen Sie Leistungsziele über Kampagnen hinweg.",
+    "metric": "Kennzahl",
+    "target": "Ziel",
+    "empty": "Noch keine Ziele",
+    "emptyDescription": "Erstellen Sie ein Ziel, um ROAS, CPA, Conversions und mehr zu verfolgen."
+  },
+  "auditLog": {
+    "title": "Audit-Log",
+    "description": "Eine Aufzeichnung jeder Änderung in Ihrem Arbeitsbereich.",
+    "actor": "Akteur",
+    "action": "Aktion",
+    "category": "Kategorie",
+    "entity": "Entität",
+    "empty": "Noch keine Aktivität",
+    "emptyDescription": "Arbeitsbereich-Aktivitäten erscheinen hier."
   }
 }

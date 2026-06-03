@@ -503,12 +503,20 @@
     "status": {
       "connected": "połączono",
       "available": "dostępne"
-    }
+    },
+    "available": "Dostępne",
+    "disconnect": "Rozłącz"
   },
   "webhooks": {
     "title": "Kreator webhooków",
     "description": "Skonfiguruj wychodzące webhooki dla powiadomień o zdarzeniach.",
-    "comingSoon": "Kreator webhooków już wkrótce."
+    "comingSoon": "Kreator webhooków już wkrótce.",
+    "addWebhook": "Dodaj webhook",
+    "empty": "Brak skonfigurowanych webhooków",
+    "emptyDescription": "Utwórz webhook, aby odbierać zdarzenia w czasie rzeczywistym.",
+    "endpoint": "URL punktu końcowego",
+    "events": "Zdarzenia",
+    "active": "Aktywny"
   },
   "errors": {
     "failedToFetchSummary": "Nie udało się pobrać podsumowania",
@@ -521,5 +529,36 @@
     "title": "Powiadomienia",
     "markAllRead": "Oznacz wszystkie jako przeczytane",
     "empty": "Brak powiadomień"
+  },
+  "onboarding": {
+    "title": "Witamy w AdNexus AI",
+    "description": "Skonfigurujmy Twój obszar roboczy w kilku krokach.",
+    "stepConnect": "Połącz platformę",
+    "stepConnectDesc": "Połącz Meta, Google, TikTok lub Snap, aby zaimportować kampanie.",
+    "stepTeam": "Zaproś swój zespół",
+    "stepTeamDesc": "Dodaj członków zespołu do współpracy.",
+    "stepCampaign": "Utwórz pierwszą kampanię",
+    "stepCampaignDesc": "Uruchom lub utwórz wersję roboczą kampanii.",
+    "skip": "Pomiń na razie",
+    "finish": "Przejdź do panelu",
+    "completed": "Ukończono"
+  },
+  "goals": {
+    "title": "Cele",
+    "description": "Śledź cele wydajności w kampaniach.",
+    "metric": "Metryka",
+    "target": "Cel",
+    "empty": "Brak celów",
+    "emptyDescription": "Utwórz cel, aby śledzić ROAS, CPA, konwersje i więcej."
+  },
+  "auditLog": {
+    "title": "Dziennik audytu",
+    "description": "Zapis każdej zmiany w obszarze roboczym.",
+    "actor": "Wykonawca",
+    "action": "Akcja",
+    "category": "Kategoria",
+    "entity": "Encja",
+    "empty": "Brak aktywności",
+    "emptyDescription": "Aktywność obszaru roboczego pojawi się tutaj."
   }
 }

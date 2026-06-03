@@ -503,12 +503,20 @@
     "status": {
       "connected": "conectado",
       "available": "disponible"
-    }
+    },
+    "available": "Disponible",
+    "disconnect": "Desconectar"
   },
   "webhooks": {
     "title": "Creador de webhooks",
     "description": "Configura webhooks salientes para notificaciones de eventos.",
-    "comingSoon": "El creador de webhooks estará disponible próximamente."
+    "comingSoon": "El creador de webhooks estará disponible próximamente.",
+    "addWebhook": "Añadir webhook",
+    "empty": "No hay webhooks configurados",
+    "emptyDescription": "Crea un webhook para recibir eventos en tiempo real.",
+    "endpoint": "URL del endpoint",
+    "events": "Eventos",
+    "active": "Activo"
   },
   "errors": {
     "failedToFetchSummary": "Error al obtener el resumen",
@@ -521,5 +529,36 @@
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
     "empty": "Aún no hay notificaciones"
+  },
+  "onboarding": {
+    "title": "Bienvenido a AdNexus AI",
+    "description": "Configuremos tu espacio de trabajo en unos pasos.",
+    "stepConnect": "Conectar una plataforma",
+    "stepConnectDesc": "Vincula Meta, Google, TikTok o Snap para importar campañas.",
+    "stepTeam": "Invita a tu equipo",
+    "stepTeamDesc": "Añade compañeros para colaborar en campañas.",
+    "stepCampaign": "Crea tu primera campaña",
+    "stepCampaignDesc": "Lanza o crea un borrador de campaña.",
+    "skip": "Omitir por ahora",
+    "finish": "Ir al panel",
+    "completed": "Completado"
+  },
+  "goals": {
+    "title": "Objetivos",
+    "description": "Sigue los objetivos de rendimiento de las campañas.",
+    "metric": "Métrica",
+    "target": "Objetivo",
+    "empty": "Aún no hay objetivos",
+    "emptyDescription": "Crea un objetivo para seguir ROAS, CPA, conversiones y más."
+  },
+  "auditLog": {
+    "title": "Registro de auditoría",
+    "description": "Un registro de cada cambio en tu espacio de trabajo.",
+    "actor": "Actor",
+    "action": "Acción",
+    "category": "Categoría",
+    "entity": "Entidad",
+    "empty": "Aún no hay actividad",
+    "emptyDescription": "La actividad del espacio de trabajo aparecerá aquí."
   }
 }

@@ -503,12 +503,20 @@
     "status": {
       "connected": "verbonden",
       "available": "beschikbaar"
-    }
+    },
+    "available": "Beschikbaar",
+    "disconnect": "Loskoppelen"
   },
   "webhooks": {
     "title": "Webhook-bouwer",
     "description": "Configureer uitgaande webhooks voor gebeurtenismeldingen.",
-    "comingSoon": "Webhook-bouwer binnenkort beschikbaar."
+    "comingSoon": "Webhook-bouwer binnenkort beschikbaar.",
+    "addWebhook": "Webhook toevoegen",
+    "empty": "Geen webhooks geconfigureerd",
+    "emptyDescription": "Maak een webhook om realtime gebeurtenissen te ontvangen.",
+    "endpoint": "Endpoint-URL",
+    "events": "Gebeurtenissen",
+    "active": "Actief"
   },
   "errors": {
     "failedToFetchSummary": "Ophalen van overzicht mislukt",
@@ -521,5 +529,36 @@
     "title": "Meldingen",
     "markAllRead": "Alles als gelezen markeren",
     "empty": "Nog geen meldingen"
+  },
+  "onboarding": {
+    "title": "Welkom bij AdNexus AI",
+    "description": "Laten we je werkruimte in een paar stappen instellen.",
+    "stepConnect": "Verbind een platform",
+    "stepConnectDesc": "Koppel Meta, Google, TikTok of Snap om campagnes te importeren.",
+    "stepTeam": "Nodig je team uit",
+    "stepTeamDesc": "Voeg teamleden toe om samen te werken.",
+    "stepCampaign": "Maak je eerste campagne",
+    "stepCampaignDesc": "Start of maak een conceptcampagne.",
+    "skip": "Voorlopig overslaan",
+    "finish": "Naar dashboard",
+    "completed": "Voltooid"
+  },
+  "goals": {
+    "title": "Doelen",
+    "description": "Volg prestatiedoelen over campagnes heen.",
+    "metric": "Statistiek",
+    "target": "Doel",
+    "empty": "Nog geen doelen",
+    "emptyDescription": "Maak een doel om ROAS, CPA, conversies en meer te volgen."
+  },
+  "auditLog": {
+    "title": "Auditlogboek",
+    "description": "Een registratie van elke wijziging in je werkruimte.",
+    "actor": "Actor",
+    "action": "Actie",
+    "category": "Categorie",
+    "entity": "Entiteit",
+    "empty": "Nog geen activiteit",
+    "emptyDescription": "Werkruimte-activiteit verschijnt hier."
   }
 }

@@ -503,12 +503,20 @@
     "status": {
       "connected": "connesso",
       "available": "disponibile"
-    }
+    },
+    "available": "Disponibile",
+    "disconnect": "Disconnetti"
   },
   "webhooks": {
     "title": "Generatore di webhook",
     "description": "Configura i webhook in uscita per le notifiche degli eventi.",
-    "comingSoon": "Il generatore di webhook sarà presto disponibile."
+    "comingSoon": "Il generatore di webhook sarà presto disponibile.",
+    "addWebhook": "Aggiungi webhook",
+    "empty": "Nessun webhook configurato",
+    "emptyDescription": "Crea un webhook per ricevere eventi in tempo reale.",
+    "endpoint": "URL endpoint",
+    "events": "Eventi",
+    "active": "Attivo"
   },
   "errors": {
     "failedToFetchSummary": "Impossibile recuperare il riepilogo",
@@ -521,5 +529,36 @@
     "title": "Notifiche",
     "markAllRead": "Segna tutto come letto",
     "empty": "Nessuna notifica"
+  },
+  "onboarding": {
+    "title": "Benvenuto in AdNexus AI",
+    "description": "Configuriamo la tua area di lavoro in pochi passaggi.",
+    "stepConnect": "Connetti una piattaforma",
+    "stepConnectDesc": "Collega Meta, Google, TikTok o Snap per importare le campagne.",
+    "stepTeam": "Invita il tuo team",
+    "stepTeamDesc": "Aggiungi colleghi per collaborare.",
+    "stepCampaign": "Crea la tua prima campagna",
+    "stepCampaignDesc": "Avvia o crea una bozza di campagna.",
+    "skip": "Salta per ora",
+    "finish": "Vai alla dashboard",
+    "completed": "Completato"
+  },
+  "goals": {
+    "title": "Obiettivi",
+    "description": "Monitora gli obiettivi di performance delle campagne.",
+    "metric": "Metrica",
+    "target": "Obiettivo",
+    "empty": "Nessun obiettivo",
+    "emptyDescription": "Crea un obiettivo per monitorare ROAS, CPA, conversioni e altro."
+  },
+  "auditLog": {
+    "title": "Registro di controllo",
+    "description": "Un registro di ogni modifica nella tua area di lavoro.",
+    "actor": "Attore",
+    "action": "Azione",
+    "category": "Categoria",
+    "entity": "Entità",
+    "empty": "Nessuna attività",
+    "emptyDescription": "L'attività dell'area di lavoro apparirà qui."
   }
 }

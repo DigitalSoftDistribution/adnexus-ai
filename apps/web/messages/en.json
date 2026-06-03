@@ -503,12 +503,20 @@
     "status": {
       "connected": "connected",
       "available": "available"
-    }
+    },
+    "available": "Available",
+    "disconnect": "Disconnect"
   },
   "webhooks": {
     "title": "Webhook Builder",
     "description": "Configure outgoing webhooks for event notifications.",
-    "comingSoon": "Webhook builder coming soon."
+    "comingSoon": "Webhook builder coming soon.",
+    "addWebhook": "Add webhook",
+    "empty": "No webhooks configured",
+    "emptyDescription": "Create a webhook to receive real-time events.",
+    "endpoint": "Endpoint URL",
+    "events": "Events",
+    "active": "Active"
   },
   "errors": {
     "failedToFetchSummary": "Failed to fetch summary",
@@ -521,5 +529,36 @@
     "title": "Notifications",
     "markAllRead": "Mark all read",
     "empty": "No notifications yet"
+  },
+  "onboarding": {
+    "title": "Welcome to AdNexus AI",
+    "description": "Let's get your workspace set up in a few steps.",
+    "stepConnect": "Connect a platform",
+    "stepConnectDesc": "Link Meta, Google, TikTok or Snap to import campaigns.",
+    "stepTeam": "Invite your team",
+    "stepTeamDesc": "Add teammates to collaborate on campaigns.",
+    "stepCampaign": "Create your first campaign",
+    "stepCampaignDesc": "Launch or draft a campaign to see AdNexus in action.",
+    "skip": "Skip for now",
+    "finish": "Go to dashboard",
+    "completed": "Completed"
+  },
+  "goals": {
+    "title": "Goals",
+    "description": "Track performance targets across campaigns.",
+    "metric": "Metric",
+    "target": "Target",
+    "empty": "No goals yet",
+    "emptyDescription": "Create a goal to track ROAS, CPA, conversions and more."
+  },
+  "auditLog": {
+    "title": "Audit Log",
+    "description": "A record of every change in your workspace.",
+    "actor": "Actor",
+    "action": "Action",
+    "category": "Category",
+    "entity": "Entity",
+    "empty": "No activity yet",
+    "emptyDescription": "Workspace activity will appear here."
   }
 }
