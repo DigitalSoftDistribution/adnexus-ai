@@ -37,6 +37,8 @@ import { register, getMetrics } from './lib/monitoring';
 import authRoutes from './routes/auth';
 import metaOAuthRoutes from './routes/auth/meta';
 import googleOAuthRoutes from './routes/auth/google';
+import tiktokOAuthRoutes from './routes/auth/tiktok';
+import snapOAuthRoutes from './routes/auth/snap';
 import campaignRoutes from './routes/campaigns';
 import adRoutes from './routes/ads';
 import draftRoutes from './routes/drafts';
@@ -215,6 +217,12 @@ app.use('/api/v1/auth/meta', unauthenticatedRateLimiter, metaOAuthRoutes);
 
 // Google OAuth routes — public, no auth required
 app.use('/api/v1/auth/google', unauthenticatedRateLimiter, googleOAuthRoutes);
+
+// TikTok OAuth routes — public, no auth required
+app.use('/api/v1/auth/tiktok', unauthenticatedRateLimiter, tiktokOAuthRoutes);
+
+// Snap OAuth routes — public, no auth required
+app.use('/api/v1/auth/snap', unauthenticatedRateLimiter, snapOAuthRoutes);
 
 // ─── Free Public Audit (no auth required — GTM wedge) ────────
 
