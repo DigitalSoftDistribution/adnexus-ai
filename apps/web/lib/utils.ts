@@ -5,23 +5,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(value: number, currency = 'USD', locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
   }).format(value);
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
+export function formatNumber(value: number, locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale).format(value);
 }
 
 export function formatPercent(value: number, decimals = 2): string {
   return `${(value * 100).toFixed(decimals)}%`;
 }
 
-export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat('en-US', {
+export function formatDate(date: string | Date, locale = 'en-US'): string {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

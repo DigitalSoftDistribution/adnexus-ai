@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,8 @@ function useDrafts() {
 export function DraftsContent() {
   const { data, isLoading } = useDrafts();
   const drafts: Draft[] = data?.data?.drafts ?? [];
+  const t = useTranslations('drafts');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -45,15 +48,15 @@ export function DraftsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Drafts</h1>
-        <p className="text-muted-foreground">Review and approve optimization drafts.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         {['pending', 'approved', 'executed', 'failed'].map((status) => (
           <Card key={status}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium capitalize">{status}</CardTitle>
+              <CardTitle className="text-sm font-medium capitalize">{t(`status.${status}`)}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -66,15 +69,15 @@ export function DraftsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Drafts</CardTitle>
+          <CardTitle>{t('recentDrafts')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {drafts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <FileEdit className="h-12 w-12 mb-4 opacity-50" />
-                <p>No drafts yet</p>
-                <p className="text-sm">AI-generated recommendations will appear here</p>
+                <p>{t('noDrafts')}</p>
+                <p className="text-sm">{t('draftsPlaceholder')}</p>
               </div>
             ) : (
               drafts.map((draft) => (
@@ -90,11 +93,12 @@ export function DraftsContent() {
 
 function useDraftActions() {
   const queryClient = useQueryClient();
+  const t = useTranslations('drafts');
 
   const approve = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/v2/drafts/${id}/approve`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to approve draft');
+      if (!res.ok) throw new Error(t('failedToApprove'));
       return res.json();
     },
     onSuccess: () => {
@@ -109,7 +113,7 @@ function useDraftActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
       });
-      if (!res.ok) throw new Error('Failed to reject draft');
+      if (!res.ok) throw new Error(t('failedToReject'));
       return res.json();
     },
     onSuccess: () => {
@@ -120,7 +124,7 @@ function useDraftActions() {
   const execute = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/v2/drafts/${id}/execute`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to execute draft');
+      if (!res.ok) throw new Error(t('failedToExecute'));
       return res.json();
     },
     onSuccess: () => {
@@ -133,13 +137,16 @@ function useDraftActions() {
 
 function DraftCard({ draft }: { draft: Draft }) {
   const actions = useDraftActions();
+  const t = useTranslations('drafts');
+  const tc = useTranslations('common');
+
   const statusConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-    pending: { icon: Clock, color: 'bg-amber-100 text-amber-700', label: 'Pending' },
-    approved: { icon: CheckCircle, color: 'bg-emerald-100 text-emerald-700', label: 'Approved' },
-    executed: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: 'Executed' },
-    failed: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Failed' },
-    rejected: { icon: XCircle, color: 'bg-gray-100 text-gray-700', label: 'Rejected' },
-    rolled_back: { icon: RotateCcw, color: 'bg-purple-100 text-purple-700', label: 'Rolled Back' },
+    pending: { icon: Clock, color: 'bg-amber-100 text-amber-700', label: t('status.pending') },
+    approved: { icon: CheckCircle, color: 'bg-emerald-100 text-emerald-700', label: t('status.approved') },
+    executed: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: t('status.executed') },
+    failed: { icon: XCircle, color: 'bg-red-100 text-red-700', label: t('status.failed') },
+    rejected: { icon: XCircle, color: 'bg-gray-100 text-gray-700', label: t('status.rejected') },
+    rolled_back: { icon: RotateCcw, color: 'bg-purple-100 text-purple-700', label: t('status.rolled_back') },
   };
 
   const config = statusConfig[draft.status] ?? statusConfig.pending;
@@ -160,8 +167,8 @@ function DraftCard({ draft }: { draft: Draft }) {
         </div>
         <p className="font-medium">{draft.changeSummary}</p>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {draft.campaignName && <span>Campaign: {draft.campaignName}</span>}
-          <span>By: {draft.actorName ?? draft.actorType}</span>
+          {draft.campaignName && <span>{tc('campaign')}: {draft.campaignName}</span>}
+          <span>{tc('by')}: {draft.actorName ?? draft.actorType}</span>
           <span>{formatDate(draft.createdAt)}</span>
         </div>
       </div>
@@ -174,7 +181,7 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.reject.isPending}
           >
             <XCircle className="mr-1 h-3 w-3" />
-            Reject
+            {tc('reject')}
           </Button>
           <Button
             size="sm"
@@ -182,7 +189,7 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.approve.isPending}
           >
             <CheckCircle className="mr-1 h-3 w-3" />
-            Approve
+            {tc('approve')}
           </Button>
         </div>
       )}
@@ -195,7 +202,7 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.execute.isPending}
           >
             <Play className="mr-1 h-3 w-3" />
-            {actions.execute.isPending ? 'Executing...' : 'Execute'}
+            {actions.execute.isPending ? tc('executing') : tc('execute')}
           </Button>
         </div>
       )}

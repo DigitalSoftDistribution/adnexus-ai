@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,22 +31,24 @@ interface Recommendation {
 }
 
 function useAgentStatus() {
+  const t = useTranslations('aiAgent');
   return useQuery({
     queryKey: ['agent', 'status'],
     queryFn: async (): Promise<AgentStatus> => {
       const res = await fetch('/api/v1/agent/status');
-      if (!res.ok) throw new Error('Failed to fetch agent status');
+      if (!res.ok) throw new Error(t('failedToFetchStatus'));
       return res.json();
     },
   });
 }
 
 function useRecommendations() {
+  const t = useTranslations('aiAgent');
   return useQuery({
     queryKey: ['agent', 'recommendations'],
     queryFn: async (): Promise<Recommendation[]> => {
       const res = await fetch('/api/v1/agent/recommendations');
-      if (!res.ok) throw new Error('Failed to fetch recommendations');
+      if (!res.ok) throw new Error(t('failedToFetchRecommendations'));
       const data = await res.json();
       return data.recommendations ?? [];
     },
@@ -54,11 +57,12 @@ function useRecommendations() {
 
 function useAgentActions() {
   const queryClient = useQueryClient();
+  const t = useTranslations('aiAgent');
 
   const generate = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v1/agent/recommendations', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to generate recommendations');
+      if (!res.ok) throw new Error(t('failedToGenerate'));
       return res.json();
     },
     onSuccess: () => {
@@ -70,7 +74,7 @@ function useAgentActions() {
   const apply = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/v1/agent/recommendations/${id}/apply`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to apply recommendation');
+      if (!res.ok) throw new Error(t('failedToApply'));
       return res.json();
     },
     onSuccess: () => {
@@ -82,7 +86,7 @@ function useAgentActions() {
   const dismiss = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/v1/agent/recommendations/${id}/dismiss`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to dismiss recommendation');
+      if (!res.ok) throw new Error(t('failedToDismiss'));
       return res.json();
     },
     onSuccess: () => {
@@ -93,7 +97,7 @@ function useAgentActions() {
   const toggle = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v1/agent/toggle', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to toggle agent');
+      if (!res.ok) throw new Error(t('failedToToggle'));
       return res.json();
     },
     onSuccess: () => {
@@ -109,6 +113,8 @@ export function AIAgentContent() {
   const { data: status, isLoading: statusLoading } = useAgentStatus();
   const { data: recommendations, isLoading: recsLoading } = useRecommendations();
   const actions = useAgentActions();
+  const t = useTranslations('aiAgent');
+  const tc = useTranslations('common');
 
   const isLoading = statusLoading || recsLoading;
 
@@ -129,9 +135,9 @@ export function AIAgentContent() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Bot className="h-8 w-8 text-primary" />
-            AI Agent
+            {t('title')}
           </h1>
-          <p className="text-muted-foreground">AI-powered recommendations and optimizations.</p>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -140,18 +146,18 @@ export function AIAgentContent() {
             disabled={actions.toggle.isPending}
           >
             {status?.isRunning ? <PauseIcon /> : <Play className="mr-2 h-4 w-4" />}
-            {status?.isRunning ? 'Pause Agent' : 'Resume Agent'}
+            {status?.isRunning ? t('pauseAgent') : t('resumeAgent')}
           </Button>
           <Button onClick={() => actions.generate.mutate()} disabled={actions.generate.isPending}>
             {actions.generate.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
+                {tc('analyzing')}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generate Recommendations
+                {t('generateRecommendations')}
               </>
             )}
           </Button>
@@ -161,26 +167,26 @@ export function AIAgentContent() {
       {/* Agent Status Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatusCard
-          label="Agent Status"
-          value={status?.isRunning ? 'Running' : 'Paused'}
+          label={t('agentStatus')}
+          value={status?.isRunning ? t('running') : t('paused')}
           icon={status?.isRunning ? CheckCircle : AlertTriangle}
           color={status?.isRunning ? 'text-emerald-600' : 'text-amber-600'}
         />
         <StatusCard
-          label="Active Rules"
+          label={t('activeRules')}
           value={String(status?.rulesActive ?? 0)}
           icon={Sparkles}
           color="text-blue-600"
         />
         <StatusCard
-          label="Pending Recommendations"
+          label={t('pendingRecommendations')}
           value={String(pendingRecs.length)}
           icon={TrendingUp}
           color="text-purple-600"
         />
         <StatusCard
-          label="Last Run"
-          value={status?.lastRunAt ? new Date(status.lastRunAt).toLocaleDateString() : 'Never'}
+          label={t('lastRun')}
+          value={status?.lastRunAt ? new Date(status.lastRunAt).toLocaleDateString() : t('never')}
           icon={Bot}
           color="text-muted-foreground"
         />
@@ -189,19 +195,19 @@ export function AIAgentContent() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="recommendations">
-            Recommendations ({pendingRecs.length})
+            {t('recommendations')} ({pendingRecs.length})
           </TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="insights">{t('insights')}</TabsTrigger>
+          <TabsTrigger value="history">{t('history')}</TabsTrigger>
+          <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recommendations" className="space-y-4">
           {recs.length === 0 ? (
             <EmptyState
               icon={Sparkles}
-              title="No recommendations yet"
-              description="Click 'Generate Recommendations' to analyze your campaigns."
+              title={t('noRecommendations')}
+              description={t('recommendationsPlaceholder')}
             />
           ) : (
             recs.map((rec) => (
@@ -273,6 +279,8 @@ function RecommendationCard({
   isDismissing: boolean;
 }) {
   const isPending = rec.status === 'pending';
+  const t = useTranslations('aiAgent');
+  const tc = useTranslations('common');
 
   return (
     <Card>
@@ -281,7 +289,7 @@ function RecommendationCard({
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2">
               <Badge variant={rec.impact === 'high' ? 'destructive' : rec.impact === 'medium' ? 'default' : 'secondary'}>
-                {rec.impact} impact
+                {rec.impact} {t('impact')}
               </Badge>
               <Badge variant="outline">{rec.type}</Badge>
               <span className="text-sm text-muted-foreground">{rec.campaignName}</span>
@@ -290,7 +298,7 @@ function RecommendationCard({
             <p className="text-sm text-muted-foreground">{rec.description}</p>
             <div className="flex items-center gap-4 pt-2">
               <div className="flex items-center gap-1">
-                <span className="text-sm font-medium">Confidence:</span>
+                <span className="text-sm font-medium">{t('confidence')}:</span>
                 <span className="text-sm">{rec.confidence}%</span>
               </div>
               {!isPending && (
@@ -304,11 +312,11 @@ function RecommendationCard({
             <div className="flex gap-2 ml-4">
               <Button size="sm" variant="outline" onClick={onDismiss} disabled={isDismissing}>
                 <XCircle className="mr-1 h-3 w-3" />
-                Dismiss
+                {tc('dismiss')}
               </Button>
               <Button size="sm" onClick={onApply} disabled={isApplying}>
                 <CheckCircle className="mr-1 h-3 w-3" />
-                {isApplying ? 'Applying...' : 'Apply'}
+                {isApplying ? tc('applying') : tc('apply')}
               </Button>
             </div>
           )}
@@ -319,29 +327,30 @@ function RecommendationCard({
 }
 
 function InsightsTab() {
+  const t = useTranslations('aiAgent');
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Performance Insights</CardTitle>
-        <CardDescription>AI-generated analysis of your account performance</CardDescription>
+        <CardTitle>{t('performanceInsights')}</CardTitle>
+        <CardDescription>{t('insightsDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <InsightItem
           icon={TrendingUp}
-          title="Revenue Opportunity"
-          description="You could increase revenue by 23% by implementing the top 5 budget recommendations."
+          title={t('revenueOpportunity')}
+          description={t('revenueOpportunityDesc')}
           type="positive"
         />
         <InsightItem
           icon={AlertTriangle}
-          title="Creative Fatigue Alert"
-          description="3 campaigns show signs of creative fatigue. Consider refreshing creatives within 7 days."
+          title={t('creativeFatigue')}
+          description={t('creativeFatigueDesc')}
           type="warning"
         />
         <InsightItem
           icon={CheckCircle}
-          title="Audience Optimization"
-          description="Your audience targeting is performing 15% above industry benchmark."
+          title={t('audienceOptimization')}
+          description={t('audienceOptimizationDesc')}
           type="positive"
         />
       </CardContent>
@@ -350,17 +359,18 @@ function InsightsTab() {
 }
 
 function HistoryTab() {
+  const t = useTranslations('aiAgent');
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Action History</CardTitle>
-        <CardDescription>Previously applied AI recommendations</CardDescription>
+        <CardTitle>{t('actionHistory')}</CardTitle>
+        <CardDescription>{t('historyDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
         <EmptyState
           icon={Bot}
-          title="No actions taken yet"
-          description="Applied recommendations will appear here."
+          title={t('noActions')}
+          description={t('actionsPlaceholder')}
         />
       </CardContent>
     </Card>
@@ -368,28 +378,30 @@ function HistoryTab() {
 }
 
 function SettingsTab() {
+  const t = useTranslations('aiAgent');
+  const tc = useTranslations('common');
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Agent Settings</CardTitle>
-        <CardDescription>Configure recommendation preferences</CardDescription>
+        <CardTitle>{t('aiAgentSettings')}</CardTitle>
+        <CardDescription>{t('settingsDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <SettingRow
-          title="Auto-apply low-risk changes"
-          description="Automatically apply recommendations with confidence > 90%"
+          title={t('autoApply')}
+          description={t('autoApplyDesc')}
         />
         <SettingRow
-          title="Notification preferences"
-          description="Choose how you want to be notified about new recommendations"
+          title={t('notificationPreferences')}
+          description={t('notificationPreferencesDesc')}
         />
         <SettingRow
-          title="Analysis frequency"
-          description="How often the AI Agent analyzes your campaigns"
+          title={t('analysisFrequency')}
+          description={t('analysisFrequencyDesc')}
         />
         <SettingRow
-          title="Excluded campaigns"
-          description="Campaigns to exclude from AI recommendations"
+          title={t('excludedCampaigns')}
+          description={t('excludedCampaignsDesc')}
         />
       </CardContent>
     </Card>
@@ -397,13 +409,14 @@ function SettingsTab() {
 }
 
 function SettingRow({ title, description }: { title: string; description: string }) {
+  const tc = useTranslations('common');
   return (
     <div className="flex items-center justify-between rounded-lg border p-4">
       <div>
         <p className="font-medium">{title}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <Button variant="outline" size="sm">Configure</Button>
+      <Button variant="outline" size="sm">{tc('configure')}</Button>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { BLOG_SLUGS } from '@/lib/marketing/blog-posts';
+import { locales } from '@/i18n/config';
 
 const BASE = 'https://adnexus.ai';
 
@@ -35,10 +36,20 @@ const ROUTES = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  return ROUTES.map((route) => ({
-    url: `${BASE}${route}`,
-    lastModified: now,
-    changeFrequency: route === '' ? 'daily' : 'weekly',
-    priority: route === '' ? 1 : route === '/pricing' ? 0.9 : 0.7,
-  }));
+
+  // Marketing routes are served under a locale prefix (e.g. /en/pricing). Emit
+  // one entry per locale with hreflang alternates so crawlers can map them.
+  return ROUTES.flatMap((route) =>
+    locales.map((locale) => ({
+      url: `${BASE}/${locale}${route}`,
+      lastModified: now,
+      changeFrequency: (route === '' ? 'daily' : 'weekly') as 'daily' | 'weekly',
+      priority: route === '' ? 1 : route === '/pricing' ? 0.9 : 0.7,
+      alternates: {
+        languages: Object.fromEntries(
+          locales.map((l) => [l, `${BASE}/${l}${route}`]),
+        ),
+      },
+    })),
+  );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,54 +42,58 @@ interface ReportTemplate {
   category: 'performance' | 'financial' | 'audience' | 'creative';
 }
 
-const TEMPLATES: ReportTemplate[] = [
-  {
-    id: 'performance-summary',
-    name: 'Performance Summary',
-    description: 'High-level KPIs across all campaigns: spend, impressions, clicks, conversions, ROAS.',
-    icon: TrendingUp,
-    category: 'performance',
-  },
-  {
-    id: 'campaign-comparison',
-    name: 'Campaign Comparison',
-    description: 'Side-by-side comparison of up to 5 campaigns with normalized metrics.',
-    icon: BarChart3,
-    category: 'performance',
-  },
-  {
-    id: 'spend-breakdown',
-    name: 'Spend Breakdown',
-    description: 'Daily spend tracking with budget pacing and forecast.',
-    icon: DollarSign,
-    category: 'financial',
-  },
-  {
-    id: 'audience-insights',
-    name: 'Audience Insights',
-    description: 'Demographics, interests, and behavior analysis of converting audiences.',
-    icon: Users,
-    category: 'audience',
-  },
-];
-
 export function ReportsContent() {
   const { reports, isLoading, activeCategory, setActiveCategory, total } = useReports();
+  const t = useTranslations('reports');
+  const tc = useTranslations('common');
+
+  const templates: ReportTemplate[] = [
+    {
+      id: 'performance-summary',
+      name: t('templates.performanceSummary.name'),
+      description: t('templates.performanceSummary.description'),
+      icon: TrendingUp,
+      category: 'performance',
+    },
+    {
+      id: 'campaign-comparison',
+      name: t('templates.campaignComparison.name'),
+      description: t('templates.campaignComparison.description'),
+      icon: BarChart3,
+      category: 'performance',
+    },
+    {
+      id: 'spend-breakdown',
+      name: t('templates.spendBreakdown.name'),
+      description: t('templates.spendBreakdown.description'),
+      icon: DollarSign,
+      category: 'financial',
+    },
+    {
+      id: 'audience-insights',
+      name: t('templates.audienceInsights.name'),
+      description: t('templates.audienceInsights.description'),
+      icon: Users,
+      category: 'audience',
+    },
+  ];
 
   const filteredTemplates = activeCategory === 'all'
-    ? TEMPLATES
-    : TEMPLATES.filter((t) => t.category === activeCategory);
+    ? templates
+    : templates.filter((t) => t.category === activeCategory);
+
+  const categories = ['all', 'performance', 'financial', 'audience', 'creative'] as const;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">Generate and schedule performance reports.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          New Report
+          {t('newReport')}
         </Button>
       </div>
 
@@ -99,57 +104,56 @@ export function ReportsContent() {
         </div>
       ) : (
         <>
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Reports" value={String(total)} icon={FileText} />
-        <StatCard label="Saved" value={String(reports.length)} icon={Calendar} />
-        <StatCard label="Generated Today" value="0" icon={BarChart3} />
-        <StatCard label="Downloads" value="0" icon={Download} />
-      </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatCard label={t('totalReports')} value={String(total)} icon={FileText} />
+            <StatCard label={t('saved')} value={String(reports.length)} icon={Calendar} />
+            <StatCard label={t('generatedToday')} value="0" icon={BarChart3} />
+            <StatCard label={t('downloads')} value="0" icon={Download} />
+          </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-2">
-        {['all', 'performance', 'financial', 'audience', 'creative'].map((cat) => (
-          <Button
-            key={cat}
-            variant={activeCategory === cat ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveCategory(cat)}
-            className="capitalize"
-          >
-            {cat}
-          </Button>
-        ))}
-      </div>
+          {/* Category Filter */}
+          <div className="flex gap-2">
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={activeCategory === cat ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveCategory(cat)}
+                className="capitalize"
+              >
+                {t(`categories.${cat}`)}
+              </Button>
+            ))}
+          </div>
 
-      {/* Templates Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {filteredTemplates.map((template) => (
-          <Card key={template.id} className="hover:border-primary/50 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <template.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">{template.name}</CardTitle>
-                  <Badge variant="outline" className="capitalize text-xs">{template.category}</Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{template.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      </>
+          {/* Templates Grid */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredTemplates.map((template) => (
+              <Card key={template.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2">
+                      <template.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{template.name}</CardTitle>
+                      <Badge variant="outline" className="capitalize text-xs">{t(`categories.${template.category}`)}</Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{template.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Wireframe Concept */}
       <Card className="border-dashed">
         <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">Wireframe: Report Builder</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{t('wireframeTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
@@ -159,7 +163,7 @@ export function ReportsContent() {
               <div className="h-8 w-24 rounded bg-muted ml-auto" />
             </div>
             <div className="h-40 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-              Chart Preview Area
+              {t('chartPreview')}
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="h-20 rounded bg-muted" />
@@ -168,7 +172,7 @@ export function ReportsContent() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Concept: Drag-and-drop report builder with chart widgets, date range picker, and export options (PDF, CSV, PNG).
+            {t('concept')}
           </p>
         </CardContent>
       </Card>

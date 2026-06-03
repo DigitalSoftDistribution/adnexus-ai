@@ -1,13 +1,15 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import { useAuth } from '@/providers/AuthProvider';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
+  const locale = useLocale();
 
   if (isLoading) {
     return (
@@ -18,7 +20,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    redirect('/auth/signin');
+    redirect({ href: '/auth/signin', locale });
   }
 
   return (

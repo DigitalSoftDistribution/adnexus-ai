@@ -1,36 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ArrowLeft, Megaphone } from 'lucide-react';
-import Link from 'next/link';
-
-const PLATFORMS = [
-  { value: 'meta', label: 'Meta (Facebook/Instagram)' },
-  { value: 'google', label: 'Google Ads' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'snap', label: 'Snapchat' },
-];
-
-const OBJECTIVES = [
-  { value: 'awareness', label: 'Brand Awareness' },
-  { value: 'traffic', label: 'Website Traffic' },
-  { value: 'engagement', label: 'Engagement' },
-  { value: 'leads', label: 'Lead Generation' },
-  { value: 'sales', label: 'Sales / Conversions' },
-  { value: 'app_promotion', label: 'App Promotion' },
-  { value: 'reach', label: 'Reach' },
-  { value: 'video_views', label: 'Video Views' },
-];
 
 export function NewCampaignContent() {
   const router = useRouter();
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState('meta');
   const [objective, setObjective] = useState('sales');
@@ -38,6 +22,24 @@ export function NewCampaignContent() {
   const [dailyBudget, setDailyBudget] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  const platforms = [
+    { value: 'meta', label: t('platforms.meta') },
+    { value: 'google', label: t('platforms.google') },
+    { value: 'tiktok', label: t('platforms.tiktok') },
+    { value: 'snap', label: t('platforms.snap') },
+  ];
+
+  const objectives = [
+    { value: 'awareness', label: t('objectives.awareness') },
+    { value: 'traffic', label: t('objectives.traffic') },
+    { value: 'engagement', label: t('objectives.engagement') },
+    { value: 'leads', label: t('objectives.leads') },
+    { value: 'sales', label: t('objectives.sales') },
+    { value: 'app_promotion', label: t('objectives.app_promotion') },
+    { value: 'reach', label: t('objectives.reach') },
+    { value: 'video_views', label: t('objectives.video_views') },
+  ];
 
   const createCampaign = useMutation({
     mutationFn: async () => {
@@ -55,7 +57,7 @@ export function NewCampaignContent() {
           endDate: endDate || undefined,
         }),
       });
-      if (!res.ok) throw new Error('Failed to create campaign');
+      if (!res.ok) throw new Error(t('failedToCreate'));
       return res.json();
     },
     onSuccess: (data) => {
@@ -74,7 +76,7 @@ export function NewCampaignContent() {
         <Button asChild variant="ghost" size="sm">
           <Link href="/dashboard/campaigns">
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Back
+            {tc('back')}
           </Link>
         </Button>
       </div>
@@ -82,23 +84,23 @@ export function NewCampaignContent() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Megaphone className="h-8 w-8 text-primary" />
-          New Campaign
+          {t('newCampaign')}
         </h1>
-        <p className="text-muted-foreground">Create a new advertising campaign.</p>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Campaign Details</CardTitle>
-          <CardDescription>Enter the basic information for your campaign</CardDescription>
+          <CardTitle>{t('campaignDetails')}</CardTitle>
+          <CardDescription>{t('basicInfo')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Campaign Name *</Label>
+              <Label htmlFor="name">{t('campaignName')} *</Label>
               <Input
                 id="name"
-                placeholder="e.g., Summer Sale 2024"
+                placeholder={t('campaignNamePlaceholder')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -107,28 +109,28 @@ export function NewCampaignContent() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="platform">Platform *</Label>
+                <Label htmlFor="platform">{tc('platform')} *</Label>
                 <select
                   id="platform"
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {PLATFORMS.map((p) => (
+                  {platforms.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="objective">Objective *</Label>
+                <Label htmlFor="objective">{t('objective')} *</Label>
                 <select
                   id="objective"
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {OBJECTIVES.map((o) => (
+                  {objectives.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
@@ -136,7 +138,7 @@ export function NewCampaignContent() {
             </div>
 
             <div className="space-y-2">
-              <Label>Budget Type</Label>
+              <Label>{t('budgetType')}</Label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
                   <input
@@ -146,7 +148,7 @@ export function NewCampaignContent() {
                     checked={budgetType === 'daily'}
                     onChange={() => setBudgetType('daily')}
                   />
-                  <span className="text-sm">Daily Budget</span>
+                  <span className="text-sm">{t('dailyBudget')}</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -156,20 +158,20 @@ export function NewCampaignContent() {
                     checked={budgetType === 'lifetime'}
                     onChange={() => setBudgetType('lifetime')}
                   />
-                  <span className="text-sm">Lifetime Budget</span>
+                  <span className="text-sm">{t('lifetimeBudget')}</span>
                 </label>
               </div>
             </div>
 
             {budgetType === 'daily' && (
               <div className="space-y-2">
-                <Label htmlFor="dailyBudget">Daily Budget (USD)</Label>
+                <Label htmlFor="dailyBudget">{t('dailyBudgetLabel')}</Label>
                 <Input
                   id="dailyBudget"
                   type="number"
                   min="1"
                   step="0.01"
-                  placeholder="50.00"
+                  placeholder={t('dailyBudgetPlaceholder')}
                   value={dailyBudget}
                   onChange={(e) => setDailyBudget(e.target.value)}
                 />
@@ -178,7 +180,7 @@ export function NewCampaignContent() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">{tc('startDate')}</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -187,7 +189,7 @@ export function NewCampaignContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate">{tc('endDate')}</Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -199,7 +201,7 @@ export function NewCampaignContent() {
 
             {createCampaign.isError && (
               <p className="text-sm text-red-600">
-                {createCampaign.error instanceof Error ? createCampaign.error.message : 'Failed to create campaign'}
+                {createCampaign.error instanceof Error ? createCampaign.error.message : t('failedToCreate')}
               </p>
             )}
 
@@ -208,14 +210,14 @@ export function NewCampaignContent() {
                 {createCampaign.isPending ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
-                    Creating...
+                    {tc('creating')}
                   </>
                 ) : (
-                  'Create Campaign'
+                  t('createCampaign')
                 )}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href="/dashboard/campaigns">Cancel</Link>
+                <Link href="/dashboard/campaigns">{tc('cancel')}</Link>
               </Button>
             </div>
           </form>

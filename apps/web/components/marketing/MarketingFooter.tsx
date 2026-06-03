@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Zap, Github, Twitter, Linkedin } from 'lucide-react';
 import { FOOTER_COLUMNS, LEGAL_LINKS } from '@/lib/marketing/nav';
 

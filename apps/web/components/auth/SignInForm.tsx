@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function SignInForm() {
   const router = useRouter();
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +33,7 @@ export function SignInForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error?.message ?? 'Sign in failed');
+        setError(data.error?.message ?? t('signInFailed'));
         return;
       }
 
@@ -39,7 +41,7 @@ export function SignInForm() {
       router.push('/dashboard');
       router.refresh();
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
     } finally {
       setIsLoading(false);
     }
@@ -53,26 +55,26 @@ export function SignInForm() {
             <span className="text-primary-foreground text-xl font-bold">A</span>
           </div>
         </div>
-        <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+        <CardTitle className="text-2xl text-center">{t('welcomeBack')}</CardTitle>
         <CardDescription className="text-center">
-          Sign in to your AdNexus AI account
+          {t('signInSubtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@company.com"
+              placeholder={t('emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('password')}</Label>
             <Input
               id="password"
               type="password"
@@ -86,13 +88,13 @@ export function SignInForm() {
           )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
-            Sign In
+            {t('signIn')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
+          {t('noAccount')}{' '}
           <Link href="/auth/signup" className="text-primary hover:underline">
-            Sign up
+            {t('signUp')}
           </Link>
         </div>
       </CardContent>

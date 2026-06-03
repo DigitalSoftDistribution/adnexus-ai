@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { Search, Plus, Filter, MoreHorizontal } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 interface Campaign {
   id: string;
@@ -48,6 +49,8 @@ function useCampaigns() {
 
 export function CampaignsContent() {
   const { campaigns, isLoading, search, setSearch } = useCampaigns();
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -61,13 +64,13 @@ export function CampaignsContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-          <p className="text-muted-foreground">Manage and optimize your advertising campaigns.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/campaigns/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Campaign
+            {t('newCampaign')}
           </Link>
         </Button>
       </div>
@@ -78,7 +81,7 @@ export function CampaignsContent() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search campaigns..."
+                placeholder={t('searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -86,7 +89,7 @@ export function CampaignsContent() {
             </div>
             <Button variant="outline" size="sm">
               <Filter className="mr-2 h-4 w-4" />
-              Filter
+              {tc('filter')}
             </Button>
           </div>
         </CardHeader>
@@ -95,14 +98,14 @@ export function CampaignsContent() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">Name</th>
-                  <th className="px-4 py-3 text-left font-medium">Platform</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Spend</th>
-                  <th className="px-4 py-3 text-right font-medium">Impressions</th>
-                  <th className="px-4 py-3 text-right font-medium">Clicks</th>
-                  <th className="px-4 py-3 text-right font-medium">CTR</th>
-                  <th className="px-4 py-3 text-left font-medium">Period</th>
+                  <th className="px-4 py-3 text-left font-medium">{tc('name')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{tc('platform')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{tc('status')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{tc('spend')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{tc('impressions')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{tc('clicks')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{tc('ctr')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{tc('period')}</th>
                   <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>

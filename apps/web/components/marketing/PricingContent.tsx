@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ChevronDown, Sparkles, CreditCard, Shield, Headphones, CheckCircle2, ArrowRight } from 'lucide-react';
 import { PRICING_TIERS, formatPrice } from '@/lib/marketing/pricing';

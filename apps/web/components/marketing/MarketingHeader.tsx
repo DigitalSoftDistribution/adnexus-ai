@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { ChevronDown, Menu, X, Zap } from 'lucide-react';
 import { HEADER_MENUS, type NavMenu } from '@/lib/marketing/nav';
 

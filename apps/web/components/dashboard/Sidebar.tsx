@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import {
   LayoutDashboard,
   Megaphone,
@@ -21,20 +21,21 @@ interface SidebarProps {
   onSignOut?: () => void;
 }
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/campaigns', label: 'Campaigns', icon: Megaphone },
-  { href: '/dashboard/ai-agent', label: 'AI Agent', icon: Bot },
-  { href: '/dashboard/drafts', label: 'Drafts', icon: FileEdit },
-  { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/dashboard/audiences', label: 'Audiences', icon: Users },
-  { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
-  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-];
-
 export function Sidebar({ user, onSignOut }: SidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations('navigation');
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/dashboard/campaigns', label: t('campaigns'), icon: Megaphone },
+    { href: '/dashboard/ai-agent', label: t('aiAgent'), icon: Bot },
+    { href: '/dashboard/drafts', label: t('drafts'), icon: FileEdit },
+    { href: '/dashboard/reports', label: t('reports'), icon: BarChart3 },
+    { href: '/dashboard/audiences', label: t('audiences'), icon: Users },
+    { href: '/dashboard/alerts', label: t('alerts'), icon: Bell },
+    { href: '/dashboard/billing', label: t('billing'), icon: CreditCard },
+    { href: '/dashboard/settings', label: t('settings'), icon: Settings },
+  ];
 
   return (
     <aside className="flex w-64 flex-col border-r bg-card">
@@ -43,7 +44,7 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground text-sm font-bold">A</span>
           </div>
-          AdNexus AI
+          {t('logo')}
         </Link>
       </div>
 
@@ -87,7 +88,7 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
             )}
           >
             <LogOut className="h-4 w-4" />
-            Sign Out
+            {t('signOut')}
           </button>
         )}
       </div>
