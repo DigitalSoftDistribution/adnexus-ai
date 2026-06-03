@@ -24,36 +24,36 @@ export class CampaignRepository implements ICampaignRepository {
     a.workspace_id AS workspace_id, a.platform AS platform`;
 
   async findById(id: string): Promise<Campaign | null> {
-    const { rows } = await query<Campaign>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
        FROM campaigns c
        JOIN ad_accounts a ON a.id = c.ad_account_id
        WHERE c.id = $1 LIMIT 1`,
       [id],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Campaign | null> {
-    const { rows } = await query<Campaign>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
        FROM campaigns c
        JOIN ad_accounts a ON a.id = c.ad_account_id
        WHERE c.id = $1 AND a.workspace_id = $2 LIMIT 1`,
       [id, workspaceId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async findByPlatformCampaignId(platformCampaignId: string): Promise<Campaign | null> {
-    const { rows } = await query<Campaign>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
        FROM campaigns c
        JOIN ad_accounts a ON a.id = c.ad_account_id
        WHERE c.platform_campaign_id = $1 LIMIT 1`,
       [platformCampaignId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async list(filters: CampaignFilters): Promise<CampaignListResult> {
@@ -125,7 +125,8 @@ export class CampaignRepository implements ICampaignRepository {
     `;
     params.push(limit, offset);
 
-    const { rows: campaigns } = await query<Campaign>(dataQuery, params);
+    const { rows: campaignRows } = await query<Record<string, unknown>>(dataQuery, params);
+    const campaigns = campaignRows.map((r) => this.mapRow(r));
 
     return {
       campaigns,
@@ -291,6 +292,43 @@ export class CampaignRepository implements ICampaignRepository {
       conversions: 'c.conversions',
     };
     return columns[sortBy ?? ''] ?? 'c.created_at';
+  }
+
+  /** Map a snake_case DB row (campaigns c.* + joined a.workspace_id/a.platform)
+   * to the camelCase Campaign entity the use-cases/frontend expect. */
+  private mapRow(r: Record<string, unknown>): Campaign {
+    const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
+    const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+    return {
+      id: r.id as string,
+      workspaceId: (r.workspace_id ?? null) as string,
+      adAccountId: (r.ad_account_id ?? null) as string,
+      platform: (r.platform ?? null) as Campaign['platform'],
+      platformCampaignId: (r.platform_campaign_id ?? null) as string | null,
+      name: (r.name ?? '') as string,
+      status: (r.status ?? 'draft') as Campaign['status'],
+      objective: (r.objective ?? null) as Campaign['objective'],
+      budget: (r.budget ?? null) as string | null,
+      budgetType: (r.budget_type ?? null) as Campaign['budgetType'],
+      dailyBudget: numOrNull(r.daily_budget),
+      lifetimeBudget: numOrNull(r.lifetime_budget),
+      spend: num(r.spend),
+      impressions: num(r.impressions),
+      clicks: num(r.clicks),
+      ctr: numOrNull(r.ctr),
+      conversions: num(r.conversions),
+      cpa: numOrNull(r.cpa),
+      roas: numOrNull(r.roas),
+      frequency: numOrNull(r.frequency),
+      cpm: numOrNull(r.cpm),
+      cpc: numOrNull(r.cpc),
+      startDate: (r.start_date ?? null) as string | null,
+      endDate: (r.end_date ?? null) as string | null,
+      platformData: (r.platform_data ?? null) as Record<string, unknown> | null,
+      leadFormId: (r.lead_form_id ?? null) as string | null,
+      createdAt: (r.created_at ?? new Date()) as Date,
+      updatedAt: (r.updated_at ?? new Date()) as Date,
+    };
   }
 
   private camelToSnake(str: string): string {
