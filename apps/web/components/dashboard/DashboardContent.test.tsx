@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DashboardContent } from './DashboardContent';
+import messages from '@/messages/en.json';
 
 // useSSE pulls in EventSource/WebSocket plumbing we don't want in jsdom.
 vi.mock('@/hooks/useSSE', () => ({
@@ -28,7 +30,11 @@ function renderWithQuery(ui: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
+  );
 }
 
 describe('DashboardContent', () => {

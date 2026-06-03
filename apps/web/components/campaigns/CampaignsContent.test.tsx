@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { CampaignsContent } from './CampaignsContent';
+import messages from '@/messages/en.json';
 
 const campaigns = [
   {
@@ -37,7 +39,11 @@ const campaigns = [
 
 function renderWithQuery(ui: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
+  );
 }
 
 describe('CampaignsContent', () => {
