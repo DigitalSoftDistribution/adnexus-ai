@@ -57,6 +57,8 @@ export function CommandPalette() {
     },
   });
 
+  const isSearching = query.trim().length >= 2;
+
   function go(href: string) {
     setOpen(false);
     setQuery('');
@@ -75,41 +77,42 @@ export function CommandPalette() {
         <kbd className="hidden rounded border bg-background px-1.5 font-mono text-[10px] sm:inline">⌘K</kbd>
       </button>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <CommandInput placeholder={tc('search')} value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>{tc('noResults')}</CommandEmpty>
-          {results && results.length > 0 && (
-            <>
-              <CommandGroup heading={tc('search')}>
-                {results.map((r) => (
-                  <CommandItem key={`${r.type}-${r.id}`} value={`${r.title} ${r.id}`} onSelect={() => go(r.url)}>
-                    <Search className="mr-2 h-4 w-4" />
-                    <span className="flex-1 truncate">{r.title}</span>
-                    <span className="ml-2 text-xs capitalize text-muted-foreground">{r.type}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
-          <CommandGroup heading={t('groups.create')}>
-            <CommandItem onSelect={() => go('/dashboard/campaigns/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('newCampaign')}
-            </CommandItem>
-          </CommandGroup>
-          <CommandSeparator />
-          {NAV_GROUPS.map((group) => (
-            <CommandGroup key={group.titleKey} heading={t(`groups.${group.titleKey}`)}>
-              {group.items.map((item) => (
-                <CommandItem key={item.href} onSelect={() => go(item.href)}>
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {t(item.labelKey)}
+          {isSearching && results && results.length > 0 && (
+            <CommandGroup heading={tc('search')}>
+              {results.map((r) => (
+                <CommandItem key={`${r.type}-${r.id}`} value={`${r.type}-${r.id}`} onSelect={() => go(r.url)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">{r.title}</span>
+                  <span className="ml-2 text-xs capitalize text-muted-foreground">{r.type}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
-          ))}
+          )}
+          {!isSearching && (
+            <>
+              <CommandGroup heading={t('groups.create')}>
+                <CommandItem onSelect={() => go('/dashboard/campaigns/new')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('newCampaign')}
+                </CommandItem>
+              </CommandGroup>
+              <CommandSeparator />
+              {NAV_GROUPS.map((group) => (
+                <CommandGroup key={group.titleKey} heading={t(`groups.${group.titleKey}`)}>
+                  {group.items.map((item) => (
+                    <CommandItem key={item.href} onSelect={() => go(item.href)}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {t(item.labelKey)}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+            </>
+          )}
         </CommandList>
       </CommandDialog>
     </>
