@@ -47,6 +47,7 @@ import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
 import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
+import { registerAllPlatformClients } from '../../platforms/register';
 
 // Application
 import { Container } from '../../application/services/Container';
@@ -138,6 +139,10 @@ export interface MountedV2 {
  * leaving the host's global v1 error handler untouched for everything else.
  */
 export function mountV2Routes(app: Express, options: MountV2Options = {}): MountedV2 {
+  // Register platform client factories once so the PlatformManager can resolve
+  // a client for any connected ad account (Meta, Google, TikTok, Snap).
+  registerAllPlatformClients();
+
   const container = options.container ?? buildContainer();
   const realtimeEventBus = options.realtimeEventBus ?? new EventBus();
 
