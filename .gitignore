@@ -54,3 +54,5 @@ docker-compose.override.yml
 *.zip
 .turbo/cache/
 apps/web/.next/
+qa-shots/
+scripts/live-qa.cjs
