@@ -34,4 +34,15 @@ export interface IWorkspaceRepository {
   // Limits
   getLimits(workspaceId: string): Promise<WorkspaceLimits>;
   checkLimit(workspaceId: string, resource: keyof WorkspaceLimits): Promise<boolean>;
+
+  // Onboarding
+  getOnboarding(workspaceId: string): Promise<OnboardingState | null>;
+  setOnboardingStep(workspaceId: string, step: string): Promise<void>;
+  completeOnboarding(workspaceId: string): Promise<void>;
+}
+
+export interface OnboardingState {
+  completed: boolean;
+  completedAt: string | null;
+  step: string | null;
 }

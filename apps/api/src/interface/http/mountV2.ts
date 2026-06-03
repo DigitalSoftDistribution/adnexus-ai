@@ -73,6 +73,7 @@ import { createExportRoutes } from './routes/exports';
 import { createAssetRoutes } from './routes/assets';
 import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
+import { createOnboardingRoutes } from './routes/onboarding';
 
 // OpenAPI
 import { generateOpenAPIDocument } from '../../openapi/generator';
@@ -157,6 +158,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/ads', authenticatedRateLimiter, createAdRoutes(container));
   v2.use('/settings', authenticatedRateLimiter, createSettingsRoutes(container));
   v2.use('/integrations', authenticatedRateLimiter, createIntegrationRoutes(container));
+  v2.use('/onboarding', authenticatedRateLimiter, createOnboardingRoutes(container));
   v2.use('/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
   v2.use('/reports', authenticatedRateLimiter, createReportRoutes(container));
   v2.use('/alerts', authenticatedRateLimiter, createAlertRoutes(container));

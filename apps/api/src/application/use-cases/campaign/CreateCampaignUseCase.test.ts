@@ -40,6 +40,9 @@ describe('CreateCampaignUseCase', () => {
     removeMember: vi.fn(),
     getLimits: vi.fn(),
     checkLimit: vi.fn().mockResolvedValue(true),
+    getOnboarding: vi.fn(),
+    setOnboardingStep: vi.fn(),
+    completeOnboarding: vi.fn(),
   });
 
   const createMockEventBus = (): IEventBus => ({

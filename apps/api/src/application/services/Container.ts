@@ -129,6 +129,11 @@ import {
   DisconnectIntegrationUseCase,
   GetIntegrationHealthUseCase,
 } from '../use-cases/integration/IntegrationUseCases';
+import {
+  GetOnboardingStatusUseCase,
+  SetOnboardingStepUseCase,
+  CompleteOnboardingUseCase,
+} from '../use-cases/onboarding/OnboardingUseCases';
 import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
 import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
 import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
@@ -275,6 +280,9 @@ export class Container {
   readonly getIntegration: GetIntegrationUseCase;
   readonly disconnectIntegration: DisconnectIntegrationUseCase;
   readonly getIntegrationHealth: GetIntegrationHealthUseCase;
+  readonly getOnboardingStatus: GetOnboardingStatusUseCase;
+  readonly setOnboardingStep: SetOnboardingStepUseCase;
+  readonly completeOnboarding: CompleteOnboardingUseCase;
   readonly listAutomationRules: ListAutomationRulesUseCase;
   readonly getAutomationRuleById: GetAutomationRuleByIdUseCase;
   readonly createAutomationRule: CreateAutomationRuleUseCase;
@@ -448,6 +456,13 @@ export class Container {
     this.getIntegration = new GetIntegrationUseCase(config.settingsRepository);
     this.disconnectIntegration = new DisconnectIntegrationUseCase(config.settingsRepository);
     this.getIntegrationHealth = new GetIntegrationHealthUseCase(config.settingsRepository);
+    this.getOnboardingStatus = new GetOnboardingStatusUseCase(
+      config.workspaceRepository,
+      config.settingsRepository,
+      config.campaignRepository,
+    );
+    this.setOnboardingStep = new SetOnboardingStepUseCase(config.workspaceRepository);
+    this.completeOnboarding = new CompleteOnboardingUseCase(config.workspaceRepository);
     this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
     this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
     this.createAutomationRule = new CreateAutomationRuleUseCase(
