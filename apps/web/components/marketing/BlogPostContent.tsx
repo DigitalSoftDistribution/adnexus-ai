@@ -66,8 +66,6 @@ function ComingSoon() {
 
 export function BlogPostContent({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
 
   const post = allPosts.find((p) => p.slug === slug);
   const articleBody = getArticleBody(slug);
@@ -121,14 +119,6 @@ export function BlogPostContent({ slug }: { slug: string }) {
     navigator.clipboard.writeText(shareUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
-    }
   };
 
   return (
@@ -350,43 +340,17 @@ export function BlogPostContent({ slug }: { slug: string }) {
                 className="font-inter text-sm mb-6"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                New articles, product updates, and AI ad tech insights — delivered weekly.
+                New articles, product updates, and AI ad tech insights. Email us to join the list and
+                we&apos;ll add you.
               </p>
-              {subscribed ? (
-                <div
-                  className="flex items-center justify-center gap-2 py-3 rounded-lg font-inter text-sm font-medium"
-                  style={{ color: 'var(--status-active)' }}
-                >
-                  <Check size={16} />
-                  You&apos;re subscribed!
-                </div>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className="flex-1 px-4 py-2.5 rounded-lg font-inter text-sm outline-none transition-colors"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--text-primary)',
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-lg font-inter text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
-                    style={{
-                      background: 'var(--accent)',
-                      color: '#0a0a0a',
-                    }}
-                  >
-                    Subscribe
-                  </button>
-                </form>
-              )}
+              <a
+                href="mailto:hello@adnexus.ai?subject=Subscribe%20to%20AdNexus%20updates&body=Please%20add%20me%20to%20the%20AdNexus%20newsletter."
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-inter text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
+                style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+              >
+                <Mail size={15} aria-hidden="true" />
+                Subscribe by email
+              </a>
             </div>
           </div>
         </motion.div>

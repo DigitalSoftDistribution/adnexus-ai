@@ -511,7 +511,7 @@ export function ComparePipeboardContent() {
                   style={{ background: '#10B981' }}
                 />
                 <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  AdNexus AI: 20 wins
+                  AdNexus AI: dashboard + governance
                 </span>
               </div>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
@@ -521,7 +521,7 @@ export function ComparePipeboardContent() {
                   style={{ background: '#555B66' }}
                 />
                 <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  Pipeboard: 8 wins
+                  Pipeboard: chat-only, no dashboard
                 </span>
               </div>
             </div>

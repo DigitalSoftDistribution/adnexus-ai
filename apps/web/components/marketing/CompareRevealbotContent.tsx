@@ -269,12 +269,12 @@ export function CompareRevealbotContent() {
             <div className="inline-flex items-center gap-3 px-5 py-3 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ background: '#10B981' }} />
-                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AdNexus AI: 22 wins</span>
+                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AdNexus AI: AI-native, draft-first</span>
               </div>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ background: '#555B66' }} />
-                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Revealbot: 12 wins</span>
+                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Revealbot: rule-based, manual</span>
               </div>
             </div>
           </motion.div>

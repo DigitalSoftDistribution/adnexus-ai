@@ -362,7 +362,7 @@ export function BlogContent() {
                   </p>
                 </div>
               )}
-              {!activeCategory && !searchQuery && (
+              {activeCategory === 'All' && !searchQuery && (
                 <h2
                   className="font-space text-xl font-semibold mb-8"
                   style={{ color: 'var(--text-primary)' }}

@@ -272,12 +272,12 @@ export function CompareSmartlyContent() {
             <div className="inline-flex items-center gap-3 px-5 py-3 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ background: '#10B981' }} />
-                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AdNexus AI: 24 wins</span>
+                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AdNexus AI: self-serve, flat price</span>
               </div>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ background: '#555B66' }} />
-                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Smartly.io: 14 wins</span>
+                <span className="font-inter text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Smartly.io: enterprise, sales-led</span>
               </div>
             </div>
           </motion.div>

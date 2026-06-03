@@ -511,7 +511,7 @@ export function CompareMadgicxContent() {
                   className="font-inter text-sm font-medium"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  AdNexus AI: 22 wins
+                  AdNexus AI: all 4 platforms, draft-first
                 </span>
               </div>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
@@ -521,7 +521,7 @@ export function CompareMadgicxContent() {
                   className="font-inter text-sm font-medium"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Madgicx: 7 wins
+                  Madgicx: Meta-only, spend-scaled
                 </span>
               </div>
             </div>
@@ -700,7 +700,7 @@ export function CompareMadgicxContent() {
               }}
             >
               <DollarSign size={16} />
-              Save $588/year with AdNexus Pro
+              Flat price — no tracking add-on, no spend-based scaling
             </span>
           </motion.div>
         </div>
