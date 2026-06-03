@@ -37,7 +37,12 @@ export function SignInForm() {
         return;
       }
 
-      localStorage.setItem('adnexus_token', data.token);
+      const token = data?.data?.token ?? data?.token;
+      if (!token) {
+        setError(t('signInFailed'));
+        return;
+      }
+      localStorage.setItem('adnexus_token', token);
       router.push('/dashboard');
       router.refresh();
     } catch {
