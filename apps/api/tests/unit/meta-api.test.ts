@@ -248,7 +248,9 @@ describe('refreshMetaToken', () => {
       },
       message: 'Request failed with status code 400',
     };
-    mockedAxios.get.mockRejectedValueOnce(axiosError);
+    // Both assertions invoke refreshMetaToken, so the rejection must persist
+    // across calls (mockRejectedValue, not mockRejectedValueOnce).
+    mockedAxios.get.mockRejectedValue(axiosError);
 
     // Act & Assert
     await expect(refreshMetaToken('invalid-token')).rejects.toThrow(PlatformError);

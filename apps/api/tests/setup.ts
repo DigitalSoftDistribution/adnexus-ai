@@ -30,6 +30,14 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.STRIPE_SECRET_KEY = 'sk_test_stripe';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
 
+// Effectively disable rate limiting under test. Supertest issues every request
+// from the same loopback IP, so the default per-IP limits (20/min) would
+// otherwise trip 429s partway through a suite as the in-memory counter
+// accumulates across tests.
+process.env.RATE_LIMIT_AUTHENTICATED = '1000000';
+process.env.RATE_LIMIT_UNAUTHENTICATED = '1000000';
+process.env.RATE_LIMIT_WEBHOOK = '1000000';
+
 // ─── Mock External Modules ───────────────────────────────────────
 
 // Mock ioredis

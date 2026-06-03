@@ -46,11 +46,21 @@ function buildChainableMock(result: { data: unknown; error: null }) {
   };
 }
 
+// Default fallback for any supabase.from() call not explicitly queued with
+// mockReturnValueOnce — e.g. the engine's `automation_rules` update that bumps
+// applied_count after a rule triggers. Without this, the unqueued call returns
+// undefined, `.update()` throws, the error is swallowed by evaluateRules' try/catch,
+// and the rule is never counted as triggered (and the awaited chain can hang).
+function resetSupabaseMocks() {
+  jest.clearAllMocks();
+  mockFrom.mockReturnValue(buildChainableMock({ data: null, error: null }));
+}
+
 // ─── Suite: evaluateRules ────────────────────────────────────────
 
 describe('evaluateRules', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should return zero triggered when no rules exist', async () => {
@@ -152,19 +162,22 @@ describe('evaluateRules', () => {
 
   it('should handle errors in individual rules without failing all', async () => {
     // Arrange - first call returns rules, second throws
+    // A chain whose awaited `then` rejects — must invoke the awaiting promise's
+    // reject callback, otherwise `await` hangs (a `then` that ignores its
+    // callbacks never settles the outer promise).
+    const rejectingChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      then: jest.fn().mockImplementation((_resolve: (r: unknown) => unknown, reject?: (e: unknown) => unknown) => {
+        return Promise.reject(new Error('Database connection lost')).then(_resolve, reject);
+      }),
+    };
+
     mockFrom
-      .mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [mockRules.budgetControl, { ...mockRules.roasMonitor, id: 'bad-rule' }], error: null }),
-      })
+      .mockReturnValueOnce(buildChainableMock({ data: [mockRules.budgetControl, { ...mockRules.roasMonitor, id: 'bad-rule' }], error: null }))
       .mockReturnValueOnce(buildChainableMock({ data: [mockAdAccounts.meta], error: null }))
-      .mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        then: jest.fn().mockRejectedValue(new Error('Database connection lost')),
-      })
+      .mockReturnValueOnce(rejectingChain)
       .mockReturnValueOnce(buildChainableMock({ data: [mockAdAccounts.meta], error: null }))
       .mockReturnValueOnce(buildChainableMock({ data: [mockCampaigns.lowROAS], error: null }));
 
@@ -182,7 +195,7 @@ describe('evaluateRules', () => {
 
 describe('condition evaluation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should match spend_pct >= 90 when spend is 450 and budget is 500', async () => {
@@ -338,7 +351,7 @@ describe('condition evaluation', () => {
 
 describe('rule with AND conditions', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should trigger when all AND conditions are met', async () => {
@@ -443,7 +456,7 @@ describe('rule with AND conditions', () => {
 
 describe('action execution', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should create a draft for pause_campaign action', async () => {
@@ -638,7 +651,7 @@ describe('action execution', () => {
 
 describe('runRuleCheck', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should return false when rule does not exist', async () => {
@@ -674,7 +687,7 @@ describe('runRuleCheck', () => {
 
 describe('operator evaluation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetSupabaseMocks();
   });
 
   it('should support gt (greater than) operator', async () => {

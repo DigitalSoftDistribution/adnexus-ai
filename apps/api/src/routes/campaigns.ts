@@ -3,8 +3,18 @@ import { z } from 'zod';
 import { query } from '../db/connection';
 import { ValidationError, NotFoundError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
+import { requireRole } from '../middleware/authenticate';
 import { createDraft } from '../services/drafts-service';
 import type { UnifiedCampaign, CampaignStatus, DraftType, Platform } from '../types';
+
+// RBAC for campaign mutations. In the v1 role model the mutation-capable
+// mid-tier role is `analyst` (v2's equivalent is `editor`); viewers and
+// non-members get a 403 before any request-body validation runs.
+//   - create / update / pause / resume / duplicate → owner, admin, analyst
+//   - delete → owner, admin only (matches v2 DeleteCampaignUseCase, which
+//     denies the mid-tier role for destructive ops)
+const requireMutator = requireRole('owner', 'admin', 'analyst');
+const requireAdmin = requireRole('owner', 'admin');
 
 const router = Router();
 
@@ -321,6 +331,7 @@ router.get(
 
 router.post(
   '/',
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
 
@@ -387,6 +398,7 @@ router.post(
 
 router.put(
   '/:id',
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -511,6 +523,7 @@ router.put(
 
 router.delete(
   '/:id',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -548,6 +561,7 @@ router.delete(
 
 router.post(
   '/:id/pause',
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -589,6 +603,7 @@ router.post(
 
 router.post(
   '/:id/resume',
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;
@@ -630,6 +645,7 @@ router.post(
 
 router.post(
   '/:id/duplicate',
+  requireMutator,
   asyncHandler(async (req, res) => {
     const workspaceId = req.workspaceId!;
     const campaignId = req.params.id;

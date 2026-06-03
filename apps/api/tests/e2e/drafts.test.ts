@@ -17,6 +17,7 @@ import {
   addUserToWorkspace,
   generateAuthToken,
   createTestDraft,
+  createTestCampaign,
   buildE2EMockFrom,
   type TestUser,
   type TestWorkspace,
@@ -45,6 +46,33 @@ jest.mock('../../src/lib/supabase', () => ({
 jest.mock('../../src/services/meta-api', () => ({
   updateMetaCampaign: jest.fn().mockResolvedValue(undefined),
   createMetaCampaign: jest.fn().mockResolvedValue('new-campaign-id'),
+}));
+
+// The approve route builds a real MetaApiClient (../platforms/meta/client) and
+// drives it through the DraftExecutionEngine (validate -> apply -> verify).
+// This stateful stub records updateCampaign() and reflects it back in
+// getCampaign() so the engine's verify step legitimately matches the proposed
+// change and execution reports SUCCESS — without any real Meta HTTP call.
+const metaCampaignState: Record<string, Record<string, unknown>> = {};
+
+jest.mock('../../src/platforms/meta/client', () => ({
+  MetaApiClient: jest.fn().mockImplementation(() => ({
+    setAccessToken: jest.fn(),
+    getCampaign: jest.fn((externalId: string) =>
+      Promise.resolve({
+        id: externalId,
+        name: 'Mock Campaign',
+        status: (metaCampaignState[externalId]?.status as string) ?? 'ACTIVE',
+        daily_budget: (metaCampaignState[externalId]?.daily_budget as number) ?? 10000,
+        lifetime_budget: (metaCampaignState[externalId]?.lifetime_budget as number) ?? 0,
+        objective: 'OUTCOME_TRAFFIC',
+      }),
+    ),
+    updateCampaign: jest.fn((externalId: string, data: Record<string, unknown>) => {
+      metaCampaignState[externalId] = { ...metaCampaignState[externalId], ...data };
+      return Promise.resolve({ id: externalId, ...metaCampaignState[externalId] });
+    }),
+  })),
 }));
 
 // ─── Suite Setup ─────────────────────────────────────────────────
@@ -244,9 +272,9 @@ describe('E2E: Draft Workflow', () => {
         .send({
           platform: 'meta',
           campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Increase budget by 20%',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 120 },
+          type: 'budget_change',
+          title: 'Increase budget by 20%',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 120 },
         });
 
       // Assert
@@ -267,9 +295,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          draft_type: 'campaign_create',
-          change_summary: 'Create new conversion campaign',
-          change_detail: { name: 'New Campaign', objective: 'CONVERSIONS', daily_budget: 100 },
+          type: 'campaign_create',
+          title: 'Create new conversion campaign',
+          proposedChanges: { name: 'New Campaign', objective: 'CONVERSIONS', daily_budget: 100 },
         });
 
       // Assert
@@ -289,8 +317,8 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'meta',
-          draft_type: 'budget_change',
-          change_detail: { field: 'daily_budget' },
+          type: 'budget_change',
+          proposedChanges: { field: 'daily_budget' },
         });
 
       // Assert
@@ -308,9 +336,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'invalid_platform',
-          draft_type: 'budget_change',
-          change_summary: 'Test',
-          change_detail: {},
+          type: 'budget_change',
+          title: 'Test',
+          proposedChanges: {},
         });
 
       // Assert
@@ -328,9 +356,9 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           platform: 'meta',
-          draft_type: 'invalid_type',
-          change_summary: 'Test',
-          change_detail: {},
+          type: 'invalid_type',
+          title: 'Test',
+          proposedChanges: {},
         });
 
       // Assert
@@ -344,8 +372,8 @@ describe('E2E: Draft Workflow', () => {
         .post('/api/v1/drafts')
         .send({
           platform: 'meta',
-          draft_type: 'budget_change',
-          change_summary: 'Test',
+          type: 'budget_change',
+          title: 'Test',
         });
 
       // Assert
@@ -358,8 +386,12 @@ describe('E2E: Draft Workflow', () => {
 
   describe('POST /api/v1/drafts/:id/approve', () => {
     it('should approve a pending draft and return applied status', async () => {
-      // Arrange
+      // Arrange — the execution engine validates the target campaign exists,
+      // so create one and point the draft at it.
+      const campaign = await createTestCampaign(workspace.id, { platform: 'meta', status: 'active' });
       const draft = await createTestDraft(workspace.id, {
+        campaignId: campaign.id,
+        platform: 'meta',
         status: 'pending',
         draftType: 'budget_change',
         changeSummary: 'Approve this budget change',
@@ -455,11 +487,15 @@ describe('E2E: Draft Workflow', () => {
     });
 
     it('should allow admin to approve a draft', async () => {
-      // Arrange
+      // Arrange — engine validates the target campaign exists.
+      const campaign = await createTestCampaign(workspace.id, { platform: 'meta', status: 'active' });
       const draft = await createTestDraft(workspace.id, {
+        campaignId: campaign.id,
+        platform: 'meta',
         status: 'pending',
-        draftType: 'status_change',
+        draftType: 'budget_change',
         changeSummary: 'Admin approval test',
+        changeDetail: { field: 'daily_budget', old_value: 100, new_value: 130 },
       });
 
       mockFrom.mockImplementation(buildE2EMockFrom());
@@ -469,7 +505,7 @@ describe('E2E: Draft Workflow', () => {
         .post(`/api/v1/drafts/${draft.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`);
 
-      // Assert
+      // Assert — admin (not just owner) can approve and apply a draft
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.status).toBe('approved');
@@ -741,7 +777,9 @@ describe('E2E: Draft Workflow', () => {
       const response = await request(app)
         .post(`/api/v1/drafts/${draft.id}/schedule`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({ execute_at: '2024-12-31T23:59:59.000Z' });
+        // Future date — the schedule route rejects past/now timestamps, and a
+        // hard-coded 2024 date is in the past relative to the test clock.
+        .send({ execute_at: '2030-12-31T23:59:59.000Z' });
 
       // Assert
       expect(response.status).toBe(200);
@@ -861,16 +899,20 @@ describe('E2E: Draft Workflow', () => {
 
   describe('complete draft lifecycle workflow', () => {
     it('should handle full create -> approve workflow', async () => {
+      // The approval step's execution engine validates the target campaign,
+      // so create one with the referenced id first.
+      await createTestCampaign(workspace.id, { id: UUIDS.campaign1, platform: 'meta', status: 'active' });
+
       // Step 1: Create a draft
       const createResponse = await request(app)
         .post('/api/v1/drafts')
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'End-to-end budget increase',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 150 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'End-to-end budget increase',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 150 },
           ai_reasoning: 'High ROAS justifies budget increase',
         });
 
@@ -897,10 +939,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'status_change',
-          change_summary: 'Pause underperforming campaign',
-          change_detail: { field: 'status', old_value: 'ACTIVE', new_value: 'PAUSED' },
+          campaignId: UUIDS.campaign1,
+          type: 'status_change',
+          title: 'Pause underperforming campaign',
+          proposedChanges: { field: 'status', old_value: 'ACTIVE', new_value: 'PAUSED' },
         });
 
       expect(createResponse.status).toBe(201);
@@ -926,10 +968,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Budget change to cancel',
-          change_detail: { field: 'daily_budget', old_value: 200, new_value: 300 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'Budget change to cancel',
+          proposedChanges: { field: 'daily_budget', old_value: 200, new_value: 300 },
         });
 
       expect(createResponse.status).toBe(201);
@@ -954,10 +996,10 @@ describe('E2E: Draft Workflow', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           platform: 'meta',
-          campaign_id: UUIDS.campaign1,
-          draft_type: 'budget_change',
-          change_summary: 'Scheduled budget change',
-          change_detail: { field: 'daily_budget', old_value: 100, new_value: 200 },
+          campaignId: UUIDS.campaign1,
+          type: 'budget_change',
+          title: 'Scheduled budget change',
+          proposedChanges: { field: 'daily_budget', old_value: 100, new_value: 200 },
         });
 
       expect(createResponse.status).toBe(201);
@@ -970,7 +1012,8 @@ describe('E2E: Draft Workflow', () => {
       const scheduleResponse = await request(app)
         .post(`/api/v1/drafts/${draftId}/schedule`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({ execute_at: '2024-12-31T23:59:59.000Z' });
+        // Future date — see note above re: past-dated schedule rejection.
+        .send({ execute_at: '2030-12-31T23:59:59.000Z' });
 
       expect(scheduleResponse.status).toBe(200);
       expect(scheduleResponse.body.data.status).toBe('scheduled');

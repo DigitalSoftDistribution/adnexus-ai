@@ -28,6 +28,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import {
   NotFoundError,
   ValidationError,
+  ConflictError,
   ForbiddenError,
   AppError,
   PlatformAPIError,
@@ -82,9 +83,12 @@ export const draftEventPublisher = new EventPublisher();
 function createSupabaseDraftStore(): DraftStore {
   return {
     async getById(id: string): Promise<Draft | null> {
+      // Join the campaign so the engine gets the REAL platform_campaign_id
+      // (the external id the platform API needs) rather than falling back to
+      // the internal UUID.
       const { data, error } = await supabase
         .from('drafts')
-        .select('*')
+        .select('*, campaigns!left(platform_campaign_id, name, status)')
         .eq('id', id)
         .single();
       if (error || !data) return null;
@@ -458,8 +462,11 @@ function mapDbDraftToEngineDraft(db: AppDraft): Draft {
       actorType: db.actor_type,
       ruleId: db.rule_id,
     },
-    // Hydrated fields (campaign, full snapshot) will be loaded on demand
-    campaign: null as unknown as Campaign,
+    // The execution engine's change-applier dereferences draft.campaign.externalId
+    // (and verifyChange does the same), so hydrate it from the snapshot state we
+    // already build. Leaving this null caused approval/execution to crash with
+    // "Cannot read properties of null (reading 'externalId')".
+    campaign: buildSnapshotState(db),
   };
 }
 
@@ -535,12 +542,25 @@ function buildProposedChanges(draftType: DraftType, detail: Record<string, unkno
 }
 
 function buildSnapshotState(db: AppDraft): Campaign {
+  // Resolve the platform's external campaign id, preferring (in order):
+  //   1. the joined campaign row's platform_campaign_id (the real external id)
+  //   2. an explicit platform_campaign_id captured in the draft's change_detail
+  // We do NOT fall back to the internal UUID — using it for platform API calls
+  // would fail in production since the platform doesn't recognise internal ids.
+  const joinedCampaign = (db as AppDraft & {
+    campaigns?: { platform_campaign_id?: string; name?: string } | null;
+  }).campaigns;
+  const externalId =
+    joinedCampaign?.platform_campaign_id ??
+    (db.change_detail?.platform_campaign_id as string | undefined) ??
+    '';
+
   // Build a best-effort Campaign state from the DB draft record
   return {
     id: db.campaign_id ?? 'unknown',
-    externalId: (db.change_detail?.platform_campaign_id as string) ?? db.campaign_id ?? 'unknown',
+    externalId,
     platform: (db.platform === 'all' ? AdPlatform.META : db.platform) as AdPlatform,
-    name: db.campaign_name ?? 'Unknown Campaign',
+    name: joinedCampaign?.name ?? db.campaign_name ?? 'Unknown Campaign',
     status: 'active' as EngineCampaignStatus,
     budget: {
       dailyBudget: typeof db.change_detail?.old_value === 'number' ? db.change_detail.old_value as number : 100,
@@ -1232,8 +1252,10 @@ router.post(
     const draft = draftRow as Record<string, unknown>;
 
     // ── Step 2: Validate draft state ──
+    // Already-resolved drafts (approved/rejected/cancelled) are a conflict, not
+    // a malformed request — return 409 so clients can distinguish the two.
     if (draft.status !== 'pending') {
-      throw new ValidationError(`Draft is ${draft.status as string}, not pending. Only pending drafts can be approved.`);
+      throw new ConflictError(`Draft is ${draft.status as string}, not pending. Only pending drafts can be approved.`);
     }
 
     // Check if draft is expired (7-day expiry)
@@ -1454,8 +1476,9 @@ router.post(
     const userId = req.user!.sub;
     const workspaceId = req.workspaceId!;
 
+    // Reason is optional — mirrors the v2 RejectDraftUseCase contract.
     const schema = z.object({
-      reason: z.string().min(1, 'Rejection reason is required'),
+      reason: z.string().optional(),
     });
     const body = schema.parse(req.body);
 
