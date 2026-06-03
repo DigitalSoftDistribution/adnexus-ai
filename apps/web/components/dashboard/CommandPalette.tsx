@@ -57,7 +57,17 @@ export function CommandPalette() {
     },
   });
 
-  const isSearching = query.trim().length >= 2;
+  const q = query.trim().toLowerCase();
+  const isSearching = q.length >= 2;
+
+  // Locally filter nav groups by label so typing still narrows navigation,
+  // while server-side entity results are shown above when present.
+  const navGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: q
+      ? group.items.filter((item) => t(item.labelKey).toLowerCase().includes(q))
+      : group.items,
+  })).filter((group) => group.items.length > 0);
 
   function go(href: string) {
     setOpen(false);
@@ -82,15 +92,18 @@ export function CommandPalette() {
         <CommandList>
           <CommandEmpty>{tc('noResults')}</CommandEmpty>
           {isSearching && results && results.length > 0 && (
-            <CommandGroup heading={tc('search')}>
-              {results.map((r) => (
-                <CommandItem key={`${r.type}-${r.id}`} value={`${r.type}-${r.id}`} onSelect={() => go(r.url)}>
-                  <Search className="mr-2 h-4 w-4" />
-                  <span className="flex-1 truncate">{r.title}</span>
-                  <span className="ml-2 text-xs capitalize text-muted-foreground">{r.type}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            <>
+              <CommandGroup heading={tc('search')}>
+                {results.map((r) => (
+                  <CommandItem key={`${r.type}-${r.id}`} value={`${r.type}-${r.id}`} onSelect={() => go(r.url)}>
+                    <Search className="mr-2 h-4 w-4" />
+                    <span className="flex-1 truncate">{r.title}</span>
+                    <span className="ml-2 text-xs capitalize text-muted-foreground">{r.type}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
           )}
           {!isSearching && (
             <>
@@ -101,18 +114,18 @@ export function CommandPalette() {
                 </CommandItem>
               </CommandGroup>
               <CommandSeparator />
-              {NAV_GROUPS.map((group) => (
-                <CommandGroup key={group.titleKey} heading={t(`groups.${group.titleKey}`)}>
-                  {group.items.map((item) => (
-                    <CommandItem key={item.href} onSelect={() => go(item.href)}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {t(item.labelKey)}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ))}
             </>
           )}
+          {navGroups.map((group) => (
+            <CommandGroup key={group.titleKey} heading={t(`groups.${group.titleKey}`)}>
+              {group.items.map((item) => (
+                <CommandItem key={item.href} onSelect={() => go(item.href)}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {t(item.labelKey)}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
         </CommandList>
       </CommandDialog>
     </>

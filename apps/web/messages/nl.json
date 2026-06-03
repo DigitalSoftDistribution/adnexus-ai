@@ -286,7 +286,8 @@
     "analysisFrequency": "Analysefrequentie",
     "analysisFrequencyDesc": "Hoe vaak de AI-agent je campagnes analyseert",
     "excludedCampaigns": "Uitgesloten campagnes",
-    "excludedCampaignsDesc": "Campagnes die van AI-aanbevelingen moeten worden uitgesloten"
+    "excludedCampaignsDesc": "Campagnes die van AI-aanbevelingen moeten worden uitgesloten",
+    "history": "Geschiedenis"
   },
   "reports": {
     "title": "Rapporten",
@@ -507,7 +508,7 @@
     "disconnect": "Loskoppelen"
   },
   "webhooks": {
-    "title": "Webhook-bouwer",
+    "title": "Webhooks",
     "description": "Configureer uitgaande webhooks voor gebeurtenismeldingen.",
     "comingSoon": "Webhook-bouwer binnenkort beschikbaar.",
     "addWebhook": "Webhook toevoegen",

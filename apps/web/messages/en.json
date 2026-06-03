@@ -286,7 +286,8 @@
     "analysisFrequency": "Analysis frequency",
     "analysisFrequencyDesc": "How often the AI Agent analyzes your campaigns",
     "excludedCampaigns": "Excluded campaigns",
-    "excludedCampaignsDesc": "Campaigns to exclude from AI recommendations"
+    "excludedCampaignsDesc": "Campaigns to exclude from AI recommendations",
+    "history": "History"
   },
   "reports": {
     "title": "Reports",
@@ -507,7 +508,7 @@
     "disconnect": "Disconnect"
   },
   "webhooks": {
-    "title": "Webhook Builder",
+    "title": "Webhooks",
     "description": "Configure outgoing webhooks for event notifications.",
     "comingSoon": "Webhook builder coming soon.",
     "addWebhook": "Add webhook",

@@ -286,7 +286,8 @@
     "analysisFrequency": "分析頻度",
     "analysisFrequencyDesc": "AIエージェントがキャンペーンを分析する頻度",
     "excludedCampaigns": "除外するキャンペーン",
-    "excludedCampaignsDesc": "AI推奨事項から除外するキャンペーン"
+    "excludedCampaignsDesc": "AI推奨事項から除外するキャンペーン",
+    "history": "履歴"
   },
   "reports": {
     "title": "レポート",
@@ -507,7 +508,7 @@
     "disconnect": "切断"
   },
   "webhooks": {
-    "title": "Webhookビルダー",
+    "title": "Webhook",
     "description": "イベント通知用の送信Webhookを構成します。",
     "comingSoon": "Webhookビルダーは近日公開予定です。",
     "addWebhook": "Webhookを追加",

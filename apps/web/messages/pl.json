@@ -286,7 +286,8 @@
     "analysisFrequency": "Częstotliwość analizy",
     "analysisFrequencyDesc": "Jak często agent SI analizuje Twoje kampanie",
     "excludedCampaigns": "Wykluczone kampanie",
-    "excludedCampaignsDesc": "Kampanie wykluczone z rekomendacji SI"
+    "excludedCampaignsDesc": "Kampanie wykluczone z rekomendacji SI",
+    "history": "Historia"
   },
   "reports": {
     "title": "Raporty",
@@ -507,7 +508,7 @@
     "disconnect": "Rozłącz"
   },
   "webhooks": {
-    "title": "Kreator webhooków",
+    "title": "Webhooki",
     "description": "Skonfiguruj wychodzące webhooki dla powiadomień o zdarzeniach.",
     "comingSoon": "Kreator webhooków już wkrótce.",
     "addWebhook": "Dodaj webhook",

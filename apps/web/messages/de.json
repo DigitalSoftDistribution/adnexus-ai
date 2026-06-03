@@ -286,7 +286,8 @@
     "analysisFrequency": "Analysehäufigkeit",
     "analysisFrequencyDesc": "Wie oft der KI-Agent Ihre Kampagnen analysiert",
     "excludedCampaigns": "Ausgeschlossene Kampagnen",
-    "excludedCampaignsDesc": "Kampagnen, die von KI-Empfehlungen ausgeschlossen werden sollen"
+    "excludedCampaignsDesc": "Kampagnen, die von KI-Empfehlungen ausgeschlossen werden sollen",
+    "history": "Verlauf"
   },
   "reports": {
     "title": "Berichte",
@@ -507,7 +508,7 @@
     "disconnect": "Trennen"
   },
   "webhooks": {
-    "title": "Webhook-Ersteller",
+    "title": "Webhooks",
     "description": "Konfigurieren Sie ausgehende Webhooks für Ereignisbenachrichtigungen.",
     "comingSoon": "Webhook-Ersteller demnächst verfügbar.",
     "addWebhook": "Webhook hinzufügen",

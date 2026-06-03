@@ -286,7 +286,8 @@
     "analysisFrequency": "Fréquence d'analyse",
     "analysisFrequencyDesc": "À quelle fréquence l'agent IA analyse vos campagnes",
     "excludedCampaigns": "Campagnes exclues",
-    "excludedCampaignsDesc": "Campagnes à exclure des recommandations de l'IA"
+    "excludedCampaignsDesc": "Campagnes à exclure des recommandations de l'IA",
+    "history": "Historique"
   },
   "reports": {
     "title": "Rapports",
@@ -507,7 +508,7 @@
     "disconnect": "Déconnecter"
   },
   "webhooks": {
-    "title": "Générateur de webhooks",
+    "title": "Webhooks",
     "description": "Configurez des webhooks sortants pour les notifications d'événements.",
     "comingSoon": "Le générateur de webhooks sera bientôt disponible.",
     "addWebhook": "Ajouter un webhook",
