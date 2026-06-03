@@ -9,11 +9,45 @@ import { Pool, type QueryResult, type QueryResultRow } from 'pg';
 import { config } from '../../config';
 import { logger } from '../../lib/logger';
 
-const databaseUrl = config.database.url;
+const rawDatabaseUrl = config.database.url;
+
+/**
+ * Supabase (and most managed Postgres) present a self-signed certificate chain
+ * on their poolers. We must connect over TLS but cannot verify the chain, so we
+ * use `ssl: { rejectUnauthorized: false }`.
+ *
+ * IMPORTANT: a `sslmode=require` query param in the connection string makes the
+ * `pg` driver treat the connection as `verify-full` (recent pg behaviour),
+ * which overrides the `ssl` object and rejects the self-signed chain with
+ * SELF_SIGNED_CERT_IN_CHAIN. So we strip any `sslmode` param from the URL and
+ * drive TLS purely via the `ssl` object below.
+ */
+function buildPgConfig(url: string | undefined) {
+  if (!url) {
+    return { ssl: config.database.ssl ? { rejectUnauthorized: false } : false };
+  }
+  const wantsTls =
+    config.database.ssl ||
+    /sslmode=/i.test(url) ||
+    /supabase\.(co|com)/i.test(url) ||
+    /\.pooler\.supabase\.com/i.test(url);
+
+  // Remove sslmode (and an empty trailing ?/&) so pg doesn't force verify-full.
+  const cleanedUrl = url
+    .replace(/([?&])sslmode=[^&]*/gi, '$1')
+    .replace(/[?&]$/, '')
+    .replace(/\?&/, '?');
+
+  return {
+    connectionString: cleanedUrl,
+    ssl: wantsTls ? { rejectUnauthorized: false } : false,
+  };
+}
+
+const databaseUrl = rawDatabaseUrl;
 
 export const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: databaseUrl?.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+  ...buildPgConfig(rawDatabaseUrl),
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
