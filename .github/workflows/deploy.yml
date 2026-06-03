@@ -1,46 +1,44 @@
 name: Deploy
 
+# Production deploy runs only after CI succeeds on main. The actual container
+# build + release is performed by Coolify (self-hosted PaaS at
+# coolify.softblaze.net). This workflow gates on a green build and then asks
+# Coolify to (re)deploy each app by UUID via its REST API.
+#
+# Required repository secrets:
+#   COOLIFY_BASE_URL  e.g. https://coolify.softblaze.net
+#   COOLIFY_TOKEN     a Coolify API token with deploy permission
+#
+# App UUIDs (DigitalSoftDistribution/adnexus-ai, branch: main):
+#   API  adnexus-api -> k1s23stsmfw1wlsark0v66jf
+#   Web  adnexus-ai  -> myw0zkilvdech4gx6ezd5krr
+
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [main]
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy
   cancel-in-progress: false
 
-jobs:
-  deploy-api:
-    name: Deploy API
-    runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo build --filter=@adnexus/api
-      - name: Deploy to production
-        run: |
-          echo "Deploy API to production server"
-          # Add your deployment commands here
+env:
+  API_APP_UUID: k1s23stsmfw1wlsark0v66jf
+  WEB_APP_UUID: myw0zkilvdech4gx6ezd5krr
 
-  deploy-web:
-    name: Deploy Web
+jobs:
+  build:
+    name: Build gate
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: pnpm/action-setup@v3
         with:
           version: 10
@@ -49,8 +47,51 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo build --filter=@adnexus/web
-      - name: Deploy to production
+      - name: Build API + Web
+        run: pnpm turbo build --filter=@adnexus/api --filter=@adnexus/web
+
+  deploy:
+    name: Trigger Coolify deploy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deploy secrets are configured
+        env:
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          echo "Deploy Web to production server"
-          # Add your deployment commands here
+          if [ -z "$COOLIFY_BASE_URL" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::error::COOLIFY_BASE_URL and COOLIFY_TOKEN repo secrets are required for deploy."
+            echo "Coolify also auto-deploys on push to main via its GitHub webhook;"
+            echo "this job is the explicit fallback trigger. Configure the secrets to enable it."
+            exit 1
+          fi
+
+      - name: Deploy API (adnexus-api)
+        env:
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          code=$(curl -s -o /tmp/api-deploy.json -w '%{http_code}' \
+            -X GET "${COOLIFY_BASE_URL}/api/v1/deploy?uuid=${API_APP_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+          echo "API deploy response ($code):"; cat /tmp/api-deploy.json; echo
+          [ "$code" = "200" ] || { echo "::error::API deploy request failed ($code)"; exit 1; }
+
+      - name: Deploy Web (adnexus-ai)
+        env:
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          code=$(curl -s -o /tmp/web-deploy.json -w '%{http_code}' \
+            -X GET "${COOLIFY_BASE_URL}/api/v1/deploy?uuid=${WEB_APP_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+          echo "Web deploy response ($code):"; cat /tmp/web-deploy.json; echo
+          [ "$code" = "200" ] || { echo "::error::Web deploy request failed ($code)"; exit 1; }
+
+      - name: Summary
+        run: |
+          echo "### Deploy triggered" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API  adnexus-api ($API_APP_UUID)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Web  adnexus-ai ($WEB_APP_UUID)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Coolify builds and releases each app; watch its dashboard for status." >> "$GITHUB_STEP_SUMMARY"
