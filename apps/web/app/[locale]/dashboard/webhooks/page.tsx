@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { useTranslations } from 'next-intl';
 
 export async function generateMetadata({
   params,
@@ -13,8 +12,13 @@ export async function generateMetadata({
   };
 }
 
-export default function WebhooksPage() {
-  const t = useTranslations('webhooks');
+export default async function WebhooksPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'webhooks' as any });
 
   return (
     <div className="space-y-6">

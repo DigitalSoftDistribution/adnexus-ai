@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { useTranslations } from 'next-intl';
 
 export async function generateMetadata({
   params,
@@ -13,8 +12,13 @@ export async function generateMetadata({
   };
 }
 
-export default function IntegrationsPage() {
-  const t = useTranslations('integrations');
+export default async function IntegrationsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'integrations' as any });
 
   const integrations = [
     { nameKey: 'metaAds', status: 'connected' as const, icon: 'M' },
