@@ -123,6 +123,12 @@ import {
   GetConversationUseCase,
   SendMessageUseCase,
 } from '../use-cases/agent/AgentAdvisoryUseCases';
+import {
+  ListIntegrationsUseCase,
+  GetIntegrationUseCase,
+  DisconnectIntegrationUseCase,
+  GetIntegrationHealthUseCase,
+} from '../use-cases/integration/IntegrationUseCases';
 import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
 import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
 import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
@@ -265,6 +271,10 @@ export class Container {
   readonly createConversation: CreateConversationUseCase;
   readonly getConversation: GetConversationUseCase;
   readonly sendAgentMessage: SendMessageUseCase;
+  readonly listIntegrations: ListIntegrationsUseCase;
+  readonly getIntegration: GetIntegrationUseCase;
+  readonly disconnectIntegration: DisconnectIntegrationUseCase;
+  readonly getIntegrationHealth: GetIntegrationHealthUseCase;
   readonly listAutomationRules: ListAutomationRulesUseCase;
   readonly getAutomationRuleById: GetAutomationRuleByIdUseCase;
   readonly createAutomationRule: CreateAutomationRuleUseCase;
@@ -434,6 +444,10 @@ export class Container {
     this.createConversation = new CreateConversationUseCase(config.agentAdvisor);
     this.getConversation = new GetConversationUseCase(config.agentAdvisor);
     this.sendAgentMessage = new SendMessageUseCase(config.agentAdvisor);
+    this.listIntegrations = new ListIntegrationsUseCase(config.settingsRepository);
+    this.getIntegration = new GetIntegrationUseCase(config.settingsRepository);
+    this.disconnectIntegration = new DisconnectIntegrationUseCase(config.settingsRepository);
+    this.getIntegrationHealth = new GetIntegrationHealthUseCase(config.settingsRepository);
     this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
     this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
     this.createAutomationRule = new CreateAutomationRuleUseCase(

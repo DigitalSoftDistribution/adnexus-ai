@@ -248,6 +248,17 @@ export class SettingsRepository implements ISettingsRepository {
     };
   }
 
+  async disconnectIntegration(workspaceId: string, platform: string): Promise<boolean> {
+    const { rowCount } = await query(
+      `UPDATE ad_accounts
+       SET status = 'disconnected', is_active = false, access_token = NULL,
+           refresh_token = NULL, updated_at = NOW()
+       WHERE workspace_id = $1 AND platform = $2`,
+      [workspaceId, platform],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
   // Notifications
   async getNotificationPreferences(_workspaceId: string, _userId: string): Promise<NotificationPreferences | null> {
     // For now, return defaults — in production this would query a user_prefs table

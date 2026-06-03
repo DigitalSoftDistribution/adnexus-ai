@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import type { Container } from '../../../application/services/Container';
+import { createIntegrationController } from '../controllers/IntegrationController';
+import { requireAuth, requireRole } from '../middleware/requireAuth';
+
+export function createIntegrationRoutes(container: Container): Router {
+  const router = Router();
+  const controller = createIntegrationController(container);
+
+  router.get('/', requireAuth, controller.list as any);
+  router.get('/:platform', requireAuth, controller.get as any);
+  router.get('/:platform/health', requireAuth, controller.health as any);
+  router.post(
+    '/:platform/disconnect',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.disconnect as any,
+  );
+
+  return router;
+}
