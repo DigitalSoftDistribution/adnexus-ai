@@ -4,19 +4,19 @@ import { query } from '../database/connection';
 
 export class DraftRepository implements IDraftRepository {
   async findById(id: string): Promise<Draft | null> {
-    const { rows } = await query<Draft>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM drafts WHERE id = $1 LIMIT 1`,
       [id],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Draft | null> {
-    const { rows } = await query<Draft>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM drafts WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
       [id, workspaceId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async list(filters: DraftFilters): Promise<DraftListResult> {
@@ -73,7 +73,8 @@ export class DraftRepository implements IDraftRepository {
     `;
     params.push(limit, offset);
 
-    const { rows: drafts } = await query<Draft>(dataQuery, params);
+    const { rows: draftRows } = await query<Record<string, unknown>>(dataQuery, params);
+    const drafts = draftRows.map((r) => this.mapRow(r));
 
     return { drafts, total, page, totalPages: Math.ceil(total / limit) };
   }
@@ -95,49 +96,57 @@ export class DraftRepository implements IDraftRepository {
   }
 
   async create(draft: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> {
-    const { rows } = await query<Draft>(
+    // Real `drafts` columns only: there is no approved_by/approved_at/updated_at;
+    // approval is tracked via approver_id/approval_note/resolved_at.
+    const { rows } = await query<Record<string, unknown>>(
       `INSERT INTO drafts (
         workspace_id, platform, campaign_id, adset_id, ad_id,
         draft_type, change_summary, change_detail, ai_reasoning,
         impact_estimate, actor_type, actor_id, actor_name, rule_id,
-        status, approved_by, approved_at, executed_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        status, approver_id, executed_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         draft.workspaceId, draft.platform, draft.campaignId, draft.adsetId, draft.adId,
         draft.draftType, draft.changeSummary, draft.changeDetail, draft.aiReasoning,
         draft.impactEstimate, draft.actorType, draft.actorId, draft.actorName, draft.ruleId,
-        draft.status, draft.approvedBy, draft.approvedAt, draft.executedAt,
+        draft.status, draft.approvedBy, draft.executedAt,
       ],
     );
-    return rows[0];
+    return this.mapRow(rows[0]);
   }
 
   async updateStatus(id: string, status: DraftStatus, metadata?: Record<string, unknown>): Promise<Draft | null> {
-    const { rows } = await query<Draft>(
-      `UPDATE drafts SET status = $2, updated_at = NOW() ${metadata ? `, change_detail = change_detail || $3::jsonb` : ''}
+    const setExtra = status === 'executed'
+      ? ', executed_at = NOW(), resolved_at = NOW()'
+      : (status === 'rejected' || status === 'rolled_back' || status === 'failed')
+        ? ', resolved_at = NOW()'
+        : '';
+    const { rows } = await query<Record<string, unknown>>(
+      `UPDATE drafts SET status = $2${setExtra}${metadata ? ', change_detail = change_detail || $3::jsonb' : ''}
        WHERE id = $1 RETURNING *`,
       metadata ? [id, status, JSON.stringify(metadata)] : [id, status],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async approve(id: string, approvedBy: string): Promise<Draft | null> {
-    const { rows } = await query<Draft>(
-      `UPDATE drafts SET status = 'approved', approved_by = $2, approved_at = NOW(), updated_at = NOW()
+    const { rows } = await query<Record<string, unknown>>(
+      `UPDATE drafts SET status = 'approved', approver_id = $2, resolved_at = NOW()
        WHERE id = $1 RETURNING *`,
       [id, approvedBy],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async reject(id: string, rejectedBy: string, reason?: string): Promise<Draft | null> {
-    const { rows } = await query<Draft>(
-      `UPDATE drafts SET status = 'rejected', change_detail = change_detail || $3::jsonb, updated_at = NOW()
+    const { rows } = await query<Record<string, unknown>>(
+      `UPDATE drafts SET status = 'rejected', approver_id = $2, approval_note = $4, resolved_at = NOW(),
+              change_detail = change_detail || $3::jsonb
        WHERE id = $1 RETURNING *`,
-      [id, rejectedBy, JSON.stringify({ rejectedBy, rejectedAt: new Date().toISOString(), reason })],
+      [id, rejectedBy, JSON.stringify({ rejectedBy, rejectedAt: new Date().toISOString(), reason }), reason ?? null],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -151,5 +160,32 @@ export class DraftRepository implements IDraftRepository {
       [workspaceId],
     );
     return parseInt(rows[0].count, 10);
+  }
+
+  /** Map a snake_case drafts row to the camelCase Draft entity. */
+  private mapRow(r: Record<string, unknown>): Draft {
+    return {
+      id: r.id as string,
+      workspaceId: r.workspace_id as string,
+      platform: (r.platform ?? 'all') as Draft['platform'],
+      campaignId: (r.campaign_id ?? null) as string | null,
+      adsetId: (r.adset_id ?? null) as string | null,
+      adId: (r.ad_id ?? null) as string | null,
+      draftType: r.draft_type as Draft['draftType'],
+      changeSummary: (r.change_summary ?? '') as string,
+      changeDetail: (r.change_detail ?? {}) as Record<string, unknown>,
+      aiReasoning: (r.ai_reasoning ?? null) as string | null,
+      impactEstimate: (r.impact_estimate ?? null) as string | null,
+      actorType: (r.actor_type ?? 'user') as Draft['actorType'],
+      actorId: (r.actor_id ?? null) as string | null,
+      actorName: (r.actor_name ?? null) as string | null,
+      ruleId: (r.rule_id ?? null) as string | null,
+      status: r.status as Draft['status'],
+      approvedBy: (r.approver_id ?? null) as string | null,
+      approvedAt: (r.resolved_at ?? null) as Date | null,
+      executedAt: (r.executed_at ?? null) as Date | null,
+      createdAt: (r.created_at ?? new Date()) as Date,
+      updatedAt: (r.resolved_at ?? r.created_at ?? new Date()) as Date,
+    };
   }
 }
