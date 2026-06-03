@@ -293,7 +293,7 @@ export function CampaignDetailContent() {
           icon={BarChart3}
           label={tc('spend')}
           value={formatCurrency(campaign.spend)}
-          subtext={campaign.budgetType ? `${campaign.budgetType} ${tc('budget').toLowerCase()}` : t('notSet')}
+          subtext={campaign.budgetType ? `${campaign.budgetType} ${tc('budget').toLowerCase()}` : tc('notSet')}
         />
         <MetricCard
           icon={Megaphone}

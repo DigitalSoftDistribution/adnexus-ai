@@ -7,6 +7,8 @@ export const config = {
   matcher: [
     '/',
     '/(de|en|es|fr|it|ja|nl|pl|pt|ru)/:path*',
-    '/((?!_next|_vercel|.*\\..*).*)',
+    // Exclude API routes, Next internals, and static files from locale handling
+    // so `/api/v1` and `/api/v2` rewrites are not locale-prefixed.
+    '/((?!api|_next|_vercel|.*\\..*).*)',
   ],
 };

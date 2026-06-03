@@ -19,6 +19,7 @@ export default async function IntegrationsPage({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'integrations' as any });
+  const tc = await getTranslations({ locale, namespace: 'common' as any });
 
   const integrations = [
     { nameKey: 'metaAds', status: 'connected' as const, icon: 'M' },
@@ -51,7 +52,7 @@ export default async function IntegrationsPage({
                 </div>
               </div>
               <button className="text-sm text-primary hover:underline">
-                {integration.status === 'connected' ? t('manage') : t('connect')}
+                {integration.status === 'connected' ? tc('manage') : tc('connect')}
               </button>
             </div>
           </div>

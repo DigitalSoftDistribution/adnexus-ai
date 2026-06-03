@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
+import { ogLocales, type Locale } from '@/i18n/config';
 import { notFound } from 'next/navigation';
 import { Providers } from '@/providers';
 import '../globals.css';
@@ -33,7 +34,7 @@ export async function generateMetadata({
     metadataBase: new URL('https://adnexus.ai'),
     openGraph: {
       type: 'website',
-      locale: locale === 'en' ? 'en_US' : `${locale}_${locale.toUpperCase()}`,
+      locale: ogLocales[locale as Locale] ?? ogLocales.en,
       siteName: 'AdNexus AI',
     },
     twitter: {
