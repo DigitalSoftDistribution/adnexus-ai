@@ -16,7 +16,22 @@
     "billing": "Abrechnung",
     "settings": "Einstellungen",
     "signOut": "Abmelden",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Ziele",
+    "integrations": "Integrationen",
+    "webhooks": "Webhooks",
+    "auditLog": "Audit-Log",
+    "collapse": "Einklappen",
+    "workspace": "Arbeitsbereich",
+    "newCampaign": "Neue Kampagne",
+    "groups": {
+      "overview": "Übersicht",
+      "campaigns": "Kampagnen",
+      "automation": "Automatisierung",
+      "connect": "Verbinden",
+      "workspace": "Arbeitsbereich",
+      "create": "Erstellen"
+    }
   },
   "common": {
     "loading": "Wird geladen...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Anzeigengruppen konnten nicht abgerufen werden",
     "failedToFetchHistory": "Verlauf konnte nicht abgerufen werden",
     "failedToFetchAds": "Anzeigen konnten nicht abgerufen werden"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen"
   }
 }

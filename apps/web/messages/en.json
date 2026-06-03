@@ -16,7 +16,22 @@
     "billing": "Billing",
     "settings": "Settings",
     "signOut": "Sign Out",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Goals",
+    "integrations": "Integrations",
+    "webhooks": "Webhooks",
+    "auditLog": "Audit Log",
+    "collapse": "Collapse",
+    "workspace": "Workspace",
+    "newCampaign": "New Campaign",
+    "groups": {
+      "overview": "Overview",
+      "campaigns": "Campaigns",
+      "automation": "Automation",
+      "connect": "Connect",
+      "workspace": "Workspace",
+      "create": "Create"
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Failed to fetch ad sets",
     "failedToFetchHistory": "Failed to fetch history",
     "failedToFetchAds": "Failed to fetch ads"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet"
   }
 }

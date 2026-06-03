@@ -16,7 +16,22 @@
     "billing": "Facturering",
     "settings": "Instellingen",
     "signOut": "Afmelden",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Doelen",
+    "integrations": "Integraties",
+    "webhooks": "Webhooks",
+    "auditLog": "Auditlogboek",
+    "collapse": "Inklappen",
+    "workspace": "Werkruimte",
+    "newCampaign": "Nieuwe campagne",
+    "groups": {
+      "overview": "Overzicht",
+      "campaigns": "Campagnes",
+      "automation": "Automatisering",
+      "connect": "Verbinden",
+      "workspace": "Werkruimte",
+      "create": "Aanmaken"
+    }
   },
   "common": {
     "loading": "Laden...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Ophalen van advertentiesets mislukt",
     "failedToFetchHistory": "Ophalen van geschiedenis mislukt",
     "failedToFetchAds": "Ophalen van advertenties mislukt"
+  },
+  "notifications": {
+    "title": "Meldingen",
+    "markAllRead": "Alles als gelezen markeren",
+    "empty": "Nog geen meldingen"
   }
 }

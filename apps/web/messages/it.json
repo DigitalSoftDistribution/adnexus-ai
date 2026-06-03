@@ -16,7 +16,22 @@
     "billing": "Fatturazione",
     "settings": "Impostazioni",
     "signOut": "Esci",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Obiettivi",
+    "integrations": "Integrazioni",
+    "webhooks": "Webhook",
+    "auditLog": "Registro di controllo",
+    "collapse": "Comprimi",
+    "workspace": "Area di lavoro",
+    "newCampaign": "Nuova campagna",
+    "groups": {
+      "overview": "Panoramica",
+      "campaigns": "Campagne",
+      "automation": "Automazione",
+      "connect": "Connetti",
+      "workspace": "Area di lavoro",
+      "create": "Crea"
+    }
   },
   "common": {
     "loading": "Caricamento...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Impossibile recuperare i gruppi di annunci",
     "failedToFetchHistory": "Impossibile recuperare la cronologia",
     "failedToFetchAds": "Impossibile recuperare gli annunci"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "markAllRead": "Segna tutto come letto",
+    "empty": "Nessuna notifica"
   }
 }

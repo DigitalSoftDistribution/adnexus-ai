@@ -16,7 +16,22 @@
     "billing": "Rozliczenia",
     "settings": "Ustawienia",
     "signOut": "Wyloguj się",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Cele",
+    "integrations": "Integracje",
+    "webhooks": "Webhooki",
+    "auditLog": "Dziennik audytu",
+    "collapse": "Zwiń",
+    "workspace": "Obszar roboczy",
+    "newCampaign": "Nowa kampania",
+    "groups": {
+      "overview": "Przegląd",
+      "campaigns": "Kampanie",
+      "automation": "Automatyzacja",
+      "connect": "Połącz",
+      "workspace": "Obszar roboczy",
+      "create": "Utwórz"
+    }
   },
   "common": {
     "loading": "Ładowanie...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Nie udało się pobrać zestawów reklam",
     "failedToFetchHistory": "Nie udało się pobrać historii",
     "failedToFetchAds": "Nie udało się pobrać reklam"
+  },
+  "notifications": {
+    "title": "Powiadomienia",
+    "markAllRead": "Oznacz wszystkie jako przeczytane",
+    "empty": "Brak powiadomień"
   }
 }

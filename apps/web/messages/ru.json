@@ -16,7 +16,22 @@
     "billing": "Оплата",
     "settings": "Настройки",
     "signOut": "Выйти",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Цели",
+    "integrations": "Интеграции",
+    "webhooks": "Вебхуки",
+    "auditLog": "Журнал аудита",
+    "collapse": "Свернуть",
+    "workspace": "Рабочая область",
+    "newCampaign": "Новая кампания",
+    "groups": {
+      "overview": "Обзор",
+      "campaigns": "Кампании",
+      "automation": "Автоматизация",
+      "connect": "Подключения",
+      "workspace": "Рабочая область",
+      "create": "Создать"
+    }
   },
   "common": {
     "loading": "Загрузка...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "Не удалось загрузить группы объявлений",
     "failedToFetchHistory": "Не удалось загрузить историю",
     "failedToFetchAds": "Не удалось загрузить объявления"
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "markAllRead": "Отметить все как прочитанные",
+    "empty": "Уведомлений пока нет"
   }
 }

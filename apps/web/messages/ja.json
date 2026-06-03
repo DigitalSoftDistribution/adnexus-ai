@@ -16,7 +16,22 @@
     "billing": "請求",
     "settings": "設定",
     "signOut": "サインアウト",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "目標",
+    "integrations": "連携",
+    "webhooks": "Webhook",
+    "auditLog": "監査ログ",
+    "collapse": "折りたたむ",
+    "workspace": "ワークスペース",
+    "newCampaign": "新規キャンペーン",
+    "groups": {
+      "overview": "概要",
+      "campaigns": "キャンペーン",
+      "automation": "自動化",
+      "connect": "連携",
+      "workspace": "ワークスペース",
+      "create": "作成"
+    }
   },
   "common": {
     "loading": "読み込み中...",
@@ -501,5 +516,10 @@
     "failedToFetchAdSets": "広告セットの取得に失敗しました",
     "failedToFetchHistory": "履歴の取得に失敗しました",
     "failedToFetchAds": "広告の取得に失敗しました"
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "empty": "通知はまだありません"
   }
 }
