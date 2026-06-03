@@ -42,6 +42,17 @@ process.env.RATE_LIMIT_WEBHOOK = '1000000';
 
 // Mock ioredis
 jest.mock('ioredis', () => {
+  // A minimal pub/sub subscriber client returned by client.duplicate().
+  // The realtime EventBus duplicates the client and calls subscribe/psubscribe
+  // (both promise-returning) plus on('message', ...).
+  const makeSubscriber = () => ({
+    on: jest.fn(),
+    subscribe: jest.fn().mockResolvedValue(1),
+    psubscribe: jest.fn().mockResolvedValue(1),
+    unsubscribe: jest.fn().mockResolvedValue(1),
+    quit: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn(),
+  });
   return jest.fn().mockImplementation(() => ({
     on: jest.fn(),
     connect: jest.fn(),
@@ -55,6 +66,9 @@ jest.mock('ioredis', () => {
     ttl: jest.fn().mockResolvedValue(-1),
     incr: jest.fn().mockResolvedValue(1),
     expire: jest.fn().mockResolvedValue(1),
+    publish: jest.fn().mockResolvedValue(0),
+    // EventBus.setupRedisSubscription() duplicates the client for pub/sub.
+    duplicate: jest.fn().mockImplementation(makeSubscriber),
     multi: jest.fn().mockReturnValue({
       incr: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),

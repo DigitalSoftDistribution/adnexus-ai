@@ -2,10 +2,33 @@ import type { ICampaignRepository, CampaignFilters, CampaignListResult, Campaign
 import type { Campaign } from '../../domain/entities/Campaign';
 import { query } from '../database/connection';
 
+/**
+ * Campaign persistence.
+ *
+ * IMPORTANT — schema reality: the `campaigns` table does NOT have a
+ * `workspace_id` or `platform` column. A campaign belongs to a workspace and a
+ * platform indirectly, through `ad_accounts` (campaigns.ad_account_id ->
+ * ad_accounts.id, with ad_accounts.workspace_id / ad_accounts.platform).
+ * Every workspace- or platform-scoped query therefore JOINs `ad_accounts`,
+ * mirroring the v1 routes (apps/api/src/routes/campaigns.ts). Reads project
+ * `a.workspace_id AS workspace_id` and `a.platform AS platform` so the returned
+ * row still satisfies the Campaign shape the use-cases/frontend expect.
+ */
 export class CampaignRepository implements ICampaignRepository {
+  /** Columns that physically exist on `campaigns` (c.*) — keep in sync with the DB. */
+  private static readonly CAMPAIGN_SELECT = `
+    c.id, c.ad_account_id, c.platform_campaign_id, c.name, c.status, c.objective,
+    c.daily_budget, c.lifetime_budget, c.budget_type, c.spend, c.impressions,
+    c.clicks, c.ctr, c.conversions, c.cpa, c.roas, c.frequency, c.reach, c.cpm,
+    c.cpc, c.start_date, c.end_date, c.platform_data, c.created_at, c.updated_at,
+    a.workspace_id AS workspace_id, a.platform AS platform`;
+
   async findById(id: string): Promise<Campaign | null> {
     const { rows } = await query<Campaign>(
-      `SELECT * FROM campaigns WHERE id = $1 LIMIT 1`,
+      `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+       WHERE c.id = $1 LIMIT 1`,
       [id],
     );
     return rows[0] ?? null;
@@ -13,7 +36,10 @@ export class CampaignRepository implements ICampaignRepository {
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Campaign | null> {
     const { rows } = await query<Campaign>(
-      `SELECT * FROM campaigns WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
+      `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+       WHERE c.id = $1 AND a.workspace_id = $2 LIMIT 1`,
       [id, workspaceId],
     );
     return rows[0] ?? null;
@@ -21,14 +47,18 @@ export class CampaignRepository implements ICampaignRepository {
 
   async findByPlatformCampaignId(platformCampaignId: string): Promise<Campaign | null> {
     const { rows } = await query<Campaign>(
-      `SELECT * FROM campaigns WHERE platform_campaign_id = $1 LIMIT 1`,
+      `SELECT ${CampaignRepository.CAMPAIGN_SELECT}
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+       WHERE c.platform_campaign_id = $1 LIMIT 1`,
       [platformCampaignId],
     );
     return rows[0] ?? null;
   }
 
   async list(filters: CampaignFilters): Promise<CampaignListResult> {
-    const conditions: string[] = ['c.workspace_id = $1'];
+    // Workspace + platform live on ad_accounts, so scope via the join.
+    const conditions: string[] = ['a.workspace_id = $1'];
     const params: unknown[] = [filters.workspaceId];
     let paramIdx = 1;
 
@@ -42,7 +72,7 @@ export class CampaignRepository implements ICampaignRepository {
     if (filters.platform) {
       const platforms = Array.isArray(filters.platform) ? filters.platform : [filters.platform];
       paramIdx++;
-      conditions.push(`c.platform = ANY($${paramIdx}::text[])`);
+      conditions.push(`a.platform = ANY($${paramIdx}::text[])`);
       params.push(platforms);
     }
 
@@ -77,12 +107,16 @@ export class CampaignRepository implements ICampaignRepository {
     const limit = Math.min(filters.limit ?? 20, 100);
     const offset = (page - 1) * limit;
 
-    const countQuery = `SELECT COUNT(*) FROM campaigns c WHERE ${whereClause}`;
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM campaigns c
+      JOIN ad_accounts a ON a.id = c.ad_account_id
+      WHERE ${whereClause}`;
     const { rows: countRows } = await query<{ count: string }>(countQuery, params);
     const total = parseInt(countRows[0].count, 10);
 
     const dataQuery = `
-      SELECT c.*, a.platform as account_platform
+      SELECT ${CampaignRepository.CAMPAIGN_SELECT}
       FROM campaigns c
       JOIN ad_accounts a ON a.id = c.ad_account_id
       WHERE ${whereClause}
@@ -117,22 +151,37 @@ export class CampaignRepository implements ICampaignRepository {
       status_breakdown: Record<string, number> | null;
     }
 
+    // platform comes from ad_accounts; aggregate the per-(platform|status)
+    // counts in a CTE, then roll them into jsonb maps.
     const { rows } = await query<CampaignSummaryRow>(
-      `SELECT
-        COUNT(*)::int as total_campaigns,
-        COUNT(*) FILTER (WHERE status = 'active')::int as active_count,
-        COUNT(*) FILTER (WHERE status = 'paused')::int as paused_count,
-        COALESCE(SUM(spend), 0) as total_spend,
-        COALESCE(SUM(impressions), 0) as total_impressions,
-        COALESCE(SUM(clicks), 0) as total_clicks,
-        COALESCE(SUM(conversions), 0) as total_conversions,
-        COALESCE(AVG(ctr), 0) as avg_ctr,
-        COALESCE(AVG(cpa), 0) as avg_cpa,
-        COALESCE(AVG(roas), 0) as avg_roas,
-        jsonb_object_agg(platform, cnt) FILTER (WHERE platform IS NOT NULL) as platform_breakdown,
-        jsonb_object_agg(status, cnt) FILTER (WHERE status IS NOT NULL) as status_breakdown
-      FROM campaigns
-      WHERE workspace_id = $1`,
+      `WITH scoped AS (
+        SELECT c.status, a.platform, c.spend, c.impressions, c.clicks,
+               c.conversions, c.ctr, c.cpa, c.roas
+        FROM campaigns c
+        JOIN ad_accounts a ON a.id = c.ad_account_id
+        WHERE a.workspace_id = $1
+      ),
+      platform_counts AS (
+        SELECT platform, COUNT(*)::int AS cnt FROM scoped
+        WHERE platform IS NOT NULL GROUP BY platform
+      ),
+      status_counts AS (
+        SELECT status, COUNT(*)::int AS cnt FROM scoped
+        WHERE status IS NOT NULL GROUP BY status
+      )
+      SELECT
+        (SELECT COUNT(*)::int FROM scoped) AS total_campaigns,
+        (SELECT COUNT(*)::int FROM scoped WHERE status = 'active') AS active_count,
+        (SELECT COUNT(*)::int FROM scoped WHERE status = 'paused') AS paused_count,
+        (SELECT COALESCE(SUM(spend), 0) FROM scoped) AS total_spend,
+        (SELECT COALESCE(SUM(impressions), 0) FROM scoped) AS total_impressions,
+        (SELECT COALESCE(SUM(clicks), 0) FROM scoped) AS total_clicks,
+        (SELECT COALESCE(SUM(conversions), 0) FROM scoped) AS total_conversions,
+        (SELECT COALESCE(AVG(ctr), 0) FROM scoped) AS avg_ctr,
+        (SELECT COALESCE(AVG(cpa), 0) FROM scoped) AS avg_cpa,
+        (SELECT COALESCE(AVG(roas), 0) FROM scoped) AS avg_roas,
+        (SELECT COALESCE(jsonb_object_agg(platform, cnt), '{}'::jsonb) FROM platform_counts) AS platform_breakdown,
+        (SELECT COALESCE(jsonb_object_agg(status, cnt), '{}'::jsonb) FROM status_counts) AS status_breakdown`,
       [workspaceId],
     );
 
@@ -154,33 +203,41 @@ export class CampaignRepository implements ICampaignRepository {
   }
 
   async create(campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>): Promise<Campaign> {
-    const { rows } = await query<Campaign>(
+    // Insert only columns that exist on `campaigns`. workspace_id/platform are
+    // NOT columns here — they belong to the parent ad_account — so they are not
+    // inserted. RETURNING re-reads via findById to attach the joined
+    // workspace_id/platform the entity shape expects.
+    const { rows } = await query<{ id: string }>(
       `INSERT INTO campaigns (
-        workspace_id, ad_account_id, platform, platform_campaign_id, name,
-        status, objective, budget, budget_type, daily_budget, lifetime_budget,
-        spend, impressions, clicks, ctr, conversions, cpa, roas, frequency,
-        cpm, cpc, start_date, end_date, platform_data, lead_form_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
-      RETURNING *`,
+        ad_account_id, platform_campaign_id, name, status, objective,
+        budget_type, daily_budget, lifetime_budget, spend, impressions, clicks,
+        ctr, conversions, cpa, roas, frequency, cpm, cpc, start_date, end_date,
+        platform_data
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      RETURNING id`,
       [
-        campaign.workspaceId, campaign.adAccountId, campaign.platform, campaign.platformCampaignId,
-        campaign.name, campaign.status, campaign.objective, campaign.budget, campaign.budgetType,
-        campaign.dailyBudget, campaign.lifetimeBudget, campaign.spend, campaign.impressions,
-        campaign.clicks, campaign.ctr, campaign.conversions, campaign.cpa, campaign.roas,
-        campaign.frequency, campaign.cpm, campaign.cpc, campaign.startDate, campaign.endDate,
-        campaign.platformData, campaign.leadFormId,
+        campaign.adAccountId, campaign.platformCampaignId, campaign.name, campaign.status,
+        campaign.objective, campaign.budgetType, campaign.dailyBudget, campaign.lifetimeBudget,
+        campaign.spend, campaign.impressions, campaign.clicks, campaign.ctr, campaign.conversions,
+        campaign.cpa, campaign.roas, campaign.frequency, campaign.cpm, campaign.cpc,
+        campaign.startDate, campaign.endDate, campaign.platformData,
       ],
     );
-    return rows[0];
+    const created = await this.findById(rows[0].id);
+    if (!created) throw new Error('Campaign created but could not be re-read');
+    return created;
   }
 
   async update(id: string, updates: Partial<Campaign>): Promise<Campaign | null> {
+    // Never attempt to update columns that live on ad_accounts (or don't exist
+    // on campaigns): workspace_id, platform, budget, lead_form_id.
+    const NON_COLUMN_FIELDS = new Set(['workspaceId', 'platform', 'budget', 'leadFormId', 'id', 'createdAt', 'updatedAt']);
     const setClauses: string[] = [];
     const params: unknown[] = [id];
     let idx = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
+      if (value !== undefined && !NON_COLUMN_FIELDS.has(key)) {
         const column = this.camelToSnake(key);
         setClauses.push(`${column} = $${++idx}`);
         params.push(value);
@@ -189,11 +246,11 @@ export class CampaignRepository implements ICampaignRepository {
 
     if (setClauses.length === 0) return this.findById(id);
 
-    const { rows } = await query<Campaign>(
-      `UPDATE campaigns SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`,
+    await query(
+      `UPDATE campaigns SET ${setClauses.join(', ')} WHERE id = $1`,
       params,
     );
-    return rows[0] ?? null;
+    return this.findById(id);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -203,7 +260,10 @@ export class CampaignRepository implements ICampaignRepository {
 
   async countByWorkspace(workspaceId: string): Promise<number> {
     const { rows } = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM campaigns WHERE workspace_id = $1`,
+      `SELECT COUNT(*)::text as count
+       FROM campaigns c
+       JOIN ad_accounts a ON a.id = c.ad_account_id
+       WHERE a.workspace_id = $1`,
       [workspaceId],
     );
     return parseInt(rows[0].count, 10);

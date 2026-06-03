@@ -37,7 +37,7 @@ export class AudienceRepository implements IAudienceRepository {
 
     const { rows: countRows } = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count FROM audiences WHERE ${where}`,
-      params.slice(0, -2),
+      params,
     );
 
     return {

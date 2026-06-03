@@ -29,7 +29,7 @@ export class AlertRepository implements IAlertRepository {
 
     const { rows: countRows } = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count FROM alerts WHERE ${where}`,
-      params.slice(0, -2),
+      params,
     );
 
     return {

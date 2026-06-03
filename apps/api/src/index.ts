@@ -60,6 +60,10 @@ import commentRoutes from './routes/comments';
 import uploadRoutes from './routes/upload';
 import alertRoutes from './routes/alerts';
 
+// ─── V2 Clean Architecture (runtime mount) ───────────────────
+
+import { mountV2Routes } from './interface/http/mountV2';
+
 // ─── Real-time ───────────────────────────────────────────────
 
 import { createRealtimeService } from './realtime';
@@ -235,6 +239,17 @@ app.post(
 
 /** External platform webhooks */
 app.use('/api/v1/webhooks', webhookRateLimiter, webhookRoutes);
+
+// ═══════════════════════════════════════════════════════════════
+// V2 CLEAN ARCHITECTURE ROUTES (/api/v2/*)
+// ═══════════════════════════════════════════════════════════════
+//
+// Mounted BEFORE the global `authenticateToken` gate below: the v2 routes
+// carry their own JWT auth (`requireAuth`) + RBAC (`requireRole`) and the
+// `/api/v2/auth` group must stay public. The live Next.js dashboard rewrites
+// `/api/v2/*` to this API (apps/web/next.config.ts), so these routes back the
+// dashboard's campaign summary, lists, drafts, etc.
+mountV2Routes(app);
 
 // ═══════════════════════════════════════════════════════════════
 // AUTHENTICATED API ROUTES

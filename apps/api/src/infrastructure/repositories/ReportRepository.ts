@@ -25,7 +25,7 @@ export class ReportRepository implements IReportRepository {
 
     const { rows: countRows } = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count FROM reports WHERE ${where}`,
-      params.slice(0, -2),
+      params,
     );
 
     return {
