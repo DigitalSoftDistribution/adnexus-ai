@@ -12,11 +12,11 @@ import { formatDate } from '@/lib/utils';
 
 interface AuditEntry {
   id: string;
-  actorName: string | null;
+  actor_name: string | null;
   action: string;
-  actionCategory: string | null;
-  entityType: string | null;
-  createdAt: string;
+  action_category: string | null;
+  entity_type?: string | null;
+  created_at: string;
 }
 
 export function AuditLogContent() {
@@ -36,25 +36,25 @@ export function AuditLogContent() {
   const entries = data ?? [];
 
   const columns: DataTableColumn<AuditEntry>[] = [
-    { id: 'actor', header: t('actor'), accessor: (e) => e.actorName ?? tc('system') },
+    { id: 'actor', header: t('actor'), accessor: (e) => e.actor_name ?? tc('system') },
     { id: 'action', header: t('action'), accessor: (e) => <span className="font-mono text-xs">{e.action}</span> },
     {
       id: 'category',
       header: t('category'),
       accessor: (e) =>
-        e.actionCategory ? (
-          <Badge variant="outline" className="capitalize">{e.actionCategory}</Badge>
+        e.action_category ? (
+          <Badge variant="outline" className="capitalize">{e.action_category}</Badge>
         ) : (
           <span className="text-muted-foreground">{tc('unknown')}</span>
         ),
     },
-    { id: 'entity', header: t('entity'), accessor: (e) => e.entityType ?? '-' },
+    { id: 'entity', header: t('entity'), accessor: (e) => e.entity_type ?? '-' },
     {
       id: 'date',
       header: tc('created'),
       align: 'right',
-      accessor: (e) => formatDate(e.createdAt),
-      sortValue: (e) => e.createdAt,
+      accessor: (e) => formatDate(e.created_at),
+      sortValue: (e) => e.created_at,
     },
   ];
 
