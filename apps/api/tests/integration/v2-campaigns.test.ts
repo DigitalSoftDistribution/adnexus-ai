@@ -126,6 +126,49 @@ describe('V2 runtime mount — /api/v2/campaigns', () => {
     });
   });
 
+  describe('GET /api/v2/campaigns/:id', () => {
+    it('returns the campaign with camelCase fields (workspaceId/adAccountId) for the owner', async () => {
+      // Repo.findById issues a single joined SELECT returning a snake_case row;
+      // the repo must map it to the camelCase Campaign entity so the
+      // GetCampaignById use-case's workspace check passes (regression: a raw
+      // snake_case row made campaign.workspaceId undefined -> 403).
+      v2Query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: UUIDS.campaign1,
+            workspace_id: UUIDS.workspace1,
+            ad_account_id: UUIDS.metaAccount,
+            platform: 'meta',
+            platform_campaign_id: 'ext_1',
+            name: 'Alpha',
+            status: 'active',
+            objective: 'sales',
+            spend: 50,
+            start_date: '2024-01-01',
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+        rowCount: 1,
+      });
+
+      const token = generateToken(UUIDS.owner, 'owner', UUIDS.workspace1);
+      const res = await request(app)
+        .get(`/api/v2/campaigns/${UUIDS.campaign1}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toMatchObject({
+        id: UUIDS.campaign1,
+        workspaceId: UUIDS.workspace1,
+        adAccountId: UUIDS.metaAccount,
+        platform: 'meta',
+        startDate: '2024-01-01',
+      });
+    });
+  });
+
   describe('RBAC — POST /api/v2/campaigns', () => {
     it('returns 403 for a viewer (requireRole owner/admin/editor)', async () => {
       const token = generateToken(UUIDS.viewer, 'viewer', UUIDS.workspace1);
