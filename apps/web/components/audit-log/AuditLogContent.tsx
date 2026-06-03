@@ -23,7 +23,7 @@ export function AuditLogContent() {
   const t = useTranslations('auditLog');
   const tc = useTranslations('common');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['audit-log', 'list'],
     queryFn: async (): Promise<AuditEntry[]> => {
       const res = await fetch('/api/v2/audit-log');
@@ -66,6 +66,12 @@ export function AuditLogContent() {
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<ScrollText className="h-6 w-6" />}
+          title={tc('error')}
+          description={(error as Error)?.message}
+        />
       ) : entries.length === 0 ? (
         <EmptyState
           icon={<ScrollText className="h-6 w-6" />}

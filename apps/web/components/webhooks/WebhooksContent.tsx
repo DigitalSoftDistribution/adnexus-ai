@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 
 interface WebhookConfig {
@@ -40,7 +39,7 @@ export function WebhooksContent() {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['webhooks', 'configs'],
     queryFn: async (): Promise<WebhookConfig[]> => {
       const res = await fetch('/api/v2/webhooks/config');
@@ -70,64 +69,69 @@ export function WebhooksContent() {
 
   const webhooks = data ?? [];
 
-  const addButton = (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('addWebhook')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('addWebhook')}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="wh-name">{tc('name')}</Label>
-            <Input id="wh-name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="wh-url">{t('endpoint')}</Label>
-            <Input
-              id="wh-url"
-              placeholder="https://example.com/webhook"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            onClick={() => create.mutate()}
-            disabled={create.isPending || !name || !url}
-          >
-            {create.isPending ? tc('creating') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+  const triggerButton = (
+    <Button onClick={() => setOpen(true)}>
+      <Plus className="mr-2 h-4 w-4" />
+      {t('addWebhook')}
+    </Button>
   );
 
   return (
     <div className="space-y-6">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('addWebhook')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="wh-name">{tc('name')}</Label>
+              <Input id="wh-name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wh-url">{t('endpoint')}</Label>
+              <Input
+                id="wh-url"
+                placeholder="https://example.com/webhook"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => create.mutate()}
+              disabled={create.isPending || !name || !url}
+            >
+              {create.isPending ? tc('creating') : tc('create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <PageHeader
         icon={<Webhook className="h-5 w-5" />}
         title={t('title')}
         description={t('description')}
-        actions={addButton}
+        actions={triggerButton}
       />
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<Webhook className="h-6 w-6" />}
+          title={tc('error')}
+          description={(error as Error)?.message}
+        />
       ) : webhooks.length === 0 ? (
         <EmptyState
           icon={<Webhook className="h-6 w-6" />}
           title={t('empty')}
           description={t('emptyDescription')}
-          action={addButton}
+          action={triggerButton}
         />
       ) : (
         <div className="space-y-3">

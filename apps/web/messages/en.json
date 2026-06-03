@@ -504,7 +504,6 @@
       "connected": "connected",
       "available": "available"
     },
-    "available": "Available",
     "disconnect": "Disconnect"
   },
   "webhooks": {

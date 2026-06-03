@@ -33,7 +33,7 @@ function useIntegrations() {
 }
 
 export function IntegrationsContent() {
-  const { data: integrations, isLoading } = useIntegrations();
+  const { data: integrations, isLoading, isError, error } = useIntegrations();
   const queryClient = useQueryClient();
   const t = useTranslations('integrations');
   const tc = useTranslations('common');
@@ -51,6 +51,18 @@ export function IntegrationsContent() {
     return (
       <div className="flex h-96 items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <PageHeader icon={<Plug className="h-5 w-5" />} title={t('title')} description={t('description')} />
+        <div className="flex h-64 flex-col items-center justify-center gap-2 text-center">
+          <p className="font-medium text-destructive">{tc('error')}</p>
+          <p className="text-sm text-muted-foreground">{(error as Error)?.message}</p>
+        </div>
       </div>
     );
   }
@@ -89,7 +101,7 @@ export function IntegrationsContent() {
                       {tc('active')}
                     </Badge>
                   ) : (
-                    <Badge variant="secondary">{t('available')}</Badge>
+                    <Badge variant="secondary">{t('status.available')}</Badge>
                   )}
                 </div>
 

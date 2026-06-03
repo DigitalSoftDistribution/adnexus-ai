@@ -21,7 +21,7 @@ export function GoalsContent() {
   const t = useTranslations('goals');
   const tc = useTranslations('common');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['goals', 'list'],
     queryFn: async (): Promise<Goal[]> => {
       const res = await fetch('/api/v2/goals');
@@ -63,6 +63,12 @@ export function GoalsContent() {
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<Target className="h-6 w-6" />}
+          title={tc('error')}
+          description={(error as Error)?.message}
+        />
       ) : goals.length === 0 ? (
         <EmptyState
           icon={<Target className="h-6 w-6" />}

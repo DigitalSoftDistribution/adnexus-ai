@@ -7,7 +7,7 @@ const MESSAGES_DIR = path.join(__dirname, '..', 'messages');
 
 const T = {
   en: {
-    integrations: { available: 'Available', disconnect: 'Disconnect' },
+    integrations: { disconnect: 'Disconnect' },
     webhooks: { addWebhook: 'Add webhook', empty: 'No webhooks configured', emptyDescription: 'Create a webhook to receive real-time events.', endpoint: 'Endpoint URL', events: 'Events', active: 'Active' },
     onboarding: { title: 'Welcome to AdNexus AI', description: "Let's get your workspace set up in a few steps.", stepConnect: 'Connect a platform', stepConnectDesc: 'Link Meta, Google, TikTok or Snap to import campaigns.', stepTeam: 'Invite your team', stepTeamDesc: 'Add teammates to collaborate on campaigns.', stepCampaign: 'Create your first campaign', stepCampaignDesc: 'Launch or draft a campaign to see AdNexus in action.', skip: 'Skip for now', finish: 'Go to dashboard', completed: 'Completed' },
   },
