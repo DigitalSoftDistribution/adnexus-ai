@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Users, Key, Bell, Webhook, Save, Plus, Trash2 } from 'lucide-react';
+import { Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
 
 interface Workspace {
   id: string;
@@ -59,12 +60,13 @@ interface ApiKey {
 
 function useSettings() {
   const queryClient = useQueryClient();
+  const t = useTranslations('settings');
 
   const workspace = useQuery({
     queryKey: ['settings', 'workspace'],
     queryFn: async (): Promise<Workspace> => {
       const res = await fetch('/api/v2/settings/workspace');
-      if (!res.ok) throw new Error('Failed to fetch workspace');
+      if (!res.ok) throw new Error(t('failedToFetchWorkspace'));
       const data = await res.json();
       return data.data;
     },
@@ -77,7 +79,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error('Failed to update workspace');
+      if (!res.ok) throw new Error(t('failedToUpdateWorkspace'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'workspace'] }),
@@ -87,7 +89,7 @@ function useSettings() {
     queryKey: ['settings', 'team'],
     queryFn: async (): Promise<TeamMember[]> => {
       const res = await fetch('/api/v2/settings/team');
-      if (!res.ok) throw new Error('Failed to fetch team');
+      if (!res.ok) throw new Error(t('failedToFetchTeam'));
       const data = await res.json();
       return data.data;
     },
@@ -100,7 +102,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       });
-      if (!res.ok) throw new Error('Failed to update role');
+      if (!res.ok) throw new Error(t('failedToUpdateRole'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'team'] }),
@@ -109,7 +111,7 @@ function useSettings() {
   const removeMember = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/v2/settings/team/${userId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to remove member');
+      if (!res.ok) throw new Error(t('failedToRemoveMember'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'team'] }),
@@ -119,7 +121,7 @@ function useSettings() {
     queryKey: ['settings', 'integrations'],
     queryFn: async (): Promise<Integration[]> => {
       const res = await fetch('/api/v2/settings/integrations');
-      if (!res.ok) throw new Error('Failed to fetch integrations');
+      if (!res.ok) throw new Error(t('failedToFetchIntegrations'));
       const data = await res.json();
       return data.data;
     },
@@ -129,7 +131,7 @@ function useSettings() {
     queryKey: ['settings', 'notifications'],
     queryFn: async (): Promise<NotificationPrefs> => {
       const res = await fetch('/api/v2/settings/notifications');
-      if (!res.ok) throw new Error('Failed to fetch notifications');
+      if (!res.ok) throw new Error(t('failedToFetchNotifications'));
       const data = await res.json();
       return data.data;
     },
@@ -142,7 +144,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(prefs),
       });
-      if (!res.ok) throw new Error('Failed to update notifications');
+      if (!res.ok) throw new Error(t('failedToUpdateNotifications'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'notifications'] }),
@@ -152,7 +154,7 @@ function useSettings() {
     queryKey: ['settings', 'api-keys'],
     queryFn: async (): Promise<ApiKey[]> => {
       const res = await fetch('/api/v2/settings/api-keys');
-      if (!res.ok) throw new Error('Failed to fetch API keys');
+      if (!res.ok) throw new Error(t('failedToFetchApiKeys'));
       const data = await res.json();
       return data.data;
     },
@@ -165,7 +167,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
-      if (!res.ok) throw new Error('Failed to create API key');
+      if (!res.ok) throw new Error(t('failedToCreateApiKey'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'api-keys'] }),
@@ -174,7 +176,7 @@ function useSettings() {
   const revokeApiKey = useMutation({
     mutationFn: async (keyId: string) => {
       const res = await fetch(`/api/v2/settings/api-keys/${keyId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to revoke API key');
+      if (!res.ok) throw new Error(t('failedToRevokeApiKey'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'api-keys'] }),
@@ -198,6 +200,8 @@ export function SettingsContent() {
     notifications, updateNotifications,
     apiKeys, createApiKey, revokeApiKey,
   } = useSettings();
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
 
   const [editWorkspace, setEditWorkspace] = useState(false);
   const [workspaceName, setWorkspaceName] = useState('');
@@ -222,24 +226,24 @@ export function SettingsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage workspace, team, and preferences.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="workspace">Workspace</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="api">API Keys</TabsTrigger>
+          <TabsTrigger value="workspace">{t('tabs.workspace')}</TabsTrigger>
+          <TabsTrigger value="team">{t('tabs.team')}</TabsTrigger>
+          <TabsTrigger value="integrations">{t('tabs.integrations')}</TabsTrigger>
+          <TabsTrigger value="notifications">{t('tabs.notifications')}</TabsTrigger>
+          <TabsTrigger value="api">{t('tabs.apiKeys')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="workspace" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Workspace Settings</CardTitle>
-              <CardDescription>Configure your workspace details</CardDescription>
+              <CardTitle>{t('workspaceSettings')}</CardTitle>
+              <CardDescription>{t('workspaceDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {workspace.isLoading ? (
@@ -247,7 +251,7 @@ export function SettingsContent() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label>Workspace Name</Label>
+                    <Label>{t('workspaceName')}</Label>
                     {editWorkspace ? (
                       <div className="flex gap-2">
                         <Input
@@ -256,22 +260,22 @@ export function SettingsContent() {
                         />
                         <Button onClick={handleSaveWorkspace} disabled={updateWorkspace.isPending}>
                           <Save className="mr-2 h-4 w-4" />
-                          Save
+                          {tc('save')}
                         </Button>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <p className="font-medium">{workspace.data?.name}</p>
-                          <p className="text-sm text-muted-foreground">Slug: {workspace.data?.slug}</p>
+                          <p className="text-sm text-muted-foreground">{t('slug')}: {workspace.data?.slug}</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setEditWorkspace(true)}>Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => setEditWorkspace(true)}>{tc('edit')}</Button>
                       </div>
                     )}
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div>
-                      <p className="font-medium">Plan</p>
+                      <p className="font-medium">{t('plan')}</p>
                       <p className="text-sm text-muted-foreground capitalize">{workspace.data?.plan}</p>
                     </div>
                     <Badge variant="outline" className="capitalize">{workspace.data?.plan}</Badge>
@@ -286,12 +290,12 @@ export function SettingsContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>Manage access and permissions</CardDescription>
+                <CardTitle>{t('teamMembers')}</CardTitle>
+                <CardDescription>{t('teamDescription')}</CardDescription>
               </div>
               <Button size="sm">
                 <Users className="mr-2 h-4 w-4" />
-                Invite Member
+                {t('inviteMember')}
               </Button>
             </CardHeader>
             <CardContent>
@@ -317,9 +321,9 @@ export function SettingsContent() {
                           value={member.role}
                           onChange={(e) => updateMemberRole.mutate({ userId: member.userId, role: e.target.value })}
                         >
-                          <option value="viewer">Viewer</option>
-                          <option value="editor">Editor</option>
-                          <option value="admin">Admin</option>
+                          <option value="viewer">{t('roles.viewer')}</option>
+                          <option value="editor">{t('roles.editor')}</option>
+                          <option value="admin">{t('roles.admin')}</option>
                         </select>
                         <Button
                           variant="ghost"
@@ -344,7 +348,7 @@ export function SettingsContent() {
               <div className="col-span-2 flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
             ) : (integrations.data ?? []).length === 0 ? (
               <div className="col-span-2 text-center py-12 text-muted-foreground">
-                No integrations connected yet
+                {t('noIntegrations')}
               </div>
             ) : (
               (integrations.data ?? []).map((integration) => (
@@ -358,7 +362,7 @@ export function SettingsContent() {
                         <div>
                           <p className="font-medium">{integration.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {integration.status === 'connected' ? `Account: ${integration.accountName ?? integration.accountId ?? 'Connected'}` : 'Not connected'}
+                            {integration.status === 'connected' ? `${t('account')}: ${integration.accountName ?? integration.accountId ?? t('connected')}` : t('notConnected')}
                           </p>
                         </div>
                       </div>
@@ -376,8 +380,8 @@ export function SettingsContent() {
         <TabsContent value="notifications" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose what you want to be notified about</CardDescription>
+              <CardTitle>{t('notificationPreferences')}</CardTitle>
+              <CardDescription>{t('notificationDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {notifications.isLoading ? (
@@ -385,8 +389,8 @@ export function SettingsContent() {
               ) : (
                 <>
                   <NotificationToggle
-                    title="Campaign Alerts"
-                    description="Budget, performance, and status changes"
+                    title={t('campaignAlerts')}
+                    description={t('campaignAlertsDesc')}
                     checked={notifications.data?.email.campaignAlerts ?? true}
                     onChange={(v) => {
                       const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
@@ -394,8 +398,8 @@ export function SettingsContent() {
                     }}
                   />
                   <NotificationToggle
-                    title="AI Recommendations"
-                    description="New recommendations from AI Agent"
+                    title={t('aiRecommendations')}
+                    description={t('aiRecommendationsDesc')}
                     checked={notifications.data?.inApp.aiRecommendations ?? true}
                     onChange={(v) => {
                       const inApp = notifications.data?.inApp ?? { campaignAlerts: true, budgetAlerts: true, aiRecommendations: true, teamActivity: true };
@@ -403,8 +407,8 @@ export function SettingsContent() {
                     }}
                   />
                   <NotificationToggle
-                    title="Weekly Summary"
-                    description="Weekly performance report email"
+                    title={t('weeklySummary')}
+                    description={t('weeklySummaryDesc')}
                     checked={notifications.data?.email.weeklyReport ?? true}
                     onChange={(v) => {
                       const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
@@ -412,8 +416,8 @@ export function SettingsContent() {
                     }}
                   />
                   <NotificationToggle
-                    title="Team Activity"
-                    description="Member invites, role changes"
+                    title={t('teamActivity')}
+                    description={t('teamActivityDesc')}
                     checked={notifications.data?.email.teamActivity ?? true}
                     onChange={(v) => {
                       const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
@@ -430,28 +434,28 @@ export function SettingsContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>API Keys</CardTitle>
-                <CardDescription>Manage API access for integrations</CardDescription>
+                <CardTitle>{t('apiKeys')}</CardTitle>
+                <CardDescription>{t('apiKeysDescription')}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Key name"
+                  placeholder={t('keyName')}
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   className="w-48"
                 />
                 <Button size="sm" onClick={handleCreateKey} disabled={createApiKey.isPending || !newKeyName.trim()}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Generate
+                  {tc('generate')}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {showNewKey && (
                 <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-medium text-emerald-800">New API Key created — copy it now:</p>
+                  <p className="text-sm font-medium text-emerald-800">{t('newApiKey')}</p>
                   <code className="mt-2 block rounded bg-white p-2 text-sm font-mono">{showNewKey}</code>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowNewKey(null)}>Dismiss</Button>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowNewKey(null)}>{tc('dismiss')}</Button>
                 </div>
               )}
               {apiKeys.isLoading ? (
@@ -459,8 +463,8 @@ export function SettingsContent() {
               ) : (apiKeys.data ?? []).length === 0 ? (
                 <EmptyState
                   icon={Key}
-                  title="No API keys yet"
-                  description="Generate an API key to access the AdNexus API programmatically."
+                  title={t('noApiKeys')}
+                  description={t('apiKeysPlaceholder')}
                 />
               ) : (
                 <div className="space-y-2">
@@ -468,7 +472,7 @@ export function SettingsContent() {
                     <div key={key.id} className="flex items-center justify-between rounded-lg border p-4">
                       <div>
                         <p className="font-medium">{key.name}</p>
-                        <p className="text-sm text-muted-foreground">{key.keyPrefix}... • Created {new Date(key.createdAt).toLocaleDateString()}</p>
+                        <p className="text-sm text-muted-foreground">{key.keyPrefix}... {tc('created')} {new Date(key.createdAt).toLocaleDateString()}</p>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => revokeApiKey.mutate(key.id)}>
                         <Trash2 className="h-4 w-4 text-red-500" />

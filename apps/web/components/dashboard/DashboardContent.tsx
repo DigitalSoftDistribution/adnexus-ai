@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
@@ -37,6 +38,8 @@ function useCampaignSummary() {
 export function DashboardContent() {
   const { data: summary, isLoading, error } = useCampaignSummary();
   const { isConnected } = useSSE();
+  const t = useTranslations('dashboard');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -49,7 +52,7 @@ export function DashboardContent() {
   if (error) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4">
-        <div className="text-destructive text-lg font-medium">Failed to load dashboard</div>
+        <div className="text-destructive text-lg font-medium">{t('failedToLoad')}</div>
         <p className="text-muted-foreground text-sm">{error.message}</p>
       </div>
     );
@@ -57,28 +60,28 @@ export function DashboardContent() {
 
   const stats = [
     {
-      title: 'Total Spend',
+      title: t('totalSpend'),
       value: formatCurrency(summary?.totalSpend ?? 0),
       change: '+12.5%',
       trend: 'up' as const,
       icon: DollarSign,
     },
     {
-      title: 'Impressions',
+      title: tc('impressions'),
       value: formatNumber(summary?.totalImpressions ?? 0),
       change: '+8.2%',
       trend: 'up' as const,
       icon: Users,
     },
     {
-      title: 'Clicks',
+      title: tc('clicks'),
       value: formatNumber(summary?.totalClicks ?? 0),
       change: '-2.1%',
       trend: 'down' as const,
       icon: MousePointer,
     },
     {
-      title: 'Conversions',
+      title: tc('conversions'),
       value: formatNumber(summary?.totalConversions ?? 0),
       change: '+15.3%',
       trend: 'up' as const,
@@ -90,8 +93,8 @@ export function DashboardContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your advertising performance.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className={
@@ -102,7 +105,7 @@ export function DashboardContent() {
             }`
           }>
             <Radio className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
-            {isConnected ? 'Live' : 'Offline'}
+            {isConnected ? tc('live') : tc('offline')}
           </div>
         </div>
       </div>
@@ -125,7 +128,7 @@ export function DashboardContent() {
                 <span className={stat.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}>
                   {stat.change}
                 </span>
-                {' '}vs last month
+                {' '}{tc('vsLastMonth')}
               </p>
             </CardContent>
           </Card>
@@ -135,20 +138,20 @@ export function DashboardContent() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>Performance Overview</CardTitle>
-            <CardDescription>Campaign performance over the last 30 days</CardDescription>
+            <CardTitle>{t('performanceOverview')}</CardTitle>
+            <CardDescription>{t('performanceDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              Chart component placeholder — integrate recharts here
+              {tc('placeholder')}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Platform Breakdown</CardTitle>
-            <CardDescription>Campaigns by platform</CardDescription>
+            <CardTitle>{t('platformBreakdown')}</CardTitle>
+            <CardDescription>{t('platformDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -166,7 +169,7 @@ export function DashboardContent() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Avg CTR</CardTitle>
+            <CardTitle>{t('avgCtr')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{formatPercent(summary?.avgCtr ?? 0)}</div>
@@ -174,7 +177,7 @@ export function DashboardContent() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Avg CPA</CardTitle>
+            <CardTitle>{t('avgCpa')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{formatCurrency(summary?.avgCpa ?? 0)}</div>
@@ -182,7 +185,7 @@ export function DashboardContent() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Avg ROAS</CardTitle>
+            <CardTitle>{t('avgRoas')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{(summary?.avgRoas ?? 0).toFixed(2)}x</div>

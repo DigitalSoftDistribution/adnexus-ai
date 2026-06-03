@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,14 +16,6 @@ import {
   History, Megaphone, TrendingUp, MousePointer, Target, Copy, Trash2, MoreHorizontal,
   Image, AlertTriangle,
 } from 'lucide-react';
-// Dropdown menu not available - using inline buttons instead
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from '@/components/ui/dropdown-menu';
 
 interface Campaign {
   id: string;
@@ -132,11 +125,12 @@ function useCampaignAds(campaignId: string) {
 function useCampaignActions(id: string) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const t = useTranslations('campaigns');
 
   const pause = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v2/campaigns/${id}/pause`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to pause campaign');
+      if (!res.ok) throw new Error(t('failedToPause'));
       return res.json();
     },
     onSuccess: () => {
@@ -149,7 +143,7 @@ function useCampaignActions(id: string) {
   const activate = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v2/campaigns/${id}/activate`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to activate campaign');
+      if (!res.ok) throw new Error(t('failedToActivate'));
       return res.json();
     },
     onSuccess: () => {
@@ -162,7 +156,7 @@ function useCampaignActions(id: string) {
   const duplicate = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v2/campaigns/${id}/duplicate`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to duplicate campaign');
+      if (!res.ok) throw new Error(t('failedToDuplicate'));
       return res.json();
     },
     onSuccess: (data) => {
@@ -174,7 +168,7 @@ function useCampaignActions(id: string) {
   const deleteCampaign = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v2/campaigns/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete campaign');
+      if (!res.ok) throw new Error(t('failedToDelete'));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
@@ -192,6 +186,8 @@ export function CampaignDetailContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const { data: campaign, isLoading } = useCampaign(id);
   const actions = useCampaignActions(id);
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -204,11 +200,11 @@ export function CampaignDetailContent() {
   if (!campaign) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">Campaign not found</p>
+        <p className="text-muted-foreground">{t('campaignNotFound')}</p>
         <Button asChild variant="outline">
           <Link href="/dashboard/campaigns">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Campaigns
+            {t('backToCampaigns')}
           </Link>
         </Button>
       </div>
@@ -226,7 +222,7 @@ export function CampaignDetailContent() {
             <Button asChild variant="ghost" size="sm">
               <Link href="/dashboard/campaigns">
                 <ArrowLeft className="mr-1 h-4 w-4" />
-                Back
+                {tc('back')}
               </Link>
             </Button>
           </div>
@@ -250,7 +246,7 @@ export function CampaignDetailContent() {
               disabled={actions.pause.isPending}
             >
               <Pause className="mr-2 h-4 w-4" />
-              {actions.pause.isPending ? 'Pausing...' : 'Pause'}
+              {actions.pause.isPending ? tc('pausing') : tc('pause')}
             </Button>
           ) : (
             <Button
@@ -260,13 +256,13 @@ export function CampaignDetailContent() {
               disabled={actions.activate.isPending}
             >
               <Play className="mr-2 h-4 w-4" />
-              {actions.activate.isPending ? 'Activating...' : 'Activate'}
+              {actions.activate.isPending ? tc('activating') : tc('activate')}
             </Button>
           )}
           <Button size="sm" asChild>
             <Link href={`/dashboard/campaigns/${id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
-              Edit
+              {tc('edit')}
             </Link>
           </Button>
           <Button
@@ -276,7 +272,7 @@ export function CampaignDetailContent() {
             disabled={actions.duplicate.isPending}
           >
             <Copy className="mr-2 h-4 w-4" />
-            {actions.duplicate.isPending ? 'Duplicating...' : 'Duplicate'}
+            {actions.duplicate.isPending ? tc('duplicating') : tc('duplicate')}
           </Button>
           <Button
             variant="outline"
@@ -286,7 +282,7 @@ export function CampaignDetailContent() {
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            {actions.delete.isPending ? 'Deleting...' : 'Delete'}
+            {actions.delete.isPending ? tc('deleting') : tc('delete')}
           </Button>
         </div>
       </div>
@@ -295,24 +291,24 @@ export function CampaignDetailContent() {
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard
           icon={BarChart3}
-          label="Spend"
+          label={tc('spend')}
           value={formatCurrency(campaign.spend)}
-          subtext={campaign.budgetType ? `${campaign.budgetType} budget` : 'No budget set'}
+          subtext={campaign.budgetType ? `${campaign.budgetType} ${tc('budget').toLowerCase()}` : t('notSet')}
         />
         <MetricCard
           icon={Megaphone}
-          label="Impressions"
+          label={tc('impressions')}
           value={formatNumber(campaign.impressions)}
         />
         <MetricCard
           icon={MousePointer}
-          label="Clicks"
+          label={tc('clicks')}
           value={formatNumber(campaign.clicks)}
           subtext={campaign.ctr ? `CTR: ${formatPercent(campaign.ctr)}` : undefined}
         />
         <MetricCard
           icon={Target}
-          label="Conversions"
+          label={tc('conversions')}
           value={formatNumber(campaign.conversions)}
           subtext={campaign.cpa ? `CPA: ${formatCurrency(campaign.cpa)}` : undefined}
         />
@@ -321,55 +317,55 @@ export function CampaignDetailContent() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
-          <TabsTrigger value="ads">Ads</TabsTrigger>
-          <TabsTrigger value="audiences">Audiences</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+          <TabsTrigger value="adsets">{t('adSets')}</TabsTrigger>
+          <TabsTrigger value="ads">{tc('ads')}</TabsTrigger>
+          <TabsTrigger value="audiences">{t('audiences')}</TabsTrigger>
+          <TabsTrigger value="schedule">{t('schedule')}</TabsTrigger>
+          <TabsTrigger value="history">{t('history')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Performance</CardTitle>
-                <CardDescription>Campaign performance metrics</CardDescription>
+                <CardTitle>{t('performance')}</CardTitle>
+                <CardDescription>{t('performanceMetrics')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <MetricRow label="ROAS" value={campaign.roas ? `${campaign.roas.toFixed(2)}x` : '-'} />
-                <MetricRow label="Frequency" value={campaign.frequency?.toFixed(2) ?? '-'} />
-                <MetricRow label="CPM" value={campaign.cpm ? formatCurrency(campaign.cpm) : '-'} />
-                <MetricRow label="CPC" value={campaign.cpc ? formatCurrency(campaign.cpc) : '-'} />
+                <MetricRow label={tc('roas')} value={campaign.roas ? `${campaign.roas.toFixed(2)}x` : '-'} />
+                <MetricRow label={tc('frequency')} value={campaign.frequency?.toFixed(2) ?? '-'} />
+                <MetricRow label={tc('cpm')} value={campaign.cpm ? formatCurrency(campaign.cpm) : '-'} />
+                <MetricRow label={tc('cpc')} value={campaign.cpc ? formatCurrency(campaign.cpc) : '-'} />
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Details</CardTitle>
-                <CardDescription>Campaign configuration</CardDescription>
+                <CardTitle>{t('details')}</CardTitle>
+                <CardDescription>{t('configuration')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <MetricRow label="Budget Type" value={campaign.budgetType ?? '-'} />
+                <MetricRow label={tc('budgetType')} value={campaign.budgetType ?? '-'} />
                 <MetricRow
-                  label="Daily Budget"
+                  label={t('dailyBudget')}
                   value={campaign.dailyBudget ? formatCurrency(campaign.dailyBudget) : '-'}
                 />
                 <MetricRow
-                  label="Lifetime Budget"
+                  label={t('lifetimeBudget')}
                   value={campaign.lifetimeBudget ? formatCurrency(campaign.lifetimeBudget) : '-'}
                 />
-                <MetricRow label="Created" value={formatDate(campaign.createdAt)} />
+                <MetricRow label={tc('created')} value={formatDate(campaign.createdAt)} />
               </CardContent>
             </Card>
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Performance Chart</CardTitle>
-              <CardDescription>Spend and conversions over time</CardDescription>
+              <CardTitle>{t('performanceChart')}</CardTitle>
+              <CardDescription>{t('spendOverTime')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                Chart placeholder — integrate recharts here
+                {tc('placeholder')}
               </div>
             </CardContent>
           </Card>
@@ -386,11 +382,11 @@ export function CampaignDetailContent() {
         <TabsContent value="audiences">
           <Card>
             <CardHeader>
-              <CardTitle>Audience Targeting</CardTitle>
-              <CardDescription>View and edit audience segments</CardDescription>
+              <CardTitle>{t('audienceTargeting')}</CardTitle>
+              <CardDescription>{t('audienceDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Audience data will appear here.</p>
+              <p className="text-muted-foreground">{t('audiencePlaceholder')}</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -398,17 +394,17 @@ export function CampaignDetailContent() {
         <TabsContent value="schedule">
           <Card>
             <CardHeader>
-              <CardTitle>Campaign Schedule</CardTitle>
-              <CardDescription>Active dates and delivery schedule</CardDescription>
+              <CardTitle>{t('schedule')}</CardTitle>
+              <CardDescription>{t('scheduleDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <MetricRow
-                label="Start Date"
-                value={campaign.startDate ? formatDate(campaign.startDate) : 'Not set'}
+                label={tc('startDate')}
+                value={campaign.startDate ? formatDate(campaign.startDate) : tc('notSet')}
               />
               <MetricRow
-                label="End Date"
-                value={campaign.endDate ? formatDate(campaign.endDate) : 'Not set'}
+                label={tc('endDate')}
+                value={campaign.endDate ? formatDate(campaign.endDate) : tc('notSet')}
               />
             </CardContent>
           </Card>
@@ -425,6 +421,8 @@ export function CampaignDetailContent() {
 function CampaignAdsTab({ campaignId }: { campaignId: string }) {
   const { data, isLoading } = useCampaignAds(campaignId);
   const ads = data?.ads ?? [];
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -442,14 +440,14 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Ad Sets & Ads</CardTitle>
-          <CardDescription>Manage your ad creatives</CardDescription>
+          <CardTitle>{t('adSetsAndAds')}</CardTitle>
+          <CardDescription>{t('adsDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Image className="h-12 w-12 mb-4 opacity-50" />
-            <p>No ads configured yet</p>
-            <p className="text-sm">Ads will appear here once created</p>
+            <p>{t('noAds')}</p>
+            <p className="text-sm">{t('adsPlaceholder')}</p>
           </div>
         </CardContent>
       </Card>
@@ -460,8 +458,8 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Ad Sets & Ads</CardTitle>
-          <CardDescription>{ads.length} ad(s) in this campaign</CardDescription>
+          <CardTitle>{t('adSetsAndAds')}</CardTitle>
+          <CardDescription>{ads.length} {tc('ads').toLowerCase()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -485,14 +483,14 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>Spend: {formatCurrency(ad.spend)}</span>
-                    <span>Impressions: {formatNumber(ad.impressions)}</span>
-                    <span>Clicks: {formatNumber(ad.clicks)}</span>
+                    <span>{tc('spend')}: {formatCurrency(ad.spend)}</span>
+                    <span>{tc('impressions')}: {formatNumber(ad.impressions)}</span>
+                    <span>{tc('clicks')}: {formatNumber(ad.clicks)}</span>
                     {ad.ctr && <span>CTR: {formatPercent(ad.ctr)}</span>}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/dashboard/ads/${ad.id}`}>View</Link>
+                  <Link href={`/dashboard/ads/${ad.id}`}>{tc('view')}</Link>
                 </Button>
               </div>
             ))}
@@ -506,6 +504,8 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
 function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
   const { data, isLoading } = useCampaignAdSets(campaignId);
   const adSets = data?.adSets ?? [];
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -523,11 +523,11 @@ function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Ad Sets</CardTitle>
-          <CardDescription>Manage your ad sets</CardDescription>
+          <CardTitle>{t('adSets')}</CardTitle>
+          <CardDescription>{t('adSetsDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">No ad sets configured yet.</p>
+          <p className="text-muted-foreground">{t('noAdSets')}</p>
         </CardContent>
       </Card>
     );
@@ -537,8 +537,8 @@ function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Ad Sets</CardTitle>
-          <CardDescription>{adSets.length} ad set(s) in this campaign</CardDescription>
+          <CardTitle>{t('adSets')}</CardTitle>
+          <CardDescription>{adSets.length} {t('adSets').toLowerCase()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -556,14 +556,14 @@ function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>Spend: {formatCurrency(adSet.spend)}</span>
-                    <span>Impressions: {formatNumber(adSet.impressions)}</span>
-                    <span>Clicks: {formatNumber(adSet.clicks)}</span>
+                    <span>{tc('spend')}: {formatCurrency(adSet.spend)}</span>
+                    <span>{tc('impressions')}: {formatNumber(adSet.impressions)}</span>
+                    <span>{tc('clicks')}: {formatNumber(adSet.clicks)}</span>
                     {adSet.ctr && <span>CTR: {formatPercent(adSet.ctr)}</span>}
-                    {adSet.budget && <span>Budget: {formatCurrency(adSet.budget)}</span>}
+                    {adSet.budget && <span>{tc('budget')}: {formatCurrency(adSet.budget)}</span>}
                   </div>
                 </div>
-                <Button variant="outline" size="sm">View</Button>
+                <Button variant="outline" size="sm">{tc('view')}</Button>
               </div>
             ))}
           </div>
@@ -576,6 +576,8 @@ function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
 function CampaignHistoryTab({ campaignId }: { campaignId: string }) {
   const { data, isLoading } = useCampaignHistory(campaignId);
   const history = data?.history ?? [];
+  const t = useTranslations('campaigns');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -593,11 +595,11 @@ function CampaignHistoryTab({ campaignId }: { campaignId: string }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Change History</CardTitle>
-          <CardDescription>Audit log of campaign changes</CardDescription>
+          <CardTitle>{t('changeHistory')}</CardTitle>
+          <CardDescription>{t('historyDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">No changes recorded yet.</p>
+          <p className="text-muted-foreground">{t('noChanges')}</p>
         </CardContent>
       </Card>
     );
@@ -606,8 +608,8 @@ function CampaignHistoryTab({ campaignId }: { campaignId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Change History</CardTitle>
-        <CardDescription>{history.length} change(s) recorded</CardDescription>
+        <CardTitle>{t('changeHistory')}</CardTitle>
+        <CardDescription>{history.length} {tc('changes')}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -619,7 +621,7 @@ function CampaignHistoryTab({ campaignId }: { campaignId: string }) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium capitalize">{entry.action}</span>
-                  <span className="text-xs text-muted-foreground">by {entry.userName ?? 'System'}</span>
+                  <span className="text-xs text-muted-foreground">{tc('by')} {entry.userName ?? tc('system')}</span>
                 </div>
                 {entry.details && (
                   <p className="text-sm text-muted-foreground">{JSON.stringify(entry.details)}</p>

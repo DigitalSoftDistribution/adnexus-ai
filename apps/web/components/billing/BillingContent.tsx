@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { CreditCard, Download, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import { CreditCard, Download, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface BillingInfo {
   workspaceId: string;
@@ -48,11 +49,12 @@ interface Invoice {
 }
 
 function useBillingInfo() {
+  const t = useTranslations('billing');
   return useQuery({
     queryKey: ['billing', 'info'],
     queryFn: async (): Promise<BillingInfo> => {
       const res = await fetch('/api/v2/billing');
-      if (!res.ok) throw new Error('Failed to fetch billing info');
+      if (!res.ok) throw new Error(t('failedToFetchBilling'));
       const data = await res.json();
       return data.data;
     },
@@ -60,11 +62,12 @@ function useBillingInfo() {
 }
 
 function useInvoices() {
+  const t = useTranslations('billing');
   return useQuery({
     queryKey: ['billing', 'invoices'],
     queryFn: async (): Promise<{ invoices: Invoice[]; hasMore: boolean }> => {
       const res = await fetch('/api/v2/billing/invoices');
-      if (!res.ok) throw new Error('Failed to fetch invoices');
+      if (!res.ok) throw new Error(t('failedToFetchInvoices'));
       const data = await res.json();
       return data.data;
     },
@@ -73,10 +76,11 @@ function useInvoices() {
 
 function useCreatePortalSession() {
   const queryClient = useQueryClient();
+  const t = useTranslations('billing');
   return useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v2/billing/portal', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to create portal session');
+      if (!res.ok) throw new Error(t('failedToCreatePortal'));
       const data = await res.json();
       return data.data as { url: string };
     },
@@ -86,18 +90,12 @@ function useCreatePortalSession() {
   });
 }
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['5 creatives', '1,000 impressions', '50 AI credits', 'Basic analytics'],
-  starter: ['50 creatives', '50K impressions', '500 AI credits', 'Advanced analytics', 'Email support'],
-  growth: ['200 creatives', '500K impressions', '5,000 AI credits', 'Priority support', 'API access'],
-  pro: ['1,000 creatives', '2M impressions', '25K AI credits', 'Dedicated support', 'Custom integrations'],
-  enterprise: ['Unlimited creatives', 'Unlimited impressions', 'Unlimited AI credits', 'SLA guarantee', 'Custom contracts'],
-};
-
 export function BillingContent() {
   const { data: billing, isLoading: billingLoading } = useBillingInfo();
   const { data: invoicesData, isLoading: invoicesLoading } = useInvoices();
   const portalMutation = useCreatePortalSession();
+  const t = useTranslations('billing');
+  const tc = useTranslations('common');
 
   if (billingLoading) {
     return (
@@ -108,20 +106,20 @@ export function BillingContent() {
   }
 
   const plan = billing?.plan || 'free';
-  const features = PLAN_FEATURES[plan] || PLAN_FEATURES.free;
+  const features = t.raw(`planFeatures.${plan}`) as string[] || t.raw('planFeatures.free') as string[];
   const isActive = billing?.status === 'active' || billing?.status === 'trialing';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
-          <p className="text-muted-foreground">Manage your subscription and usage.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         {billing?.stripeCustomerId && (
           <Button onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
             <CreditCard className="mr-2 h-4 w-4" />
-            {portalMutation.isPending ? 'Opening...' : 'Manage Subscription'}
+            {portalMutation.isPending ? tc('opening') : t('manageSubscription')}
           </Button>
         )}
       </div>
@@ -131,7 +129,7 @@ export function BillingContent() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="capitalize">{plan} Plan</CardTitle>
+              <CardTitle className="capitalize">{plan} {t('plan')}</CardTitle>
               <Badge variant={isActive ? 'default' : 'secondary'}>
                 {isActive ? <CheckCircle className="mr-1 h-3 w-3" /> : <AlertCircle className="mr-1 h-3 w-3" />}
                 {billing?.status || 'inactive'}
@@ -139,13 +137,13 @@ export function BillingContent() {
             </div>
             <CardDescription>
               {billing?.currentPeriodStart && billing?.currentPeriodEnd
-                ? `Current period: ${new Date(billing.currentPeriodStart).toLocaleDateString()} - ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
-                : 'No active subscription'}
+                ? `${t('currentPeriod')}: ${new Date(billing.currentPeriodStart).toLocaleDateString()} - ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
+                : t('noActiveSubscription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {features.map((feature) => (
+              {features.map((feature: string) => (
                 <li key={feature} className="flex items-center gap-2 text-sm">
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
                   {feature}
@@ -158,22 +156,22 @@ export function BillingContent() {
         {/* Usage Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>Usage This Period</CardTitle>
-            <CardDescription>Track your resource consumption</CardDescription>
+            <CardTitle>{t('usageThisPeriod')}</CardTitle>
+            <CardDescription>{t('usageDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <UsageBar
-              label="Creatives"
+              label={t('creatives')}
               used={billing?.credits.creativesUsed ?? 0}
               total={billing?.credits.creativesTotal ?? 0}
             />
             <UsageBar
-              label="Impressions"
+              label={tc('impressions')}
               used={billing?.credits.impressionsUsed ?? 0}
               total={billing?.credits.impressionsTotal ?? 0}
             />
             <UsageBar
-              label="AI Credits"
+              label={t('aiCredits')}
               used={billing?.credits.aiCreditsUsed ?? 0}
               total={billing?.credits.aiCreditsTotal ?? 0}
             />
@@ -184,8 +182,8 @@ export function BillingContent() {
       {/* Invoices */}
       <Card>
         <CardHeader>
-          <CardTitle>Invoices</CardTitle>
-          <CardDescription>Your billing history</CardDescription>
+          <CardTitle>{t('invoices')}</CardTitle>
+          <CardDescription>{t('invoicesDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           {invoicesLoading ? (
@@ -209,7 +207,7 @@ export function BillingContent() {
                   </div>
                   <div className="flex items-center gap-4">
                     <Badge variant={invoice.paid ? 'default' : 'destructive'}>
-                      {invoice.paid ? 'Paid' : 'Unpaid'}
+                      {invoice.paid ? t('paid') : t('unpaid')}
                     </Badge>
                     <span className="text-sm font-medium">
                       {formatCurrency(invoice.amountDue / 100, invoice.currency)}
@@ -228,8 +226,8 @@ export function BillingContent() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <CreditCard className="h-12 w-12 mb-4 opacity-50" />
-              <p>No invoices yet</p>
-              <p className="text-sm">Invoices will appear here once you have a paid subscription</p>
+              <p>{t('noInvoices')}</p>
+              <p className="text-sm">{t('invoicesPlaceholder')}</p>
             </div>
           )}
         </CardContent>
@@ -241,18 +239,19 @@ export function BillingContent() {
 function UsageBar({ label, used, total }: { label: string; used: number; total: number }) {
   const unlimited = total === -1;
   const percentage = unlimited ? 0 : total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const tc = useTranslations('common');
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
         <span>{label}</span>
         <span className="text-muted-foreground">
-          {unlimited ? `${formatNumber(used)} / Unlimited` : `${formatNumber(used)} / ${formatNumber(total)}`}
+          {unlimited ? `${formatNumber(used)} / ${tc('unlimited')}` : `${formatNumber(used)} / ${formatNumber(total)}`}
         </span>
       </div>
-            {!unlimited && (
-              <Progress value={used} max={total} />
-            )}
+      {!unlimited && (
+        <Progress value={used} max={total} />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function SignUpForm() {
   const router = useRouter();
+  const t = useTranslations('auth');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +34,7 @@ export function SignUpForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error?.message ?? 'Sign up failed');
+        setError(data.error?.message ?? t('signUpFailed'));
         return;
       }
 
@@ -40,7 +42,7 @@ export function SignUpForm() {
       router.push('/dashboard');
       router.refresh();
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
     } finally {
       setIsLoading(false);
     }
@@ -54,37 +56,37 @@ export function SignUpForm() {
             <span className="text-primary-foreground text-xl font-bold">A</span>
           </div>
         </div>
-        <CardTitle className="text-2xl text-center">Create an account</CardTitle>
+        <CardTitle className="text-2xl text-center">{t('createAccount')}</CardTitle>
         <CardDescription className="text-center">
-          Get started with AdNexus AI
+          {t('signUp')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">{t('name')}</Label>
             <Input
               id="name"
               type="text"
-              placeholder="John Doe"
+              placeholder={t('namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@company.com"
+              placeholder={t('emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('password')}</Label>
             <Input
               id="password"
               type="password"
@@ -98,13 +100,13 @@ export function SignUpForm() {
           )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
-            Create Account
+            {t('signUp')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          {t('hasAccount')}{' '}
           <Link href="/auth/signin" className="text-primary hover:underline">
-            Sign in
+            {t('signIn')}
           </Link>
         </div>
       </CardContent>

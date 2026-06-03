@@ -3,6 +3,7 @@
 import { useAuth } from '@/providers/AuthProvider';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { redirect } from 'next/navigation';
 
