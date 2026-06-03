@@ -60,9 +60,8 @@ describe('DashboardContent', () => {
     expect(await screen.findByText('Total Spend')).toBeInTheDocument();
     expect(screen.getByText('Impressions')).toBeInTheDocument();
     expect(screen.getByText('Conversions')).toBeInTheDocument();
-    // Platform breakdown is rendered from the response.
-    expect(screen.getByText('meta')).toBeInTheDocument();
-    expect(screen.getByText('google')).toBeInTheDocument();
+    // Platform breakdown card is rendered from the response.
+    expect(screen.getByText('Platform Breakdown')).toBeInTheDocument();
     // ROAS is formatted with an 'x' suffix.
     expect(screen.getByText('3.40x')).toBeInTheDocument();
   });

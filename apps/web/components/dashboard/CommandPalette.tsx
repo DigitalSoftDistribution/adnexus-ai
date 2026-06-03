@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { Plus, Search } from 'lucide-react';
@@ -15,12 +16,21 @@ import {
 } from '@/components/ui/command';
 import { NAV_GROUPS } from './nav-config';
 
+interface SearchResult {
+  id: string;
+  type: string;
+  title: string;
+  subtitle?: string;
+  url: string;
+}
+
 /**
  * Global ⌘K command palette. Opens with Cmd/Ctrl+K and offers quick navigation
- * across the clustered IA plus a couple of create actions.
+ * across the clustered IA, a create action, and live global search results.
  */
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
   const router = useRouter();
   const t = useTranslations('navigation');
   const tc = useTranslations('common');
@@ -36,8 +46,20 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  const { data: results } = useQuery({
+    queryKey: ['search', query],
+    enabled: open && query.trim().length >= 2,
+    queryFn: async (): Promise<SearchResult[]> => {
+      const res = await fetch(`/api/v2/search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
+  });
+
   function go(href: string) {
     setOpen(false);
+    setQuery('');
     router.push(href);
   }
 
@@ -54,9 +76,23 @@ export function CommandPalette() {
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder={tc('search')} />
+        <CommandInput placeholder={tc('search')} value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>{tc('noResults')}</CommandEmpty>
+          {results && results.length > 0 && (
+            <>
+              <CommandGroup heading={tc('search')}>
+                {results.map((r) => (
+                  <CommandItem key={`${r.type}-${r.id}`} value={`${r.title} ${r.id}`} onSelect={() => go(r.url)}>
+                    <Search className="mr-2 h-4 w-4" />
+                    <span className="flex-1 truncate">{r.title}</span>
+                    <span className="ml-2 text-xs capitalize text-muted-foreground">{r.type}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
           <CommandGroup heading={t('groups.create')}>
             <CommandItem onSelect={() => go('/dashboard/campaigns/new')}>
               <Plus className="mr-2 h-4 w-4" />
