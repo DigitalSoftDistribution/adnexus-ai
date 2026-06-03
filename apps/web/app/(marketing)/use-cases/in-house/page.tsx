@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Building2, Zap, ShieldCheck, FileText, Users, BarChart2 } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
+import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
   title: 'AdNexus for In-house Teams',
@@ -26,6 +26,24 @@ export default function Page() {
         title={<>Move fast — <span style={{ color: '#c3f53b' }}>with a safety net</span></>}
         subtitle="Give a small team the leverage of a full optimization desk, without the risk of autonomous changes."
       />
+      <Section eyebrow="A day in the life" title="A team of two, the output of ten">
+        <ScenarioBlock
+          situation="You're a two-person growth team running the whole paid program. There's never enough time to check every campaign daily, so optimizations slip to the monthly review — and small problems compound for weeks before anyone catches them."
+          outcome="AdNexus closes that gap. The agent reviews everything overnight and hands you a short list each morning. You ship small wins daily instead of monthly, and because every change is a draft you approve, a lean team moves fast without fear of a costly mistake."
+        />
+      </Section>
+
+      <Section title="How it works for in-house teams" alt>
+        <WorkflowSteps
+          steps={[
+            { title: 'Connect and set guardrails', desc: 'Link your accounts and define who can approve what. Draft-first means nothing ships unreviewed.' },
+            { title: 'Read the morning brief', desc: 'Start aligned: one ranked list of what changed and what needs a decision today.' },
+            { title: 'Ship daily, not monthly', desc: 'Approve the clear wins in seconds so small improvements compound instead of waiting for the review cycle.' },
+            { title: 'Report up with confidence', desc: 'Unified dashboards turn four platforms into one clear story for leadership.' },
+          ]}
+        />
+      </Section>
+
       <Section title="How in-house teams win with AdNexus">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {POINTS.map((p) => (

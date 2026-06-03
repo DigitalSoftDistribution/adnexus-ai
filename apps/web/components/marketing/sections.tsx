@@ -134,3 +134,43 @@ export function Section({
     </section>
   );
 }
+
+/** A concrete "a day in the life" scenario: a situation + the AdNexus outcome. */
+export function ScenarioBlock({
+  situation,
+  outcome,
+}: {
+  situation: string;
+  outcome: string;
+}) {
+  return (
+    <div className="max-w-3xl mx-auto rounded-xl p-6 sm:p-8" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-tertiary)' }}>The situation</p>
+      <p className="font-space text-lg sm:text-xl font-medium leading-relaxed text-white mb-6">{situation}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--accent)' }}>With AdNexus</p>
+      <p className="text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{outcome}</p>
+    </div>
+  );
+}
+
+/** Numbered three-to-four step workflow. */
+export function WorkflowSteps({ steps }: { steps: { title: string; desc: string }[] }) {
+  return (
+    <div className="max-w-3xl mx-auto space-y-3">
+      {steps.map((s, i) => (
+        <div key={s.title} className="flex items-start gap-4 rounded-xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+          <span
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
+            style={{ background: 'rgba(195,245,59,0.1)', color: 'var(--accent)' }}
+          >
+            {i + 1}
+          </span>
+          <span>
+            <span className="block text-sm font-semibold text-white mb-1">{s.title}</span>
+            <span className="block text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{s.desc}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}

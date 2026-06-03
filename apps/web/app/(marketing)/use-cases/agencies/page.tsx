@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Briefcase, Users, FileText, ShieldCheck, Layers, Clock } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
+import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
   title: 'AdNexus for Agencies',
@@ -26,6 +26,24 @@ export default function Page() {
         title={<>Run more accounts with <span style={{ color: '#c3f53b' }}>fewer fire drills</span></>}
         subtitle="The workspace, governance, and reporting agencies need to scale client work profitably."
       />
+      <Section eyebrow="A day in the life" title="Monday morning, fifteen client accounts">
+        <ScenarioBlock
+          situation="It's 8am. You manage fifteen clients across Meta, Google, TikTok, and Snap. Over the weekend, two budgets overpaced, a TikTok creative fatigued, and one client's CPA crept past target. In the old world, you'd find out by logging into fifteen accounts."
+          outcome="Instead, you open one brief. The agent already caught all four issues and drafted the fixes — a budget pull-back, a creative refresh, an audience tweak. You read the reasoning, approve three, edit one, and you're done before your coffee's cold. Every approval is logged for the client report."
+        />
+      </Section>
+
+      <Section title="How it works for agencies" alt>
+        <WorkflowSteps
+          steps={[
+            { title: 'Add clients as isolated workspaces', desc: 'Each client gets its own scope. Nothing crosses wires, and access is controlled per team member.' },
+            { title: 'Set the approval chain', desc: 'Junior buyers propose, account leads sign off. The structure matches how your team already works.' },
+            { title: 'Start the day with one brief', desc: 'The agent monitors every account overnight and ranks what needs attention across all clients.' },
+            { title: 'Approve, then report', desc: 'Approve drafts in seconds. The audit trail doubles as a clean, client-ready record of every change.' },
+          ]}
+        />
+      </Section>
+
       <Section title="Everything your team needs">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {POINTS.map((p) => (

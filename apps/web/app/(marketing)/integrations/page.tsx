@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Cable, Slack, Bot } from 'lucide-react';
-import { PageHero, Section, CtaBand } from '@/components/marketing/sections';
+import { PageHero, Section, CtaBand, WorkflowSteps } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
   title: 'Integrations',
@@ -53,6 +53,17 @@ export default function Page() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section eyebrow="How connection works" title="Secure by design, set up in two minutes">
+        <WorkflowSteps
+          steps={[
+            { title: 'Authorize over OAuth', desc: 'Click connect and approve access through each platform\u2019s official OAuth screen. We never see or store your passwords.' },
+            { title: 'We request only what we need', desc: 'Scopes are least-privilege. Tokens are encrypted at rest and can be revoked from your settings or the platform at any time.' },
+            { title: 'The agent reads, then drafts', desc: 'AdNexus pulls live data through official APIs and the MCP layer, then stages every proposed change as a draft.' },
+            { title: 'You stay in control', desc: 'Nothing writes back to a live campaign until you approve it, and every action is recorded in the audit trail.' },
+          ]}
+        />
       </Section>
 
       <CtaBand title="Connect everything in minutes" subtitle="Link your platforms and assistants with secure OAuth and start optimizing." />
