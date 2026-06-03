@@ -46,6 +46,7 @@ import { AssetRepository } from '../../infrastructure/repositories/AssetReposito
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
+import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
 
 // Application
 import { Container } from '../../application/services/Container';
@@ -112,6 +113,7 @@ export function buildContainer(): Container {
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
+    agentAdvisor: new AgentAdvisor(),
   });
 }
 

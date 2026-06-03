@@ -30,6 +30,7 @@ import type { IAssetRepository } from '../../domain/repositories/IAssetRepositor
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
+import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
 
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
 import { ListCampaignsUseCase } from '../use-cases/campaign/ListCampaignsUseCase';
@@ -112,6 +113,16 @@ import { UpdateGoalUseCase } from '../use-cases/goal/UpdateGoalUseCase';
 import { DeleteGoalUseCase } from '../use-cases/goal/DeleteGoalUseCase';
 import { GetGoalProgressUseCase } from '../use-cases/goal/GetGoalProgressUseCase';
 import { GetAgentStatusUseCase } from '../use-cases/agent/GetAgentStatusUseCase';
+import {
+  ListRecommendationsUseCase,
+  ApplyRecommendationUseCase,
+  DismissRecommendationUseCase,
+  ListInsightsUseCase,
+  ListConversationsUseCase,
+  CreateConversationUseCase,
+  GetConversationUseCase,
+  SendMessageUseCase,
+} from '../use-cases/agent/AgentAdvisoryUseCases';
 import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
 import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
 import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
@@ -160,6 +171,7 @@ export interface ContainerConfig {
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
+  agentAdvisor: IAgentAdvisor;
 }
 
 export class Container {
@@ -245,6 +257,14 @@ export class Container {
   readonly deleteGoal: DeleteGoalUseCase;
   readonly getGoalProgress: GetGoalProgressUseCase;
   readonly getAgentStatus: GetAgentStatusUseCase;
+  readonly listRecommendations: ListRecommendationsUseCase;
+  readonly applyRecommendation: ApplyRecommendationUseCase;
+  readonly dismissRecommendation: DismissRecommendationUseCase;
+  readonly listInsights: ListInsightsUseCase;
+  readonly listConversations: ListConversationsUseCase;
+  readonly createConversation: CreateConversationUseCase;
+  readonly getConversation: GetConversationUseCase;
+  readonly sendAgentMessage: SendMessageUseCase;
   readonly listAutomationRules: ListAutomationRulesUseCase;
   readonly getAutomationRuleById: GetAutomationRuleByIdUseCase;
   readonly createAutomationRule: CreateAutomationRuleUseCase;
@@ -406,6 +426,14 @@ export class Container {
     this.getGoalProgress = new GetGoalProgressUseCase(config.goalRepository);
 
     this.getAgentStatus = new GetAgentStatusUseCase(config.automationRuleRepository);
+    this.listRecommendations = new ListRecommendationsUseCase(config.agentAdvisor);
+    this.applyRecommendation = new ApplyRecommendationUseCase(config.agentAdvisor);
+    this.dismissRecommendation = new DismissRecommendationUseCase(config.agentAdvisor);
+    this.listInsights = new ListInsightsUseCase(config.agentAdvisor);
+    this.listConversations = new ListConversationsUseCase(config.agentAdvisor);
+    this.createConversation = new CreateConversationUseCase(config.agentAdvisor);
+    this.getConversation = new GetConversationUseCase(config.agentAdvisor);
+    this.sendAgentMessage = new SendMessageUseCase(config.agentAdvisor);
     this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
     this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
     this.createAutomationRule = new CreateAutomationRuleUseCase(
