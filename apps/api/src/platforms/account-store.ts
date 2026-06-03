@@ -13,8 +13,8 @@ interface AdAccountRow {
   workspace_id: string;
   platform: string;
   platform_account_id: string;
-  account_name: string;
-  access_token: string | null;
+  name: string;
+  oauth_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
   status: string;
@@ -30,11 +30,11 @@ function mapRow(row: AdAccountRow): AdAccount {
     workspaceId: row.workspace_id,
     platform: row.platform as Platform,
     platformAccountId: row.platform_account_id,
-    name: row.account_name,
+    name: row.name,
     currency: (meta.currency as string) ?? 'USD',
     timezone: (meta.timezone as string) ?? 'UTC',
     status: (row.status === 'active' ? 'active' : 'disconnected') as AdAccount['status'],
-    accessToken: row.access_token ?? '',
+    accessToken: row.oauth_token ?? '',
     refreshToken: row.refresh_token ?? undefined,
     tokenExpiresAt: row.token_expires_at ?? undefined,
     metadata: meta,
@@ -43,8 +43,8 @@ function mapRow(row: AdAccountRow): AdAccount {
   };
 }
 
-const SELECT_COLS = `id, workspace_id, platform, platform_account_id, account_name,
-  access_token, refresh_token, token_expires_at, status, metadata, created_at, updated_at`;
+const SELECT_COLS = `id, workspace_id, platform, platform_account_id, name,
+  oauth_token, refresh_token, token_expires_at, status, metadata, created_at, updated_at`;
 
 /** Load all active ad accounts for a workspace. */
 export async function loadWorkspaceAccounts(workspaceId: string): Promise<AdAccount[]> {
@@ -65,7 +65,7 @@ export async function persistRefreshedToken(
 ): Promise<void> {
   await query(
     `UPDATE ad_accounts
-     SET access_token = $2, token_expires_at = $3, updated_at = NOW()
+     SET oauth_token = $2, token_expires_at = $3, updated_at = NOW()
      WHERE id = $1`,
     [accountId, accessToken, tokenExpiresAt ?? null],
   );
@@ -75,7 +75,7 @@ export async function persistRefreshedToken(
 export async function markAccountDisconnected(accountId: string): Promise<void> {
   await query(
     `UPDATE ad_accounts
-     SET status = 'disconnected', is_active = false, access_token = NULL,
+     SET status = 'disconnected', is_active = false, oauth_token = NULL,
          refresh_token = NULL, updated_at = NOW()
      WHERE id = $1`,
     [accountId],

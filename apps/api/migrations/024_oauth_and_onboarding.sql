@@ -7,11 +7,11 @@
 -- onboarding-completion flag to `workspaces` so the in-app onboarding wizard
 -- can gate new workspaces.
 --
--- Canonical token columns are `access_token` / `refresh_token` /
--- `platform_account_id` / `account_name` / `status`. The OAuth writers and the
--- v2 PlatformManager are aligned to these. This migration only ADDS the columns
--- that were genuinely missing (`scopes`, `is_active`, `last_synced_at`) so all
--- readers/writers agree on one shape.
+-- Canonical token columns on the live schema are `oauth_token` /
+-- `refresh_token` / `platform_account_id` / `name` / `status`. The OAuth writers
+-- and the v2 PlatformManager are aligned to these. This migration only ADDS the
+-- columns that were genuinely missing (`scopes`, `is_active`, `last_synced_at`)
+-- so all readers/writers agree on one shape.
 
 -- ── ad_accounts: OAuth metadata ──────────────────────────────────────────────
 ALTER TABLE ad_accounts

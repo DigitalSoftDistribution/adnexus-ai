@@ -120,8 +120,9 @@ router.get('/callback', async (req: Request, res: Response) => {
         workspace_id: workspaceId,
         platform: 'snap',
         platform_account_id: 'snap-ads',
-        account_name: 'Snapchat Ads',
-        access_token: tokens.access_token,
+        account_id: 'snap-ads',
+        name: 'Snapchat Ads',
+        oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
         token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
         scopes: REQUIRED_SCOPES,
@@ -129,7 +130,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         is_active: true,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'workspace_id,platform,platform_account_id' },
+      { onConflict: 'workspace_id,platform,account_id' },
     );
 
     if (dbError) {
@@ -160,7 +161,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, access_token: null, refresh_token: null })
+      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
       .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id)
       .eq('platform', 'snap');

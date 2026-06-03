@@ -7,7 +7,7 @@
  *   3. POST /api/v1/auth/tiktok/disconnect — revokes a connected account
  *
  * Tokens are stored in ad_accounts using the canonical columns
- * (access_token / refresh_token / platform_account_id / account_name).
+ * (oauth_token / refresh_token / platform_account_id / name).
  */
 import { Router, type Request, type Response } from 'express';
 import axios from 'axios';
@@ -110,15 +110,16 @@ router.get('/callback', async (req: Request, res: Response) => {
         workspace_id: workspaceId,
         platform: 'tiktok',
         platform_account_id: advertiserId,
-        account_name: 'TikTok Ads',
-        access_token: accessToken,
+        account_id: advertiserId,
+        name: 'TikTok Ads',
+        oauth_token: accessToken,
         refresh_token: null,
         scopes: [],
         status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'workspace_id,platform,platform_account_id' },
+      { onConflict: 'workspace_id,platform,account_id' },
     );
 
     if (dbError) {
@@ -149,7 +150,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, access_token: null, refresh_token: null })
+      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
       .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id)
       .eq('platform', 'tiktok');

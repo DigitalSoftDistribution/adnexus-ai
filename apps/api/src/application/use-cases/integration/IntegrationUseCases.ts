@@ -36,12 +36,15 @@ const READ_ROLES = ['owner', 'admin', 'editor', 'viewer'];
 const ADMIN_ROLES = ['owner', 'admin'];
 
 function toView(platform: SupportedPlatform, workspaceId: string, integration?: Integration): IntegrationView {
-  const connected = Boolean(integration && integration.status === 'connected');
+  // ad_accounts.status uses 'active'/'disconnected'; treat both 'active' and
+  // 'connected' as a live connection so the UI reflects reality.
+  const rawStatus = (integration?.status ?? '') as string;
+  const connected = Boolean(integration && (rawStatus === 'connected' || rawStatus === 'active'));
   return {
     platform,
     label: PLATFORM_LABELS[platform],
     connected,
-    status: integration ? integration.status : 'not_connected',
+    status: integration ? (connected ? 'connected' : integration.status) : 'not_connected',
     accountId: integration?.accountId ?? null,
     accountName: integration?.accountName ?? null,
     connectedAt: integration?.connectedAt ?? null,

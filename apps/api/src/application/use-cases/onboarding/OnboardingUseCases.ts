@@ -47,7 +47,10 @@ export class GetOnboardingStatusUseCase {
       completedAt: onboarding?.completedAt ?? null,
       currentStep: onboarding?.step ?? null,
       steps: {
-        connectPlatform: integrations.some((i) => i.status === 'connected'),
+        connectPlatform: integrations.some((i) => {
+          const s = i.status as string;
+          return s === 'connected' || s === 'active';
+        }),
         inviteTeam: members.length > 1,
         firstCampaign: summary.totalCampaigns > 0,
       },

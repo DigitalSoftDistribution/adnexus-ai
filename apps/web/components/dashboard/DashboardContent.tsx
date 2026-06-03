@@ -147,19 +147,31 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard
-          className="lg:col-span-2"
-          title={t('performanceOverview')}
-          description={t('performanceDescription')}
-          type="area"
-          data={chartData}
-          xKey="name"
-          series={[
-            { key: 'spend', label: tc('spend') },
-            { key: 'clicks', label: tc('clicks'), color: 'hsl(var(--chart-2))' },
-          ]}
-          valueFormatter={(v) => formatCompact(v)}
-        />
+        {chartData.length > 0 ? (
+          <ChartCard
+            className="lg:col-span-2"
+            title={t('performanceOverview')}
+            description={t('performanceDescription')}
+            type="area"
+            data={chartData}
+            xKey="name"
+            series={[
+              { key: 'spend', label: tc('spend') },
+              { key: 'clicks', label: tc('clicks'), color: 'hsl(var(--chart-2))' },
+            ]}
+            valueFormatter={(v) => formatCompact(v)}
+          />
+        ) : (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('performanceOverview')}</CardTitle>
+              <CardDescription>{t('performanceDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+              {tc('noResults')}
+            </CardContent>
+          </Card>
+        )}
 
         {platformData.length > 0 ? (
           <ChartCard

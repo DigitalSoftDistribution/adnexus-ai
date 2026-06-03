@@ -146,15 +146,16 @@ router.get('/callback', async (req: Request, res: Response) => {
         workspace_id: workspaceId,
         platform: 'google',
         platform_account_id: 'google-ads',
-        account_name: 'Google Ads',
-        access_token: tokens.access_token,
+        account_id: 'google-ads',
+        name: 'Google Ads',
+        oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
         token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         scopes: tokens.scope?.split(' ') || REQUIRED_SCOPES,
         status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id,platform,platform_account_id' });
+      }, { onConflict: 'workspace_id,platform,account_id' });
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store Google tokens');
