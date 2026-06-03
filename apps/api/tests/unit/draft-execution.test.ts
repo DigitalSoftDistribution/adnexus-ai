@@ -1140,6 +1140,14 @@ describe("Draft Execution Engine", () => {
         platform: "google",
         campaignId: "google_1",
       });
+      mockSnapshotStore.findByDraftId.mockResolvedValueOnce({
+        id: `snap_${draft.id}`,
+        draftId: draft.id,
+        campaignId: "google_1",
+        capturedAt: NOW.toISOString(),
+        originalState: { budget: 8000, status: "active" },
+        changeLog: ["Captured before budget change"],
+      } as Snapshot);
       mockCampaignRepo.findById.mockResolvedValueOnce({
         ...campaigns.google_1,
         budget: 8000,
@@ -1181,6 +1189,14 @@ describe("Draft Execution Engine", () => {
         campaignId: "google_1",
         originalState: { budget: 8000, status: "paused" },
       });
+      mockSnapshotStore.findByDraftId.mockResolvedValueOnce({
+        id: `snap_${draft.id}`,
+        draftId: draft.id,
+        campaignId: "google_1",
+        capturedAt: NOW.toISOString(),
+        originalState: { budget: 8000, status: "paused" },
+        changeLog: ["Captured before budget change"],
+      } as Snapshot);
       mockCampaignRepo.findById.mockResolvedValueOnce({
         ...campaigns.google_1,
         budget: 8000,
@@ -1206,6 +1222,14 @@ describe("Draft Execution Engine", () => {
         campaignId: "tiktok_1",
         originalState: { budget: 3000, status: "paused" },
       });
+      mockSnapshotStore.findByDraftId.mockResolvedValueOnce({
+        id: `snap_${draft.id}`,
+        draftId: draft.id,
+        campaignId: "tiktok_1",
+        capturedAt: NOW.toISOString(),
+        originalState: { budget: 3000, status: "paused" },
+        changeLog: ["Captured before budget change"],
+      } as Snapshot);
       mockCampaignRepo.findById.mockResolvedValueOnce({
         ...campaigns.tiktok_1,
         budget: 3000,
@@ -1387,12 +1411,15 @@ describe("Draft Execution Engine", () => {
         changeType: "budget",
         payload: { budget: 10000 },
       });
-      // All attempts time out
-      mockMetaApi.updateCampaignBudget.mockRejectedValue({
-        code: "TIMEOUT",
-        message: "Network timeout",
-      });
-      // Rollback succeeds
+      // All apply attempts (initial + 3 retries) time out, then the rollback
+      // restore call on the same mock succeeds.
+      mockMetaApi.updateCampaignBudget
+        .mockRejectedValueOnce({ code: "TIMEOUT", message: "Network timeout" })
+        .mockRejectedValueOnce({ code: "TIMEOUT", message: "Network timeout" })
+        .mockRejectedValueOnce({ code: "TIMEOUT", message: "Network timeout" })
+        .mockRejectedValueOnce({ code: "TIMEOUT", message: "Network timeout" })
+        .mockResolvedValue({ requestId: "meta_req_rollback_001" });
+      // Rollback succeeds — restored state matches the snapshot's originalState
       mockCampaignRepo.findById.mockResolvedValueOnce({
         ...campaigns.meta_1,
         budget: 5000,

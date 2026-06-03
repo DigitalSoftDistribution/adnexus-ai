@@ -3,9 +3,6 @@
 // ============================================================================
 
 import { jest } from '@jest/globals';
-import type { Mock } from 'jest-mock';
-const { describe, it, expect, beforeEach, afterEach } = jest;
-const vi = { fn: jest.fn, mock: jest.fn, spyOn: jest.spyOn };
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ReportGenerationWorker, ReportGenerationError } from '../../src/workers/generate-reports';
@@ -21,34 +18,34 @@ import {
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../../src/services/email-service', () => ({
-  EmailService: vi.fn().mockImplementation(() => ({
-    sendReportEmail: vi.fn().mockResolvedValue(undefined),
-    verifyConnection: vi.fn().mockResolvedValue(true),
-    close: vi.fn().mockResolvedValue(undefined),
+jest.mock('../../src/services/email-service', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendReportEmail: jest.fn().mockResolvedValue(undefined),
+    verifyConnection: jest.fn().mockResolvedValue(true),
+    close: jest.fn().mockResolvedValue(undefined),
   })),
   EmailError: class EmailError extends Error {},
 }));
 
-vi.mock('../../src/services/pdf-service', () => ({
-  PdfService: vi.fn().mockImplementation(() => ({
-    generatePdf: vi.fn().mockResolvedValue('/tmp/report-test.pdf'),
-    close: vi.fn().mockResolvedValue(undefined),
+jest.mock('../../src/services/pdf-service', () => ({
+  PdfService: jest.fn().mockImplementation(() => ({
+    generatePdf: jest.fn().mockResolvedValue('/tmp/report-test.pdf'),
+    close: jest.fn().mockResolvedValue(undefined),
   })),
 }));
 
-vi.mock('../../src/services/chart-service', () => ({
-  ChartService: vi.fn().mockImplementation(() => ({
-    renderCharts: vi.fn().mockResolvedValue([
+jest.mock('../../src/services/chart-service', () => ({
+  ChartService: jest.fn().mockImplementation(() => ({
+    renderCharts: jest.fn().mockResolvedValue([
       { chartId: 'c1', title: 'Test Chart', type: 'line', imagePath: '/tmp/chart1.png', width: 800, height: 400 },
     ]),
   })),
   ChartRenderError: class ChartRenderError extends Error {},
 }));
 
-vi.mock('../../src/services/export-service', () => ({
-  ExportService: vi.fn().mockImplementation(() => ({
-    exportReport: vi.fn().mockResolvedValue({
+jest.mock('../../src/services/export-service', () => ({
+  ExportService: jest.fn().mockImplementation(() => ({
+    exportReport: jest.fn().mockResolvedValue({
       reportId: 'rpt_test',
       format: 'csv',
       filePath: '/tmp/report-test.csv',
@@ -64,8 +61,8 @@ vi.mock('../../src/services/export-service', () => ({
 // ---------------------------------------------------------------------------
 
 const mockRedis = {
-  get: vi.fn(),
-  setex: vi.fn().mockResolvedValue('OK'),
+  get: jest.fn(),
+  setex: jest.fn().mockResolvedValue('OK'),
 } as unknown as IORedis;
 
 const mockReportParams: ReportParams = {
@@ -118,7 +115,7 @@ function createMockJob(data: ReportJobData): Job<ReportJobData> {
     id: 'job_test123',
     data,
     attemptsMade: 0,
-    updateProgress: vi.fn().mockResolvedValue(undefined),
+    updateProgress: jest.fn().mockResolvedValue(undefined),
   } as unknown as Job<ReportJobData>;
 }
 
@@ -130,7 +127,7 @@ describe('ReportGenerationWorker', () => {
   let worker: ReportGenerationWorker;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     worker = new ReportGenerationWorker(mockRedis);
   });
 

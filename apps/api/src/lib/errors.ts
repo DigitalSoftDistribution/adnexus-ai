@@ -45,6 +45,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message = 'Conflict') {
+    super('CONFLICT', message, 409);
+  }
+}
+
 export class RateLimitError extends AppError {
   constructor(message = 'Rate limit exceeded') {
     super('RATE_LIMIT', message, 429);
