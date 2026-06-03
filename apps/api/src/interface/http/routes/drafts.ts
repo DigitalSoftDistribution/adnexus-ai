@@ -8,6 +8,7 @@ export function createDraftRoutes(container: Container): Router {
   const controller = createDraftController(container);
 
   router.get('/', requireAuth, controller.list as any);
+  router.get('/stats', requireAuth, controller.stats as any);
   router.get('/:id', requireAuth, controller.getById as any);
   router.post('/', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.create as any);
   router.post('/:id/approve', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.approve as any);
