@@ -319,7 +319,7 @@ export function CampaignDetailContent() {
         <TabsList>
           <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
           <TabsTrigger value="adsets">{t('adSets')}</TabsTrigger>
-          <TabsTrigger value="ads">{tc('ads')}</TabsTrigger>
+          <TabsTrigger value="ads">{t('ads')}</TabsTrigger>
           <TabsTrigger value="audiences">{t('audiences')}</TabsTrigger>
           <TabsTrigger value="schedule">{t('schedule')}</TabsTrigger>
           <TabsTrigger value="history">{t('history')}</TabsTrigger>
@@ -459,7 +459,7 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
       <Card>
         <CardHeader>
           <CardTitle>{t('adSetsAndAds')}</CardTitle>
-          <CardDescription>{ads.length} {tc('ads').toLowerCase()}</CardDescription>
+          <CardDescription>{ads.length} {t('ads').toLowerCase()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">

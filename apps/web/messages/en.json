@@ -91,7 +91,8 @@
     "unlimited": "Unlimited",
     "by": "By",
     "system": "System",
-    "campaign": "Campaign"
+    "campaign": "Campaign",
+    "changes": "change(s)"
   },
   "auth": {
     "signIn": "Sign In",

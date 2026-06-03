@@ -91,7 +91,8 @@
     "unlimited": "無制限",
     "by": "実行者",
     "system": "システム",
-    "campaign": "キャンペーン"
+    "campaign": "キャンペーン",
+    "changes": "件の変更"
   },
   "auth": {
     "signIn": "サインイン",

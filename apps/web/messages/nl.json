@@ -91,7 +91,8 @@
     "unlimited": "Onbeperkt",
     "by": "Door",
     "system": "Systeem",
-    "campaign": "Campagne"
+    "campaign": "Campagne",
+    "changes": "wijziging(en)"
   },
   "auth": {
     "signIn": "Aanmelden",
