@@ -189,6 +189,9 @@ export class CampaignRepository implements ICampaignRepository {
     const row = rows[0];
 
     // Trailing 14-day daily series, aggregated across the workspace's campaigns.
+    // The per-day metrics table is optional in some deployments, so a missing
+    // table (or any failure) degrades gracefully to an empty series rather than
+    // failing the whole summary.
     interface SeriesRow {
       date: string;
       spend: string | number;
@@ -196,21 +199,27 @@ export class CampaignRepository implements ICampaignRepository {
       clicks: string | number;
       conversions: string | number;
     }
-    const { rows: seriesRows } = await query<SeriesRow>(
-      `SELECT to_char(m.date, 'YYYY-MM-DD') AS date,
-              COALESCE(SUM(m.spend), 0) AS spend,
-              COALESCE(SUM(m.impressions), 0) AS impressions,
-              COALESCE(SUM(m.clicks), 0) AS clicks,
-              COALESCE(SUM(m.conversions), 0) AS conversions
-       FROM campaign_metrics m
-       JOIN campaigns c ON c.id = m.campaign_id
-       JOIN ad_accounts a ON a.id = c.ad_account_id
-       WHERE a.workspace_id = $1
-         AND m.date >= (CURRENT_DATE - INTERVAL '13 days')
-       GROUP BY m.date
-       ORDER BY m.date ASC`,
-      [workspaceId],
-    );
+    let seriesRows: SeriesRow[] = [];
+    try {
+      const result = await query<SeriesRow>(
+        `SELECT to_char(m.date, 'YYYY-MM-DD') AS date,
+                COALESCE(SUM(m.spend), 0) AS spend,
+                COALESCE(SUM(m.impressions), 0) AS impressions,
+                COALESCE(SUM(m.clicks), 0) AS clicks,
+                COALESCE(SUM(m.conversions), 0) AS conversions
+         FROM campaign_metrics m
+         JOIN campaigns c ON c.id = m.campaign_id
+         JOIN ad_accounts a ON a.id = c.ad_account_id
+         WHERE a.workspace_id = $1
+           AND m.date >= (CURRENT_DATE - INTERVAL '13 days')
+         GROUP BY m.date
+         ORDER BY m.date ASC`,
+        [workspaceId],
+      );
+      seriesRows = result.rows;
+    } catch {
+      seriesRows = [];
+    }
 
     return {
       totalCampaigns: row?.total_campaigns ?? 0,
