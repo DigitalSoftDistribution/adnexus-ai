@@ -19,6 +19,8 @@ import {
   Briefcase,
   Lightbulb,
 } from 'lucide-react';
+import { BLOG_POSTS } from '@/lib/marketing/blog-posts';
+import { getArticleBody } from '@/components/marketing/blog-articles';
 
 const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number];
 
@@ -30,215 +32,10 @@ const categoryMeta: Record<string, { icon: typeof BookOpen; color: string; bg: s
   Tips: { icon: Lightbulb, color: '#FBBF24', bg: 'rgba(245,158,11,0.15)' },
 };
 
-/* ─── posts data ─── */
-const allPosts = [
-  {
-    slug: 'how-metas-free-mcp-server-changes-everything',
-    title: "How Meta's Free MCP Server Changes Everything for Ad Tools",
-    excerpt:
-      'Meta released an official MCP server. Here is what it means for ad management tools, agency workflows, and the future of AI-driven advertising.',
-    category: 'AI',
-    date: 'May 15, 2026',
-    readTime: '8 min',
-    author: 'Alex Kim',
-    initials: 'AK',
-    role: 'Head of Product',
-    gradient: 'from-blue-600/40 to-indigo-600/30',
-  },
-  {
-    slug: 'building-a-draft-first-ad-agent',
-    title: 'Building a Draft-First Ad Agent: Lessons from 47 Optimizations',
-    excerpt:
-      'Why staging every AI action as a draft before deployment saved our clients $40K in misconfigured campaigns.',
-    category: 'Product',
-    date: 'May 12, 2026',
-    readTime: '6 min',
-    author: 'Jordan Lee',
-    initials: 'JL',
-    role: 'Lead Engineer',
-    gradient: 'from-emerald-600/40 to-teal-600/30',
-  },
-  {
-    slug: 'google-ads-api-standard-access-guide',
-    title: 'Google Ads API Standard Access: What You Need to Know',
-    excerpt:
-      'A complete guide to obtaining and maintaining Standard Access for the Google Ads API.',
-    category: 'Tips',
-    date: 'May 8, 2026',
-    readTime: '10 min',
-    author: 'Priya Patel',
-    initials: 'PP',
-    role: 'API Specialist',
-    gradient: 'from-red-600/40 to-orange-600/30',
-  },
-  {
-    slug: 'why-120-mcp-tools-is-a-problem',
-    title: 'Why 120 MCP Tools is a Problem (And 30 is the Sweet Spot)',
-    excerpt: 'Tool bloat hurts LLM reasoning. Here is the data on why a curated 30-tool surface beats a sprawling 120+ tool API.',
-    category: 'AI',
-    date: 'May 5, 2026',
-    readTime: '7 min',
-    author: 'Alex Kim',
-    initials: 'AK',
-    role: 'Head of Product',
-    gradient: 'from-violet-600/40 to-purple-600/30',
-  },
-  {
-    slug: 'tiktok-creative-fatigue-detection',
-    title: 'TikTok Creative Fatigue: Detection Strategies That Work',
-    excerpt: 'TikTok creatives fatigue faster than any other platform. Here are the metrics and thresholds we use.',
-    category: 'Tips',
-    date: 'May 1, 2026',
-    readTime: '9 min',
-    author: 'Sofia Chen',
-    initials: 'SC',
-    role: 'Growth Strategist',
-    gradient: 'from-cyan-600/40 to-blue-600/30',
-  },
-  {
-    slug: 'morning-brief-proactive-ai-saves-5hrs',
-    title: 'Morning Brief: How Proactive AI Agents Save 5 Hours/Week',
-    excerpt: 'What if your AI told you what happened overnight before you asked?',
-    category: 'Product',
-    date: 'Apr 25, 2026',
-    readTime: '5 min',
-    author: 'Jordan Lee',
-    initials: 'JL',
-    role: 'Lead Engineer',
-    gradient: 'from-rose-600/40 to-pink-600/30',
-  },
-  {
-    slug: 'cross-platform-attribution-guide',
-    title: 'Cross-Platform Attribution Without Breaking the Bank',
-    excerpt: 'You do not need a $50K/year attribution tool. Here is how to build cross-platform attribution on a budget.',
-    category: 'Tips',
-    date: 'Apr 20, 2026',
-    readTime: '8 min',
-    author: 'Priya Patel',
-    initials: 'PP',
-    role: 'API Specialist',
-    gradient: 'from-fuchsia-600/40 to-rose-600/30',
-  },
-  {
-    slug: 'solo-agency-playbook-50-clients',
-    title: 'The Solo Agency Playbook: Automating 50 Client Accounts',
-    excerpt: 'How one solo operator manages fifty client accounts across four platforms without burning out.',
-    category: 'Case Studies',
-    date: 'Apr 28, 2026',
-    readTime: '12 min',
-    author: 'Marcus Rivera',
-    initials: 'MR',
-    role: 'Agency Advisor',
-    gradient: 'from-amber-600/40 to-yellow-600/30',
-  },
-  {
-    slug: 'from-pipeboard-to-adnexus-migration-story',
-    title: 'From Pipeboard to AdNexus: A Migration Story',
-    excerpt: 'Why we left Pipeboard after 18 months and what we gained.',
-    category: 'Case Studies',
-    date: 'Apr 15, 2026',
-    readTime: '6 min',
-    author: 'Sarah Chen',
-    initials: 'SC',
-    role: 'Media Buyer',
-    gradient: 'from-sky-600/40 to-blue-600/30',
-  },
-];
+const allPosts = BLOG_POSTS;
+
 
 /* ─── article content ─── */
-
-function ArticleContent() {
-  return (
-    <article className="prose-custom">
-      <p className="lead">
-        On May 8, 2026, Meta did something unexpected. They released an official MCP (Model Context Protocol) server for their Marketing API — completely free, open-source, and maintained by the Meta engineering team itself. For an industry that has spent the last decade building proprietary walled gardens around ad data, this is a seismic shift.
-      </p>
-
-      <p>
-        The implications go far beyond a new API wrapper. The Meta MCP server represents a fundamental change in how ad platforms think about data accessibility, AI integration, and the relationship between advertisers and their own campaign data. After spending the past week integrating it into AdNexus AI and testing it across $2M in monthly ad spend, I can say with confidence: this changes everything.
-      </p>
-
-      <h2>What Meta's MCP Server Actually Does</h2>
-
-      <p>
-        At its core, the Meta MCP server is a standardized protocol layer that sits between large language models (Claude, ChatGPT, Cursor, etc.) and the Meta Marketing API. Instead of writing custom API integrations for every tool, the MCP server exposes Meta ad data through a universal interface that any MCP-compatible client can consume.
-      </p>
-
-      <p>
-        What this means in practice: you can now ask Claude to &ldquo;show me all campaigns with CPA over $50 this week&rdquo; and get an instant, accurate response pulled live from your Meta ad accounts. No code. No SQL. No dashboard navigation. Just natural language translated into structured API calls through the MCP protocol.
-      </p>
-
-      <p>
-        The server supports the full Meta Marketing API surface — campaigns, ad sets, ads, insights, creatives, audiences, and conversion tracking. It handles pagination, rate limiting, error retry logic, and OAuth token refresh automatically. This is not a hacky community wrapper; this is production-grade infrastructure from Meta's own Platform Engineering team.
-      </p>
-
-      <h2>Why This Matters for Ad Management Tools</h2>
-
-      <p>
-        For the past two years, every AI-powered ad tool has faced the same architectural challenge: how do you let LLMs interact with ad platforms safely, reliably, and at scale? The approaches have fallen into three categories:
-      </p>
-
-      <ul>
-        <li><strong>Chat-only interfaces</strong> (Pipeboard-style) where the AI talks to the API but you never see the data visually</li>
-        <li><strong>Massive tool surfaces</strong> (120+ tools) where every API endpoint gets its own function definition, overwhelming the LLM's reasoning capacity</li>
-        <li><strong>Proprietary middleware</strong> that locks you into a specific vendor's AI stack</li>
-      </ul>
-
-      <p>
-        Meta's MCP server solves the protocol problem at the source. Instead of every tool vendor building their own Meta integration layer, there's now a single, authoritative bridge. This means:
-      </p>
-
-      <ul>
-        <li><strong>Faster development:</strong> We went from zero to full Meta integration in 48 hours instead of three weeks</li>
-        <li><strong>Better reliability:</strong> Official maintenance means fewer breaking changes and faster bug fixes</li>
-        <li><strong>Lower costs:</strong> Shared infrastructure reduces the per-request overhead that gets passed to customers</li>
-        <li><strong>Standardized safety:</strong> The MCP protocol includes built-in permission scoping and audit logging</li>
-      </ul>
-
-      <h2>The Safety Model: Why Draft-First Still Matters</h2>
-
-      <p>
-        Here's where I need to add a critical caveat. The MCP server makes it incredibly easy for LLMs to <em>read</em> your Meta data. But it also makes it easy for them to <em>write</em> — create campaigns, change budgets, pause ads. Without proper guardrails, this is terrifying.
-      </p>
-
-      <p>
-        Meta's MCP server includes basic permission scopes, but it doesn't enforce a draft-first workflow by default. When we integrated it into AdNexus AI, we built an additional safety layer: every write action gets staged as a draft that requires human approval before deployment. The MCP server handles the API communication; our draft system handles the decision-making.
-      </p>
-
-      <p>
-        This combination — Meta's official MCP server for data access, plus AdNexus's draft-first workflow for write safety — is what we believe is the correct architecture for AI-driven ad management. You get the reliability of official infrastructure with the safety of staged approvals.
-      </p>
-
-      <blockquote>
-        &ldquo;The future of ad management isn't more dashboards. It's better interfaces between human intent, AI reasoning, and platform data.&rdquo;
-      </blockquote>
-
-      <h2>What Happens Next</h2>
-
-      <p>
-        I expect two things to happen in the next six months. First, Google and TikTok will release their own official MCP servers. The protocol is gaining momentum fast — there are now over 1,200 community MCP servers, and major platforms are realizing that making their data accessible to AI agents is a competitive advantage, not a risk.
-      </p>
-
-      <p>
-        Second, the ad management tool landscape will bifurcate. Tools that embrace MCP and build intelligent safety layers on top of it will thrive. Tools that try to maintain proprietary integration layers or compete on raw API access will become obsolete. The moat is no longer &ldquo;we can connect to Meta&rdquo; — it's &ldquo;we can help you use AI safely and effectively once you're connected.&rdquo;
-      </p>
-
-      <h2>How to Try It</h2>
-
-      <p>
-        If you want to experiment with Meta's MCP server directly, it's available on GitHub at <code>facebook/meta-mcp-server</code>. You'll need a Meta Business account with Marketing API access, and you'll need to generate a System User token with the appropriate permissions.
-      </p>
-
-      <p>
-        If you'd rather not deal with the setup, AdNexus AI now includes Meta's MCP server as a native integration. Connect your Meta account, enable the MCP layer, and you can start querying your ad data through Claude or ChatGPT immediately — with full draft-first protection on all write operations.
-      </p>
-
-      <p>
-        The future of ad management isn't more dashboards. It's better interfaces between human intent, AI reasoning, and platform data. Meta's MCP server just accelerated that future by about two years.
-      </p>
-    </article>
-  );
-}
 
 function ComingSoon() {
   return (
@@ -273,7 +70,7 @@ export function BlogPostContent({ slug }: { slug: string }) {
   const [subscribed, setSubscribed] = useState(false);
 
   const post = allPosts.find((p) => p.slug === slug);
-  const isFullArticle = slug === 'how-metas-free-mcp-server-changes-everything';
+  const articleBody = getArticleBody(slug);
 
   /* Related posts — pick 3 different posts, prioritizing same category */
   const relatedPosts = useMemo(() => {
@@ -514,7 +311,7 @@ export function BlogPostContent({ slug }: { slug: string }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: easeSmooth }}
         >
-          {isFullArticle ? <ArticleContent /> : <ComingSoon />}
+          {articleBody ?? <ComingSoon />}
         </motion.div>
       </div>
 
