@@ -164,11 +164,12 @@ router.get('/callback', async (req: Request, res: Response) => {
         const { error: updateErr } = await supabase
           .from('ad_accounts')
           .update({
-            oauth_token: accessToken,
+            access_token: accessToken,
             refresh_token: accessToken, // Meta uses same token refreshed
             token_expires_at: expiresAt,
             scopes: REQUIRED_SCOPES,
             status: 'active',
+            is_active: true,
             metadata: {
               business_name: acc.business_name,
               currency: acc.currency,
@@ -176,7 +177,7 @@ router.get('/callback', async (req: Request, res: Response) => {
             },
             updated_at: new Date().toISOString(),
           })
-          .eq('account_id', accountId)
+          .eq('platform_account_id', accountId)
           .eq('workspace_id', workspaceId);
 
         if (!updateErr) results.push(acc.id);
@@ -185,7 +186,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         const { data: existing } = await supabase
           .from('ad_accounts')
           .select('id')
-          .eq('account_id', acc.id)
+          .eq('platform_account_id', acc.id)
           .eq('workspace_id', workspaceId)
           .maybeSingle();
 
@@ -194,11 +195,12 @@ router.get('/callback', async (req: Request, res: Response) => {
           const { error: updateErr } = await supabase
             .from('ad_accounts')
             .update({
-              oauth_token: accessToken,
+              access_token: accessToken,
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
               status: 'active',
+              is_active: true,
               metadata: {
                 business_name: acc.business_name,
                 currency: acc.currency,
@@ -216,13 +218,14 @@ router.get('/callback', async (req: Request, res: Response) => {
             .insert({
               workspace_id: workspaceId,
               platform: 'meta',
-              account_id: acc.id,
-              name: acc.name || `Meta Ads Account ${acc.id}`,
+              platform_account_id: acc.id,
+              account_name: acc.name || `Meta Ads Account ${acc.id}`,
               status: acc.account_status === 1 ? 'active' : 'pending',
-              oauth_token: accessToken,
+              access_token: accessToken,
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
+              is_active: acc.account_status === 1,
               metadata: {
                 business_name: acc.business_name,
                 currency: acc.currency,
@@ -270,16 +273,16 @@ router.post('/disconnect', async (req: Request, res: Response) => {
     // Fetch the token
     const { data: account } = await supabase
       .from('ad_accounts')
-      .select('oauth_token')
-      .eq('account_id', account_id)
+      .select('access_token')
+      .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id)
       .single();
 
-    if (account?.oauth_token) {
+    if (account?.access_token) {
       // Revoke with Meta
       try {
         await axios.delete(`${META_GRAPH_URL}/me/permissions`, {
-          params: { access_token: account.oauth_token },
+          params: { access_token: account.access_token },
         });
       } catch {
         // Token may already be invalid; continue with DB cleanup
@@ -288,8 +291,8 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', oauth_token: null, refresh_token: null })
-      .eq('account_id', account_id)
+      .update({ status: 'disconnected', is_active: false, access_token: null, refresh_token: null })
+      .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id);
 
     res.json({ success: true, message: 'Meta account disconnected' });
