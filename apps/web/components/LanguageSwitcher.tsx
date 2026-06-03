@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +33,8 @@ export function LanguageSwitcher() {
   const [isPending, startTransition] = useTransition();
 
   const handleLocaleChange = (newLocale: string) => {
-    const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
     startTransition(() => {
-      router.push(newPath);
+      router.replace(pathname, { locale: newLocale });
     });
   };
 

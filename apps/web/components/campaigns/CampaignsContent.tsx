@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { Search, Plus, Filter, MoreHorizontal } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 interface Campaign {
   id: string;

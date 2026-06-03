@@ -134,10 +134,10 @@ export function AlertsContent() {
                           variant={rule.severity === 'critical' ? 'destructive' : rule.severity === 'warning' ? 'default' : 'secondary'}
                           className="text-xs capitalize"
                         >
-                          {rule.severity}
+                          {t(rule.severity)}
                         </Badge>
                         <Badge variant={rule.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">
-                          {rule.status}
+                          {rule.status === 'active' ? tc('active') : t('paused')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{rule.condition}</p>

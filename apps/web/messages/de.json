@@ -108,7 +108,9 @@
     "signUpFailed": "Registrierung fehlgeschlagen",
     "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten",
     "emailPlaceholder": "sie@unternehmen.com",
-    "namePlaceholder": "Max Mustermann"
+    "namePlaceholder": "Max Mustermann",
+    "signInSubtitle": "Melden Sie sich bei Ihrem AdNexus AI-Konto an",
+    "signUpSubtitle": "Erste Schritte mit AdNexus AI"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -387,11 +389,40 @@
     "noInvoices": "Noch keine Rechnungen",
     "invoicesPlaceholder": "Rechnungen werden hier angezeigt, sobald Sie ein kostenpflichtiges Abonnement haben",
     "planFeatures": {
-      "free": ["5 Creatives", "1.000 Impressionen", "50 KI-Credits", "Basis-Analysen"],
-      "starter": ["50 Creatives", "50.000 Impressionen", "500 KI-Credits", "Erweiterte Analysen", "E-Mail-Support"],
-      "growth": ["200 Creatives", "500.000 Impressionen", "5.000 KI-Credits", "Priorisierter Support", "API-Zugriff"],
-      "pro": ["1.000 Creatives", "2 Mio. Impressionen", "25.000 KI-Credits", "Dedizierter Support", "Individuelle Integrationen"],
-      "enterprise": ["Unbegrenzte Creatives", "Unbegrenzte Impressionen", "Unbegrenzte KI-Credits", "SLA-Garantie", "Individuelle Verträge"]
+      "free": [
+        "5 Creatives",
+        "1.000 Impressionen",
+        "50 KI-Credits",
+        "Basis-Analysen"
+      ],
+      "starter": [
+        "50 Creatives",
+        "50.000 Impressionen",
+        "500 KI-Credits",
+        "Erweiterte Analysen",
+        "E-Mail-Support"
+      ],
+      "growth": [
+        "200 Creatives",
+        "500.000 Impressionen",
+        "5.000 KI-Credits",
+        "Priorisierter Support",
+        "API-Zugriff"
+      ],
+      "pro": [
+        "1.000 Creatives",
+        "2 Mio. Impressionen",
+        "25.000 KI-Credits",
+        "Dedizierter Support",
+        "Individuelle Integrationen"
+      ],
+      "enterprise": [
+        "Unbegrenzte Creatives",
+        "Unbegrenzte Impressionen",
+        "Unbegrenzte KI-Credits",
+        "SLA-Garantie",
+        "Individuelle Verträge"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Zuletzt ausgelöst",
     "wireframeTitle": "Wireframe: Benachrichtigungsregel-Ersteller",
     "ruleBuilderPlaceholder": "WENN Metrik X Operator Schwellenwert DANN benachrichtigen via [E-Mail | Slack | In-App]",
-    "concept": "Konzept: Visueller Regelersteller mit Metrikauswahl, Schwellenwert-Schieberegler, Auswahl des Benachrichtigungskanals und Cooldown-Einstellungen."
+    "concept": "Konzept: Visueller Regelersteller mit Metrikauswahl, Schwellenwert-Schieberegler, Auswahl des Benachrichtigungskanals und Cooldown-Einstellungen.",
+    "warning": "Warnung",
+    "info": "Info"
   },
   "audiences": {
     "title": "Zielgruppen",

@@ -108,7 +108,9 @@
     "signUpFailed": "Échec de l'inscription",
     "unexpectedError": "Une erreur inattendue s'est produite",
     "emailPlaceholder": "vous@entreprise.com",
-    "namePlaceholder": "Jean Dupont"
+    "namePlaceholder": "Jean Dupont",
+    "signInSubtitle": "Connectez-vous à votre compte AdNexus AI",
+    "signUpSubtitle": "Commencez avec AdNexus AI"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -387,11 +389,40 @@
     "noInvoices": "Aucune facture pour le moment",
     "invoicesPlaceholder": "Les factures apparaîtront ici une fois que vous aurez un abonnement payant",
     "planFeatures": {
-      "free": ["5 créations", "1 000 impressions", "50 crédits IA", "Analytique de base"],
-      "starter": ["50 créations", "50 000 impressions", "500 crédits IA", "Analytique avancée", "Support par e-mail"],
-      "growth": ["200 créations", "500 000 impressions", "5 000 crédits IA", "Support prioritaire", "Accès API"],
-      "pro": ["1 000 créations", "2 millions d'impressions", "25 000 crédits IA", "Support dédié", "Intégrations personnalisées"],
-      "enterprise": ["Créations illimitées", "Impressions illimitées", "Crédits IA illimités", "Garantie SLA", "Contrats personnalisés"]
+      "free": [
+        "5 créations",
+        "1 000 impressions",
+        "50 crédits IA",
+        "Analytique de base"
+      ],
+      "starter": [
+        "50 créations",
+        "50 000 impressions",
+        "500 crédits IA",
+        "Analytique avancée",
+        "Support par e-mail"
+      ],
+      "growth": [
+        "200 créations",
+        "500 000 impressions",
+        "5 000 crédits IA",
+        "Support prioritaire",
+        "Accès API"
+      ],
+      "pro": [
+        "1 000 créations",
+        "2 millions d'impressions",
+        "25 000 crédits IA",
+        "Support dédié",
+        "Intégrations personnalisées"
+      ],
+      "enterprise": [
+        "Créations illimitées",
+        "Impressions illimitées",
+        "Crédits IA illimités",
+        "Garantie SLA",
+        "Contrats personnalisés"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Dernier déclenchement",
     "wireframeTitle": "Wireframe : Générateur de règles d'alerte",
     "ruleBuilderPlaceholder": "SI métrique X opérateur seuil ALORS notifier via [E-mail | Slack | In-App]",
-    "concept": "Concept : générateur visuel de règles avec sélecteur de métrique, curseur de seuil, sélecteur de canal de notification et paramètres de temporisation."
+    "concept": "Concept : générateur visuel de règles avec sélecteur de métrique, curseur de seuil, sélecteur de canal de notification et paramètres de temporisation.",
+    "warning": "Avertissement",
+    "info": "Information"
   },
   "audiences": {
     "title": "Audiences",

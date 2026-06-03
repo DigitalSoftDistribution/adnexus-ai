@@ -108,7 +108,9 @@
     "signUpFailed": "Rejestracja nie powiodła się",
     "unexpectedError": "Wystąpił nieoczekiwany błąd",
     "emailPlaceholder": "ty@firma.com",
-    "namePlaceholder": "Jan Kowalski"
+    "namePlaceholder": "Jan Kowalski",
+    "signInSubtitle": "Zaloguj się do swojego konta AdNexus AI",
+    "signUpSubtitle": "Rozpocznij pracę z AdNexus AI"
   },
   "dashboard": {
     "title": "Pulpit",
@@ -387,11 +389,40 @@
     "noInvoices": "Brak faktur",
     "invoicesPlaceholder": "Faktury pojawią się tutaj, gdy będziesz mieć płatną subskrypcję",
     "planFeatures": {
-      "free": ["5 kreacji", "1000 wyświetleń", "50 kredytów SI", "Podstawowa analityka"],
-      "starter": ["50 kreacji", "50 tys. wyświetleń", "500 kredytów SI", "Zaawansowana analityka", "Wsparcie e-mail"],
-      "growth": ["200 kreacji", "500 tys. wyświetleń", "5000 kredytów SI", "Wsparcie priorytetowe", "Dostęp do API"],
-      "pro": ["1000 kreacji", "2 mln wyświetleń", "25 tys. kredytów SI", "Dedykowane wsparcie", "Niestandardowe integracje"],
-      "enterprise": ["Nielimitowane kreacje", "Nielimitowane wyświetlenia", "Nielimitowane kredyty SI", "Gwarancja SLA", "Niestandardowe umowy"]
+      "free": [
+        "5 kreacji",
+        "1000 wyświetleń",
+        "50 kredytów SI",
+        "Podstawowa analityka"
+      ],
+      "starter": [
+        "50 kreacji",
+        "50 tys. wyświetleń",
+        "500 kredytów SI",
+        "Zaawansowana analityka",
+        "Wsparcie e-mail"
+      ],
+      "growth": [
+        "200 kreacji",
+        "500 tys. wyświetleń",
+        "5000 kredytów SI",
+        "Wsparcie priorytetowe",
+        "Dostęp do API"
+      ],
+      "pro": [
+        "1000 kreacji",
+        "2 mln wyświetleń",
+        "25 tys. kredytów SI",
+        "Dedykowane wsparcie",
+        "Niestandardowe integracje"
+      ],
+      "enterprise": [
+        "Nielimitowane kreacje",
+        "Nielimitowane wyświetlenia",
+        "Nielimitowane kredyty SI",
+        "Gwarancja SLA",
+        "Niestandardowe umowy"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Ostatnio wyzwolone",
     "wireframeTitle": "Wireframe: Kreator reguł alertów",
     "ruleBuilderPlaceholder": "JEŚLI metryka X operator próg TO powiadom przez [E-mail | Slack | W aplikacji]",
-    "concept": "Koncepcja: Wizualny kreator reguł z wyborem metryki, suwakiem progu, selektorem kanału powiadomień i ustawieniami czasu oczekiwania."
+    "concept": "Koncepcja: Wizualny kreator reguł z wyborem metryki, suwakiem progu, selektorem kanału powiadomień i ustawieniami czasu oczekiwania.",
+    "warning": "Ostrzeżenie",
+    "info": "Informacja"
   },
   "audiences": {
     "title": "Odbiorcy",

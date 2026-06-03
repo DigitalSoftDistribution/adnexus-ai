@@ -108,7 +108,9 @@
     "signUpFailed": "Falha no registo",
     "unexpectedError": "Ocorreu um erro inesperado",
     "emailPlaceholder": "voce@empresa.com",
-    "namePlaceholder": "João Silva"
+    "namePlaceholder": "João Silva",
+    "signInSubtitle": "Entre na sua conta AdNexus AI",
+    "signUpSubtitle": "Comece a usar o AdNexus AI"
   },
   "dashboard": {
     "title": "Painel",
@@ -387,11 +389,40 @@
     "noInvoices": "Ainda não há faturas",
     "invoicesPlaceholder": "As faturas aparecerão aqui quando tiver uma subscrição paga",
     "planFeatures": {
-      "free": ["5 criatividades", "1.000 impressões", "50 créditos de IA", "Análise básica"],
-      "starter": ["50 criatividades", "50 mil impressões", "500 créditos de IA", "Análise avançada", "Apoio por e-mail"],
-      "growth": ["200 criatividades", "500 mil impressões", "5.000 créditos de IA", "Apoio prioritário", "Acesso à API"],
-      "pro": ["1.000 criatividades", "2 milhões de impressões", "25 mil créditos de IA", "Apoio dedicado", "Integrações personalizadas"],
-      "enterprise": ["Criatividades ilimitadas", "Impressões ilimitadas", "Créditos de IA ilimitados", "Garantia de SLA", "Contratos personalizados"]
+      "free": [
+        "5 criatividades",
+        "1.000 impressões",
+        "50 créditos de IA",
+        "Análise básica"
+      ],
+      "starter": [
+        "50 criatividades",
+        "50 mil impressões",
+        "500 créditos de IA",
+        "Análise avançada",
+        "Apoio por e-mail"
+      ],
+      "growth": [
+        "200 criatividades",
+        "500 mil impressões",
+        "5.000 créditos de IA",
+        "Apoio prioritário",
+        "Acesso à API"
+      ],
+      "pro": [
+        "1.000 criatividades",
+        "2 milhões de impressões",
+        "25 mil créditos de IA",
+        "Apoio dedicado",
+        "Integrações personalizadas"
+      ],
+      "enterprise": [
+        "Criatividades ilimitadas",
+        "Impressões ilimitadas",
+        "Créditos de IA ilimitados",
+        "Garantia de SLA",
+        "Contratos personalizados"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Último acionamento",
     "wireframeTitle": "Wireframe: Construtor de regras de alerta",
     "ruleBuilderPlaceholder": "SE métrica X operador limite ENTÃO notificar via [E-mail | Slack | Na aplicação]",
-    "concept": "Conceito: construtor visual de regras com seletor de métricas, cursor de limite, seletor de canal de notificação e definições de tempo de espera."
+    "concept": "Conceito: construtor visual de regras com seletor de métricas, cursor de limite, seletor de canal de notificação e definições de tempo de espera.",
+    "warning": "Aviso",
+    "info": "Informação"
   },
   "audiences": {
     "title": "Públicos",

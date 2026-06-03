@@ -108,7 +108,9 @@
     "signUpFailed": "Registrazione non riuscita",
     "unexpectedError": "Si è verificato un errore imprevisto",
     "emailPlaceholder": "tu@azienda.com",
-    "namePlaceholder": "Mario Rossi"
+    "namePlaceholder": "Mario Rossi",
+    "signInSubtitle": "Accedi al tuo account AdNexus AI",
+    "signUpSubtitle": "Inizia con AdNexus AI"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -387,11 +389,40 @@
     "noInvoices": "Nessuna fattura ancora",
     "invoicesPlaceholder": "Le fatture appariranno qui una volta che avrai un abbonamento a pagamento",
     "planFeatures": {
-      "free": ["5 creatività", "1.000 impressioni", "50 crediti IA", "Analisi di base"],
-      "starter": ["50 creatività", "50.000 impressioni", "500 crediti IA", "Analisi avanzate", "Supporto via e-mail"],
-      "growth": ["200 creatività", "500.000 impressioni", "5.000 crediti IA", "Supporto prioritario", "Accesso API"],
-      "pro": ["1.000 creatività", "2 mln di impressioni", "25.000 crediti IA", "Supporto dedicato", "Integrazioni personalizzate"],
-      "enterprise": ["Creatività illimitate", "Impressioni illimitate", "Crediti IA illimitati", "Garanzia SLA", "Contratti personalizzati"]
+      "free": [
+        "5 creatività",
+        "1.000 impressioni",
+        "50 crediti IA",
+        "Analisi di base"
+      ],
+      "starter": [
+        "50 creatività",
+        "50.000 impressioni",
+        "500 crediti IA",
+        "Analisi avanzate",
+        "Supporto via e-mail"
+      ],
+      "growth": [
+        "200 creatività",
+        "500.000 impressioni",
+        "5.000 crediti IA",
+        "Supporto prioritario",
+        "Accesso API"
+      ],
+      "pro": [
+        "1.000 creatività",
+        "2 mln di impressioni",
+        "25.000 crediti IA",
+        "Supporto dedicato",
+        "Integrazioni personalizzate"
+      ],
+      "enterprise": [
+        "Creatività illimitate",
+        "Impressioni illimitate",
+        "Crediti IA illimitati",
+        "Garanzia SLA",
+        "Contratti personalizzati"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Ultima attivazione",
     "wireframeTitle": "Wireframe: Generatore di regole di avviso",
     "ruleBuilderPlaceholder": "SE metrica X operatore soglia ALLORA notifica via [E-mail | Slack | In-App]",
-    "concept": "Concetto: generatore visivo di regole con selettore di metriche, cursore della soglia, selettore del canale di notifica e impostazioni di attesa."
+    "concept": "Concetto: generatore visivo di regole con selettore di metriche, cursore della soglia, selettore del canale di notifica e impostazioni di attesa.",
+    "warning": "Avviso",
+    "info": "Informazione"
   },
   "audiences": {
     "title": "Pubblici",

@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +57,7 @@ export function SignUpForm() {
         </div>
         <CardTitle className="text-2xl text-center">{t('createAccount')}</CardTitle>
         <CardDescription className="text-center">
-          {t('signUp')}
+          {t('signUpSubtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent>

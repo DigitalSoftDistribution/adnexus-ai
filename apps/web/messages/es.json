@@ -108,7 +108,9 @@
     "signUpFailed": "Error al registrarse",
     "unexpectedError": "Se ha producido un error inesperado",
     "emailPlaceholder": "tu@empresa.com",
-    "namePlaceholder": "Juan Pérez"
+    "namePlaceholder": "Juan Pérez",
+    "signInSubtitle": "Inicia sesión en tu cuenta de AdNexus AI",
+    "signUpSubtitle": "Comienza con AdNexus AI"
   },
   "dashboard": {
     "title": "Panel",
@@ -387,11 +389,40 @@
     "noInvoices": "Aún no hay facturas",
     "invoicesPlaceholder": "Las facturas aparecerán aquí cuando tengas una suscripción de pago",
     "planFeatures": {
-      "free": ["5 creatividades", "1000 impresiones", "50 créditos de IA", "Analítica básica"],
-      "starter": ["50 creatividades", "50 mil impresiones", "500 créditos de IA", "Analítica avanzada", "Soporte por correo electrónico"],
-      "growth": ["200 creatividades", "500 mil impresiones", "5000 créditos de IA", "Soporte prioritario", "Acceso a la API"],
-      "pro": ["1000 creatividades", "2 millones de impresiones", "25 mil créditos de IA", "Soporte dedicado", "Integraciones personalizadas"],
-      "enterprise": ["Creatividades ilimitadas", "Impresiones ilimitadas", "Créditos de IA ilimitados", "Garantía de SLA", "Contratos personalizados"]
+      "free": [
+        "5 creatividades",
+        "1000 impresiones",
+        "50 créditos de IA",
+        "Analítica básica"
+      ],
+      "starter": [
+        "50 creatividades",
+        "50 mil impresiones",
+        "500 créditos de IA",
+        "Analítica avanzada",
+        "Soporte por correo electrónico"
+      ],
+      "growth": [
+        "200 creatividades",
+        "500 mil impresiones",
+        "5000 créditos de IA",
+        "Soporte prioritario",
+        "Acceso a la API"
+      ],
+      "pro": [
+        "1000 creatividades",
+        "2 millones de impresiones",
+        "25 mil créditos de IA",
+        "Soporte dedicado",
+        "Integraciones personalizadas"
+      ],
+      "enterprise": [
+        "Creatividades ilimitadas",
+        "Impresiones ilimitadas",
+        "Créditos de IA ilimitados",
+        "Garantía de SLA",
+        "Contratos personalizados"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Última activación",
     "wireframeTitle": "Wireframe: Creador de reglas de alerta",
     "ruleBuilderPlaceholder": "SI métrica X operador umbral ENTONCES notificar vía [Correo | Slack | En la app]",
-    "concept": "Concepto: Creador visual de reglas con selector de métricas, control deslizante de umbral, selector de canal de notificación y ajustes de tiempo de espera."
+    "concept": "Concepto: Creador visual de reglas con selector de métricas, control deslizante de umbral, selector de canal de notificación y ajustes de tiempo de espera.",
+    "warning": "Advertencia",
+    "info": "Información"
   },
   "audiences": {
     "title": "Audiencias",

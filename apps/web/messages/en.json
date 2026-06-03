@@ -108,7 +108,9 @@
     "signUpFailed": "Sign up failed",
     "unexpectedError": "An unexpected error occurred",
     "emailPlaceholder": "you@company.com",
-    "namePlaceholder": "John Doe"
+    "namePlaceholder": "John Doe",
+    "signInSubtitle": "Sign in to your AdNexus AI account",
+    "signUpSubtitle": "Get started with AdNexus AI"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -387,11 +389,40 @@
     "noInvoices": "No invoices yet",
     "invoicesPlaceholder": "Invoices will appear here once you have a paid subscription",
     "planFeatures": {
-      "free": ["5 creatives", "1,000 impressions", "50 AI credits", "Basic analytics"],
-      "starter": ["50 creatives", "50K impressions", "500 AI credits", "Advanced analytics", "Email support"],
-      "growth": ["200 creatives", "500K impressions", "5,000 AI credits", "Priority support", "API access"],
-      "pro": ["1,000 creatives", "2M impressions", "25K AI credits", "Dedicated support", "Custom integrations"],
-      "enterprise": ["Unlimited creatives", "Unlimited impressions", "Unlimited AI credits", "SLA guarantee", "Custom contracts"]
+      "free": [
+        "5 creatives",
+        "1,000 impressions",
+        "50 AI credits",
+        "Basic analytics"
+      ],
+      "starter": [
+        "50 creatives",
+        "50K impressions",
+        "500 AI credits",
+        "Advanced analytics",
+        "Email support"
+      ],
+      "growth": [
+        "200 creatives",
+        "500K impressions",
+        "5,000 AI credits",
+        "Priority support",
+        "API access"
+      ],
+      "pro": [
+        "1,000 creatives",
+        "2M impressions",
+        "25K AI credits",
+        "Dedicated support",
+        "Custom integrations"
+      ],
+      "enterprise": [
+        "Unlimited creatives",
+        "Unlimited impressions",
+        "Unlimited AI credits",
+        "SLA guarantee",
+        "Custom contracts"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Last triggered",
     "wireframeTitle": "Wireframe: Alert Rule Builder",
     "ruleBuilderPlaceholder": "IF metric X operator threshold THEN notify via [Email | Slack | In-App]",
-    "concept": "Concept: Visual rule builder with metric picker, threshold slider, notification channel selector, and cooldown settings."
+    "concept": "Concept: Visual rule builder with metric picker, threshold slider, notification channel selector, and cooldown settings.",
+    "warning": "Warning",
+    "info": "Info"
   },
   "audiences": {
     "title": "Audiences",

@@ -108,7 +108,9 @@
     "signUpFailed": "Registratie mislukt",
     "unexpectedError": "Er is een onverwachte fout opgetreden",
     "emailPlaceholder": "jij@bedrijf.com",
-    "namePlaceholder": "Jan Jansen"
+    "namePlaceholder": "Jan Jansen",
+    "signInSubtitle": "Log in op uw AdNexus AI-account",
+    "signUpSubtitle": "Aan de slag met AdNexus AI"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -387,11 +389,40 @@
     "noInvoices": "Nog geen facturen",
     "invoicesPlaceholder": "Facturen verschijnen hier zodra je een betaald abonnement hebt",
     "planFeatures": {
-      "free": ["5 creatives", "1.000 vertoningen", "50 AI-credits", "Basisanalyse"],
-      "starter": ["50 creatives", "50K vertoningen", "500 AI-credits", "Geavanceerde analyse", "E-mailondersteuning"],
-      "growth": ["200 creatives", "500K vertoningen", "5.000 AI-credits", "Prioriteitsondersteuning", "API-toegang"],
-      "pro": ["1.000 creatives", "2M vertoningen", "25K AI-credits", "Toegewijde ondersteuning", "Aangepaste integraties"],
-      "enterprise": ["Onbeperkte creatives", "Onbeperkte vertoningen", "Onbeperkte AI-credits", "SLA-garantie", "Aangepaste contracten"]
+      "free": [
+        "5 creatives",
+        "1.000 vertoningen",
+        "50 AI-credits",
+        "Basisanalyse"
+      ],
+      "starter": [
+        "50 creatives",
+        "50K vertoningen",
+        "500 AI-credits",
+        "Geavanceerde analyse",
+        "E-mailondersteuning"
+      ],
+      "growth": [
+        "200 creatives",
+        "500K vertoningen",
+        "5.000 AI-credits",
+        "Prioriteitsondersteuning",
+        "API-toegang"
+      ],
+      "pro": [
+        "1.000 creatives",
+        "2M vertoningen",
+        "25K AI-credits",
+        "Toegewijde ondersteuning",
+        "Aangepaste integraties"
+      ],
+      "enterprise": [
+        "Onbeperkte creatives",
+        "Onbeperkte vertoningen",
+        "Onbeperkte AI-credits",
+        "SLA-garantie",
+        "Aangepaste contracten"
+      ]
     }
   },
   "alerts": {
@@ -415,7 +446,9 @@
     "lastTriggered": "Laatst geactiveerd",
     "wireframeTitle": "Wireframe: Bouwer voor meldingsregels",
     "ruleBuilderPlaceholder": "ALS statistiek X operator drempelwaarde DAN melden via [E-mail | Slack | In-app]",
-    "concept": "Concept: visuele regelbouwer met statistiekkiezer, drempelwaardeschuif, kiezer voor meldingskanaal en afkoelinstellingen."
+    "concept": "Concept: visuele regelbouwer met statistiekkiezer, drempelwaardeschuif, kiezer voor meldingskanaal en afkoelinstellingen.",
+    "warning": "Waarschuwing",
+    "info": "Info"
   },
   "audiences": {
     "title": "Doelgroepen",
