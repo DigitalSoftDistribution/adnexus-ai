@@ -78,6 +78,16 @@ export function DashboardContent() {
     clicks: p.clicks,
   }));
 
+  // Honest period-over-period delta: latest 7 days vs the prior 7 days. Returns
+  // undefined when there isn't enough data, so StatCard hides the badge.
+  function deltaFor(key: 'spend' | 'impressions' | 'clicks' | 'conversions'): number | undefined {
+    if (series.length < 14) return undefined;
+    const recent = series.slice(-7).reduce((s, p) => s + p[key], 0);
+    const prior = series.slice(-14, -7).reduce((s, p) => s + p[key], 0);
+    if (prior === 0) return undefined;
+    return ((recent - prior) / prior) * 100;
+  }
+
   const platformData = Object.entries(summary?.platformBreakdown ?? {}).map(([platform, count]) => ({
     name: platformLabel(platform),
     value: count,
@@ -105,15 +115,16 @@ export function DashboardContent() {
           title={t('totalSpend')}
           value={formatCurrency(summary?.totalSpend ?? 0)}
           icon={<DollarSign className="h-4 w-4" />}
-          delta={12.5}
+          delta={deltaFor('spend')}
           deltaLabel={tc('vsLastMonth')}
+          invertDelta
           sparkline={series.map((p) => p.spend)}
         />
         <StatCard
           title={tc('impressions')}
           value={formatCompact(summary?.totalImpressions ?? 0)}
           icon={<Users className="h-4 w-4" />}
-          delta={8.2}
+          delta={deltaFor('impressions')}
           deltaLabel={tc('vsLastMonth')}
           sparkline={series.map((p) => p.impressions)}
         />
@@ -121,7 +132,7 @@ export function DashboardContent() {
           title={tc('clicks')}
           value={formatCompact(summary?.totalClicks ?? 0)}
           icon={<MousePointer className="h-4 w-4" />}
-          delta={-2.1}
+          delta={deltaFor('clicks')}
           deltaLabel={tc('vsLastMonth')}
           sparkline={series.map((p) => p.clicks)}
         />
@@ -129,7 +140,7 @@ export function DashboardContent() {
           title={tc('conversions')}
           value={formatCompact(summary?.totalConversions ?? 0)}
           icon={<Target className="h-4 w-4" />}
-          delta={15.3}
+          delta={deltaFor('conversions')}
           deltaLabel={tc('vsLastMonth')}
           sparkline={series.map((p) => p.conversions)}
         />
