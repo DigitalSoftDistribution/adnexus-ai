@@ -220,7 +220,10 @@
       "app_promotion": "Promotion d'application",
       "reach": "Portée",
       "video_views": "Vues de vidéo"
-    }
+    },
+    "adAccount": "Compte publicitaire",
+    "noConnectedAccount": "Aucun compte publicitaire connecté pour cette plateforme.",
+    "connectPlatform": "Connecter une plateforme"
   },
   "drafts": {
     "title": "Brouillons",

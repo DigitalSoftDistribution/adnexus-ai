@@ -220,7 +220,10 @@
       "app_promotion": "Promozione dell'app",
       "reach": "Copertura",
       "video_views": "Visualizzazioni video"
-    }
+    },
+    "adAccount": "Account pubblicitario",
+    "noConnectedAccount": "Nessun account pubblicitario collegato per questa piattaforma.",
+    "connectPlatform": "Connetti una piattaforma"
   },
   "drafts": {
     "title": "Bozze",

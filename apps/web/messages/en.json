@@ -220,7 +220,10 @@
       "app_promotion": "App Promotion",
       "reach": "Reach",
       "video_views": "Video Views"
-    }
+    },
+    "adAccount": "Ad Account",
+    "noConnectedAccount": "No connected ad account for this platform.",
+    "connectPlatform": "Connect a platform"
   },
   "drafts": {
     "title": "Drafts",

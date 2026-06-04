@@ -220,7 +220,10 @@
       "app_promotion": "App-promotie",
       "reach": "Bereik",
       "video_views": "Videoweergaven"
-    }
+    },
+    "adAccount": "Advertentieaccount",
+    "noConnectedAccount": "Geen gekoppeld advertentieaccount voor dit platform.",
+    "connectPlatform": "Platform verbinden"
   },
   "drafts": {
     "title": "Concepten",

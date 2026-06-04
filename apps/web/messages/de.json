@@ -220,7 +220,10 @@
       "app_promotion": "App-Bewerbung",
       "reach": "Reichweite",
       "video_views": "Videoaufrufe"
-    }
+    },
+    "adAccount": "Werbekonto",
+    "noConnectedAccount": "Kein verbundenes Werbekonto für diese Plattform.",
+    "connectPlatform": "Plattform verbinden"
   },
   "drafts": {
     "title": "Entwürfe",

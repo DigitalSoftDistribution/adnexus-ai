@@ -220,7 +220,10 @@
       "app_promotion": "アプリプロモーション",
       "reach": "リーチ",
       "video_views": "動画視聴回数"
-    }
+    },
+    "adAccount": "広告アカウント",
+    "noConnectedAccount": "このプラットフォームに接続された広告アカウントがありません。",
+    "connectPlatform": "プラットフォームを接続"
   },
   "drafts": {
     "title": "下書き",

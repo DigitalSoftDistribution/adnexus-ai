@@ -220,7 +220,10 @@
       "app_promotion": "Promocja aplikacji",
       "reach": "Zasięg",
       "video_views": "Wyświetlenia wideo"
-    }
+    },
+    "adAccount": "Konto reklamowe",
+    "noConnectedAccount": "Brak połączonego konta reklamowego dla tej platformy.",
+    "connectPlatform": "Połącz platformę"
   },
   "drafts": {
     "title": "Wersje robocze",

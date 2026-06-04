@@ -220,7 +220,10 @@
       "app_promotion": "Promoción de aplicaciones",
       "reach": "Alcance",
       "video_views": "Reproducciones de vídeo"
-    }
+    },
+    "adAccount": "Cuenta publicitaria",
+    "noConnectedAccount": "No hay cuenta publicitaria conectada para esta plataforma.",
+    "connectPlatform": "Conectar una plataforma"
   },
   "drafts": {
     "title": "Borradores",

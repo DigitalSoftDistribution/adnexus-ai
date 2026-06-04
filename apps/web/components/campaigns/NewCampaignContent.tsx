@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,34 @@ export function NewCampaignContent() {
   const [dailyBudget, setDailyBudget] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [adAccountId, setAdAccountId] = useState('');
+
+  // Connected ad accounts (a campaign must belong to one).
+  const { data: accountsData } = useQuery({
+    queryKey: ['settings', 'integrations'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/settings/integrations');
+      if (!res.ok) throw new Error('Failed to load accounts');
+      const json = await res.json();
+      return (json.data ?? []) as Array<{ id: string; platform: string; name: string; status: string }>;
+    },
+  });
+  const connectedAccounts = (accountsData ?? []).filter(
+    (a) => a.status === 'active' || a.status === 'connected',
+  );
+  const accountsForPlatform = connectedAccounts.filter((a) => a.platform === platform);
+
+  // Keep the selected account valid for the chosen platform.
+  useEffect(() => {
+    if (accountsForPlatform.length > 0) {
+      if (!accountsForPlatform.some((a) => a.id === adAccountId)) {
+        setAdAccountId(accountsForPlatform[0].id);
+      }
+    } else {
+      setAdAccountId('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platform, accountsData]);
 
   const platforms = [
     { value: 'meta', label: t('platforms.meta') },
@@ -48,6 +76,7 @@ export function NewCampaignContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
+          adAccountId,
           platform,
           objective,
           status: 'draft',
@@ -138,6 +167,29 @@ export function NewCampaignContent() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="adAccount">{t('adAccount')} *</Label>
+              {accountsForPlatform.length > 0 ? (
+                <select
+                  id="adAccount"
+                  value={adAccountId}
+                  onChange={(e) => setAdAccountId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {accountsForPlatform.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
+                  {t('noConnectedAccount')}{' '}
+                  <Link href="/dashboard/integrations" className="text-primary hover:underline">
+                    {t('connectPlatform')}
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label>{t('budgetType')}</Label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
@@ -206,7 +258,7 @@ export function NewCampaignContent() {
             )}
 
             <div className="flex gap-4">
-              <Button type="submit" disabled={createCampaign.isPending}>
+              <Button type="submit" disabled={createCampaign.isPending || !adAccountId}>
                 {createCampaign.isPending ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />

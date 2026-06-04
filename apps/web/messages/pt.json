@@ -220,7 +220,10 @@
       "app_promotion": "Promoção de aplicações",
       "reach": "Alcance",
       "video_views": "Visualizações de vídeo"
-    }
+    },
+    "adAccount": "Conta de anúncios",
+    "noConnectedAccount": "Nenhuma conta de anúncios conectada para esta plataforma.",
+    "connectPlatform": "Conectar uma plataforma"
   },
   "drafts": {
     "title": "Rascunhos",
