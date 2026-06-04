@@ -181,8 +181,8 @@ export function ReportsContent() {
       {/* Performance preview */}
       {previewData.length > 0 && (
         <ChartCard
-          title={t('wireframeTitle')}
-          description={t('chartPreview')}
+          title={t('performancePreview')}
+          description={t('last14Days')}
           type="bar"
           data={previewData}
           xKey="name"

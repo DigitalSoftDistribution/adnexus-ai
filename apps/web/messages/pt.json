@@ -331,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Construtor de relatórios",
     "chartPreview": "Área de pré-visualização do gráfico",
-    "concept": "Conceito: construtor de relatórios de arrastar e largar com widgets de gráficos, seletor de intervalo de datas e opções de exportação (PDF, CSV, PNG)."
+    "concept": "Conceito: construtor de relatórios de arrastar e largar com widgets de gráficos, seletor de intervalo de datas e opções de exportação (PDF, CSV, PNG).",
+    "performancePreview": "Pré-visualização de desempenho",
+    "last14Days": "Gastos e conversões, últimos 14 dias"
   },
   "settings": {
     "title": "Definições",

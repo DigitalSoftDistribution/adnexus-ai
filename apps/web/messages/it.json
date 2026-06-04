@@ -331,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Generatore di report",
     "chartPreview": "Area di anteprima del grafico",
-    "concept": "Concetto: generatore di report con trascinamento della selezione, widget grafici, selettore dell'intervallo di date e opzioni di esportazione (PDF, CSV, PNG)."
+    "concept": "Concetto: generatore di report con trascinamento della selezione, widget grafici, selettore dell'intervallo di date e opzioni di esportazione (PDF, CSV, PNG).",
+    "performancePreview": "Anteprima delle prestazioni",
+    "last14Days": "Spesa e conversioni, ultimi 14 giorni"
   },
   "settings": {
     "title": "Impostazioni",

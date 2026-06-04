@@ -331,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Creador de informes",
     "chartPreview": "Área de vista previa del gráfico",
-    "concept": "Concepto: Creador de informes de arrastrar y soltar con widgets de gráficos, selector de rango de fechas y opciones de exportación (PDF, CSV, PNG)."
+    "concept": "Concepto: Creador de informes de arrastrar y soltar con widgets de gráficos, selector de rango de fechas y opciones de exportación (PDF, CSV, PNG).",
+    "performancePreview": "Vista previa de rendimiento",
+    "last14Days": "Gasto y conversiones, últimos 14 días"
   },
   "settings": {
     "title": "Configuración",

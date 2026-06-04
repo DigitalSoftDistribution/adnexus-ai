@@ -331,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Berichtsersteller",
     "chartPreview": "Vorschaubereich für Diagramme",
-    "concept": "Konzept: Drag-and-Drop-Berichtsersteller mit Diagramm-Widgets, Datumsbereichsauswahl und Exportoptionen (PDF, CSV, PNG)."
+    "concept": "Konzept: Drag-and-Drop-Berichtsersteller mit Diagramm-Widgets, Datumsbereichsauswahl und Exportoptionen (PDF, CSV, PNG).",
+    "performancePreview": "Leistungsvorschau",
+    "last14Days": "Ausgaben und Conversions, letzte 14 Tage"
   },
   "settings": {
     "title": "Einstellungen",

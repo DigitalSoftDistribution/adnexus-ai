@@ -80,6 +80,7 @@ import { generateOpenAPIDocument } from '../../openapi/generator';
 
 // Realtime
 import { EventBus, createSSEHandler } from '../../realtime';
+import { requireAuthQuery } from './middleware/requireAuth';
 
 /**
  * Build the v2 dependency-injection Container with concrete Supabase-backed
@@ -173,8 +174,9 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/assets', authenticatedRateLimiter, createAssetRoutes(container));
   v2.use('/admin', authenticatedRateLimiter, createAdminRoutes(container));
 
-  // Realtime SSE endpoint
-  v2.get('/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));
+  // Realtime SSE endpoint. EventSource can't send an Authorization header, so
+  // the token arrives as a ?token= query param — requireAuthQuery handles both.
+  v2.get('/events', authenticatedRateLimiter, requireAuthQuery, createSSEHandler(realtimeEventBus));
 
   // Realtime stats endpoint
   v2.get('/events/stats', authenticatedRateLimiter, (_req, res) => {

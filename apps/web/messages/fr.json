@@ -331,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe : Générateur de rapports",
     "chartPreview": "Zone d'aperçu du graphique",
-    "concept": "Concept : générateur de rapports par glisser-déposer avec widgets graphiques, sélecteur de plage de dates et options d'export (PDF, CSV, PNG)."
+    "concept": "Concept : générateur de rapports par glisser-déposer avec widgets graphiques, sélecteur de plage de dates et options d'export (PDF, CSV, PNG).",
+    "performancePreview": "Aperçu des performances",
+    "last14Days": "Dépenses et conversions, 14 derniers jours"
   },
   "settings": {
     "title": "Paramètres",

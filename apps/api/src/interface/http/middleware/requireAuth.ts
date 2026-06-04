@@ -43,6 +43,45 @@ export function requireAuth(
   }
 }
 
+/**
+ * Auth for endpoints reached via EventSource (SSE), which cannot set an
+ * Authorization header. Accepts the token from the `?token=` query param (and
+ * still honors a Bearer header if present), then sets req.user like requireAuth.
+ */
+export function requireAuthQuery(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+): void {
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ')
+    ? header.slice(7)
+    : (req.query.token as string | undefined);
+
+  if (!token) {
+    next(new UnauthorizedError('Missing token'));
+    return;
+  }
+
+  try {
+    const base64Payload = token.split('.')[1];
+    if (!base64Payload) {
+      next(new UnauthorizedError('Invalid token format'));
+      return;
+    }
+    const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
+    req.user = {
+      id: payload.sub || payload.id || 'unknown',
+      email: payload.email || '',
+      workspaceId: payload.workspace_id || payload.workspaceId || '',
+      role: payload.role || 'viewer',
+    };
+    next();
+  } catch {
+    next(new UnauthorizedError('Invalid token'));
+  }
+}
+
 export function requireRole(...allowedRoles: string[]) {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
     if (!req.user) {
