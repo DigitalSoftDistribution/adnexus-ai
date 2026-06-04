@@ -42,5 +42,23 @@ export function createIntegrationController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    sync: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.syncAccount) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SYNC_UNAVAILABLE', message: 'Account sync is not configured' },
+        });
+        return;
+      }
+      const result = await container.syncAccount.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        adAccountId: req.params.accountId,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

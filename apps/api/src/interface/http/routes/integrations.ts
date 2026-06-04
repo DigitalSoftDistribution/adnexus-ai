@@ -16,6 +16,13 @@ export function createIntegrationRoutes(container: Container): Router {
     requireRole('owner', 'admin') as any,
     controller.disconnect as any,
   );
+  // Account-level live sync: imports campaigns + metrics for one ad account.
+  router.post(
+    '/accounts/:accountId/sync',
+    requireAuth,
+    requireRole('owner', 'admin', 'editor') as any,
+    controller.sync as any,
+  );
 
   return router;
 }
