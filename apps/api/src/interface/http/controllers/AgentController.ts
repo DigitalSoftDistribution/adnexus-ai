@@ -108,5 +108,88 @@ export function createAgentController(container: Container) {
 
       res.json({ success: true, data: result.data });
     }),
+
+    // ── Advisory surface ────────────────────────────────────────────────────
+
+    recommendations: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.listRecommendations.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    applyRecommendation: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.applyRecommendation.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        recommendationId: req.params.id,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    dismissRecommendation: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.dismissRecommendation.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        recommendationId: req.params.id,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    insights: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.listInsights.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    listConversations: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.listConversations.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    createConversation: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.createConversation.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        title: req.body?.title,
+      });
+      if (!result.success) throw result.error;
+      res.status(201).json({ success: true, data: result.data });
+    }),
+
+    getConversation: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getConversation.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        conversationId: req.params.id,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    sendMessage: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.sendAgentMessage.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        conversationId: req.params.id,
+        content: req.body?.content ?? '',
+      });
+      if (!result.success) throw result.error;
+      res.status(201).json({ success: true, data: result.data });
+    }),
   };
 }

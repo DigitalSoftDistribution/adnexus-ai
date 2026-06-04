@@ -191,8 +191,16 @@ export function createRateLimiter(tier: RateLimitTier) {
       return;
     }
 
-    const identifier = getClientIdentifier(req, tier);
-    const result = await checkRateLimit(identifier, tier);
+    // A request carrying a bearer token is not anonymous, so it should not be
+    // capped at the strict unauthenticated (anti-brute-force) limit. This lets
+    // token-authenticated endpoints mounted under the unauthenticated limiter
+    // (e.g. GET /auth/me, polled on every page load) use the higher tier.
+    const hasBearer = (req.headers.authorization ?? '').startsWith('Bearer ');
+    const effectiveTier: RateLimitTier =
+      tier === 'unauthenticated' && hasBearer ? 'authenticated' : tier;
+
+    const identifier = getClientIdentifier(req, effectiveTier);
+    const result = await checkRateLimit(identifier, effectiveTier);
 
     // Set rate limit headers on all responses
     setRateLimitHeaders(res, result);
@@ -202,11 +210,11 @@ export function createRateLimiter(tier: RateLimitTier) {
       const logger = getRequestLogger(correlationId);
       logger.warn(
         {
-          tier,
+          tier: effectiveTier,
           identifier: identifier.split(':').slice(0, 2).join(':') + ':<masked>',
           limit: result.limit,
         },
-        `Rate limit exceeded (${tier})`,
+        `Rate limit exceeded (${effectiveTier})`,
       );
 
       throw new RateLimitError(

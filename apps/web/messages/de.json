@@ -16,7 +16,22 @@
     "billing": "Abrechnung",
     "settings": "Einstellungen",
     "signOut": "Abmelden",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Ziele",
+    "integrations": "Integrationen",
+    "webhooks": "Webhooks",
+    "auditLog": "Audit-Log",
+    "collapse": "Einklappen",
+    "workspace": "Arbeitsbereich",
+    "newCampaign": "Neue Kampagne",
+    "groups": {
+      "overview": "Übersicht",
+      "campaigns": "Kampagnen",
+      "automation": "Automatisierung",
+      "connect": "Verbinden",
+      "workspace": "Arbeitsbereich",
+      "create": "Erstellen"
+    }
   },
   "common": {
     "loading": "Wird geladen...",
@@ -92,7 +107,10 @@
     "by": "Von",
     "system": "System",
     "campaign": "Kampagne",
-    "changes": "Änderung(en)"
+    "changes": "Änderung(en)",
+    "active": "Aktiv",
+    "paused": "Pausiert",
+    "budgetType": "Budgettyp"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -203,7 +221,10 @@
       "app_promotion": "App-Bewerbung",
       "reach": "Reichweite",
       "video_views": "Videoaufrufe"
-    }
+    },
+    "adAccount": "Werbekonto",
+    "noConnectedAccount": "Kein verbundenes Werbekonto für diese Plattform.",
+    "connectPlatform": "Plattform verbinden"
   },
   "drafts": {
     "title": "Entwürfe",
@@ -271,7 +292,8 @@
     "analysisFrequency": "Analysehäufigkeit",
     "analysisFrequencyDesc": "Wie oft der KI-Agent Ihre Kampagnen analysiert",
     "excludedCampaigns": "Ausgeschlossene Kampagnen",
-    "excludedCampaignsDesc": "Kampagnen, die von KI-Empfehlungen ausgeschlossen werden sollen"
+    "excludedCampaignsDesc": "Kampagnen, die von KI-Empfehlungen ausgeschlossen werden sollen",
+    "history": "Verlauf"
   },
   "reports": {
     "title": "Berichte",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Berichtsersteller",
     "chartPreview": "Vorschaubereich für Diagramme",
-    "concept": "Konzept: Drag-and-Drop-Berichtsersteller mit Diagramm-Widgets, Datumsbereichsauswahl und Exportoptionen (PDF, CSV, PNG)."
+    "concept": "Konzept: Drag-and-Drop-Berichtsersteller mit Diagramm-Widgets, Datumsbereichsauswahl und Exportoptionen (PDF, CSV, PNG).",
+    "performancePreview": "Leistungsvorschau",
+    "last14Days": "Ausgaben und Conversions, letzte 14 Tage"
   },
   "settings": {
     "title": "Einstellungen",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "verbunden",
       "available": "verfügbar"
-    }
+    },
+    "disconnect": "Trennen"
   },
   "webhooks": {
-    "title": "Webhook-Ersteller",
+    "title": "Webhooks",
     "description": "Konfigurieren Sie ausgehende Webhooks für Ereignisbenachrichtigungen.",
-    "comingSoon": "Webhook-Ersteller demnächst verfügbar."
+    "comingSoon": "Webhook-Ersteller demnächst verfügbar.",
+    "addWebhook": "Webhook hinzufügen",
+    "empty": "Keine Webhooks konfiguriert",
+    "emptyDescription": "Erstellen Sie einen Webhook, um Echtzeit-Ereignisse zu empfangen.",
+    "endpoint": "Endpunkt-URL",
+    "events": "Ereignisse",
+    "active": "Aktiv"
   },
   "errors": {
     "failedToFetchSummary": "Zusammenfassung konnte nicht abgerufen werden",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "Anzeigengruppen konnten nicht abgerufen werden",
     "failedToFetchHistory": "Verlauf konnte nicht abgerufen werden",
     "failedToFetchAds": "Anzeigen konnten nicht abgerufen werden"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen"
+  },
+  "onboarding": {
+    "title": "Willkommen bei AdNexus AI",
+    "description": "Richten wir Ihren Arbeitsbereich in wenigen Schritten ein.",
+    "stepConnect": "Plattform verbinden",
+    "stepConnectDesc": "Verbinden Sie Meta, Google, TikTok oder Snap, um Kampagnen zu importieren.",
+    "stepTeam": "Team einladen",
+    "stepTeamDesc": "Fügen Sie Teammitglieder zur Zusammenarbeit hinzu.",
+    "stepCampaign": "Erste Kampagne erstellen",
+    "stepCampaignDesc": "Starten oder entwerfen Sie eine Kampagne.",
+    "skip": "Vorerst überspringen",
+    "finish": "Zum Dashboard",
+    "completed": "Abgeschlossen"
+  },
+  "goals": {
+    "title": "Ziele",
+    "description": "Verfolgen Sie Leistungsziele über Kampagnen hinweg.",
+    "metric": "Kennzahl",
+    "target": "Ziel",
+    "empty": "Noch keine Ziele",
+    "emptyDescription": "Erstellen Sie ein Ziel, um ROAS, CPA, Conversions und mehr zu verfolgen."
+  },
+  "auditLog": {
+    "title": "Audit-Log",
+    "description": "Eine Aufzeichnung jeder Änderung in Ihrem Arbeitsbereich.",
+    "actor": "Akteur",
+    "action": "Aktion",
+    "category": "Kategorie",
+    "entity": "Entität",
+    "empty": "Noch keine Aktivität",
+    "emptyDescription": "Arbeitsbereich-Aktivitäten erscheinen hier."
   }
 }

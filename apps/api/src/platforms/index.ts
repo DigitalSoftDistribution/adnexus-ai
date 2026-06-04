@@ -147,6 +147,12 @@ import {
   PLATFORM_CONFIG,
 } from './config';
 
+import {
+  loadWorkspaceAccounts,
+  persistRefreshedToken,
+  markAccountDisconnected,
+} from './account-store';
+
 // ═══════════════════════════════════════════════
 //  Client Registry — maps platform → client factory
 // ═══════════════════════════════════════════════
@@ -243,20 +249,19 @@ export class PlatformManager {
     return `${platform}:${accountId}`;
   }
 
-  /** Resolve workspace accounts from persistence (stub — replace with DB call) */
+  /** Resolve workspace accounts from the `ad_accounts` table (cached per call). */
   private async resolveAccounts(workspaceId: string): Promise<AdAccount[]> {
     const cached = this.workspaceAccounts.get(workspaceId);
     if (cached) return cached;
 
-    // TODO: Replace with actual database lookup
-    // const accounts = await db.ad_accounts.findMany({ where: { workspaceId, status: 'active' } });
-    throw new PlatformAPIError(
-      'meta',
-      'NOT_FOUND_ACCOUNT',
-      `Workspace '${workspaceId}' account resolution not yet wired to database. ` +
-        'Implement resolveAccounts() with your persistence layer.',
-      false,
-    );
+    const accounts = await loadWorkspaceAccounts(workspaceId);
+    this.workspaceAccounts.set(workspaceId, accounts);
+    return accounts;
+  }
+
+  /** Drop the in-memory account cache for a workspace (after connect/disconnect). */
+  private invalidateWorkspaceAccounts(workspaceId: string): void {
+    this.workspaceAccounts.delete(workspaceId);
   }
 
   /** Get (or create) a PlatformClient for a given platform + account */
@@ -358,8 +363,8 @@ export class PlatformManager {
       // Invalidate the client cache entry so next use picks up fresh token
       this.clientCache.delete(this.cacheKey(account.platform, account.platformAccountId));
 
-      // TODO: Persist updated token to database
-      // await db.ad_accounts.update({ where: { id: account.id }, data: { accessToken: result.accessToken, tokenExpiresAt: result.expiresAt } });
+      // Persist the refreshed token so other processes see it.
+      await persistRefreshedToken(account.id, result.accessToken, result.expiresAt);
     } catch (error) {
       throw wrapError(
         account.platform,
@@ -744,9 +749,9 @@ export class PlatformManager {
     // Invalidate cached client
     this.clientCache.delete(this.cacheKey(account.platform, account.platformAccountId));
 
-    // TODO: Revoke token with the platform + delete from database
-    // await revokeToken(account);
-    // await db.ad_accounts.delete({ where: { id: accountId } });
+    // Mark disconnected + clear tokens in the database, then drop the cache.
+    await markAccountDisconnected(account.id);
+    this.invalidateWorkspaceAccounts(workspaceId);
   }
 
   /**

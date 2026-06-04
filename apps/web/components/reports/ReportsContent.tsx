@@ -7,7 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { formatCompact } from '@/lib/utils';
 import { BarChart3, Plus, FileText, Calendar, Download, TrendingUp, Users, DollarSign } from 'lucide-react';
+
+interface SummarySeriesPoint {
+  date: string;
+  spend: number;
+  clicks: number;
+  conversions: number;
+}
+
+function useSummarySeries() {
+  const { data } = useQuery({
+    queryKey: ['campaigns', 'summary'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/campaigns/summary');
+      if (!res.ok) throw new Error('Failed to fetch summary');
+      return res.json();
+    },
+  });
+  return (data?.data?.spendSeries ?? []) as SummarySeriesPoint[];
+}
 
 interface Report {
   id: string;
@@ -44,8 +65,15 @@ interface ReportTemplate {
 
 export function ReportsContent() {
   const { reports, isLoading, activeCategory, setActiveCategory, total } = useReports();
+  const series = useSummarySeries();
   const t = useTranslations('reports');
   const tc = useTranslations('common');
+
+  const previewData = series.map((p) => ({
+    name: p.date.slice(5),
+    spend: p.spend,
+    conversions: p.conversions,
+  }));
 
   const templates: ReportTemplate[] = [
     {
@@ -150,32 +178,21 @@ export function ReportsContent() {
         </>
       )}
 
-      {/* Wireframe Concept */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">{t('wireframeTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-            <div className="flex items-center gap-4">
-              <div className="h-8 w-32 rounded bg-muted" />
-              <div className="h-8 w-48 rounded bg-muted" />
-              <div className="h-8 w-24 rounded bg-muted ml-auto" />
-            </div>
-            <div className="h-40 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-              {t('chartPreview')}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="h-20 rounded bg-muted" />
-              <div className="h-20 rounded bg-muted" />
-              <div className="h-20 rounded bg-muted" />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t('concept')}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Performance preview */}
+      {previewData.length > 0 && (
+        <ChartCard
+          title={t('performancePreview')}
+          description={t('last14Days')}
+          type="bar"
+          data={previewData}
+          xKey="name"
+          series={[
+            { key: 'spend', label: tc('spend') },
+            { key: 'conversions', label: tc('conversions'), color: 'hsl(var(--chart-2))' },
+          ]}
+          valueFormatter={(v) => formatCompact(v)}
+        />
+      )}
     </div>
   );
 }

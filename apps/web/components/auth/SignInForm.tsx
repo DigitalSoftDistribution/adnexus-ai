@@ -37,6 +37,7 @@ export function SignInForm() {
         return;
       }
 
+      // The API wraps the payload: { success, data: { token, ... } }.
       const token = data?.data?.token ?? data?.token;
       if (!token) {
         setError(t('signInFailed'));

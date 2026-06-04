@@ -34,6 +34,14 @@ export interface CampaignSummary {
   avgRoas: number;
   platformBreakdown: Record<string, number>;
   statusBreakdown: Record<string, number>;
+  /** Daily performance series for the trailing window (oldest → newest). */
+  spendSeries: Array<{
+    date: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+  }>;
 }
 
 export interface ICampaignRepository {

@@ -2,11 +2,23 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { Radio, Users, MousePointer, Target, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/charts/StatCard';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { formatCurrency, formatCompact } from '@/lib/utils';
+import { platformLabel } from '@/lib/platforms';
 import { useSSE } from '@/hooks/useSSE';
-import { TrendingUp, TrendingDown, Users, MousePointer, Target, DollarSign, Radio } from 'lucide-react';
+
+interface SpendPoint {
+  date: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+}
 
 interface CampaignSummary {
   totalCampaigns: number;
@@ -21,6 +33,7 @@ interface CampaignSummary {
   avgRoas: number;
   platformBreakdown: Record<string, number>;
   statusBreakdown: Record<string, number>;
+  spendSeries: SpendPoint[];
 }
 
 function useCampaignSummary() {
@@ -53,144 +66,140 @@ export function DashboardContent() {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4">
         <div className="text-destructive text-lg font-medium">{t('failedToLoad')}</div>
-        <p className="text-muted-foreground text-sm">{error.message}</p>
+        <p className="text-muted-foreground text-sm">{(error as Error).message}</p>
       </div>
     );
   }
 
-  const stats = [
-    {
-      title: t('totalSpend'),
-      value: formatCurrency(summary?.totalSpend ?? 0),
-      change: '+12.5%',
-      trend: 'up' as const,
-      icon: DollarSign,
-    },
-    {
-      title: tc('impressions'),
-      value: formatNumber(summary?.totalImpressions ?? 0),
-      change: '+8.2%',
-      trend: 'up' as const,
-      icon: Users,
-    },
-    {
-      title: tc('clicks'),
-      value: formatNumber(summary?.totalClicks ?? 0),
-      change: '-2.1%',
-      trend: 'down' as const,
-      icon: MousePointer,
-    },
-    {
-      title: tc('conversions'),
-      value: formatNumber(summary?.totalConversions ?? 0),
-      change: '+15.3%',
-      trend: 'up' as const,
-      icon: Target,
-    },
-  ];
+  const series = summary?.spendSeries ?? [];
+  const chartData = series.map((p) => ({
+    name: p.date.slice(5),
+    spend: p.spend,
+    clicks: p.clicks,
+  }));
+
+  // Honest period-over-period delta: latest 7 days vs the prior 7 days. Returns
+  // undefined when there isn't enough data, so StatCard hides the badge.
+  function deltaFor(key: 'spend' | 'impressions' | 'clicks' | 'conversions'): number | undefined {
+    if (series.length < 14) return undefined;
+    const recent = series.slice(-7).reduce((s, p) => s + p[key], 0);
+    const prior = series.slice(-14, -7).reduce((s, p) => s + p[key], 0);
+    if (prior === 0) return undefined;
+    return ((recent - prior) / prior) * 100;
+  }
+
+  const platformData = Object.entries(summary?.platformBreakdown ?? {}).map(([platform, count]) => ({
+    name: platformLabel(platform),
+    value: count,
+  }));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className={
-            `flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-              isConnected
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
-            }`
-          }>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <div
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+              isConnected ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
+            }`}
+          >
             <Radio className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
             {isConnected ? tc('live') : tc('offline')}
           </div>
-        </div>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title={t('totalSpend')}
+          value={formatCurrency(summary?.totalSpend ?? 0)}
+          icon={<DollarSign className="h-4 w-4" />}
+          delta={deltaFor('spend')}
+          deltaLabel={tc('vsLastMonth')}
+          invertDelta
+          sparkline={series.map((p) => p.spend)}
+        />
+        <StatCard
+          title={tc('impressions')}
+          value={formatCompact(summary?.totalImpressions ?? 0)}
+          icon={<Users className="h-4 w-4" />}
+          delta={deltaFor('impressions')}
+          deltaLabel={tc('vsLastMonth')}
+          sparkline={series.map((p) => p.impressions)}
+        />
+        <StatCard
+          title={tc('clicks')}
+          value={formatCompact(summary?.totalClicks ?? 0)}
+          icon={<MousePointer className="h-4 w-4" />}
+          delta={deltaFor('clicks')}
+          deltaLabel={tc('vsLastMonth')}
+          sparkline={series.map((p) => p.clicks)}
+        />
+        <StatCard
+          title={tc('conversions')}
+          value={formatCompact(summary?.totalConversions ?? 0)}
+          icon={<Target className="h-4 w-4" />}
+          delta={deltaFor('conversions')}
+          deltaLabel={tc('vsLastMonth')}
+          sparkline={series.map((p) => p.conversions)}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+      <div className="grid gap-4 lg:grid-cols-3">
+        {chartData.length > 0 ? (
+          <ChartCard
+            className="lg:col-span-2"
+            title={t('performanceOverview')}
+            description={t('performanceDescription')}
+            type="area"
+            data={chartData}
+            xKey="name"
+            series={[
+              { key: 'spend', label: tc('spend') },
+              { key: 'clicks', label: tc('clicks'), color: 'hsl(var(--chart-2))' },
+            ]}
+            valueFormatter={(v) => formatCompact(v)}
+          />
+        ) : (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('performanceOverview')}</CardTitle>
+              <CardDescription>{t('performanceDescription')}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                {stat.trend === 'up' ? (
-                  <TrendingUp className="h-3 w-3 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                )}
-                <span className={stat.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}>
-                  {stat.change}
-                </span>
-                {' '}{tc('vsLastMonth')}
-              </p>
+            <CardContent className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+              {tc('noResults')}
             </CardContent>
           </Card>
-        ))}
+        )}
+
+        {platformData.length > 0 ? (
+          <ChartCard
+            title={t('platformBreakdown')}
+            description={t('platformDescription')}
+            type="donut"
+            data={platformData}
+            xKey="name"
+            series={[{ key: 'value', label: tc('campaign') }]}
+            height={260}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('platformBreakdown')}</CardTitle>
+              <CardDescription>{t('platformDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+              {tc('noResults')}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>{t('performanceOverview')}</CardTitle>
-            <CardDescription>{t('performanceDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              {tc('placeholder')}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('platformBreakdown')}</CardTitle>
-            <CardDescription>{t('platformDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Object.entries(summary?.platformBreakdown ?? {}).map(([platform, count]) => (
-                <div key={platform} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{platform}</span>
-                  <span className="text-sm font-medium">{count}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('avgCtr')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{formatPercent(summary?.avgCtr ?? 0)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('avgCpa')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{formatCurrency(summary?.avgCpa ?? 0)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('avgRoas')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{(summary?.avgRoas ?? 0).toFixed(2)}x</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard title={t('avgCtr')} value={`${((summary?.avgCtr ?? 0) * 100).toFixed(2)}%`} />
+        <StatCard title={t('avgCpa')} value={formatCurrency(summary?.avgCpa ?? 0)} />
+        <StatCard title={t('avgRoas')} value={`${(summary?.avgRoas ?? 0).toFixed(2)}x`} />
       </div>
     </div>
   );

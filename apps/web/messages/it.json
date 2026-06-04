@@ -16,7 +16,22 @@
     "billing": "Fatturazione",
     "settings": "Impostazioni",
     "signOut": "Esci",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Obiettivi",
+    "integrations": "Integrazioni",
+    "webhooks": "Webhook",
+    "auditLog": "Registro di controllo",
+    "collapse": "Comprimi",
+    "workspace": "Area di lavoro",
+    "newCampaign": "Nuova campagna",
+    "groups": {
+      "overview": "Panoramica",
+      "campaigns": "Campagne",
+      "automation": "Automazione",
+      "connect": "Connetti",
+      "workspace": "Area di lavoro",
+      "create": "Crea"
+    }
   },
   "common": {
     "loading": "Caricamento...",
@@ -92,7 +107,10 @@
     "by": "Da",
     "system": "Sistema",
     "campaign": "Campagna",
-    "changes": "modifica(che)"
+    "changes": "modifica(che)",
+    "active": "Attivo",
+    "paused": "In pausa",
+    "budgetType": "Tipo di budget"
   },
   "auth": {
     "signIn": "Accedi",
@@ -203,7 +221,10 @@
       "app_promotion": "Promozione dell'app",
       "reach": "Copertura",
       "video_views": "Visualizzazioni video"
-    }
+    },
+    "adAccount": "Account pubblicitario",
+    "noConnectedAccount": "Nessun account pubblicitario collegato per questa piattaforma.",
+    "connectPlatform": "Connetti una piattaforma"
   },
   "drafts": {
     "title": "Bozze",
@@ -271,7 +292,8 @@
     "analysisFrequency": "Frequenza di analisi",
     "analysisFrequencyDesc": "Con quale frequenza l'agente IA analizza le tue campagne",
     "excludedCampaigns": "Campagne escluse",
-    "excludedCampaignsDesc": "Campagne da escludere dai consigli dell'IA"
+    "excludedCampaignsDesc": "Campagne da escludere dai consigli dell'IA",
+    "history": "Cronologia"
   },
   "reports": {
     "title": "Report",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Generatore di report",
     "chartPreview": "Area di anteprima del grafico",
-    "concept": "Concetto: generatore di report con trascinamento della selezione, widget grafici, selettore dell'intervallo di date e opzioni di esportazione (PDF, CSV, PNG)."
+    "concept": "Concetto: generatore di report con trascinamento della selezione, widget grafici, selettore dell'intervallo di date e opzioni di esportazione (PDF, CSV, PNG).",
+    "performancePreview": "Anteprima delle prestazioni",
+    "last14Days": "Spesa e conversioni, ultimi 14 giorni"
   },
   "settings": {
     "title": "Impostazioni",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "connesso",
       "available": "disponibile"
-    }
+    },
+    "disconnect": "Disconnetti"
   },
   "webhooks": {
-    "title": "Generatore di webhook",
+    "title": "Webhook",
     "description": "Configura i webhook in uscita per le notifiche degli eventi.",
-    "comingSoon": "Il generatore di webhook sarà presto disponibile."
+    "comingSoon": "Il generatore di webhook sarà presto disponibile.",
+    "addWebhook": "Aggiungi webhook",
+    "empty": "Nessun webhook configurato",
+    "emptyDescription": "Crea un webhook per ricevere eventi in tempo reale.",
+    "endpoint": "URL endpoint",
+    "events": "Eventi",
+    "active": "Attivo"
   },
   "errors": {
     "failedToFetchSummary": "Impossibile recuperare il riepilogo",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "Impossibile recuperare i gruppi di annunci",
     "failedToFetchHistory": "Impossibile recuperare la cronologia",
     "failedToFetchAds": "Impossibile recuperare gli annunci"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "markAllRead": "Segna tutto come letto",
+    "empty": "Nessuna notifica"
+  },
+  "onboarding": {
+    "title": "Benvenuto in AdNexus AI",
+    "description": "Configuriamo la tua area di lavoro in pochi passaggi.",
+    "stepConnect": "Connetti una piattaforma",
+    "stepConnectDesc": "Collega Meta, Google, TikTok o Snap per importare le campagne.",
+    "stepTeam": "Invita il tuo team",
+    "stepTeamDesc": "Aggiungi colleghi per collaborare.",
+    "stepCampaign": "Crea la tua prima campagna",
+    "stepCampaignDesc": "Avvia o crea una bozza di campagna.",
+    "skip": "Salta per ora",
+    "finish": "Vai alla dashboard",
+    "completed": "Completato"
+  },
+  "goals": {
+    "title": "Obiettivi",
+    "description": "Monitora gli obiettivi di performance delle campagne.",
+    "metric": "Metrica",
+    "target": "Obiettivo",
+    "empty": "Nessun obiettivo",
+    "emptyDescription": "Crea un obiettivo per monitorare ROAS, CPA, conversioni e altro."
+  },
+  "auditLog": {
+    "title": "Registro di controllo",
+    "description": "Un registro di ogni modifica nella tua area di lavoro.",
+    "actor": "Attore",
+    "action": "Azione",
+    "category": "Categoria",
+    "entity": "Entità",
+    "empty": "Nessuna attività",
+    "emptyDescription": "L'attività dell'area di lavoro apparirà qui."
   }
 }

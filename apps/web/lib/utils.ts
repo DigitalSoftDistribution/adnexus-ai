@@ -27,3 +27,11 @@ export function formatDate(date: string | Date, locale = 'en-US'): string {
     day: 'numeric',
   }).format(new Date(date));
 }
+
+/** Compact number formatting, e.g. 12.5K, 3.2M. */
+export function formatCompact(value: number, locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale, {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}

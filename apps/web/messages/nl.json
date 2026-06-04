@@ -16,7 +16,22 @@
     "billing": "Facturering",
     "settings": "Instellingen",
     "signOut": "Afmelden",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Doelen",
+    "integrations": "Integraties",
+    "webhooks": "Webhooks",
+    "auditLog": "Auditlogboek",
+    "collapse": "Inklappen",
+    "workspace": "Werkruimte",
+    "newCampaign": "Nieuwe campagne",
+    "groups": {
+      "overview": "Overzicht",
+      "campaigns": "Campagnes",
+      "automation": "Automatisering",
+      "connect": "Verbinden",
+      "workspace": "Werkruimte",
+      "create": "Aanmaken"
+    }
   },
   "common": {
     "loading": "Laden...",
@@ -92,7 +107,10 @@
     "by": "Door",
     "system": "Systeem",
     "campaign": "Campagne",
-    "changes": "wijziging(en)"
+    "changes": "wijziging(en)",
+    "active": "Actief",
+    "paused": "Gepauzeerd",
+    "budgetType": "Budgettype"
   },
   "auth": {
     "signIn": "Aanmelden",
@@ -203,7 +221,10 @@
       "app_promotion": "App-promotie",
       "reach": "Bereik",
       "video_views": "Videoweergaven"
-    }
+    },
+    "adAccount": "Advertentieaccount",
+    "noConnectedAccount": "Geen gekoppeld advertentieaccount voor dit platform.",
+    "connectPlatform": "Platform verbinden"
   },
   "drafts": {
     "title": "Concepten",
@@ -271,7 +292,8 @@
     "analysisFrequency": "Analysefrequentie",
     "analysisFrequencyDesc": "Hoe vaak de AI-agent je campagnes analyseert",
     "excludedCampaigns": "Uitgesloten campagnes",
-    "excludedCampaignsDesc": "Campagnes die van AI-aanbevelingen moeten worden uitgesloten"
+    "excludedCampaignsDesc": "Campagnes die van AI-aanbevelingen moeten worden uitgesloten",
+    "history": "Geschiedenis"
   },
   "reports": {
     "title": "Rapporten",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Rapportbouwer",
     "chartPreview": "Voorbeeldgebied voor grafiek",
-    "concept": "Concept: rapportbouwer met slepen en neerzetten, grafiekwidgets, datumbereikkiezer en exportopties (PDF, CSV, PNG)."
+    "concept": "Concept: rapportbouwer met slepen en neerzetten, grafiekwidgets, datumbereikkiezer en exportopties (PDF, CSV, PNG).",
+    "performancePreview": "Prestatievoorbeeld",
+    "last14Days": "Uitgaven en conversies, laatste 14 dagen"
   },
   "settings": {
     "title": "Instellingen",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "verbonden",
       "available": "beschikbaar"
-    }
+    },
+    "disconnect": "Loskoppelen"
   },
   "webhooks": {
-    "title": "Webhook-bouwer",
+    "title": "Webhooks",
     "description": "Configureer uitgaande webhooks voor gebeurtenismeldingen.",
-    "comingSoon": "Webhook-bouwer binnenkort beschikbaar."
+    "comingSoon": "Webhook-bouwer binnenkort beschikbaar.",
+    "addWebhook": "Webhook toevoegen",
+    "empty": "Geen webhooks geconfigureerd",
+    "emptyDescription": "Maak een webhook om realtime gebeurtenissen te ontvangen.",
+    "endpoint": "Endpoint-URL",
+    "events": "Gebeurtenissen",
+    "active": "Actief"
   },
   "errors": {
     "failedToFetchSummary": "Ophalen van overzicht mislukt",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "Ophalen van advertentiesets mislukt",
     "failedToFetchHistory": "Ophalen van geschiedenis mislukt",
     "failedToFetchAds": "Ophalen van advertenties mislukt"
+  },
+  "notifications": {
+    "title": "Meldingen",
+    "markAllRead": "Alles als gelezen markeren",
+    "empty": "Nog geen meldingen"
+  },
+  "onboarding": {
+    "title": "Welkom bij AdNexus AI",
+    "description": "Laten we je werkruimte in een paar stappen instellen.",
+    "stepConnect": "Verbind een platform",
+    "stepConnectDesc": "Koppel Meta, Google, TikTok of Snap om campagnes te importeren.",
+    "stepTeam": "Nodig je team uit",
+    "stepTeamDesc": "Voeg teamleden toe om samen te werken.",
+    "stepCampaign": "Maak je eerste campagne",
+    "stepCampaignDesc": "Start of maak een conceptcampagne.",
+    "skip": "Voorlopig overslaan",
+    "finish": "Naar dashboard",
+    "completed": "Voltooid"
+  },
+  "goals": {
+    "title": "Doelen",
+    "description": "Volg prestatiedoelen over campagnes heen.",
+    "metric": "Statistiek",
+    "target": "Doel",
+    "empty": "Nog geen doelen",
+    "emptyDescription": "Maak een doel om ROAS, CPA, conversies en meer te volgen."
+  },
+  "auditLog": {
+    "title": "Auditlogboek",
+    "description": "Een registratie van elke wijziging in je werkruimte.",
+    "actor": "Actor",
+    "action": "Actie",
+    "category": "Categorie",
+    "entity": "Entiteit",
+    "empty": "Nog geen activiteit",
+    "emptyDescription": "Werkruimte-activiteit verschijnt hier."
   }
 }

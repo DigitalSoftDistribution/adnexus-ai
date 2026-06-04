@@ -46,6 +46,8 @@ import { AssetRepository } from '../../infrastructure/repositories/AssetReposito
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
+import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
+import { registerAllPlatformClients } from '../../platforms/register';
 
 // Application
 import { Container } from '../../application/services/Container';
@@ -70,12 +72,15 @@ import { createAuditLogRoutes } from './routes/audit-log';
 import { createExportRoutes } from './routes/exports';
 import { createAssetRoutes } from './routes/assets';
 import { createAdminRoutes } from './routes/admin';
+import { createIntegrationRoutes } from './routes/integrations';
+import { createOnboardingRoutes } from './routes/onboarding';
 
 // OpenAPI
 import { generateOpenAPIDocument } from '../../openapi/generator';
 
 // Realtime
 import { EventBus, createSSEHandler } from '../../realtime';
+import { requireAuthQuery } from './middleware/requireAuth';
 
 /**
  * Build the v2 dependency-injection Container with concrete Supabase-backed
@@ -112,6 +117,7 @@ export function buildContainer(): Container {
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
+    agentAdvisor: new AgentAdvisor(),
   });
 }
 
@@ -136,6 +142,10 @@ export interface MountedV2 {
  * leaving the host's global v1 error handler untouched for everything else.
  */
 export function mountV2Routes(app: Express, options: MountV2Options = {}): MountedV2 {
+  // Register platform client factories once so the PlatformManager can resolve
+  // a client for any connected ad account (Meta, Google, TikTok, Snap).
+  registerAllPlatformClients();
+
   const container = options.container ?? buildContainer();
   const realtimeEventBus = options.realtimeEventBus ?? new EventBus();
 
@@ -148,6 +158,8 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/billing', authenticatedRateLimiter, createBillingRoutes(container));
   v2.use('/ads', authenticatedRateLimiter, createAdRoutes(container));
   v2.use('/settings', authenticatedRateLimiter, createSettingsRoutes(container));
+  v2.use('/integrations', authenticatedRateLimiter, createIntegrationRoutes(container));
+  v2.use('/onboarding', authenticatedRateLimiter, createOnboardingRoutes(container));
   v2.use('/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
   v2.use('/reports', authenticatedRateLimiter, createReportRoutes(container));
   v2.use('/alerts', authenticatedRateLimiter, createAlertRoutes(container));
@@ -162,8 +174,9 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/assets', authenticatedRateLimiter, createAssetRoutes(container));
   v2.use('/admin', authenticatedRateLimiter, createAdminRoutes(container));
 
-  // Realtime SSE endpoint
-  v2.get('/events', authenticatedRateLimiter, createSSEHandler(realtimeEventBus));
+  // Realtime SSE endpoint. EventSource can't send an Authorization header, so
+  // the token arrives as a ?token= query param — requireAuthQuery handles both.
+  v2.get('/events', authenticatedRateLimiter, requireAuthQuery, createSSEHandler(realtimeEventBus));
 
   // Realtime stats endpoint
   v2.get('/events/stats', authenticatedRateLimiter, (_req, res) => {

@@ -16,7 +16,22 @@
     "billing": "Rozliczenia",
     "settings": "Ustawienia",
     "signOut": "Wyloguj się",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Cele",
+    "integrations": "Integracje",
+    "webhooks": "Webhooki",
+    "auditLog": "Dziennik audytu",
+    "collapse": "Zwiń",
+    "workspace": "Obszar roboczy",
+    "newCampaign": "Nowa kampania",
+    "groups": {
+      "overview": "Przegląd",
+      "campaigns": "Kampanie",
+      "automation": "Automatyzacja",
+      "connect": "Połącz",
+      "workspace": "Obszar roboczy",
+      "create": "Utwórz"
+    }
   },
   "common": {
     "loading": "Ładowanie...",
@@ -92,7 +107,10 @@
     "by": "Przez",
     "system": "System",
     "campaign": "Kampania",
-    "changes": "zmiana(y)"
+    "changes": "zmiana(y)",
+    "active": "Aktywny",
+    "paused": "Wstrzymany",
+    "budgetType": "Typ budżetu"
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -203,7 +221,10 @@
       "app_promotion": "Promocja aplikacji",
       "reach": "Zasięg",
       "video_views": "Wyświetlenia wideo"
-    }
+    },
+    "adAccount": "Konto reklamowe",
+    "noConnectedAccount": "Brak połączonego konta reklamowego dla tej platformy.",
+    "connectPlatform": "Połącz platformę"
   },
   "drafts": {
     "title": "Wersje robocze",
@@ -271,7 +292,8 @@
     "analysisFrequency": "Częstotliwość analizy",
     "analysisFrequencyDesc": "Jak często agent SI analizuje Twoje kampanie",
     "excludedCampaigns": "Wykluczone kampanie",
-    "excludedCampaignsDesc": "Kampanie wykluczone z rekomendacji SI"
+    "excludedCampaignsDesc": "Kampanie wykluczone z rekomendacji SI",
+    "history": "Historia"
   },
   "reports": {
     "title": "Raporty",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Kreator raportów",
     "chartPreview": "Obszar podglądu wykresu",
-    "concept": "Koncepcja: Kreator raportów typu „przeciągnij i upuść” z widżetami wykresów, wyborem zakresu dat i opcjami eksportu (PDF, CSV, PNG)."
+    "concept": "Koncepcja: Kreator raportów typu „przeciągnij i upuść” z widżetami wykresów, wyborem zakresu dat i opcjami eksportu (PDF, CSV, PNG).",
+    "performancePreview": "Podgląd wydajności",
+    "last14Days": "Wydatki i konwersje, ostatnie 14 dni"
   },
   "settings": {
     "title": "Ustawienia",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "połączono",
       "available": "dostępne"
-    }
+    },
+    "disconnect": "Rozłącz"
   },
   "webhooks": {
-    "title": "Kreator webhooków",
+    "title": "Webhooki",
     "description": "Skonfiguruj wychodzące webhooki dla powiadomień o zdarzeniach.",
-    "comingSoon": "Kreator webhooków już wkrótce."
+    "comingSoon": "Kreator webhooków już wkrótce.",
+    "addWebhook": "Dodaj webhook",
+    "empty": "Brak skonfigurowanych webhooków",
+    "emptyDescription": "Utwórz webhook, aby odbierać zdarzenia w czasie rzeczywistym.",
+    "endpoint": "URL punktu końcowego",
+    "events": "Zdarzenia",
+    "active": "Aktywny"
   },
   "errors": {
     "failedToFetchSummary": "Nie udało się pobrać podsumowania",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "Nie udało się pobrać zestawów reklam",
     "failedToFetchHistory": "Nie udało się pobrać historii",
     "failedToFetchAds": "Nie udało się pobrać reklam"
+  },
+  "notifications": {
+    "title": "Powiadomienia",
+    "markAllRead": "Oznacz wszystkie jako przeczytane",
+    "empty": "Brak powiadomień"
+  },
+  "onboarding": {
+    "title": "Witamy w AdNexus AI",
+    "description": "Skonfigurujmy Twój obszar roboczy w kilku krokach.",
+    "stepConnect": "Połącz platformę",
+    "stepConnectDesc": "Połącz Meta, Google, TikTok lub Snap, aby zaimportować kampanie.",
+    "stepTeam": "Zaproś swój zespół",
+    "stepTeamDesc": "Dodaj członków zespołu do współpracy.",
+    "stepCampaign": "Utwórz pierwszą kampanię",
+    "stepCampaignDesc": "Uruchom lub utwórz wersję roboczą kampanii.",
+    "skip": "Pomiń na razie",
+    "finish": "Przejdź do panelu",
+    "completed": "Ukończono"
+  },
+  "goals": {
+    "title": "Cele",
+    "description": "Śledź cele wydajności w kampaniach.",
+    "metric": "Metryka",
+    "target": "Cel",
+    "empty": "Brak celów",
+    "emptyDescription": "Utwórz cel, aby śledzić ROAS, CPA, konwersje i więcej."
+  },
+  "auditLog": {
+    "title": "Dziennik audytu",
+    "description": "Zapis każdej zmiany w obszarze roboczym.",
+    "actor": "Wykonawca",
+    "action": "Akcja",
+    "category": "Kategoria",
+    "entity": "Encja",
+    "empty": "Brak aktywności",
+    "emptyDescription": "Aktywność obszaru roboczego pojawi się tutaj."
   }
 }

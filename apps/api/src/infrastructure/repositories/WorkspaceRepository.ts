@@ -1,4 +1,4 @@
-import type { IWorkspaceRepository, WorkspaceFilters, WorkspaceListResult } from '../../domain/repositories/IWorkspaceRepository';
+import type { IWorkspaceRepository, WorkspaceFilters, WorkspaceListResult, OnboardingState } from '../../domain/repositories/IWorkspaceRepository';
 import type { Workspace, WorkspaceLimits, PlanTier } from '../../domain/entities/Workspace';
 import type { WorkspaceMember, WorkspaceRole } from '../../domain/entities/User';
 import { PLAN_LIMITS } from '../../domain/entities/Workspace';
@@ -181,5 +181,38 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 
     const current = parseInt(rows[0]?.count ?? '0', 10);
     return current < max;
+  }
+
+  // ── Onboarding ──────────────────────────────────────────────────────────
+
+  async getOnboarding(workspaceId: string): Promise<OnboardingState | null> {
+    const { rows } = await query<{
+      onboarding_completed_at: string | null;
+      onboarding_step: string | null;
+    }>(
+      `SELECT onboarding_completed_at, onboarding_step FROM workspaces WHERE id = $1 LIMIT 1`,
+      [workspaceId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      completed: row.onboarding_completed_at != null,
+      completedAt: row.onboarding_completed_at,
+      step: row.onboarding_step,
+    };
+  }
+
+  async setOnboardingStep(workspaceId: string, step: string): Promise<void> {
+    await query(
+      `UPDATE workspaces SET onboarding_step = $2, updated_at = NOW() WHERE id = $1`,
+      [workspaceId, step],
+    );
+  }
+
+  async completeOnboarding(workspaceId: string): Promise<void> {
+    await query(
+      `UPDATE workspaces SET onboarding_completed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+      [workspaceId],
+    );
   }
 }

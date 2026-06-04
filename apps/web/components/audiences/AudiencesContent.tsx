@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { platformLabel } from '@/lib/platforms';
 import { Users, Plus, Target, Globe, Smartphone, Heart, ShoppingCart } from 'lucide-react';
 
 interface Audience {
@@ -45,6 +47,13 @@ export function AudiencesContent() {
   const tc = useTranslations('common');
 
   const platforms = ['all', 'meta', 'google', 'tiktok', 'snap'] as const;
+
+  const platformBreakdown = Object.entries(
+    audiences.reduce<Record<string, number>>((acc, a) => {
+      acc[a.platform] = (acc[a.platform] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([platform, count]) => ({ name: platformLabel(platform), value: count }));
 
   const interestCategories = [
     { name: t('interestCategories.technology'), icon: Smartphone, count: 45 },
@@ -148,33 +157,18 @@ export function AudiencesContent() {
         ))}
       </div>
 
-      {/* Wireframe Concept */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">{t('wireframeTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-            <div className="flex gap-4">
-              <div className="flex-1 h-32 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                {t('demographics')}
-              </div>
-              <div className="flex-1 h-32 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                {t('interestsBehaviors')}
-              </div>
-              <div className="flex-1 h-32 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                {t('customDataSources')}
-              </div>
-            </div>
-            <div className="h-24 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-              {t('audienceSizeEstimator')}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t('concept')}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Platform distribution */}
+      {platformBreakdown.length > 0 && (
+        <ChartCard
+          title={t('wireframeTitle')}
+          description={t('platforms')}
+          type="donut"
+          data={platformBreakdown}
+          xKey="name"
+          series={[{ key: 'value', label: t('totalAudiences') }]}
+          height={260}
+        />
+      )}
     </div>
   );
 }

@@ -136,20 +136,26 @@ router.get('/callback', async (req: Request, res: Response) => {
       scope: string;
     };
 
-    // Store the Google ad account in the database
+    // Store the Google ad account in the database. The Google Ads customer ID
+    // is resolved out-of-band; until then use a stable per-workspace key so
+    // reconnects upsert cleanly against the (workspace_id, platform,
+    // platform_account_id) unique constraint.
     const { error: dbError } = await supabase
       .from('ad_accounts')
       .upsert({
         workspace_id: workspaceId,
         platform: 'google',
+        platform_account_id: 'google-ads',
+        account_id: 'google-ads',
         name: 'Google Ads',
-        access_token: tokens.access_token,
+        oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
         token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         scopes: tokens.scope?.split(' ') || REQUIRED_SCOPES,
+        status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id,platform' });
+      }, { onConflict: 'workspace_id,platform,account_id' });
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store Google tokens');

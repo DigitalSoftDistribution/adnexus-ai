@@ -5,7 +5,12 @@ import { AuthProvider } from './AuthProvider';
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider>
-      <ThemeProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        enableSystem={false}
+        disableTransitionOnChange
+      >
         <AuthProvider>{children}</AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

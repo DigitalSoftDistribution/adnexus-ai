@@ -492,11 +492,26 @@ class StatsUtils {
     return smoothed;
   }
 
-  /** Generate a deterministic UUID-like string from seed */
+  /** Generate a non-deterministic UUID-like string (use stableId for recommendations). */
   static generateId(prefix = 'rec'): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).slice(2, 8);
     return `${prefix}_${timestamp}_${random}`;
+  }
+
+  /**
+   * Deterministic id from a prefix + seed parts. Recommendations must use this
+   * so the same recommendation keeps the same id across regenerations — that's
+   * what apply/dismiss target.
+   */
+  static stableId(prefix: string, ...parts: Array<string | number | undefined | null>): string {
+    const seed = parts.filter((p) => p != null && p !== '').join('|') || prefix;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return `${prefix}_${(hash >>> 0).toString(36)}`;
   }
 }
 
@@ -1326,7 +1341,10 @@ export class RecommendationGenerator {
       avgLowRoas > 0 ? ((avgTopRoas - avgLowRoas) / avgLowRoas) * 100 : 0;
 
     const rec: BudgetRecommendation = {
-      id: StatsUtils.generateId('budget'),
+      id: StatsUtils.stableId(
+        'budget',
+        ...[...topPerformers.map((t) => t.campaign.id), ...lowPerformers.map((l) => l.campaign.id)].sort(),
+      ),
       workspaceId,
       type: 'budget_reallocation',
       title: `Reallocate budget to top ${topPerformers.length} performing campaigns`,
@@ -1373,7 +1391,7 @@ export class RecommendationGenerator {
     }
 
     const rec: CreativeRecommendation = {
-      id: StatsUtils.generateId('creative'),
+      id: StatsUtils.stableId('creative', ...fatiguedAds.map((a) => a.name).sort()),
       workspaceId,
       type: 'creative_refresh',
       title: `Refresh ${fatiguedAds.length} fatigued creative${fatiguedAds.length > 1 ? 's' : ''}`,
@@ -1423,7 +1441,7 @@ export class RecommendationGenerator {
     if (overlapPct < 30) return []; // Low overlap, no issue
 
     const rec: AudienceRecommendation = {
-      id: StatsUtils.generateId('audience'),
+      id: StatsUtils.stableId('audience', ...[...new Set(adsets.map((a: Record<string, unknown>) => a.campaign_id as string))].sort()),
       workspaceId,
       type: 'audience_optimization',
       title: `Consolidate overlapping audiences (${overlapPct}% overlap detected)`,
@@ -1471,7 +1489,7 @@ export class RecommendationGenerator {
         const expectedCpa = campaign.cpa * 0.85;
 
         recommendations.push({
-          id: StatsUtils.generateId('bid'),
+          id: StatsUtils.stableId('bid', 'reduce', campaign.id),
           workspaceId,
           type: 'bid_adjustment',
           title: `Reduce bids for "${campaign.name}" (CPA trending up)`,
@@ -1499,7 +1517,7 @@ export class RecommendationGenerator {
       // If ROAS is strong and stable, suggest bid increase
       if (campaign.roas > 4 && trend && trend.direction === 'down') {
         recommendations.push({
-          id: StatsUtils.generateId('bid'),
+          id: StatsUtils.stableId('bid', 'increase', campaign.id),
           workspaceId,
           type: 'bid_adjustment',
           title: `Increase bids for "${campaign.name}" (strong ROAS: ${campaign.roas}x)`,

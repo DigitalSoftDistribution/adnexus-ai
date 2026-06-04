@@ -16,7 +16,22 @@
     "billing": "請求",
     "settings": "設定",
     "signOut": "サインアウト",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "目標",
+    "integrations": "連携",
+    "webhooks": "Webhook",
+    "auditLog": "監査ログ",
+    "collapse": "折りたたむ",
+    "workspace": "ワークスペース",
+    "newCampaign": "新規キャンペーン",
+    "groups": {
+      "overview": "概要",
+      "campaigns": "キャンペーン",
+      "automation": "自動化",
+      "connect": "連携",
+      "workspace": "ワークスペース",
+      "create": "作成"
+    }
   },
   "common": {
     "loading": "読み込み中...",
@@ -92,7 +107,10 @@
     "by": "実行者",
     "system": "システム",
     "campaign": "キャンペーン",
-    "changes": "件の変更"
+    "changes": "件の変更",
+    "active": "有効",
+    "paused": "一時停止",
+    "budgetType": "予算タイプ"
   },
   "auth": {
     "signIn": "サインイン",
@@ -203,7 +221,10 @@
       "app_promotion": "アプリプロモーション",
       "reach": "リーチ",
       "video_views": "動画視聴回数"
-    }
+    },
+    "adAccount": "広告アカウント",
+    "noConnectedAccount": "このプラットフォームに接続された広告アカウントがありません。",
+    "connectPlatform": "プラットフォームを接続"
   },
   "drafts": {
     "title": "下書き",
@@ -271,7 +292,8 @@
     "analysisFrequency": "分析頻度",
     "analysisFrequencyDesc": "AIエージェントがキャンペーンを分析する頻度",
     "excludedCampaigns": "除外するキャンペーン",
-    "excludedCampaignsDesc": "AI推奨事項から除外するキャンペーン"
+    "excludedCampaignsDesc": "AI推奨事項から除外するキャンペーン",
+    "history": "履歴"
   },
   "reports": {
     "title": "レポート",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "ワイヤーフレーム: レポートビルダー",
     "chartPreview": "チャートプレビューエリア",
-    "concept": "コンセプト: チャートウィジェット、期間選択ツール、エクスポートオプション (PDF、CSV、PNG) を備えたドラッグ＆ドロップ式レポートビルダー。"
+    "concept": "コンセプト: チャートウィジェット、期間選択ツール、エクスポートオプション (PDF、CSV、PNG) を備えたドラッグ＆ドロップ式レポートビルダー。",
+    "performancePreview": "パフォーマンスプレビュー",
+    "last14Days": "過去14日間の支出とコンバージョン"
   },
   "settings": {
     "title": "設定",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "接続済み",
       "available": "利用可能"
-    }
+    },
+    "disconnect": "切断"
   },
   "webhooks": {
-    "title": "Webhookビルダー",
+    "title": "Webhook",
     "description": "イベント通知用の送信Webhookを構成します。",
-    "comingSoon": "Webhookビルダーは近日公開予定です。"
+    "comingSoon": "Webhookビルダーは近日公開予定です。",
+    "addWebhook": "Webhookを追加",
+    "empty": "Webhookが設定されていません",
+    "emptyDescription": "リアルタイムイベントを受信するにはWebhookを作成します。",
+    "endpoint": "エンドポイントURL",
+    "events": "イベント",
+    "active": "有効"
   },
   "errors": {
     "failedToFetchSummary": "サマリーの取得に失敗しました",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "広告セットの取得に失敗しました",
     "failedToFetchHistory": "履歴の取得に失敗しました",
     "failedToFetchAds": "広告の取得に失敗しました"
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "empty": "通知はまだありません"
+  },
+  "onboarding": {
+    "title": "AdNexus AIへようこそ",
+    "description": "数ステップでワークスペースを設定しましょう。",
+    "stepConnect": "プラットフォームを接続",
+    "stepConnectDesc": "Meta、Google、TikTok、Snapを連携してキャンペーンをインポートします。",
+    "stepTeam": "チームを招待",
+    "stepTeamDesc": "メンバーを追加して共同作業します。",
+    "stepCampaign": "最初のキャンペーンを作成",
+    "stepCampaignDesc": "キャンペーンを開始または下書きします。",
+    "skip": "今はスキップ",
+    "finish": "ダッシュボードへ",
+    "completed": "完了"
+  },
+  "goals": {
+    "title": "目標",
+    "description": "キャンペーン全体のパフォーマンス目標を追跡します。",
+    "metric": "指標",
+    "target": "目標値",
+    "empty": "目標がまだありません",
+    "emptyDescription": "ROAS、CPA、コンバージョンなどを追跡する目標を作成します。"
+  },
+  "auditLog": {
+    "title": "監査ログ",
+    "description": "ワークスペース内のすべての変更の記録。",
+    "actor": "実行者",
+    "action": "アクション",
+    "category": "カテゴリ",
+    "entity": "エンティティ",
+    "empty": "アクティビティがまだありません",
+    "emptyDescription": "ワークスペースのアクティビティがここに表示されます。"
   }
 }

@@ -85,6 +85,7 @@ export interface ISettingsRepository {
   // Integrations
   getIntegrations(workspaceId: string): Promise<Integration[]>;
   getIntegration(workspaceId: string, platform: string): Promise<Integration | null>;
+  disconnectIntegration(workspaceId: string, platform: string): Promise<boolean>;
 
   // Notifications
   getNotificationPreferences(workspaceId: string, userId: string): Promise<NotificationPreferences | null>;

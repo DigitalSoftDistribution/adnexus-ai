@@ -47,6 +47,12 @@ export class CreateCampaignUseCase {
       return err(new ValidationError('Campaign name must be at least 2 characters'));
     }
 
+    // A campaign must belong to a connected ad account — without it the row
+    // can't be re-read (workspace scoping lives on ad_accounts).
+    if (!input.adAccountId) {
+      return err(new ValidationError('Select an ad account to create a campaign. Connect a platform first.'));
+    }
+
     const campaign = await this.campaignRepo.create({
       workspaceId: input.workspaceId,
       adAccountId: input.adAccountId,

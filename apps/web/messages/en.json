@@ -16,7 +16,22 @@
     "billing": "Billing",
     "settings": "Settings",
     "signOut": "Sign Out",
-    "logo": "AdNexus AI"
+    "logo": "AdNexus AI",
+    "goals": "Goals",
+    "integrations": "Integrations",
+    "webhooks": "Webhooks",
+    "auditLog": "Audit Log",
+    "collapse": "Collapse",
+    "workspace": "Workspace",
+    "newCampaign": "New Campaign",
+    "groups": {
+      "overview": "Overview",
+      "campaigns": "Campaigns",
+      "automation": "Automation",
+      "connect": "Connect",
+      "workspace": "Workspace",
+      "create": "Create"
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -92,7 +107,10 @@
     "by": "By",
     "system": "System",
     "campaign": "Campaign",
-    "changes": "change(s)"
+    "changes": "change(s)",
+    "active": "Active",
+    "paused": "Paused",
+    "budgetType": "Budget Type"
   },
   "auth": {
     "signIn": "Sign In",
@@ -203,7 +221,10 @@
       "app_promotion": "App Promotion",
       "reach": "Reach",
       "video_views": "Video Views"
-    }
+    },
+    "adAccount": "Ad Account",
+    "noConnectedAccount": "No connected ad account for this platform.",
+    "connectPlatform": "Connect a platform"
   },
   "drafts": {
     "title": "Drafts",
@@ -271,7 +292,8 @@
     "analysisFrequency": "Analysis frequency",
     "analysisFrequencyDesc": "How often the AI Agent analyzes your campaigns",
     "excludedCampaigns": "Excluded campaigns",
-    "excludedCampaignsDesc": "Campaigns to exclude from AI recommendations"
+    "excludedCampaignsDesc": "Campaigns to exclude from AI recommendations",
+    "history": "History"
   },
   "reports": {
     "title": "Reports",
@@ -309,7 +331,9 @@
     },
     "wireframeTitle": "Wireframe: Report Builder",
     "chartPreview": "Chart Preview Area",
-    "concept": "Concept: Drag-and-drop report builder with chart widgets, date range picker, and export options (PDF, CSV, PNG)."
+    "concept": "Concept: Drag-and-drop report builder with chart widgets, date range picker, and export options (PDF, CSV, PNG).",
+    "performancePreview": "Performance Preview",
+    "last14Days": "Spend and conversions, last 14 days"
   },
   "settings": {
     "title": "Settings",
@@ -488,12 +512,19 @@
     "status": {
       "connected": "connected",
       "available": "available"
-    }
+    },
+    "disconnect": "Disconnect"
   },
   "webhooks": {
-    "title": "Webhook Builder",
+    "title": "Webhooks",
     "description": "Configure outgoing webhooks for event notifications.",
-    "comingSoon": "Webhook builder coming soon."
+    "comingSoon": "Webhook builder coming soon.",
+    "addWebhook": "Add webhook",
+    "empty": "No webhooks configured",
+    "emptyDescription": "Create a webhook to receive real-time events.",
+    "endpoint": "Endpoint URL",
+    "events": "Events",
+    "active": "Active"
   },
   "errors": {
     "failedToFetchSummary": "Failed to fetch summary",
@@ -501,5 +532,41 @@
     "failedToFetchAdSets": "Failed to fetch ad sets",
     "failedToFetchHistory": "Failed to fetch history",
     "failedToFetchAds": "Failed to fetch ads"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet"
+  },
+  "onboarding": {
+    "title": "Welcome to AdNexus AI",
+    "description": "Let's get your workspace set up in a few steps.",
+    "stepConnect": "Connect a platform",
+    "stepConnectDesc": "Link Meta, Google, TikTok or Snap to import campaigns.",
+    "stepTeam": "Invite your team",
+    "stepTeamDesc": "Add teammates to collaborate on campaigns.",
+    "stepCampaign": "Create your first campaign",
+    "stepCampaignDesc": "Launch or draft a campaign to see AdNexus in action.",
+    "skip": "Skip for now",
+    "finish": "Go to dashboard",
+    "completed": "Completed"
+  },
+  "goals": {
+    "title": "Goals",
+    "description": "Track performance targets across campaigns.",
+    "metric": "Metric",
+    "target": "Target",
+    "empty": "No goals yet",
+    "emptyDescription": "Create a goal to track ROAS, CPA, conversions and more."
+  },
+  "auditLog": {
+    "title": "Audit Log",
+    "description": "A record of every change in your workspace.",
+    "actor": "Actor",
+    "action": "Action",
+    "category": "Category",
+    "entity": "Entity",
+    "empty": "No activity yet",
+    "emptyDescription": "Workspace activity will appear here."
   }
 }
