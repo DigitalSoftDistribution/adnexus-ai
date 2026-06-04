@@ -34,6 +34,7 @@ import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
 import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
 import type { IPlatformSyncService } from '../ports/IPlatformSyncService';
+import type { IPlatformWriteService } from '../ports/IPlatformWriteService';
 import type { Platform } from '../../domain/entities/Campaign';
 
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
@@ -192,6 +193,8 @@ export interface ContainerConfig {
   agentAdvisor: IAgentAdvisor;
   /** Optional live ad-platform sync service (e.g. Meta). */
   platformSyncService?: IPlatformSyncService;
+  /** Optional ad-platform write service for pause/resume (e.g. Meta). */
+  platformWriteService?: IPlatformWriteService;
   /** Optional account-sync deps; required to expose the account sync use-case. */
   adAccountRepository?: IAdAccountRepository;
   syncJobRepository?: ISyncJobRepository;
@@ -352,8 +355,8 @@ export class Container {
     this.getCampaignById = new GetCampaignByIdUseCase(config.campaignRepository);
     this.updateCampaign = new UpdateCampaignUseCase(config.campaignRepository);
     this.deleteCampaign = new DeleteCampaignUseCase(config.campaignRepository);
-    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository);
-    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository);
+    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository, config.platformWriteService);
+    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository, config.platformWriteService);
     this.duplicateCampaign = new DuplicateCampaignUseCase(config.campaignRepository);
 
     this.createDraft = new CreateDraftUseCase(
