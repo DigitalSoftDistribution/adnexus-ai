@@ -10,8 +10,8 @@ name: Deploy
 #   COOLIFY_TOKEN     a Coolify API token with deploy permission
 #
 # App UUIDs (DigitalSoftDistribution/adnexus-ai, branch: main):
-#   API  adnexus-api -> k1s23stsmfw1wlsark0v66jf
-#   Web  adnexus-ai  -> myw0zkilvdech4gx6ezd5krr
+#   API  adnexus-api -> x10mxscm633zyl2wlxam9eix
+#   Web  adnexus-ai  -> s14g320fbqnjnokv5pfv0rrp
 
 on:
   workflow_run:
@@ -25,8 +25,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  API_APP_UUID: k1s23stsmfw1wlsark0v66jf
-  WEB_APP_UUID: myw0zkilvdech4gx6ezd5krr
+  API_APP_UUID: x10mxscm633zyl2wlxam9eix
+  WEB_APP_UUID: s14g320fbqnjnokv5pfv0rrp
 
 jobs:
   build:
