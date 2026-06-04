@@ -48,7 +48,6 @@ export function NewCampaignContent() {
     } else {
       setAdAccountId('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platform, accountsData]);
 
   const platforms = [
