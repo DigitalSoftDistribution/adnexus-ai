@@ -109,7 +109,8 @@
     "campaign": "Campagne",
     "changes": "wijziging(en)",
     "active": "Actief",
-    "paused": "Gepauzeerd"
+    "paused": "Gepauzeerd",
+    "budgetType": "Budgettype"
   },
   "auth": {
     "signIn": "Aanmelden",

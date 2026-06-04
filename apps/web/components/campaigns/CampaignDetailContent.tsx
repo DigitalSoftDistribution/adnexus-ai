@@ -364,8 +364,8 @@ export function CampaignDetailContent() {
               <CardDescription>{t('spendOverTime')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                {tc('placeholder')}
+              <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+                {tc('noResults')}
               </div>
             </CardContent>
           </Card>

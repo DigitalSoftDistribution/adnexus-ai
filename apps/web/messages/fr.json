@@ -109,7 +109,8 @@
     "campaign": "Campagne",
     "changes": "modification(s)",
     "active": "Actif",
-    "paused": "En pause"
+    "paused": "En pause",
+    "budgetType": "Type de budget"
   },
   "auth": {
     "signIn": "Se connecter",

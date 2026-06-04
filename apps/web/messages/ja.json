@@ -109,7 +109,8 @@
     "campaign": "キャンペーン",
     "changes": "件の変更",
     "active": "有効",
-    "paused": "一時停止"
+    "paused": "一時停止",
+    "budgetType": "予算タイプ"
   },
   "auth": {
     "signIn": "サインイン",
