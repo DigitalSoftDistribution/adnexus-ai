@@ -99,6 +99,28 @@ export async function getMetaAdAccounts(accessToken: string): Promise<MetaAdAcco
 
 // ─── Campaigns ───────────────────────────────────────────────
 
+/**
+ * Follow Meta cursor pagination (`paging.next`) and collect all pages.
+ * Capped at `maxPages` so a pathological account can't loop forever.
+ */
+async function fetchAllPages<T>(url: string, params: Record<string, unknown>, maxPages = 25): Promise<T[]> {
+  const out: T[] = [];
+  let nextUrl: string | undefined;
+  let nextParams: Record<string, unknown> | undefined = params;
+
+  for (let page = 0; page < maxPages; page++) {
+    const { data } = nextUrl
+      ? await axios.get(nextUrl)
+      : await axios.get(url, { params: nextParams });
+    if (Array.isArray(data.data)) out.push(...data.data);
+    const next = data.paging?.next as string | undefined;
+    if (!next) break;
+    nextUrl = next; // `next` is a fully-qualified URL with cursor + token baked in.
+    nextParams = undefined;
+  }
+  return out;
+}
+
 export async function getMetaCampaigns(
   accountId: string,
   accessToken: string,
@@ -114,8 +136,7 @@ export async function getMetaCampaigns(
       params.effective_status = status === 'active' ? "['ACTIVE']" : "['PAUSED','ARCHIVED']";
     }
 
-    const { data } = await axios.get(`${META_API}/${accountId}/campaigns`, { params });
-    return data.data ?? [];
+    return await fetchAllPages<MetaCampaign>(`${META_API}/${accountId}/campaigns`, params);
   } catch (err) {
     const e = err as AxiosError;
     throw new PlatformError('meta', `Failed to fetch campaigns: ${e.message}`);
@@ -201,14 +222,11 @@ export interface MetaAd {
 
 export async function getMetaAdSets(campaignId: string, accessToken: string): Promise<MetaAdSet[]> {
   try {
-    const { data } = await axios.get(`${META_API}/${campaignId}/adsets`, {
-      params: {
-        access_token: accessToken,
-        fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,bid_strategy,bid_amount,targeting',
-        limit: 200,
-      },
+    return await fetchAllPages<MetaAdSet>(`${META_API}/${campaignId}/adsets`, {
+      access_token: accessToken,
+      fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,bid_strategy,bid_amount,targeting',
+      limit: 200,
     });
-    return data.data ?? [];
   } catch (err) {
     const e = err as AxiosError;
     throw new PlatformError('meta', `Failed to fetch ad sets: ${e.message}`);
@@ -217,14 +235,11 @@ export async function getMetaAdSets(campaignId: string, accessToken: string): Pr
 
 export async function getMetaAds(adsetId: string, accessToken: string): Promise<MetaAd[]> {
   try {
-    const { data } = await axios.get(`${META_API}/${adsetId}/ads`, {
-      params: {
-        access_token: accessToken,
-        fields: 'id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_type}',
-        limit: 200,
-      },
+    return await fetchAllPages<MetaAd>(`${META_API}/${adsetId}/ads`, {
+      access_token: accessToken,
+      fields: 'id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_type}',
+      limit: 200,
     });
-    return data.data ?? [];
   } catch (err) {
     const e = err as AxiosError;
     throw new PlatformError('meta', `Failed to fetch ads: ${e.message}`);
