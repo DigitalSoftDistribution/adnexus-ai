@@ -60,5 +60,23 @@ export function createIntegrationController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    syncJobs: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.listSyncJobs) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SYNC_UNAVAILABLE', message: 'Sync history is not configured' },
+        });
+        return;
+      }
+      const result = await container.listSyncJobs.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        adAccountId: req.params.accountId,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

@@ -176,6 +176,61 @@ export async function updateMetaCampaign(
   }
 }
 
+// ─── Ad Sets & Ads ───────────────────────────────────────────
+
+export interface MetaAdSet {
+  id: string;
+  name: string;
+  status: string;
+  campaign_id: string;
+  daily_budget?: string;
+  lifetime_budget?: string;
+  bid_strategy?: string;
+  bid_amount?: string;
+  targeting?: Record<string, unknown>;
+}
+
+export interface MetaAd {
+  id: string;
+  name: string;
+  status: string;
+  adset_id: string;
+  campaign_id?: string;
+  creative?: Record<string, unknown>;
+}
+
+export async function getMetaAdSets(campaignId: string, accessToken: string): Promise<MetaAdSet[]> {
+  try {
+    const { data } = await axios.get(`${META_API}/${campaignId}/adsets`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,bid_strategy,bid_amount,targeting',
+        limit: 200,
+      },
+    });
+    return data.data ?? [];
+  } catch (err) {
+    const e = err as AxiosError;
+    throw new PlatformError('meta', `Failed to fetch ad sets: ${e.message}`);
+  }
+}
+
+export async function getMetaAds(adsetId: string, accessToken: string): Promise<MetaAd[]> {
+  try {
+    const { data } = await axios.get(`${META_API}/${adsetId}/ads`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_type}',
+        limit: 200,
+      },
+    });
+    return data.data ?? [];
+  } catch (err) {
+    const e = err as AxiosError;
+    throw new PlatformError('meta', `Failed to fetch ads: ${e.message}`);
+  }
+}
+
 // ─── Insights ────────────────────────────────────────────────
 
 export async function getMetaInsights(

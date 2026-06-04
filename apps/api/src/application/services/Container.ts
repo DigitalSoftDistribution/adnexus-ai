@@ -34,6 +34,7 @@ import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
 import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
 import type { IPlatformSyncService } from '../ports/IPlatformSyncService';
+import type { Platform } from '../../domain/entities/Campaign';
 
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
 import { ListCampaignsUseCase } from '../use-cases/campaign/ListCampaignsUseCase';
@@ -106,6 +107,7 @@ import { GetCampaignInsightsUseCase } from '../use-cases/campaign/GetCampaignIns
 import { GetCampaignHistoryUseCase } from '../use-cases/campaign/GetCampaignHistoryUseCase';
 import { SyncCampaignUseCase } from '../use-cases/campaign/SyncCampaignUseCase';
 import { SyncAccountUseCase } from '../use-cases/integration/SyncAccountUseCase';
+import { ListSyncJobsUseCase } from '../use-cases/integration/ListSyncJobsUseCase';
 import { ListAdSetsUseCase } from '../use-cases/ad-set/ListAdSetsUseCase';
 import { GetAdSetByIdUseCase } from '../use-cases/ad-set/GetAdSetByIdUseCase';
 import { CreateAdSetUseCase } from '../use-cases/ad-set/CreateAdSetUseCase';
@@ -201,6 +203,13 @@ export interface ContainerConfig {
   ) => Promise<void>;
   /** Stamps ad_accounts.last_synced_at (infra-supplied). */
   stampAccountSynced?: (adAccountId: string) => Promise<void>;
+  /** Optional: persists ad sets + ads for a campaign during account sync. */
+  writeAdSets?: (
+    workspaceId: string,
+    campaignId: string,
+    platform: Platform,
+    adSets: NonNullable<import('../ports/IPlatformSyncService').SyncedCampaign['adSets']>,
+  ) => Promise<{ adSets: number; ads: number }>;
 }
 
 export class Container {
@@ -277,6 +286,8 @@ export class Container {
   readonly syncCampaign: SyncCampaignUseCase;
   /** Present only when account-sync deps are configured. */
   readonly syncAccount?: SyncAccountUseCase;
+  /** Present only when sync-job deps are configured. */
+  readonly listSyncJobs?: ListSyncJobsUseCase;
   readonly listAdSets: ListAdSetsUseCase;
   readonly getAdSetById: GetAdSetByIdUseCase;
   readonly createAdSet: CreateAdSetUseCase;
@@ -467,6 +478,14 @@ export class Container {
         config.platformSyncService,
         config.writeCampaignMetrics,
         config.stampAccountSynced,
+        config.writeAdSets,
+      );
+    }
+
+    if (config.adAccountRepository && config.syncJobRepository) {
+      this.listSyncJobs = new ListSyncJobsUseCase(
+        config.adAccountRepository,
+        config.syncJobRepository,
       );
     }
 

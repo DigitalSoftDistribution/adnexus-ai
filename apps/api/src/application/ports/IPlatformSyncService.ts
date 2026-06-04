@@ -32,6 +32,28 @@ export interface SyncCampaignContext {
   dateRange?: { since: string; until: string };
 }
 
+/** A single ad set imported from a platform during an account-level sync. */
+export interface SyncedAdSet {
+  platformAdSetId: string;
+  name: string;
+  status: string;
+  dailyBudget?: number | null;
+  bidStrategy?: string | null;
+  bidAmount?: number | null;
+  targeting?: Record<string, unknown> | null;
+  ads: SyncedAd[];
+}
+
+/** A single ad imported from a platform during an account-level sync. */
+export interface SyncedAd {
+  platformAdId: string;
+  name: string;
+  status: string;
+  creativeType?: string | null;
+  creativeUrl?: string | null;
+  creativeText?: string | null;
+}
+
 /** A single campaign imported from a platform during an account-level sync. */
 export interface SyncedCampaign {
   platformCampaignId: string;
@@ -44,6 +66,8 @@ export interface SyncedCampaign {
   startDate?: string | null;
   endDate?: string | null;
   metrics: SyncedCampaignMetrics;
+  /** Child ad sets (with their ads). Empty when not imported. */
+  adSets?: SyncedAdSet[];
 }
 
 export interface SyncAccountContext {

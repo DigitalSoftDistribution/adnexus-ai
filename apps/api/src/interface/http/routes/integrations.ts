@@ -23,6 +23,8 @@ export function createIntegrationRoutes(container: Container): Router {
     requireRole('owner', 'admin', 'editor') as any,
     controller.sync as any,
   );
+  // Sync-job history for an ad account.
+  router.get('/accounts/:accountId/sync-jobs', requireAuth, controller.syncJobs as any);
 
   return router;
 }

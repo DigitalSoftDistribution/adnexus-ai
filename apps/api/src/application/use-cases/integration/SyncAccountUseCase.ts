@@ -41,6 +41,16 @@ export class SyncAccountUseCase {
     private readonly writeMetrics: (campaignId: string, date: string, m: SyncedCampaign['metrics']) => Promise<void>,
     /** Stamps ad_accounts.last_synced_at. */
     private readonly stampSynced: (adAccountId: string) => Promise<void>,
+    /**
+     * Optional: persists a campaign's ad sets + ads. When omitted, the sync
+     * imports campaigns + metrics only (ad sets/ads are skipped).
+     */
+    private readonly writeAdSets?: (
+      workspaceId: string,
+      campaignId: string,
+      platform: Platform,
+      adSets: NonNullable<SyncedCampaign['adSets']>,
+    ) => Promise<{ adSets: number; ads: number }>,
   ) {}
 
   async execute(input: SyncAccountInput): Promise<Result<SyncAccountOutput>> {
@@ -163,6 +173,14 @@ export class SyncAccountUseCase {
           metricsSynced++;
         } catch (e) {
           errors.push({ scope: 'metrics', scopeId: c.platformCampaignId, message: (e as Error).message });
+        }
+
+        if (this.writeAdSets && c.adSets && c.adSets.length > 0) {
+          try {
+            await this.writeAdSets(input.workspaceId, campaignId, platform, c.adSets);
+          } catch (e) {
+            errors.push({ scope: 'adset', scopeId: c.platformCampaignId, message: (e as Error).message });
+          }
         }
       } catch (e) {
         errors.push({ scope: 'campaign', scopeId: c.platformCampaignId, message: (e as Error).message });

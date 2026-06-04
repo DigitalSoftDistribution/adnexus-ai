@@ -6,9 +6,16 @@ import type {
   SyncAccountResult,
   SyncedCampaign,
 } from '../../application/ports/IPlatformSyncService';
+// SyncedAdSet/SyncedAd are referenced structurally via SyncedCampaign['adSets'].
 import type { Platform } from '../../domain/entities/Campaign';
 import { query } from '../database/connection';
-import { getMetaCampaign, getMetaCampaigns, getMetaInsights } from '../../services/meta-api';
+import {
+  getMetaCampaign,
+  getMetaCampaigns,
+  getMetaInsights,
+  getMetaAdSets,
+  getMetaAds,
+} from '../../services/meta-api';
 import { getModuleLogger } from '../../lib/logger';
 
 const log = getModuleLogger('meta-sync');
@@ -162,6 +169,8 @@ export class MetaPlatformSyncService implements IPlatformSyncService {
         errors.push({ scope: 'campaign', scopeId: mc.id, message: (e as Error).message });
       }
 
+      const adSets = await this.fetchAdSets(mc.id, token, errors);
+
       campaigns.push({
         platformCampaignId: mc.id,
         name: mc.name,
@@ -173,9 +182,58 @@ export class MetaPlatformSyncService implements IPlatformSyncService {
         startDate: mc.start_time ? mc.start_time.slice(0, 10) : null,
         endDate: mc.stop_time ? mc.stop_time.slice(0, 10) : null,
         metrics: mapInsights(insights, mc.status),
+        adSets,
       });
     }
 
     return { campaigns, errors };
+  }
+
+  /** Fetch ad sets (and their ads) for a campaign; errors are non-fatal. */
+  private async fetchAdSets(
+    campaignId: string,
+    token: string,
+    errors: SyncAccountResult['errors'],
+  ): Promise<NonNullable<SyncedCampaign['adSets']>> {
+    let metaAdSets;
+    try {
+      metaAdSets = await getMetaAdSets(campaignId, token);
+    } catch (e) {
+      errors.push({ scope: 'adset', scopeId: campaignId, message: (e as Error).message });
+      return [];
+    }
+
+    const out: NonNullable<SyncedCampaign['adSets']> = [];
+    for (const as of metaAdSets) {
+      let ads: NonNullable<SyncedCampaign['adSets']>[number]['ads'] = [];
+      try {
+        const metaAds = await getMetaAds(as.id, token);
+        ads = metaAds.map((ad) => {
+          const creative = (ad.creative ?? {}) as Record<string, unknown>;
+          return {
+            platformAdId: ad.id,
+            name: ad.name,
+            status: mapMetaStatus(ad.status) ?? 'paused',
+            creativeType: (creative.object_type as string) ?? null,
+            creativeUrl: (creative.image_url as string) ?? null,
+            creativeText: (creative.body as string) ?? (creative.title as string) ?? null,
+          };
+        });
+      } catch (e) {
+        errors.push({ scope: 'ad', scopeId: as.id, message: (e as Error).message });
+      }
+
+      out.push({
+        platformAdSetId: as.id,
+        name: as.name,
+        status: mapMetaStatus(as.status) ?? 'paused',
+        dailyBudget: as.daily_budget ? Number(as.daily_budget) / 100 : null,
+        bidStrategy: as.bid_strategy ?? null,
+        bidAmount: as.bid_amount ? Number(as.bid_amount) / 100 : null,
+        targeting: as.targeting ?? null,
+        ads,
+      });
+    }
+    return out;
   }
 }

@@ -120,6 +120,43 @@ describe('SyncAccountUseCase', () => {
     }
   });
 
+  it('persists ad sets when a writeAdSets writer is provided', async () => {
+    const campaignRepo = makeCampaignRepo();
+    const writeAdSets = vi.fn().mockResolvedValue({ adSets: 1, ads: 2 });
+    const sync = makeSync({
+      campaigns: [
+        {
+          platformCampaignId: 'fb-1',
+          name: 'C1',
+          status: 'active',
+          metrics,
+          adSets: [
+            {
+              platformAdSetId: 'as-1',
+              name: 'AS1',
+              status: 'active',
+              ads: [
+                { platformAdId: 'ad-1', name: 'Ad1', status: 'active' },
+                { platformAdId: 'ad-2', name: 'Ad2', status: 'paused' },
+              ],
+            },
+          ],
+        },
+      ],
+      errors: [],
+    });
+
+    const res = await new SyncAccountUseCase(
+      campaignRepo, makeAccountRepo(), makeJobRepo(), makeBus(), sync,
+      vi.fn().mockResolvedValue(undefined), vi.fn().mockResolvedValue(undefined), writeAdSets,
+    ).execute(base);
+
+    expect(res.success).toBe(true);
+    expect(writeAdSets).toHaveBeenCalledWith(
+      'ws-1', 'camp-new', 'meta', expect.arrayContaining([expect.objectContaining({ platformAdSetId: 'as-1' })]),
+    );
+  });
+
   it('updates existing campaigns instead of creating duplicates', async () => {
     const campaignRepo = makeCampaignRepo({
       findByPlatformCampaignId: vi.fn().mockResolvedValue({ id: 'camp-existing' } as Campaign),
