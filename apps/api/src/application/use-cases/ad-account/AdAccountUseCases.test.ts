@@ -16,8 +16,13 @@ const account: AdAccount = {
   platform: 'meta',
   platformAccountId: 'act_123',
   name: 'Meta Main',
-  status: 'ACTIVE',
+  status: 'active',
+  oauthToken: 'real-token',
+  refreshToken: 'refresh-token',
   tokenExpiresAt: null,
+  isActive: true,
+  scopes: [],
+  lastSyncedAt: null,
   spendCap: null,
   disabledReason: null,
   metadata: {},
@@ -68,7 +73,7 @@ describe('ListAdAccountsUseCase', () => {
     await new ListAdAccountsUseCase(repo).execute({
       ...base,
       platform: ['meta', 'google'],
-      status: ['ACTIVE', 'ERROR'],
+      status: ['active', 'error'],
       search: 'main',
       page: 2,
       limit: 10,
@@ -76,7 +81,7 @@ describe('ListAdAccountsUseCase', () => {
     expect(repo.list).toHaveBeenCalledWith({
       workspaceId: 'ws-1',
       platform: ['meta', 'google'],
-      status: ['ACTIVE', 'ERROR'],
+      status: ['active', 'error'],
       search: 'main',
       page: 2,
       limit: 10,
@@ -98,6 +103,7 @@ describe('ConnectAdAccountUseCase', () => {
     platform: 'meta' as const,
     platformAccountId: 'act_123',
     name: '  Meta Main  ',
+    oauthToken: 'real-token',
     userId: 'u-1',
     userRole: 'admin',
   };
@@ -108,9 +114,22 @@ describe('ConnectAdAccountUseCase', () => {
     const audit = makeAudit();
     const res = await new ConnectAdAccountUseCase(repo, makeWorkspaceRepo(), bus, audit).execute(base);
     expect(res.success).toBe(true);
-    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Meta Main', status: 'ACTIVE', metadata: {} }));
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Meta Main', status: 'active', oauthToken: 'real-token', metadata: {} }));
     expect(bus.publish).toHaveBeenCalledWith(expect.objectContaining({ adAccountId: 'acct-1', workspaceId: 'ws-1', platform: 'meta' }));
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ actionCategory: 'ad_account_connected', entityId: 'acct-1' }));
+  });
+
+
+
+  it('rejects placeholder connect attempts without a real OAuth token', async () => {
+    const repo = makeAdAccountRepo();
+    const res = await new ConnectAdAccountUseCase(repo, makeWorkspaceRepo(), makeBus(), makeAudit()).execute({
+      ...base,
+      oauthToken: '   ',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
+    expect(repo.create).not.toHaveBeenCalled();
   });
 
   it('denies editors before duplicate or limit checks', async () => {
@@ -155,7 +174,7 @@ describe('DisconnectAdAccountUseCase', () => {
     const audit = makeAudit();
     const res = await new DisconnectAdAccountUseCase(repo, campaignRepo, bus, audit).execute(base);
     expect(res.success).toBe(true);
-    expect(repo.update).toHaveBeenCalledWith('acct-1', { status: 'DISCONNECTED', disabledReason: 'Rotated credentials' });
+    expect(repo.update).toHaveBeenCalledWith('acct-1', { status: 'disconnected', oauthToken: null, refreshToken: null, isActive: false, disabledReason: 'Rotated credentials' });
     expect(bus.publish).toHaveBeenCalledWith(expect.objectContaining({ adAccountId: 'acct-1', workspaceId: 'ws-1', platform: 'meta', reason: 'Rotated credentials' }));
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ metadata: { reason: 'Rotated credentials', activeCampaignsAtDisconnect: 3 } }));
   });
@@ -178,7 +197,7 @@ describe('DisconnectAdAccountUseCase', () => {
   });
 
   it('does not disconnect an already disconnected account', async () => {
-    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue({ ...account, status: 'DISCONNECTED' }) });
+    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue({ ...account, status: 'disconnected' }) });
     const res = await new DisconnectAdAccountUseCase(repo, makeCampaignRepo(), makeBus(), makeAudit()).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(400);
@@ -194,7 +213,7 @@ describe('SyncAdAccountUseCase', () => {
     const audit = makeAudit();
     const res = await new SyncAdAccountUseCase(repo, audit).execute(base);
     expect(res.success).toBe(true);
-    expect(repo.update).toHaveBeenCalledWith('acct-1', { metadata: expect.objectContaining({ lastSyncAt: expect.any(String) }) });
+    expect(repo.update).toHaveBeenCalledWith('acct-1', { metadata: expect.objectContaining({ lastSyncAt: expect.any(String) }), lastSyncedAt: expect.any(Date) });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ actionCategory: 'ad_account_synced', entityId: 'acct-1' }));
   });
 
@@ -215,7 +234,7 @@ describe('SyncAdAccountUseCase', () => {
   });
 
   it('does not sync disconnected accounts', async () => {
-    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue({ ...account, status: 'DISCONNECTED' }) });
+    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue({ ...account, status: 'disconnected' }) });
     const res = await new SyncAdAccountUseCase(repo, makeAudit()).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(403);

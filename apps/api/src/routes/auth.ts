@@ -454,7 +454,7 @@ router.get(
     // ── 4. Fetch connected ad accounts ──
     const { data: connectedAccounts } = await supabase
       .from('ad_accounts')
-      .select('id, platform, account_id, name, status')
+      .select('id, platform, platform_account_id, name, status')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
 

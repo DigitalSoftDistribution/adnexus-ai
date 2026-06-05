@@ -11,7 +11,10 @@ export interface ConnectAdAccountInput {
   platform: AdAccountPlatform;
   platformAccountId: string;
   name: string;
+  oauthToken: string;
+  refreshToken?: string | null;
   tokenExpiresAt?: Date;
+  scopes?: string[];
   spendCap?: number;
   metadata?: Record<string, unknown>;
   userId: string;
@@ -35,6 +38,10 @@ export class ConnectAdAccountUseCase {
       return err(new ValidationError('Platform account ID and name are required'));
     }
 
+    if (!input.oauthToken?.trim()) {
+      return err(new ValidationError('A real OAuth token is required to connect an ad account'));
+    }
+
     const existing = await this.adAccountRepo.findByPlatformAccountId(
       input.platformAccountId,
       input.platform,
@@ -53,8 +60,13 @@ export class ConnectAdAccountUseCase {
       platform: input.platform,
       platformAccountId: input.platformAccountId,
       name: input.name.trim(),
-      status: 'ACTIVE' as AdAccountStatus,
+      status: 'active' as AdAccountStatus,
+      oauthToken: input.oauthToken.trim(),
+      refreshToken: input.refreshToken?.trim() || null,
       tokenExpiresAt: input.tokenExpiresAt ?? null,
+      isActive: true,
+      scopes: input.scopes ?? [],
+      lastSyncedAt: null,
       spendCap: input.spendCap ?? null,
       disabledReason: null,
       metadata: input.metadata ?? {},

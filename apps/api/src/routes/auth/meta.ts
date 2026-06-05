@@ -105,6 +105,21 @@ router.get('/callback', async (req: Request, res: Response) => {
     const { workspaceId, accountId, reconnect } = stateData;
     const redirectUri = `${config.frontend.url}/auth/meta/callback`;
 
+    let reconnectPlatformAccountId = accountId;
+    if (reconnect && accountId && /^[0-9a-f-]{36}$/i.test(accountId)) {
+      const { data: reconnectAccount } = await supabase
+        .from('ad_accounts')
+        .select('platform_account_id')
+        .eq('id', accountId)
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+      if (!reconnectAccount?.platform_account_id) {
+        res.redirect(`${config.frontend.url}/settings?platform=meta&status=error&reason=account_not_found`);
+        return;
+      }
+      reconnectPlatformAccountId = reconnectAccount.platform_account_id;
+    }
+
     // Step 1: Exchange code for short-lived token
     logger.info({ workspaceId }, 'Exchanging Meta OAuth code for token');
     const tokenRes = await axios.get(META_TOKEN_URL, {
@@ -134,6 +149,10 @@ router.get('/callback', async (req: Request, res: Response) => {
     });
 
     const accessToken = llRes.data.access_token as string;
+    if (!accessToken) {
+      res.status(500).json({ error: 'Failed to obtain long-lived access token', code: 'OAUTH_ERROR' });
+      return;
+    }
     const expiresIn = (llRes.data.expires_in as number) || 5184000; // default 60 days
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
@@ -159,8 +178,8 @@ router.get('/callback', async (req: Request, res: Response) => {
     // Step 4: Store in ad_accounts table
     const results: string[] = [];
     for (const acc of ad_accounts) {
-      if (reconnect && accountId) {
-        // Update existing account
+      if (reconnect && reconnectPlatformAccountId) {
+        if (acc.id !== reconnectPlatformAccountId) continue;
         const { error: updateErr } = await supabase
           .from('ad_accounts')
           .update({
@@ -171,13 +190,14 @@ router.get('/callback', async (req: Request, res: Response) => {
             status: 'active',
             is_active: true,
             metadata: {
+              accountName: acc.name || `Meta Ads Account ${acc.id}`,
               business_name: acc.business_name,
               currency: acc.currency,
               timezone: acc.timezone_name,
             },
             updated_at: new Date().toISOString(),
           })
-          .eq('platform_account_id', accountId)
+          .eq('platform_account_id', reconnectPlatformAccountId)
           .eq('workspace_id', workspaceId);
 
         if (!updateErr) results.push(acc.id);
@@ -202,6 +222,7 @@ router.get('/callback', async (req: Request, res: Response) => {
               status: 'active',
               is_active: true,
               metadata: {
+                accountName: acc.name || `Meta Ads Account ${acc.id}`,
                 business_name: acc.business_name,
                 currency: acc.currency,
                 timezone: acc.timezone_name,
@@ -219,15 +240,15 @@ router.get('/callback', async (req: Request, res: Response) => {
               workspace_id: workspaceId,
               platform: 'meta',
               platform_account_id: acc.id,
-              account_id: acc.id,
               name: acc.name || `Meta Ads Account ${acc.id}`,
-              status: acc.account_status === 1 ? 'active' : 'pending',
+              status: acc.account_status === 1 ? 'active' : 'error',
               oauth_token: accessToken,
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
               is_active: acc.account_status === 1,
               metadata: {
+                accountName: acc.name || `Meta Ads Account ${acc.id}`,
                 business_name: acc.business_name,
                 currency: acc.currency,
                 timezone: acc.timezone_name,
@@ -292,7 +313,14 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
+      .update({
+        status: 'disconnected',
+        is_active: false,
+        oauth_token: null,
+        refresh_token: null,
+        token_expires_at: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id);
 
