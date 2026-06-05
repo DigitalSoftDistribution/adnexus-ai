@@ -608,11 +608,14 @@
     "stepConnectDesc": "Meta、Google、TikTok、Snapを連携してキャンペーンをインポートします。",
     "stepTeam": "チームを招待",
     "stepTeamDesc": "メンバーを追加して共同作業します。",
-    "stepCampaign": "最初のキャンペーンを作成",
-    "stepCampaignDesc": "キャンペーンを開始または下書きします。",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "今はスキップ",
     "finish": "ダッシュボードへ",
-    "completed": "完了"
+    "completed": "完了",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "目標",

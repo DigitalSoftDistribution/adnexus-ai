@@ -608,11 +608,14 @@
     "stepConnectDesc": "Link Meta, Google, TikTok or Snap to import campaigns.",
     "stepTeam": "Invite your team",
     "stepTeamDesc": "Add teammates to collaborate on campaigns.",
-    "stepCampaign": "Create your first campaign",
-    "stepCampaignDesc": "Launch or draft a campaign to see AdNexus in action.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Skip for now",
     "finish": "Go to dashboard",
-    "completed": "Completed"
+    "completed": "Completed",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Goals",

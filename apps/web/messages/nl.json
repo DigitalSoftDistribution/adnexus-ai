@@ -608,11 +608,14 @@
     "stepConnectDesc": "Koppel Meta, Google, TikTok of Snap om campagnes te importeren.",
     "stepTeam": "Nodig je team uit",
     "stepTeamDesc": "Voeg teamleden toe om samen te werken.",
-    "stepCampaign": "Maak je eerste campagne",
-    "stepCampaignDesc": "Start of maak een conceptcampagne.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Voorlopig overslaan",
     "finish": "Naar dashboard",
-    "completed": "Voltooid"
+    "completed": "Voltooid",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Doelen",

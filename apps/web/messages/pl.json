@@ -608,11 +608,14 @@
     "stepConnectDesc": "Połącz Meta, Google, TikTok lub Snap, aby zaimportować kampanie.",
     "stepTeam": "Zaproś swój zespół",
     "stepTeamDesc": "Dodaj członków zespołu do współpracy.",
-    "stepCampaign": "Utwórz pierwszą kampanię",
-    "stepCampaignDesc": "Uruchom lub utwórz wersję roboczą kampanii.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Pomiń na razie",
     "finish": "Przejdź do panelu",
-    "completed": "Ukończono"
+    "completed": "Ukończono",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Cele",

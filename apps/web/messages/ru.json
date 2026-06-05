@@ -608,11 +608,14 @@
     "stepConnectDesc": "Подключите Meta, Google, TikTok или Snap для импорта кампаний.",
     "stepTeam": "Пригласите команду",
     "stepTeamDesc": "Добавьте коллег для совместной работы.",
-    "stepCampaign": "Создайте первую кампанию",
-    "stepCampaignDesc": "Запустите или создайте черновик кампании.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Пропустить пока",
     "finish": "Перейти к панели",
-    "completed": "Завершено"
+    "completed": "Завершено",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Цели",
