@@ -17,7 +17,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build && changeset publish",
+    "smoke:v1": "node scripts/v1-smoke.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
