@@ -26,18 +26,24 @@ export default function Page() {
     let message = '';
     let recommendation = '';
 
-    if (freqVal > 3 && daysVal > 7) {
+    // CTR is a primary fatigue signal: a low click-through rate means the
+    // audience has stopped responding, so it escalates status alongside the
+    // frequency/recency heuristics rather than being ignored.
+    const lowCtr = ctrVal < 1;
+    const weakCtr = ctrVal < 1.5;
+
+    if ((freqVal > 3 && daysVal > 7) || (lowCtr && freqVal > 2.5)) {
       status = 'critical';
-      message = `Your creative is likely fatigued. Frequency of ${freqVal} over ${daysVal} days suggests audience saturation.`;
+      message = `Your creative is likely fatigued. A ${ctrVal}% CTR with a frequency of ${freqVal} over ${daysVal} days suggests audience saturation.`;
       recommendation = 'Pause this creative immediately and launch a new variant. Consider refreshing the headline and visual.';
-    } else if (freqVal > 2.5 && daysVal > 5) {
+    } else if ((freqVal > 2.5 && daysVal > 5) || weakCtr) {
       status = 'warning';
-      message = `Early signs of fatigue detected. Frequency at ${freqVal} is approaching the danger zone.`;
+      message = `Early signs of fatigue detected. A ${ctrVal}% CTR at frequency ${freqVal} is approaching the danger zone.`;
       recommendation = 'Prepare a replacement creative. Monitor CTR daily — if it drops another 10%, swap immediately.';
     } else {
       status = 'healthy';
-      message = 'Your creative is performing well. No signs of fatigue yet.';
-      recommendation = 'Continue monitoring. Prepare a backup creative for when frequency hits 2.5.';
+      message = `Your creative is performing well. A ${ctrVal}% CTR with frequency ${freqVal} shows no signs of fatigue yet.`;
+      recommendation = 'Continue monitoring. Prepare a backup creative for when frequency hits 2.5 or CTR dips below 1.5%.';
     }
 
     setResult({ status, message, recommendation });

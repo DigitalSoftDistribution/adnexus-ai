@@ -28,6 +28,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const t = {
     greeting: lang === 'cn' ? cnGreeting : enGreeting,
@@ -37,11 +38,22 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
     placeholders: lang === 'cn' ? cnPlaceholders : enPlaceholders,
   };
 
+  // Re-seed the greeting in the active language. Switching languages resets
+  // the conversation to a fresh greeting so we never show mixed-language state.
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{ id: 'greeting', role: 'ai', content: t.greeting }]);
-    }
+    replyTimers.current.forEach(clearTimeout);
+    replyTimers.current = [];
+    setIsTyping(false);
+    setMessages([{ id: 'greeting', role: 'ai', content: t.greeting }]);
   }, [lang]);
+
+  // Clear any pending reply timers on unmount to avoid setState-after-unmount.
+  useEffect(() => {
+    return () => {
+      replyTimers.current.forEach(clearTimeout);
+      replyTimers.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -59,7 +71,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const response = t.responses[text] || t.fallback;
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -68,7 +80,9 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
       };
       setMessages((prev) => [...prev, aiMsg]);
       setIsTyping(false);
+      replyTimers.current = replyTimers.current.filter((t) => t !== timer);
     }, 800 + Math.random() * 400);
+    replyTimers.current.push(timer);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
