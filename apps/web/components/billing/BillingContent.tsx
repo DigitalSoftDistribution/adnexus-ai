@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -126,6 +126,7 @@ export function BillingContent() {
   const portalMutation = useCreatePortalSession();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
+  const locale = useLocale();
 
   if (billingLoading) {
     return (
@@ -196,7 +197,7 @@ export function BillingContent() {
             </div>
             <CardDescription>
               {billing?.currentPeriodStart && billing?.currentPeriodEnd
-                ? `${t('currentPeriod')}: ${new Date(billing.currentPeriodStart).toLocaleDateString()} - ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
+                ? `${t('currentPeriod')}: ${new Date(billing.currentPeriodStart).toLocaleDateString(locale)} - ${new Date(billing.currentPeriodEnd).toLocaleDateString(locale)}`
                 : t('noActiveSubscription')}
             </CardDescription>
           </CardHeader>

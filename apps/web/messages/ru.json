@@ -288,7 +288,10 @@
       "failed": "Не удалось",
       "rejected": "Отклонено",
       "rolled_back": "Откачено"
-    }
+    },
+    "executionNotice": "Reviewing a draft only marks it approved. Live campaign writes happen only when an approved draft is explicitly executed.",
+    "markReviewed": "Mark reviewed",
+    "approveAndExecute": "Approve & execute"
   },
   "aiAgent": {
     "title": "ИИ-агент",
@@ -578,7 +581,12 @@
       }
     },
     "oauthIssueTitle": "Connection needs attention",
-    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing."
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "availability": {
+      "metaReady": "Launch-ready",
+      "readOnly": "Read-only in v1",
+      "comingSoon": "Coming soon"
+    }
   },
   "webhooks": {
     "title": "Вебхуки",
@@ -607,7 +615,7 @@
     "title": "Добро пожаловать в AdNexus AI",
     "description": "Настроим вашу рабочую область за несколько шагов.",
     "stepConnect": "Подключить платформу",
-    "stepConnectDesc": "Подключите Meta, Google, TikTok или Snap для импорта кампаний.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
     "stepTeam": "Пригласите команду",
     "stepTeamDesc": "Добавьте коллег для совместной работы.",
     "stepCampaign": "View first insight",
