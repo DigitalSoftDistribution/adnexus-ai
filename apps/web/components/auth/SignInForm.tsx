@@ -44,7 +44,7 @@ export function SignInForm() {
         return;
       }
       localStorage.setItem('adnexus_token', token);
-      router.push('/dashboard');
+      router.push('/onboarding');
       router.refresh();
     } catch {
       setError(t('unexpectedError'));

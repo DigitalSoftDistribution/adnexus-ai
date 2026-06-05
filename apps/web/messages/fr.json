@@ -288,7 +288,10 @@
       "failed": "Échoué",
       "rejected": "Rejeté",
       "rolled_back": "Annulé"
-    }
+    },
+    "executionNotice": "Reviewing a draft only marks it approved. Live campaign writes happen only when an approved draft is explicitly executed.",
+    "markReviewed": "Mark reviewed",
+    "approveAndExecute": "Approve & execute"
   },
   "aiAgent": {
     "title": "Agent IA",
@@ -578,7 +581,12 @@
       }
     },
     "oauthIssueTitle": "Connection needs attention",
-    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing."
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "availability": {
+      "metaReady": "Launch-ready",
+      "readOnly": "Read-only in v1",
+      "comingSoon": "Coming soon"
+    }
   },
   "webhooks": {
     "title": "Webhooks",
@@ -607,7 +615,7 @@
     "title": "Bienvenue sur AdNexus AI",
     "description": "Configurons votre espace de travail en quelques étapes.",
     "stepConnect": "Connecter une plateforme",
-    "stepConnectDesc": "Reliez Meta, Google, TikTok ou Snap pour importer des campagnes.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
     "stepTeam": "Invitez votre équipe",
     "stepTeamDesc": "Ajoutez des collègues pour collaborer.",
     "stepCampaign": "View first insight",

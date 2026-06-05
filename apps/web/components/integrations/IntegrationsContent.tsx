@@ -75,6 +75,13 @@ export function IntegrationsContent() {
   const oauthPlatform = searchParams.get("platform") ?? "meta";
   const oauthReason = searchParams.get("reason");
 
+  const v1Availability: Record<string, { label: string; disabled: boolean }> = {
+    meta: { label: t("availability.metaReady"), disabled: false },
+    google: { label: t("availability.readOnly"), disabled: true },
+    tiktok: { label: t("availability.comingSoon"), disabled: true },
+    snap: { label: t("availability.comingSoon"), disabled: true },
+  };
+
   const disconnect = useMutation({
     mutationFn: async (platform: string) => {
       const res = await fetch(`/api/v2/integrations/${platform}/disconnect`, {
@@ -139,6 +146,7 @@ export function IntegrationsContent() {
         {items.map((integration) => {
           const meta = PLATFORMS[integration.platform];
           const color = meta ? `hsl(${meta.colorVar})` : "hsl(var(--primary))";
+          const availability = v1Availability[integration.platform] ?? { label: t("status.available"), disabled: false };
           return (
             <Card
               key={integration.platform}
@@ -166,7 +174,7 @@ export function IntegrationsContent() {
                       {tc("active")}
                     </Badge>
                   ) : (
-                    <Badge variant="secondary">{t("status.available")}</Badge>
+                    <Badge variant={availability.disabled ? "outline" : "secondary"}>{availability.label}</Badge>
                   )}
                 </div>
 
@@ -198,6 +206,11 @@ export function IntegrationsContent() {
                     disconnecting={disconnect.isPending}
                     onDisconnect={() => disconnect.mutate(integration.platform)}
                   />
+                ) : availability.disabled ? (
+                  <Button size="sm" className="w-full" variant="outline" disabled>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    {availability.label}
+                  </Button>
                 ) : (
                   <Button asChild size="sm" className="w-full">
                     <a href={integration.connectUrl}>

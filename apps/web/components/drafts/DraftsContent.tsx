@@ -52,6 +52,7 @@ export function DraftsContent() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('executionNotice')}</p>
         </div>
         <ErrorState
           title={tc('error')}
@@ -68,6 +69,7 @@ export function DraftsContent() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t('executionNotice')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -207,7 +209,7 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.approve.isPending}
           >
             <CheckCircle className="mr-1 h-3 w-3" />
-            {tc('approve')}
+            {t('markReviewed')}
           </Button>
         </div>
       )}
@@ -220,7 +222,7 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.execute.isPending}
           >
             <Play className="mr-1 h-3 w-3" />
-            {actions.execute.isPending ? tc('executing') : tc('execute')}
+            {actions.execute.isPending ? tc('executing') : t('approveAndExecute')}
           </Button>
         </div>
       )}

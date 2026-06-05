@@ -288,7 +288,10 @@
       "failed": "失敗",
       "rejected": "拒否済み",
       "rolled_back": "ロールバック済み"
-    }
+    },
+    "executionNotice": "Reviewing a draft only marks it approved. Live campaign writes happen only when an approved draft is explicitly executed.",
+    "markReviewed": "Mark reviewed",
+    "approveAndExecute": "Approve & execute"
   },
   "aiAgent": {
     "title": "AIエージェント",
@@ -578,7 +581,12 @@
       }
     },
     "oauthIssueTitle": "Connection needs attention",
-    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing."
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "availability": {
+      "metaReady": "Launch-ready",
+      "readOnly": "Read-only in v1",
+      "comingSoon": "Coming soon"
+    }
   },
   "webhooks": {
     "title": "Webhook",
@@ -607,7 +615,7 @@
     "title": "AdNexus AIへようこそ",
     "description": "数ステップでワークスペースを設定しましょう。",
     "stepConnect": "プラットフォームを接続",
-    "stepConnectDesc": "Meta、Google、TikTok、Snapを連携してキャンペーンをインポートします。",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
     "stepTeam": "チームを招待",
     "stepTeamDesc": "メンバーを追加して共同作業します。",
     "stepCampaign": "View first insight",
