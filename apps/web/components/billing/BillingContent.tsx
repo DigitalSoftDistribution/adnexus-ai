@@ -67,7 +67,7 @@ function useBillingInfo() {
       const res = await fetch('/api/v2/billing');
       if (!res.ok) throw new Error(t('failedToFetchBilling'));
       const data = await res.json();
-      return data.data;
+      return data.data ?? data;
     },
   });
 }
@@ -80,7 +80,7 @@ function useInvoices() {
       const res = await fetch('/api/v2/billing/invoices');
       if (!res.ok) throw new Error(t('failedToFetchInvoices'));
       const data = await res.json();
-      return data.data;
+      return data.data ?? data;
     },
   });
 }
@@ -99,7 +99,7 @@ function useBillingPlans() {
         };
       }
       const data = await res.json();
-      return data.data;
+      return data.data ?? data;
     },
   });
 }

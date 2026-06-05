@@ -78,16 +78,19 @@ router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
 router.get("/plans", requireAuth, requireWorkspace, async (_req, res, next) => {
   try {
     res.json({
-      billingEnabled: isBillingCheckoutConfigured(),
-      stripeConfigured: isStripeSecretConfigured(),
-      plans: getConfiguredPlans().map(({ plan, priceId, limits }) => ({
-        plan,
-        priceId,
-        credits: limits,
-      })),
-      message: isBillingCheckoutConfigured()
-        ? null
-        : "Billing checkout is not configured. Set Stripe secret and price mapping environment variables before enabling upgrades.",
+      success: true,
+      data: {
+        billingEnabled: isBillingCheckoutConfigured(),
+        stripeConfigured: isStripeSecretConfigured(),
+        plans: getConfiguredPlans().map(({ plan, priceId, limits }) => ({
+          plan,
+          priceId,
+          credits: limits,
+        })),
+        message: isBillingCheckoutConfigured()
+          ? null
+          : "Billing checkout is not configured. Set Stripe secret and price mapping environment variables before enabling upgrades.",
+      },
     });
   } catch (err) {
     next(err);

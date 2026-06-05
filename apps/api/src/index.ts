@@ -212,16 +212,13 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 
 app.use('/api/v1/auth', unauthenticatedRateLimiter, authRoutes);
 
-// Meta OAuth routes — public, no auth required
+// OAuth routes: callbacks remain public; connect/disconnect handlers authenticate internally.
 app.use('/api/v1/auth/meta', unauthenticatedRateLimiter, metaOAuthRoutes);
 
-// Google OAuth routes — public, no auth required
 app.use('/api/v1/auth/google', unauthenticatedRateLimiter, googleOAuthRoutes);
 
-// TikTok OAuth routes — public, no auth required
 app.use('/api/v1/auth/tiktok', unauthenticatedRateLimiter, tiktokOAuthRoutes);
 
-// Snap OAuth routes — public, no auth required
 app.use('/api/v1/auth/snap', unauthenticatedRateLimiter, snapOAuthRoutes);
 
 // ─── Free Public Audit (no auth required — GTM wedge) ────────
