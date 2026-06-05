@@ -164,6 +164,16 @@ describe('GetAdPerformanceUseCase', () => {
     expect(repo.getPerformance).toHaveBeenCalledWith('ad-1', '2026-05-01', '2026-05-31');
   });
 
+  it('uses a default trailing date range when dates are omitted', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-05T12:00:00Z'));
+    const repo = makeRepo();
+    const res = await new GetAdPerformanceUseCase(repo).execute(base);
+    expect(res.success).toBe(true);
+    expect(repo.getPerformance).toHaveBeenCalledWith('ad-1', '2026-05-06', '2026-06-05');
+    vi.useRealTimers();
+  });
+
   it('does not fetch performance when the ad is missing', async () => {
     const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
     const res = await new GetAdPerformanceUseCase(repo).execute(base);

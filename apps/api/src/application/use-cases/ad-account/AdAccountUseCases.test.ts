@@ -130,6 +130,19 @@ describe('ConnectAdAccountUseCase', () => {
     if (!res.success) expect(status(res)).toBe(400);
     expect(repo.create).not.toHaveBeenCalled();
   });
+
+  it('rejects when the workspace ad-account limit is reached', async () => {
+    const repo = makeAdAccountRepo();
+    const res = await new ConnectAdAccountUseCase(
+      repo,
+      makeWorkspaceRepo({ checkLimit: vi.fn().mockResolvedValue(false) }),
+      makeBus(),
+      makeAudit(),
+    ).execute(base);
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('DisconnectAdAccountUseCase', () => {
@@ -147,11 +160,28 @@ describe('DisconnectAdAccountUseCase', () => {
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ metadata: { reason: 'Rotated credentials', activeCampaignsAtDisconnect: 3 } }));
   });
 
+  it('denies editors before lookup', async () => {
+    const repo = makeAdAccountRepo();
+    const res = await new DisconnectAdAccountUseCase(repo, makeCampaignRepo(), makeBus(), makeAudit()).execute({ ...base, userRole: 'editor' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.findByIdAndWorkspace).not.toHaveBeenCalled();
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
   it('does not disconnect missing accounts', async () => {
     const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
     const res = await new DisconnectAdAccountUseCase(repo, makeCampaignRepo(), makeBus(), makeAudit()).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it('does not disconnect an already disconnected account', async () => {
+    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue({ ...account, status: 'DISCONNECTED' }) });
+    const res = await new DisconnectAdAccountUseCase(repo, makeCampaignRepo(), makeBus(), makeAudit()).execute(base);
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
     expect(repo.update).not.toHaveBeenCalled();
   });
 });
@@ -174,6 +204,14 @@ describe('SyncAdAccountUseCase', () => {
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(403);
     expect(repo.findByIdAndWorkspace).not.toHaveBeenCalled();
+  });
+
+  it('404s when the account is not in the workspace', async () => {
+    const repo = makeAdAccountRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
+    const res = await new SyncAdAccountUseCase(repo, makeAudit()).execute(base);
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.update).not.toHaveBeenCalled();
   });
 
   it('does not sync disconnected accounts', async () => {

@@ -55,6 +55,7 @@ describe('ListAutomationRulesUseCase', () => {
     const repo = makeRepo();
     const res = await new ListAutomationRulesUseCase(repo).execute({
       workspaceId: 'ws-1',
+      userRole: 'viewer',
       status: ['active', 'paused'],
       triggerType: 'performance',
       search: 'cpa',
@@ -72,12 +73,20 @@ describe('ListAutomationRulesUseCase', () => {
       limit: 20,
     });
   });
+
+  it('denies unknown roles before querying', async () => {
+    const repo = makeRepo();
+    const res = await new ListAutomationRulesUseCase(repo).execute({ workspaceId: 'ws-1', userRole: 'guest' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.list).not.toHaveBeenCalled();
+  });
 });
 
 describe('GetAutomationRuleByIdUseCase', () => {
   it('returns a workspace-scoped rule', async () => {
     const repo = makeRepo();
-    const res = await new GetAutomationRuleByIdUseCase(repo).execute({ ruleId: 'rule-1', workspaceId: 'ws-1' });
+    const res = await new GetAutomationRuleByIdUseCase(repo).execute({ ruleId: 'rule-1', workspaceId: 'ws-1', userRole: 'viewer' });
     expect(res.success).toBe(true);
     expect(repo.findByIdAndWorkspace).toHaveBeenCalledWith('rule-1', 'ws-1');
   });
@@ -86,9 +95,18 @@ describe('GetAutomationRuleByIdUseCase', () => {
     const res = await new GetAutomationRuleByIdUseCase(makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) })).execute({
       ruleId: 'missing',
       workspaceId: 'ws-1',
+      userRole: 'viewer',
     });
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(404);
+  });
+
+  it('denies unknown roles before lookup', async () => {
+    const repo = makeRepo();
+    const res = await new GetAutomationRuleByIdUseCase(repo).execute({ ruleId: 'rule-1', workspaceId: 'ws-1', userRole: 'guest' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.findByIdAndWorkspace).not.toHaveBeenCalled();
   });
 });
 
@@ -152,6 +170,31 @@ describe('UpdateAutomationRuleUseCase', () => {
     expect(repo.update).toHaveBeenCalledWith('rule-1', { name: 'Renamed' });
   });
 
+  it('404s when the rule is not found before update', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
+    const res = await new UpdateAutomationRuleUseCase(repo).execute({
+      ruleId: 'missing',
+      workspaceId: 'ws-1',
+      userRole: 'editor',
+      updates: { name: 'Renamed' },
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it('404s when update returns no row', async () => {
+    const repo = makeRepo({ update: vi.fn().mockResolvedValue(null) });
+    const res = await new UpdateAutomationRuleUseCase(repo).execute({
+      ruleId: 'rule-1',
+      workspaceId: 'ws-1',
+      userRole: 'editor',
+      updates: { name: 'Renamed' },
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(404);
+  });
+
   it('denies viewers before lookup', async () => {
     const repo = makeRepo();
     const res = await new UpdateAutomationRuleUseCase(repo).execute({
@@ -184,6 +227,23 @@ describe('ToggleAutomationRuleUseCase', () => {
     expect(res.success).toBe(true);
     expect(repo.update).toHaveBeenCalledWith('rule-1', { status: 'active' });
   });
+
+  it('denies viewers before lookup', async () => {
+    const repo = makeRepo();
+    const res = await new ToggleAutomationRuleUseCase(repo).execute({ ruleId: 'rule-1', workspaceId: 'ws-1', userRole: 'viewer' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.findByIdAndWorkspace).not.toHaveBeenCalled();
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it('404s when the rule is not found', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
+    const res = await new ToggleAutomationRuleUseCase(repo).execute({ ruleId: 'missing', workspaceId: 'ws-1', userRole: 'editor' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.update).not.toHaveBeenCalled();
+  });
 });
 
 describe('DeleteAutomationRuleUseCase', () => {
@@ -203,6 +263,14 @@ describe('DeleteAutomationRuleUseCase', () => {
     expect(repo.findByIdAndWorkspace).not.toHaveBeenCalled();
     expect(repo.delete).not.toHaveBeenCalled();
   });
+
+  it('404s when the rule is not found', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(null) });
+    const res = await new DeleteAutomationRuleUseCase(repo).execute({ ruleId: 'missing', workspaceId: 'ws-1', userRole: 'admin' });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.delete).not.toHaveBeenCalled();
+  });
 });
 
 describe('GetAgentStatusUseCase', () => {
@@ -212,7 +280,10 @@ describe('GetAgentStatusUseCase', () => {
     expect(res.success).toBe(true);
     if (res.success) {
       expect(res.data.isRunning).toBe(true);
+      expect(res.data.lastRunAt).toBeNull();
       expect(res.data.rulesActive).toBe(4);
+      expect(res.data.optimizationsToday).toBe(0);
+      expect(res.data.creditsUsed).toBe(0);
       expect(res.data.creditsTotal).toBe(1000);
       expect(res.data.nextRunAt).toEqual(expect.any(String));
     }
