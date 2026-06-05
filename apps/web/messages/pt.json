@@ -444,6 +444,8 @@
     "failedToFetchBilling": "Falha ao obter as informações de faturação",
     "failedToFetchInvoices": "Falha ao obter as faturas",
     "failedToCreatePortal": "Falha ao criar a sessão do portal",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "Gerir subscrição",
     "plan": "Plano",
     "currentPeriod": "Período atual",

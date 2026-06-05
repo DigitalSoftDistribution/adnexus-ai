@@ -60,6 +60,10 @@ jest.mock('../../src/services/stripe', () => ({
   createPortalSession: (...a: unknown[]) => mockCreatePortalSession(...(a as [])),
   createStripeCustomer: (...a: unknown[]) => mockCreateStripeCustomer(...(a as [])),
   retrieveInvoices: (...a: unknown[]) => mockRetrieveInvoices(...(a as [])),
+  getConfiguredPlans: jest.fn(() => [{ plan: 'growth', priceId: 'price_123', limits: { creatives: 200, impressions: 500000, aiCredits: 5000 } }]),
+  getPlanForPrice: jest.fn((priceId: string) => priceId === 'price_123' ? 'growth' : null),
+  isBillingCheckoutConfigured: jest.fn(() => true),
+  isStripeSecretConfigured: jest.fn(() => true),
   handleWebhookEvent: jest.fn().mockResolvedValue(undefined),
   stripe: { webhooks: { constructEvent: jest.fn() } },
 }));

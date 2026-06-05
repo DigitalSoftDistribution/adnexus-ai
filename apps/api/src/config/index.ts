@@ -68,6 +68,14 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_PUBLISHABLE_KEY: z.string().default(''),
+  STRIPE_PRICE_STARTER: z.string().default(''),
+  STRIPE_PRICE_GROWTH: z.string().default(''),
+  STRIPE_PRICE_PRO: z.string().default(''),
+  STRIPE_PRICE_ENTERPRISE: z.string().default(''),
+  STRIPE_PRICE_ID_STARTER: z.string().default(''),
+  STRIPE_PRICE_ID_GROWTH: z.string().default(''),
+  STRIPE_PRICE_ID_PRO: z.string().default(''),
+  STRIPE_PRICE_ID_ENTERPRISE: z.string().default(''),
 
   // MCP
   MCP_API_KEY: z.string().default(''),
@@ -175,6 +183,12 @@ export const config = {
     secretKey: env.STRIPE_SECRET_KEY,
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
     publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    prices: {
+      starter: env.STRIPE_PRICE_STARTER || env.STRIPE_PRICE_ID_STARTER,
+      growth: env.STRIPE_PRICE_GROWTH || env.STRIPE_PRICE_ID_GROWTH,
+      pro: env.STRIPE_PRICE_PRO || env.STRIPE_PRICE_ID_PRO,
+      enterprise: env.STRIPE_PRICE_ENTERPRISE || env.STRIPE_PRICE_ID_ENTERPRISE,
+    },
   },
 
   mcp: {

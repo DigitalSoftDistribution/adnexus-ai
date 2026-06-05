@@ -444,6 +444,8 @@
     "failedToFetchBilling": "Failed to fetch billing info",
     "failedToFetchInvoices": "Failed to fetch invoices",
     "failedToCreatePortal": "Failed to create portal session",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "Manage Subscription",
     "plan": "Plan",
     "currentPeriod": "Current period",
