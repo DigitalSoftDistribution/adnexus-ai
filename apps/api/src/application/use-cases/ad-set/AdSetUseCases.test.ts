@@ -68,7 +68,7 @@ describe('ListAdSetsUseCase', () => {
       campaignId: 'c-1', status: 'active', search: 'US', sortBy: 'spend', sortOrder: 'desc', limit: 10,
     });
     expect(repo.list).toHaveBeenCalledWith(
-      expect.objectContaining({ campaignId: 'c-1', status: 'active', search: 'US', sortBy: 'spend', sortOrder: 'desc' }),
+      expect.objectContaining({ campaignId: 'c-1', status: 'active', search: 'US', sortBy: 'spend', sortOrder: 'desc', limit: 10 }),
     );
   });
 });

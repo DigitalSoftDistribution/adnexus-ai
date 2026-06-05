@@ -28,7 +28,7 @@ const asset: Asset = {
 
 const makeRepo = (overrides: Partial<IAssetRepository> = {}): IAssetRepository =>
   ({
-    findById: vi.fn(),
+    findById: vi.fn().mockResolvedValue(null),
     findByIdAndWorkspace: vi.fn().mockResolvedValue(asset),
     list: vi.fn().mockResolvedValue({ assets: [asset], total: 1, page: 1, totalPages: 1 }),
     create: vi.fn().mockResolvedValue(asset),
@@ -154,5 +154,6 @@ describe('DeleteAssetUseCase', () => {
     const res = await new DeleteAssetUseCase(repo).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.delete).not.toHaveBeenCalled();
   });
 });
