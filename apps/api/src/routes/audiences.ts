@@ -670,7 +670,7 @@ router.get(
     let clicks = 0;
     let conversions = 0;
     let spend = 0;
-    let reach = 0;
+    let _reach = 0;
     let roasSum = 0;
     let roasCount = 0;
     const allTrends: TrendPoint[][] = [];
@@ -682,7 +682,7 @@ router.get(
       clicks += p.clicks;
       conversions += p.conversions;
       spend += p.spend;
-      reach += p.reach;
+      _reach += p.reach;
       roasSum += p.roas;
       roasCount++;
       allTrends.push(p.trend);

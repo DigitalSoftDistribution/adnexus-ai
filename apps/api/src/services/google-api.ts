@@ -105,7 +105,7 @@ interface GoogleTokenResponse {
   token_type: string;
 }
 
-interface GoogleAccessibleCustomer {
+interface _GoogleAccessibleCustomer {
   resource_name: string;
   id: string;
   descriptive_name?: string;

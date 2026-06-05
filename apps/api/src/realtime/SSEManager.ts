@@ -114,7 +114,7 @@ export class SSEManager extends EventEmitter {
   broadcastToWorkspace(workspaceId: string, event: ServerEvent): void {
     const payload = this.serializeEvent(event);
     let sent = 0;
-    for (const [clientId, client] of this.clients) {
+    for (const [, client] of this.clients) {
       if (client.workspaceId === workspaceId) {
         if (this.write(client, payload)) {
           sent++;

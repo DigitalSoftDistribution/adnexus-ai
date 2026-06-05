@@ -153,7 +153,7 @@ function paginatedParams(opts?: FetchOptions): Record<string, unknown> {
 
 // ─── Helper: Extract nested Snap data ────────────────────────
 
-function extractSnapData<T>(response: { data?: { [key: string]: T[] } }, key: string): T[] {
+function _extractSnapData<T>(response: { data?: { [key: string]: T[] } }, key: string): T[] {
   if (!response.data || !response.data[key]) return [];
   return response.data[key] ?? [];
 }
@@ -641,7 +641,7 @@ export async function fetchSnapCampaignStats(
           timeseries: [],
           total: { stats: {} },
         };
-      } catch (innerErr) {
+      } catch (_innerErr) {
         // Return empty stats for individual campaign failures so we don't fail the whole batch
         return {
           id: campaignId,

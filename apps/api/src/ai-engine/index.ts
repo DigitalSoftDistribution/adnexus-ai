@@ -1300,7 +1300,7 @@ export class RecommendationGenerator {
     if (topPerformers.length === 0 || lowPerformers.length === 0) return [];
 
     // Build current and proposed allocations
-    const totalBudget = campaigns.reduce(
+    const _totalBudget = campaigns.reduce(
       (sum, c) => sum + (c.daily_budget || 0),
       0,
     );
@@ -1485,7 +1485,7 @@ export class RecommendationGenerator {
 
       // If CPA is trending up, suggest bid reduction
       if (trend.direction === 'up' && trend.strength > 0.5 && campaign.cpa > 10) {
-        const suggestedBidReduction = -15; // Reduce bids by 15%
+        const _suggestedBidReduction = -15; // Reduce bids by 15%
         const expectedCpa = campaign.cpa * 0.85;
 
         recommendations.push({

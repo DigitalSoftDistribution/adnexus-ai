@@ -164,7 +164,7 @@ export class EmailService {
     return null;
   }
 
-  private async getMorningBriefData(userId: string, workspaceId: string): Promise<MorningBriefData> {
+  private async getMorningBriefData(_userId: string, _workspaceId: string): Promise<MorningBriefData> {
     // TODO: Integrate with reporting service to gather actual data
     const now = new Date();
     return {
@@ -215,7 +215,7 @@ export class EmailService {
     };
   }
 
-  private async getWeeklySummaryData(userId: string, workspaceId: string): Promise<WeeklySummaryData> {
+  private async getWeeklySummaryData(_userId: string, _workspaceId: string): Promise<WeeklySummaryData> {
     // TODO: Integrate with reporting service
     return {
       weekRange: 'Jan 6 - Jan 12, 2025',

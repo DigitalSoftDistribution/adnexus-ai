@@ -281,7 +281,7 @@ export class DraftExecutionEngine {
       if (applyResult.status === ExecutionStatus.SUCCESS) {
         // ── Step 5: Verify ──────────────────────
         tracker.start('verify_change');
-        const verified = await this.applier.apply(draft); // Re-verify by fetching current state
+        const _verified = await this.applier.apply(draft); // Re-verify by fetching current state
         tracker.success('verify_change');
 
         // ── Step 6: Update draft status ─────────
@@ -335,7 +335,7 @@ export class DraftExecutionEngine {
     tracker: StepTracker,
     startedAt: Date
   ): Promise<ExecutionResult> {
-    const draftId = draft?.id ?? 'unknown';
+    const _draftId = draft?.id ?? 'unknown';
     const isDraftEngineError = error instanceof DraftEngineError;
 
     // Classify the error for recovery decisions

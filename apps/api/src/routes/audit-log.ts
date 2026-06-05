@@ -248,7 +248,7 @@ router.get(
     logger.info({ filters }, 'Exporting audit log to CSV');
 
     const q = buildFilteredQuery(filters);
-    const { data, error, count } = await q.limit(10000);
+    const { data, error } = await q.limit(10000);
 
     if (error) {
       logger.error({ error }, 'Failed to export audit log');

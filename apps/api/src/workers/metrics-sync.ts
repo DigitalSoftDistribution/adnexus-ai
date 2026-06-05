@@ -1024,7 +1024,7 @@ export async function updateCampaignMetrics(
 
 export async function updateAdsetMetrics(
   adsetId: string,
-  insights: AdSetInsights,
+  _insights: AdSetInsights,
 ): Promise<void> {
   const { error } = await supabase
     .from('adsets')

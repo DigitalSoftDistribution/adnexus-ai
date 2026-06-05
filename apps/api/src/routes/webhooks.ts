@@ -30,7 +30,7 @@ const router = Router();
 router.post(
   '/meta',
   asyncHandler(async (req, res) => {
-    const rawBody = JSON.stringify(req.body);
+    const _rawBody = JSON.stringify(req.body);
     const signature = (req.headers['x-hub-signature-256'] as string) ?? '';
 
     if (!signature) {

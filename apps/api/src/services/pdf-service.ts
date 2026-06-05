@@ -376,7 +376,6 @@ export class PdfService {
    * Escape HTML special characters
    */
   private escapeHtml(text: string): string {
-    const div = { toString: () => text };
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

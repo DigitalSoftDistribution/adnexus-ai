@@ -122,7 +122,7 @@ export interface LeadEvent {
   createdTime: number;
 }
 
-interface ProcessedEventRecord {
+interface _ProcessedEventRecord {
   id: string;
   event_source: string;
   event_id: string;

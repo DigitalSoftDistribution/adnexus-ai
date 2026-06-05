@@ -224,7 +224,7 @@ function renderTemplate(
  *   - SELECT has_used_ai_agent, has_setup_workflow, ... FROM users WHERE id = $1
  *   - SELECT unsubscribed FROM email_preferences WHERE user_id = $1 AND type = 'onboarding'
  */
-async function fetchUserState(userId: string): Promise<UserState> {
+async function fetchUserState(_userId: string): Promise<UserState> {
   // Placeholder: return default state. In production, query your database.
   return {
     hasConnectedAccount: false,

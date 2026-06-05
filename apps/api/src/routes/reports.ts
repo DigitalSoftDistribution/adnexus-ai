@@ -610,7 +610,7 @@ router.get(
       if (!nextRun && row.schedule_cron) {
         // Simple heuristic: daily → +1 day, weekly → +7 days, monthly → +30 days
         const created = new Date(row.created_at);
-        const diff = now.getTime() - created.getTime();
+        const _diff = now.getTime() - created.getTime();
         if (row.schedule_cron.includes('daily')) {
           nextRun = new Date(now.getTime() + 86400000).toISOString();
         } else if (row.schedule_cron.includes('weekly')) {

@@ -382,7 +382,7 @@ function createInAppNotificationChannel(): ChannelRegistry {
       },
     },
     slack: {
-      async postMessage(channel: string, message: string, blocks?: unknown[]): Promise<void> {
+      async postMessage(_channel: string, _message: string, _blocks?: unknown[]): Promise<void> {
         logger.info('Slack notification skipped (not configured)');
       },
       async send(_webhookUrl: string, _message: Record<string, unknown>): Promise<void> {
@@ -390,7 +390,7 @@ function createInAppNotificationChannel(): ChannelRegistry {
       },
     },
     inApp: {
-      async notify(userId: string, title: string, message: string, metadata?: Record<string, unknown>): Promise<void> {
+      async notify(_userId: string, _title: string, _message: string, _metadata?: Record<string, unknown>): Promise<void> {
         logger.info('In-app notification skipped (not configured)');
       },
       async send(userId: string, notification: Record<string, unknown>): Promise<void> {
@@ -408,7 +408,7 @@ function createInAppNotificationChannel(): ChannelRegistry {
       },
     },
     webhook: {
-      async post(url: string, payload: Record<string, unknown>): Promise<void> {
+      async post(_url: string, _payload: Record<string, unknown>): Promise<void> {
         logger.info('Webhook notification skipped (not configured)');
       },
       async send(_url: string, _payload: Record<string, unknown>): Promise<void> {
@@ -1271,26 +1271,9 @@ router.post(
     }
 
     // ── Step 3: Build engine Draft and execute ──
-    const campaignData = draft.campaigns as Record<string, unknown> | null;
     const platform = (draft.platform === 'all'
       ? AdPlatform.META
       : draft.platform) as AdPlatform;
-
-    const appDraft: AppDraft = {
-      id: draft.id as string,
-      workspace_id: draft.workspace_id as string,
-      platform: draft.platform as Platform,
-      campaign_id: draft.campaign_id as string | undefined,
-      campaign_name: (campaignData?.name as string) ?? (draft.campaign_name as string),
-      draft_type: draft.draft_type as DraftType,
-      change_summary: draft.change_summary as string,
-      change_detail: (draft.change_detail as Record<string, unknown>) ?? {},
-      status: draft.status as AppDraft['status'],
-      actor_type: draft.actor_type as 'ai' | 'user' | 'system',
-      actor_id: draft.actor_id as string | undefined,
-      actor_name: draft.actor_name as string | undefined,
-      created_at: draft.created_at as string,
-    };
 
     // ── Step 4: Create and run the DraftExecutionEngine ──
     let executionResult: ExecutionResult;

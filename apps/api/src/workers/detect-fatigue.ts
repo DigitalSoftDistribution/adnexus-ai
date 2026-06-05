@@ -22,7 +22,7 @@ import { config } from '@/config';
 const ANALYSIS_WINDOW_DAYS = 14;
 const CRITICAL_THRESHOLD = 80;
 const WARNING_THRESHOLD = 60;
-const HEALTHY_MAX = 60;
+const _HEALTHY_MAX = 60;
 
 const WEIGHT_CTR_DECAY = 0.40;
 const WEIGHT_FREQUENCY_GROWTH = 0.35;

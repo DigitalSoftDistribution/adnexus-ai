@@ -36,7 +36,7 @@ const RATE_LIMIT_MAX = 1000; // requests per window
 const RATE_LIMIT_AUTH_MAX = 20; // stricter for auth endpoints
 
 const BRUTE_FORCE_MAX_ATTEMPTS = 5;
-const BRUTE_FORCE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const _BRUTE_FORCE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const BRUTE_FORCE_BLOCK_DURATION_MS = 60 * 60 * 1000; // 1 hour lockout
 
 // ── In-memory brute force store (use Redis in production) ──

@@ -34,7 +34,7 @@ const resetPasswordRequestSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
-const resetPasswordSchema = z.object({
+const _resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });

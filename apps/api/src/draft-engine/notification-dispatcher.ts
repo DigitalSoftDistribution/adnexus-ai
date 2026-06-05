@@ -248,7 +248,7 @@ export class NotificationDispatcher {
     for (const channel of notification.channels) {
       try {
         await this.sendToChannel(channel, notification);
-      } catch (error) {
+      } catch (_error) {
         failures.push(channel);
       }
     }
@@ -300,7 +300,7 @@ Time: ${notification.sentAt.toISOString()}
   private async sendSlack(notification: Notification): Promise<void> {
     if (!this.channels.slack) return;
 
-    const color =
+    const _color =
       notification.severity === NotificationSeverity.CRITICAL
         ? '#FF0000'
         : notification.severity === NotificationSeverity.ERROR

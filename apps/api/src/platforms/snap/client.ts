@@ -1454,13 +1454,13 @@ export function createSnapClient(
 //  Legacy Compatibility Layer (matches existing snap-api.ts API)
 // ══════════════════════════════════════════════════════════════
 
-const SNAP_API_BASE_LEGACY = 'https://adsapi.snapchat.com/v1';
+const _SNAP_API_BASE_LEGACY = 'https://adsapi.snapchat.com/v1';
 
-function authHeader(accessToken: string): Record<string, string> {
+function _authHeader(accessToken: string): Record<string, string> {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-function paginatedParams(opts?: { limit?: number; offset?: number }): Record<string, unknown> {
+function _paginatedParams(opts?: { limit?: number; offset?: number }): Record<string, unknown> {
   return {
     limit: opts?.limit ?? 50,
     ...(opts?.offset ? { offset: opts.offset } : {}),

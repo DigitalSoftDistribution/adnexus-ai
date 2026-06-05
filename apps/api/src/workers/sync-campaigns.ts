@@ -532,7 +532,7 @@ export class CampaignSyncWorker {
       const existing = await this.opts.repository.getCampaignByExternalId(workspaceId, platform, ext.externalId);
       const changes = existing ? this.detectChanges(existing, ext) : [];
 
-      const { id: campaignId, created } = await this.opts.repository.upsertCampaign({
+      const { id: _campaignId, created } = await this.opts.repository.upsertCampaign({
         workspace_id: workspaceId,
         platform,
         external_id: ext.externalId,

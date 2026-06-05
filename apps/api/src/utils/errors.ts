@@ -1,6 +1,6 @@
 /** Stub error classes for backend compatibility. */
 export class AppError extends Error {
-  constructor(code: string, message: string, status?: number) {
+  constructor(code: string, message: string, _status?: number) {
     super(message);
     this.name = 'AppError';
   }

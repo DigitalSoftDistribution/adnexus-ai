@@ -234,7 +234,7 @@ export async function persistWebhookEvent(event: WebhookEvent): Promise<boolean>
 export async function updateLocalState(
   event: WebhookEvent
 ): Promise<void> {
-  const { platform, eventType, payload } = event;
+  const { platform, eventType } = event;
 
   logger.debug(
     { platform, eventType, eventId: event.eventId },

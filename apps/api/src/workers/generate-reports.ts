@@ -57,7 +57,7 @@ const QUEUE_NAME = 'reports';
 const DLQ_NAME = 'reports:dlq';
 
 /** Progress milestones for report generation (weighted) */
-const PROGRESS_WEIGHTS = {
+const _PROGRESS_WEIGHTS = {
   DATA_AGGREGATION: 30,   // 0-30%
   CHART_GENERATION: 40,   // 30-70%
   PDF_EXPORT: 15,         // 70-85%
@@ -666,7 +666,7 @@ export class ReportGenerationWorker {
     reportId: string,
     emails: string[],
     report: ReportResult,
-    tempManager: TempFileManager
+    _tempManager: TempFileManager
   ): Promise<void> {
     if (!this.emailService) return;
 
@@ -803,7 +803,7 @@ export class ReportGenerationWorker {
       );
 
       // Create datasets per platform
-      const datasets = platformMetrics.map((pm, index) => {
+      const datasets = platformMetrics.map((pm) => {
         const platformTs = this.dataAggregation.getTimeSeriesData(
           [pm],
           metricName,

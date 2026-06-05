@@ -777,7 +777,7 @@ async function sendTestNotification(
   channel: string,
   alert: AlertRule,
   value: number,
-  triggered: boolean
+  _triggered: boolean
 ): Promise<void> {
   const message = `[TEST] ${alert.name}: ${alert.metric} ${alert.operator} ${alert.threshold} — simulated value: ${value.toFixed(2)}`;
 

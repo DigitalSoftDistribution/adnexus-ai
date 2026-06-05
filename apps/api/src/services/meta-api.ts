@@ -246,6 +246,36 @@ export async function getMetaAds(adsetId: string, accessToken: string): Promise<
   }
 }
 
+export async function updateMetaAdSet(
+  adsetId: string,
+  accessToken: string,
+  changes: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await axios.post(`${META_API}/${adsetId}`, changes, {
+      params: { access_token: accessToken },
+    });
+  } catch (err) {
+    const e = err as AxiosError<{ error?: { message?: string } }>;
+    throw new PlatformError('meta', `AdSet update failed: ${e.response?.data?.error?.message ?? e.message}`);
+  }
+}
+
+export async function updateMetaAd(
+  adId: string,
+  accessToken: string,
+  changes: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await axios.post(`${META_API}/${adId}`, changes, {
+      params: { access_token: accessToken },
+    });
+  } catch (err) {
+    const e = err as AxiosError<{ error?: { message?: string } }>;
+    throw new PlatformError('meta', `Ad update failed: ${e.response?.data?.error?.message ?? e.message}`);
+  }
+}
+
 // ─── Insights ────────────────────────────────────────────────
 
 export async function getMetaInsights(

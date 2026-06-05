@@ -44,7 +44,7 @@ function buildPgConfig(url: string | undefined) {
   };
 }
 
-const databaseUrl = rawDatabaseUrl;
+const _databaseUrl = rawDatabaseUrl;
 
 export const pool = new Pool({
   ...buildPgConfig(rawDatabaseUrl),

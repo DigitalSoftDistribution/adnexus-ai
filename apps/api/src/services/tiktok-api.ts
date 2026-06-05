@@ -190,7 +190,7 @@ export async function getTikTokAuthUrl(workspaceId: string): Promise<string> {
 
 export async function handleTikTokCallback(code: string, workspaceId: string): Promise<AdAccount> {
   // Exchange code for token
-  const redirectUri = `${config.frontend.url}/auth/tiktok/callback`;
+  const _redirectUri = `${config.frontend.url}/auth/tiktok/callback`;
 
   let tokenRes: TikTokTokenResponse;
   try {

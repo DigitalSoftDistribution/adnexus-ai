@@ -691,7 +691,7 @@ export class PlatformManager {
   async connectAccount(
     workspaceId: string,
     platform: Platform,
-    code: string,
+    _code: string,
   ): Promise<AdAccount> {
     const factory = clientRegistry.get(platform);
     if (!factory) {
@@ -909,7 +909,7 @@ export class PlatformManager {
     let rolledBack = 0;
 
     // Build dependency graph and execute in topological order
-    const actionMap = new Map(draft.actions.map((a) => [a.id, a]));
+    const _actionMap = new Map(draft.actions.map((a) => [a.id, a]));
     const completedIds = new Set<string>();
 
     const canExecute = (action: DraftAction): boolean => {

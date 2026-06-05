@@ -435,7 +435,7 @@ export async function exposeMetrics(
     res.setHeader("Content-Type", register.contentType);
     const metrics = await register.metrics();
     res.end(metrics);
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: "Failed to collect metrics" });
   }
 }

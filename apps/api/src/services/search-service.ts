@@ -83,7 +83,7 @@ function isMultiWord(query: string): boolean {
 
 /** Build a simple relevance ordering SQL fragment for a column and a term.
  *  When the term starts the column value, it scores higher (0) vs. substring (1). */
-function relevanceOrder(column: string, term: string): string {
+function _relevanceOrder(column: string, term: string): string {
   return `CASE WHEN ${column} ILIKE '${term}%' THEN 0 ELSE 1 END`;
 }
 

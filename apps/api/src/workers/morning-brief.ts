@@ -23,7 +23,7 @@ import { CronJob } from 'cron';
 import { supabase } from '../lib/supabase';
 import { logger } from '../utils/logger';
 import { AppError, PlatformError } from '../lib/errors';
-import { emailService, MorningBriefData } from '../services/email';
+import { emailService } from '../services/email';
 import { slackService, MorningBriefSlackData } from '../services/slack';
 import {
   generateMorningBrief,
@@ -42,16 +42,16 @@ import type {
 
 const MORNING_BRIEF_QUEUE_NAME = 'morning-brief';
 const DEAD_LETTER_QUEUE_NAME = 'morning-brief:dead-letter';
-const MORNING_BRIEF_RATE_LIMIT_KEY = 'morning_brief:daily';
-const DAILY_CREDIT_COST = 8;
+const _MORNING_BRIEF_RATE_LIMIT_KEY = 'morning_brief:daily';
+const _DAILY_CREDIT_COST = 8;
 const DEFAULT_BRIEF_HOUR = 7;
 const DEFAULT_BRIEF_MINUTE = 0;
 const MAX_RETRIES = 3;
 const RETRY_BACKOFF_MS = 5000;
-const CAMPAIGN_LOOKBACK_DAYS = 2; // yesterday + day before for comparison
+const _CAMPAIGN_LOOKBACK_DAYS = 2; // yesterday + day before for comparison
 const ANOMALY_Z_THRESHOLD = 2.0; // standard deviations for anomaly detection
-const FATIGUE_FREQUENCY_THRESHOLD = 3.0;
-const FATIGUE_CTR_DECAY_THRESHOLD = -20; // % CTR drop
+const _FATIGUE_FREQUENCY_THRESHOLD = 3.0;
+const _FATIGUE_CTR_DECAY_THRESHOLD = -20; // % CTR drop
 const BUDGET_PACING_WARNING_PCT = 80;
 const BUDGET_PACING_CRITICAL_PCT = 95;
 
@@ -467,28 +467,6 @@ export class MorningBriefWorker {
     logger.debug({ userId }, '[MorningBrief] Sending email');
 
     try {
-      // Convert FullMorningBriefData to the email service's MorningBriefData format
-      const emailData: MorningBriefData = {
-        date: data.date,
-        workspaceName: data.workspaceName,
-        kpis: {
-          spend: { value: data.kpis.spend.value, change: data.kpis.spend.change },
-          roas: { value: data.kpis.roas.value, change: data.kpis.roas.change },
-          conversions: { value: data.kpis.conversions.value, change: data.kpis.conversions.change },
-          cpa: { value: data.kpis.cpa.value, change: data.kpis.cpa.change },
-        },
-        topWinners: data.topWinners.map((w) => ({ name: w.campaignName, metric: w.metric, change: w.change })),
-        topLosers: data.topLosers.map((l) => ({ name: l.campaignName, metric: l.metric, change: l.change })),
-        recommendations: data.aiRecommendations.map((r) => ({
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          impact: r.impact,
-          category: r.category,
-        })),
-        insights: data.executiveSummary,
-      };
-
       await emailService.sendMorningBrief(userId, data.workspaceName);
       logger.debug({ userId, durationMs: Date.now() - startTime }, '[MorningBrief] Email queued');
     } catch (error) {
@@ -1049,11 +1027,11 @@ export class MorningBriefWorker {
     const roasMean = mean(roasValues);
     const roasStd = stdDev(roasValues);
     const cpaMean = mean(cpaValues);
-    const cpaStd = stdDev(cpaValues);
+    const _cpaStd = stdDev(cpaValues);
     const ctrMean = mean(ctrValues);
-    const ctrStd = stdDev(ctrValues);
+    const _ctrStd = stdDev(ctrValues);
     const convMean = mean(convValues);
-    const convStd = stdDev(convValues);
+    const _convStd = stdDev(convValues);
 
     for (const c of campaigns) {
       // Spend spike
@@ -1527,7 +1505,7 @@ export class MorningBriefWorker {
 
   private async getScheduledEvents(
     workspaceId: string,
-    timezone: string,
+    _timezone: string,
   ): Promise<FullMorningBriefData['scheduledEvents']> {
     const events: FullMorningBriefData['scheduledEvents'] = [];
     const today = new Date();

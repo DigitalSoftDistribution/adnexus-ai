@@ -46,7 +46,7 @@ export class ChartService {
   /**
    * Render a single chart configuration to a PNG image file
    */
-  async renderChart(config: ChartConfig, jobId?: string): Promise<ChartImage> {
+  async renderChart(config: ChartConfig, _jobId?: string): Promise<ChartImage> {
     const width = config.width || this.defaultWidth;
     const height = config.height || this.defaultHeight;
 
@@ -88,7 +88,7 @@ export class ChartService {
    * Render multiple charts in parallel
    */
   async renderCharts(configs: ChartConfig[], jobId?: string): Promise<ChartImage[]> {
-    const promises = configs.map((config, index) =>
+    const promises = configs.map((config) =>
       this.renderChart(config, jobId).catch(error => {
         console.error(`[ChartService] Failed to render chart "${config.title}":`, error);
         throw new ChartRenderError(`Chart "${config.title}" failed: ${(error as Error).message}`);
@@ -119,7 +119,7 @@ export class ChartService {
    */
   private buildChartConfig(
     config: ChartConfig,
-    ctx: CanvasRenderingContext2D
+    _ctx: CanvasRenderingContext2D
   ): ChartConfiguration {
     const colors = this.generateColorPalette(config.data.datasets.length);
 

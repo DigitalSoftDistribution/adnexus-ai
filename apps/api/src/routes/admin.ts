@@ -348,7 +348,7 @@ router.post('/feature-flags', async (req: Request, res: Response) => {
 // ─── Mock Data Generators ────────────────────────────────────
 
 function generateMockUsers() {
-  const plans = ['free', 'pro', 'premium', 'agency'];
+  const _plans = ['free', 'pro', 'premium', 'agency'];
   const roles = ['owner', 'admin', 'analyst', 'viewer'];
   const names = [
     'Alex Chen', 'Sarah Miller', 'Jordan Wong', 'Emma Davis', 'Ryan Park',

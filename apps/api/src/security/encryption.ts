@@ -12,7 +12,7 @@ import bcrypt from "bcrypt";
 const AES_ALGORITHM = "aes-256-gcm";
 const AES_KEY_SIZE = 32; // 256 bits
 const AES_IV_SIZE = 16; // 128 bits
-const AES_TAG_SIZE = 16; // 128 bits GCM auth tag
+const _AES_TAG_SIZE = 16; // 128 bits GCM auth tag
 const SALT_ROUNDS = 12; // bcrypt cost factor
 const HMAC_ALGORITHM = "sha256";
 const KEY_DERIVATION_SALT_SIZE = 32;

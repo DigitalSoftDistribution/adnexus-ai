@@ -222,7 +222,7 @@ export class WebSocketManager extends EventEmitter {
   broadcastToWorkspace(workspaceId: string, message: ServerMessage): void {
     const payload = JSON.stringify(message);
     let sent = 0;
-    for (const [clientId, client] of this.clients) {
+    for (const [, client] of this.clients) {
       if (client.workspaceIds.has(workspaceId)) {
         if (this.rawSend(client, payload)) {
           sent++;

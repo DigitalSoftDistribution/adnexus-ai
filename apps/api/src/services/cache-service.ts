@@ -93,7 +93,7 @@ function sessionKey(userId: string): string {
   return `session:${userId}`;
 }
 
-function rateLimitKey(workspaceId: string, endpoint: string): string {
+function _rateLimitKey(workspaceId: string, endpoint: string): string {
   return `ratelimit:${workspaceId}:${endpoint}`;
 }
 
