@@ -21,6 +21,9 @@ export const PRODUCT_MENU: NavMenu = {
     { label: 'AI Agent', href: '/features/ai-agent', description: 'Autonomous monitoring, draft-first' },
     { label: 'Draft Approvals', href: '/features/approvals', description: 'Nothing goes live without you' },
     { label: 'Cross-Platform', href: '/features/platforms', description: 'Meta, Google, TikTok, Snap' },
+    { label: 'Creative Fatigue', href: '/features/creative-fatigue', description: 'Catch tired creative before it burns budget' },
+    { label: 'Morning Brief', href: '/features/morning-brief', description: 'Your daily AI briefing' },
+    { label: 'Budget Pacing', href: '/features/budget-pacing', description: 'Smart budget allocation' },
     { label: 'Integrations', href: '/integrations', description: 'Connect your stack' },
     { label: 'Changelog', href: '/changelog', description: "What's new" },
   ],
@@ -33,6 +36,7 @@ export const SOLUTIONS_MENU: NavMenu = {
     { label: 'For Agencies', href: '/use-cases/agencies', description: 'Manage many clients, one workspace' },
     { label: 'For E-commerce', href: '/use-cases/ecommerce', description: 'Protect ROAS across the funnel' },
     { label: 'For In-house Teams', href: '/use-cases/in-house', description: 'Move faster with guardrails' },
+    { label: 'For Startups', href: '/use-cases/startups', description: 'Growth without the headcount' },
   ],
 };
 
@@ -52,6 +56,7 @@ export const RESOURCES_MENU: NavMenu = {
   items: [
     { label: 'Blog', href: '/blog' },
     { label: 'ROAS Calculator', href: '/tools/roas-calculator' },
+    { label: 'Creative Fatigue Detector', href: '/tools/creative-fatigue' },
     { label: 'Security', href: '/security' },
     { label: 'FAQ', href: '/faq' },
   ],
@@ -91,6 +96,7 @@ export const FOOTER_COLUMNS: { title: string; links: NavLink[] }[] = [
       { label: 'For Agencies', href: '/use-cases/agencies' },
       { label: 'For E-commerce', href: '/use-cases/ecommerce' },
       { label: 'For In-house Teams', href: '/use-cases/in-house' },
+      { label: 'For Startups', href: '/use-cases/startups' },
       { label: 'ROAS Calculator', href: '/tools/roas-calculator' },
     ],
   },
@@ -102,6 +108,7 @@ export const FOOTER_COLUMNS: { title: string; links: NavLink[] }[] = [
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
+      { label: 'Creative Fatigue Detector', href: '/tools/creative-fatigue' },
       { label: 'Security', href: '/security' },
       { label: 'FAQ', href: '/faq' },
     ],
