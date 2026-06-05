@@ -17,6 +17,38 @@ export function integrationsRedirect(platform: OAuthPlatform, status: string, re
   return `${config.frontend.url}/dashboard/integrations?${params.toString()}`;
 }
 
+export function oauthCallbackUrl(platform: OAuthPlatform): string {
+  return `${config.frontend.url.replace(/\/$/, '')}/api/v1/auth/${platform}/callback`;
+}
+
+export function wantsJson(req: { accepts: (type: string) => string | false }): boolean {
+  const acceptsJson = req.accepts('json');
+  const acceptsHtml = req.accepts('html');
+  return acceptsJson === 'json' && acceptsHtml !== 'html';
+}
+
+export function sendOAuthJsonError(
+  req: { accepts: (type: string) => string | false },
+  res: { status: (code: number) => { json: (body: unknown) => void }; redirect: (url: string) => void },
+  statusCode: number,
+  platform: OAuthPlatform,
+  status: string,
+  reason: string,
+  message: string,
+): void {
+  if (wantsJson(req)) {
+    res.status(statusCode).json({
+      success: false,
+      error: message,
+      code: reason.toUpperCase(),
+      data: { platform, status, reason },
+    });
+    return;
+  }
+
+  res.redirect(integrationsRedirect(platform, status, reason));
+}
+
 export function createOAuthState(payload: OAuthStatePayload): string {
   return jwt.sign(payload, config.jwt.secret, { expiresIn: '10m' });
 }

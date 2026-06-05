@@ -573,8 +573,8 @@ VALUES
 -- =============================================================================
 INSERT INTO api_keys (id, workspace_id, user_id, name, key_hash, key_prefix, scopes, last_used_at, created_at)
 VALUES
-  ('l1eebc99-9c0b-4ef8-bb6d-6bb9bd380ac3', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Production API Key', '$2b$12$abc...def', 'adnx_live', '["read", "write"]'::jsonb, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '7 days'),
-  ('l2eebc99-9c0b-4ef8-bb6d-6bb9bd380ac4', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Read-Only Reporting Key', '$2b$12$ghi...jkl', 'adnx_rpt', '["read"]'::jsonb, NOW() - INTERVAL '1 day', NOW() - INTERVAL '3 days');
+  ('l1eebc99-9c0b-4ef8-bb6d-6bb9bd380ac3', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Production API Key', '$2b$12$abc...def', 'adnx_live', ARRAY['read', 'write']::TEXT[], NOW() - INTERVAL '2 hours', NOW() - INTERVAL '7 days'),
+  ('l2eebc99-9c0b-4ef8-bb6d-6bb9bd380ac4', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Read-Only Reporting Key', '$2b$12$ghi...jkl', 'adnx_rpt', ARRAY['read']::TEXT[], NOW() - INTERVAL '1 day', NOW() - INTERVAL '3 days');
 
 -- =============================================================================
 -- migrate:down

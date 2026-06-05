@@ -13,7 +13,7 @@ import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
 import axios from "axios";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
-import { createOAuthState, integrationsRedirect, requestWorkspaceMatchesAuthenticatedWorkspace, userCanManageOAuthWorkspace, verifyOAuthState } from "./oauthState";
+import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
 
 const router = Router();
 const META_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth";
@@ -41,11 +41,11 @@ router.get("/connect", requireAuth, requireAdmin, (req: Request, res: Response) 
     const workspaceId = req.workspaceId!;
 
     if (!config.meta.appId || !config.meta.appSecret) {
-      res.redirect(integrationsRedirect("meta", "config_error", "missing_meta_oauth_config"));
+      sendOAuthJsonError(req, res, 500, "meta", "config_error", "missing_meta_oauth_config", "Meta OAuth is not configured");
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/meta/callback`;
+    const redirectUri = oauthCallbackUrl('meta');
     const stateB64 = createOAuthState({
       platform: "meta",
       workspaceId,
@@ -64,7 +64,7 @@ router.get("/connect", requireAuth, requireAdmin, (req: Request, res: Response) 
 
     const authUrl = `${META_OAUTH_URL}?${params.toString()}`;
     logger.info({ workspaceId }, "Redirecting to Meta OAuth");
-    if (req.accepts('json')) {
+    if (wantsJson(req)) {
       res.json({ success: true, data: { redirectUrl: authUrl } });
       return;
     }
@@ -93,9 +93,7 @@ router.get("/callback", async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, "Meta OAuth denied by user");
-      res.redirect(
-        integrationsRedirect("meta", "denied", "oauth_denied"),
-      );
+      sendOAuthJsonError(req, res, 400, "meta", "denied", "oauth_denied", "Meta OAuth was denied");
       return;
     }
 
@@ -108,16 +106,16 @@ router.get("/callback", async (req: Request, res: Response) => {
 
     const stateData = verifyOAuthState(stateB64, "meta");
     if (!stateData) {
-      res.redirect(integrationsRedirect("meta", "error", "invalid_oauth_state"));
+      sendOAuthJsonError(req, res, 400, "meta", "error", "invalid_oauth_state", "Invalid OAuth state");
       return;
     }
 
     const { workspaceId, userId, accountId, reconnect } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
-      res.redirect(integrationsRedirect("meta", "error", "workspace_access_denied"));
+      sendOAuthJsonError(req, res, 403, "meta", "error", "workspace_access_denied", "Workspace access denied");
       return;
     }
-    const redirectUri = `${config.frontend.url}/auth/meta/callback`;
+    const redirectUri = oauthCallbackUrl('meta');
 
     let reconnectPlatformAccountId = accountId;
     if (reconnect && accountId && /^[0-9a-f-]{36}$/i.test(accountId)) {
@@ -128,7 +126,7 @@ router.get("/callback", async (req: Request, res: Response) => {
         .eq('workspace_id', workspaceId)
         .maybeSingle();
       if (!reconnectAccount?.platform_account_id) {
-        res.redirect(integrationsRedirect("meta", "error", "account_not_found"));
+        sendOAuthJsonError(req, res, 404, "meta", "error", "account_not_found", "Account not found");
         return;
       }
       reconnectPlatformAccountId = reconnectAccount.platform_account_id;
@@ -295,9 +293,7 @@ router.get("/callback", async (req: Request, res: Response) => {
     );
   } catch (err) {
     logger.error({ err }, "Meta OAuth callback error");
-    res.redirect(
-      integrationsRedirect("meta", "error", "oauth_failed"),
-    );
+    sendOAuthJsonError(req, res, 502, "meta", "error", "oauth_failed", "Meta OAuth callback failed");
   }
 });
 
