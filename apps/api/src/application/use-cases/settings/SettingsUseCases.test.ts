@@ -117,9 +117,9 @@ describe('workspace settings use-cases', () => {
     expect(repo.updateWorkspace).toHaveBeenCalledWith('ws-1', updates);
   });
 
-  it('denies editors from updating settings', async () => {
+  it.each(['editor', 'viewer'])('denies %s from updating settings', async (userRole) => {
     const repo = makeRepo();
-    const res = await new UpdateWorkspaceSettingsUseCase(repo).execute({ workspaceId: 'ws-1', userRole: 'editor', updates: { name: 'Nope' } });
+    const res = await new UpdateWorkspaceSettingsUseCase(repo).execute({ workspaceId: 'ws-1', userRole, updates: { name: 'Nope' } });
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(403);
     expect(repo.updateWorkspace).not.toHaveBeenCalled();
@@ -212,7 +212,8 @@ describe('API key settings use-cases', () => {
   });
 
   it.each([
-    ['get', () => new GetApiKeysUseCase(makeRepo()).execute({ workspaceId: 'ws-1', userRole: 'viewer' })],
+    ['get as editor', () => new GetApiKeysUseCase(makeRepo()).execute({ workspaceId: 'ws-1', userRole: 'editor' })],
+    ['get as viewer', () => new GetApiKeysUseCase(makeRepo()).execute({ workspaceId: 'ws-1', userRole: 'viewer' })],
     ['create', () => new CreateApiKeyUseCase(makeRepo()).execute({ workspaceId: 'ws-1', userRole: 'editor', name: 'Reporting' })],
     ['revoke', () => new RevokeApiKeyUseCase(makeRepo()).execute({ workspaceId: 'ws-1', userRole: 'viewer', keyId: 'key-1' })],
   ])('denies non-admin API key %s access', async (_name, run) => {
