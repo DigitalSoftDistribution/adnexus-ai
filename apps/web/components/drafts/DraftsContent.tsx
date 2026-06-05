@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { formatDate } from '@/lib/utils';
 import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock, Play } from 'lucide-react';
 
@@ -32,7 +33,7 @@ function useDrafts() {
 }
 
 export function DraftsContent() {
-  const { data, isLoading } = useDrafts();
+  const { data, isLoading, isError, refetch } = useDrafts();
   const drafts: Draft[] = data?.data?.drafts ?? [];
   const t = useTranslations('drafts');
   const tc = useTranslations('common');
@@ -41,6 +42,23 @@ export function DraftsContent() {
     return (
       <div className="flex h-96 items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
+        </div>
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToFetch')}
+          onRetry={() => refetch()}
+          retryLabel={tc('retry')}
+        />
       </div>
     );
   }

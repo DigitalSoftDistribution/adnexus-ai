@@ -76,4 +76,15 @@ export class SyncJobRepository implements ISyncJobRepository {
     );
     return rows.map(mapRow);
   }
+
+  async findRunningForAccount(adAccountId: string): Promise<SyncJob | null> {
+    const { rows } = await query<Record<string, unknown>>(
+      `SELECT * FROM sync_jobs
+       WHERE ad_account_id = $1 AND status = 'running'
+       ORDER BY started_at DESC
+       LIMIT 1`,
+      [adAccountId],
+    );
+    return rows[0] ? mapRow(rows[0]) : null;
+  }
 }

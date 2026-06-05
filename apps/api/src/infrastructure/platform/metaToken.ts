@@ -24,25 +24,37 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   const row = rows[0];
   if (!row?.oauth_token) return null;
 
-  const expiresSoon =
-    !!row.token_expires_at &&
-    new Date(row.token_expires_at).getTime() < Date.now() + 5 * 60 * 1000;
+  const now = Date.now();
+  const expiryMs = row.token_expires_at ? new Date(row.token_expires_at).getTime() : null;
+  const expiresSoon = expiryMs !== null && expiryMs < now + 5 * 60 * 1000;
+  const alreadyExpired = expiryMs !== null && expiryMs <= now;
 
   if (!expiresSoon) return row.oauth_token;
 
+  // Expiring soon: prefer a proactive refresh. If refresh isn't possible, fall
+  // back to the current token as long as it has not actually expired yet, so we
+  // use its remaining lifetime instead of failing as "not connected".
   if (!row.refresh_token) {
-    log.warn({ adAccountId }, 'Meta token expiring and no refresh token');
+    if (!alreadyExpired) {
+      log.warn({ adAccountId }, 'Meta token expiring soon and no refresh token; using remaining lifetime');
+      return row.oauth_token;
+    }
+    log.warn({ adAccountId }, 'Meta token expired and no refresh token');
     return null;
   }
 
   try {
     const refreshed = await refreshMetaToken(row.refresh_token);
-    const newExpiry = new Date(Date.now() + (refreshed.expires_in ?? 3600) * 1000).toISOString();
+    const newExpiry = new Date(now + (refreshed.expires_in ?? 3600) * 1000).toISOString();
     await persistRefreshedToken(adAccountId, refreshed.access_token, newExpiry);
     log.info({ adAccountId }, 'Refreshed Meta token');
     return refreshed.access_token;
   } catch (e) {
-    log.warn({ err: e, adAccountId }, 'Meta token refresh failed');
+    if (!alreadyExpired) {
+      log.warn({ err: e, adAccountId }, 'Meta token refresh failed; using remaining lifetime');
+      return row.oauth_token;
+    }
+    log.warn({ err: e, adAccountId }, 'Meta token refresh failed and token expired');
     return null;
   }
 }

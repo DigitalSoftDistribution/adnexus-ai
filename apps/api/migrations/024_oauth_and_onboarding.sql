@@ -19,6 +19,28 @@ ALTER TABLE ad_accounts
   ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ;
 
+-- Reconcile token columns. Migration 001 created `access_token` (NOT NULL), but
+-- every OAuth writer, the PlatformManager, and the sync/write services use
+-- `oauth_token`. Add `oauth_token`/`refresh_token` if missing and backfill from
+-- the legacy `access_token`, so a database built purely from migrations exposes
+-- the column names all readers/writers expect.
+ALTER TABLE ad_accounts
+  ADD COLUMN IF NOT EXISTS oauth_token TEXT,
+  ADD COLUMN IF NOT EXISTS refresh_token TEXT;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'ad_accounts' AND column_name = 'access_token'
+  ) THEN
+    UPDATE ad_accounts SET oauth_token = access_token
+      WHERE oauth_token IS NULL AND access_token IS NOT NULL;
+    -- Disconnect flows null the tokens, so the legacy NOT NULL must be relaxed.
+    ALTER TABLE ad_accounts ALTER COLUMN access_token DROP NOT NULL;
+  END IF;
+END $$;
+
 -- Keep is_active consistent with status for any pre-existing rows.
 UPDATE ad_accounts SET is_active = (status = 'active') WHERE is_active IS NULL;
 
@@ -30,6 +52,9 @@ ALTER TABLE workspaces
   ADD COLUMN IF NOT EXISTS onboarding_step TEXT;
 
 -- migrate:down
+-- Note: oauth_token/refresh_token are intentionally NOT dropped here. They are
+-- the canonical token columns the whole app reads/writes and may pre-date this
+-- migration on existing databases; dropping them on rollback would break OAuth.
 ALTER TABLE ad_accounts
   DROP COLUMN IF EXISTS scopes,
   DROP COLUMN IF EXISTS is_active,

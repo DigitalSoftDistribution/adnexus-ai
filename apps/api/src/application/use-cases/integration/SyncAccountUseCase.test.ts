@@ -73,6 +73,7 @@ const makeJobRepo = (): ISyncJobRepository => ({
     Promise.resolve({ ...makeJob(input.status), ...input, errorCount: input.errors.length }),
   ),
   listForAccount: vi.fn(),
+  findRunningForAccount: vi.fn().mockResolvedValue(null),
 });
 
 const makeBus = (): IEventBus =>
@@ -159,7 +160,7 @@ describe('SyncAccountUseCase', () => {
 
   it('updates existing campaigns instead of creating duplicates', async () => {
     const campaignRepo = makeCampaignRepo({
-      findByPlatformCampaignId: vi.fn().mockResolvedValue({ id: 'camp-existing' } as Campaign),
+      findByPlatformCampaignId: vi.fn().mockResolvedValue({ id: 'camp-existing', adAccountId: 'acc-1' } as Campaign),
     });
     const sync = makeSync({
       campaigns: [{ platformCampaignId: 'fb-1', name: 'C1', status: 'active', metrics }],
@@ -174,6 +175,39 @@ describe('SyncAccountUseCase', () => {
     expect(res.success).toBe(true);
     expect(campaignRepo.create).not.toHaveBeenCalled();
     expect(campaignRepo.update).toHaveBeenCalledWith('camp-existing', expect.objectContaining({ spend: 50 }));
+  });
+
+  it('does not overwrite a campaign owned by another ad account', async () => {
+    const campaignRepo = makeCampaignRepo({
+      // Same Meta campaign id exists, but under a different ad account.
+      findByPlatformCampaignId: vi.fn().mockResolvedValue({ id: 'camp-other', adAccountId: 'acc-OTHER' } as Campaign),
+    });
+    const sync = makeSync({
+      campaigns: [{ platformCampaignId: 'fb-1', name: 'C1', status: 'active', metrics }],
+      errors: [],
+    });
+
+    const res = await new SyncAccountUseCase(
+      campaignRepo, makeAccountRepo(), makeJobRepo(), makeBus(), sync,
+      vi.fn().mockResolvedValue(undefined), vi.fn().mockResolvedValue(undefined),
+    ).execute(base);
+
+    expect(res.success).toBe(true);
+    expect(campaignRepo.update).not.toHaveBeenCalled();
+    expect(campaignRepo.create).toHaveBeenCalledWith(expect.objectContaining({ adAccountId: 'acc-1' }));
+  });
+
+  it('marks the job failed when the platform sync throws', async () => {
+    const sync = makeSync({ campaigns: [], errors: [] });
+    (sync.syncAccount as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('meta boom'));
+
+    const res = await new SyncAccountUseCase(
+      makeCampaignRepo(), makeAccountRepo(), makeJobRepo(), makeBus(), sync,
+      vi.fn(), vi.fn(),
+    ).execute(base);
+
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data.job.status).toBe('failed');
   });
 
   it('records a partial job when some campaigns error', async () => {
@@ -210,6 +244,21 @@ describe('SyncAccountUseCase', () => {
       expect(res.data.liveSynced).toBe(false);
       expect(res.data.job.status).toBe('completed');
     }
+  });
+
+  it('rejects (409) when a sync is already running for the account', async () => {
+    const jobRepo = makeJobRepo();
+    (jobRepo.findRunningForAccount as ReturnType<typeof vi.fn>).mockResolvedValue(makeJob('running'));
+    const start = jobRepo.start as ReturnType<typeof vi.fn>;
+
+    const res = await new SyncAccountUseCase(
+      makeCampaignRepo(), makeAccountRepo(), jobRepo, makeBus(), makeSync(null),
+      vi.fn(), vi.fn(),
+    ).execute(base);
+
+    expect(res.success).toBe(false);
+    if (!res.success) expect((res.error as unknown as { statusCode: number }).statusCode).toBe(409);
+    expect(start).not.toHaveBeenCalled();
   });
 
   it('denies a viewer (403)', async () => {

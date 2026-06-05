@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { Bell, Plus, AlertTriangle, TrendingDown, DollarSign, Users, Activity } from 'lucide-react';
 
@@ -23,7 +24,7 @@ function useAlerts() {
   const t = useTranslations('alerts');
   const [filter, setFilter] = useState<string>('all');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['alerts', 'list'],
     queryFn: async () => {
       const res = await fetch('/api/v2/alerts');
@@ -37,11 +38,11 @@ function useAlerts() {
     ? rules
     : rules.filter((r: AlertRule) => r.severity === filter);
 
-  return { rules: filtered, isLoading, filter, setFilter, total: data?.data?.total ?? 0 };
+  return { rules: filtered, isLoading, isError, refetch, filter, setFilter, total: data?.data?.total ?? 0 };
 }
 
 export function AlertsContent() {
-  const { rules, isLoading, filter, setFilter, total } = useAlerts();
+  const { rules, isLoading, isError, refetch, filter, setFilter, total } = useAlerts();
   const t = useTranslations('alerts');
   const tc = useTranslations('common');
 
@@ -77,6 +78,13 @@ export function AlertsContent() {
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToFetch')}
+          onRetry={() => refetch()}
+          retryLabel={tc('retry')}
+        />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">

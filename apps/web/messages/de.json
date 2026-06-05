@@ -100,6 +100,8 @@
     "executing": "Wird ausgeführt...",
     "opening": "Wird geöffnet...",
     "noResults": "Keine Ergebnisse gefunden",
+    "searching": "Suche läuft…",
+    "searchFailed": "Suche fehlgeschlagen. Erneut versuchen.",
     "comingSoon": "Demnächst verfügbar",
     "placeholder": "Platzhalter für Diagrammkomponente — recharts hier integrieren",
     "all": "Alle",

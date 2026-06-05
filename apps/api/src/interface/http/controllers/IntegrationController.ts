@@ -69,11 +69,13 @@ export function createIntegrationController(container: Container) {
         });
         return;
       }
+      const parsedLimit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : undefined;
+      const limit = parsedLimit !== undefined && Number.isFinite(parsedLimit) ? parsedLimit : undefined;
       const result = await container.listSyncJobs.execute({
         workspaceId: req.user!.workspaceId,
         userRole: req.user!.role,
         adAccountId: req.params.accountId,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+        limit,
       });
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { platformLabel } from '@/lib/platforms';
@@ -35,7 +36,7 @@ function useCampaigns() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['campaigns', 'list', page, search],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -53,6 +54,8 @@ function useCampaigns() {
     campaigns: (data?.data?.campaigns ?? []) as Campaign[],
     total: data?.data?.total ?? 0,
     isLoading,
+    isError,
+    refetch,
     page,
     setPage,
     search,
@@ -67,7 +70,7 @@ function statusVariant(status: string): 'success' | 'warning' | 'secondary' {
 }
 
 export function CampaignsContent() {
-  const { campaigns, isLoading, search, setSearch } = useCampaigns();
+  const { campaigns, isLoading, isError, refetch, search, setSearch } = useCampaigns();
   const t = useTranslations('campaigns');
   const tc = useTranslations('common');
 
@@ -165,6 +168,13 @@ export function CampaignsContent() {
             <div className="flex h-64 items-center justify-center">
               <LoadingSpinner size="lg" />
             </div>
+          ) : isError ? (
+            <ErrorState
+              title={tc('error')}
+              description={t('failedToFetch')}
+              onRetry={() => refetch()}
+              retryLabel={tc('retry')}
+            />
           ) : campaigns.length === 0 ? (
             <EmptyState
               icon={<Megaphone className="h-6 w-6" />}
