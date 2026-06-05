@@ -75,58 +75,62 @@ export interface AdUpsert {
 }
 
 /**
- * Upsert an ad set by (campaign_id, platform_adset_id) and return its internal id.
- * The adsets table has no unique constraint on platform_adset_id, so we do a
- * manual find-then-insert/update keyed by campaign + platform id.
+ * Upsert an ad set by (campaign_id, platform_ad_set_id) and return its internal id.
+ *
+ * Columns match the applied schema (migration 001): `ad_sets` has
+ * id/campaign_id/platform_ad_set_id/name/status/budget/targeting only — there is
+ * no workspace_id/platform/bid_strategy/bid_amount/daily_budget here. The table
+ * has no unique constraint on platform_ad_set_id, so we find-then-insert/update
+ * keyed by campaign + platform id.
  */
 export async function upsertAdSet(
-  workspaceId: string,
   campaignId: string,
-  platform: string,
   a: AdSetUpsert,
 ): Promise<string> {
   const { rows: existing } = await query<{ id: string }>(
-    `SELECT id FROM adsets WHERE campaign_id = $1 AND platform_adset_id = $2 LIMIT 1`,
+    `SELECT id FROM ad_sets WHERE campaign_id = $1 AND platform_ad_set_id = $2 LIMIT 1`,
     [campaignId, a.platformAdSetId],
   );
 
   if (existing[0]) {
     await query(
-      `UPDATE adsets SET name = $2, status = $3, daily_budget = $4, bid_strategy = $5,
-         bid_amount = $6, targeting = $7, updated_at = NOW() WHERE id = $1`,
-      [existing[0].id, a.name, a.status, a.dailyBudget ?? null, a.bidStrategy ?? null,
-       a.bidAmount ?? null, a.targeting ?? {}],
+      `UPDATE ad_sets SET name = $2, status = $3, budget = $4, targeting = $5,
+         updated_at = NOW() WHERE id = $1`,
+      [existing[0].id, a.name, a.status, a.dailyBudget ?? null, a.targeting ?? {}],
     );
     return existing[0].id;
   }
 
   const { rows } = await query<{ id: string }>(
-    `INSERT INTO adsets (workspace_id, campaign_id, platform, platform_adset_id, name,
-       status, daily_budget, bid_strategy, bid_amount, targeting)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-    [workspaceId, campaignId, platform, a.platformAdSetId, a.name, a.status,
-     a.dailyBudget ?? null, a.bidStrategy ?? null, a.bidAmount ?? null, a.targeting ?? {}],
+    `INSERT INTO ad_sets (campaign_id, platform_ad_set_id, name, status, budget, targeting)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+    [campaignId, a.platformAdSetId, a.name, a.status, a.dailyBudget ?? null, a.targeting ?? {}],
   );
   return rows[0].id;
 }
 
-/** Upsert an ad by (adset_id, platform_ad_id). */
+/**
+ * Upsert an ad by (ad_set_id, platform_ad_id).
+ *
+ * Columns match the applied schema (migration 001): `ads` has
+ * id/ad_set_id/campaign_id/platform_ad_id/name/status/creative_type/creative_url/
+ * body — no workspace_id/platform/creative_text. The synced creative text maps
+ * to `body`.
+ */
 export async function upsertAd(
-  workspaceId: string,
   campaignId: string,
-  adsetId: string,
-  platform: string,
+  adSetId: string,
   ad: AdUpsert,
 ): Promise<void> {
   const { rows: existing } = await query<{ id: string }>(
-    `SELECT id FROM ads WHERE adset_id = $1 AND platform_ad_id = $2 LIMIT 1`,
-    [adsetId, ad.platformAdId],
+    `SELECT id FROM ads WHERE ad_set_id = $1 AND platform_ad_id = $2 LIMIT 1`,
+    [adSetId, ad.platformAdId],
   );
 
   if (existing[0]) {
     await query(
       `UPDATE ads SET name = $2, status = $3, creative_type = $4, creative_url = $5,
-         creative_text = $6, updated_at = NOW() WHERE id = $1`,
+         body = $6, updated_at = NOW() WHERE id = $1`,
       [existing[0].id, ad.name, ad.status, ad.creativeType ?? null, ad.creativeUrl ?? null,
        ad.creativeText ?? null],
     );
@@ -134,10 +138,10 @@ export async function upsertAd(
   }
 
   await query(
-    `INSERT INTO ads (workspace_id, campaign_id, adset_id, platform, platform_ad_id,
-       name, status, creative_type, creative_url, creative_text)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-    [workspaceId, campaignId, adsetId, platform, ad.platformAdId, ad.name, ad.status,
+    `INSERT INTO ads (campaign_id, ad_set_id, platform_ad_id, name, status,
+       creative_type, creative_url, body)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [campaignId, adSetId, ad.platformAdId, ad.name, ad.status,
      ad.creativeType ?? null, ad.creativeUrl ?? null, ad.creativeText ?? null],
   );
 }
@@ -147,15 +151,15 @@ export async function upsertAd(
  * SyncAccountUseCase when ad-set import is enabled.
  */
 export async function writeAdSets(
-  workspaceId: string,
+  _workspaceId: string,
   campaignId: string,
-  platform: string,
+  _platform: string,
   adSets: NonNullable<SyncedCampaign['adSets']>,
 ): Promise<{ adSets: number; ads: number }> {
   let adSetCount = 0;
   let adCount = 0;
   for (const as of adSets) {
-    const adsetId = await upsertAdSet(workspaceId, campaignId, platform, {
+    const adSetId = await upsertAdSet(campaignId, {
       platformAdSetId: as.platformAdSetId,
       name: as.name,
       status: as.status,
@@ -166,7 +170,7 @@ export async function writeAdSets(
     });
     adSetCount++;
     for (const ad of as.ads) {
-      await upsertAd(workspaceId, campaignId, adsetId, platform, ad);
+      await upsertAd(campaignId, adSetId, ad);
       adCount++;
     }
   }

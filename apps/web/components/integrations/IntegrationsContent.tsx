@@ -16,6 +16,8 @@ interface IntegrationView {
   label: string;
   connected: boolean;
   status: string;
+  /** Internal ad_accounts.id UUID — used for sync/sync-jobs endpoints. */
+  id: string | null;
   accountId: string | null;
   accountName: string | null;
   lastSyncedAt: string | null;
@@ -132,7 +134,7 @@ export function IntegrationsContent() {
                 {integration.connected ? (
                   <ConnectedActions
                     platform={integration.platform}
-                    accountId={integration.accountId}
+                    accountId={integration.id}
                     lastSyncedAt={integration.lastSyncedAt}
                     disconnecting={disconnect.isPending}
                     onDisconnect={() => disconnect.mutate(integration.platform)}

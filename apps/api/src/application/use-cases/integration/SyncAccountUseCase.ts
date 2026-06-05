@@ -1,5 +1,6 @@
 import type { ICampaignRepository } from '../../../domain/repositories/ICampaignRepository';
 import type { IAdAccountRepository } from '../../../domain/repositories/IAdAccountRepository';
+import type { AdAccount } from '../../../domain/entities/AdAccount';
 import type { ISyncJobRepository, SyncJob, SyncJobError } from '../../../domain/repositories/ISyncJobRepository';
 import type { IEventBus } from '../../../domain/events/EventBus';
 import type { IPlatformSyncService, SyncedCampaign } from '../../ports/IPlatformSyncService';
@@ -81,6 +82,30 @@ export class SyncAccountUseCase {
       return ok({ job: finished ?? job, liveSynced: false });
     }
 
+    // From here on a throw must not leave the job stuck in `running`: any
+    // unexpected failure (network, Meta error, timeout) is recorded as a failed
+    // job before returning so the UI history never shows a perpetual sync.
+    try {
+      return await this.runSync(input, account, platform, job);
+    } catch (e) {
+      const finished = await this.syncJobRepo
+        .finish(job.id, {
+          status: 'failed',
+          campaignsSynced: 0,
+          metricsSynced: 0,
+          errors: [{ scope: 'account', scopeId: account.platformAccountId, message: (e as Error).message }],
+        })
+        .catch(() => null);
+      return ok({ job: finished ?? job, liveSynced: false });
+    }
+  }
+
+  private async runSync(
+    input: SyncAccountInput,
+    account: AdAccount,
+    platform: Platform,
+    job: SyncJob,
+  ): Promise<Result<SyncAccountOutput>> {
     const result = await this.platformSync.syncAccount({
       platform,
       adAccountId: account.id,
@@ -110,7 +135,12 @@ export class SyncAccountUseCase {
             ? (c.status as CampaignStatus)
             : 'paused';
 
-        const existing = await this.campaignRepo.findByPlatformCampaignId(c.platformCampaignId);
+        // findByPlatformCampaignId matches on the Meta campaign id alone, which
+        // is not workspace-scoped. Only treat it as "the same campaign" when it
+        // belongs to the account being synced; otherwise create a new row so we
+        // never overwrite another workspace's campaign with this account's data.
+        const matched = await this.campaignRepo.findByPlatformCampaignId(c.platformCampaignId);
+        const existing = matched && matched.adAccountId === account.id ? matched : null;
         let campaignId: string;
 
         if (existing) {
