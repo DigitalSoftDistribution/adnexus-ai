@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Globe } from 'lucide-react';
-import { ScrollReveal } from '../animations';
 import {
   cnGreeting,
   cnSuggestions,
@@ -24,7 +23,9 @@ interface ChatWindowProps {
 
 export function ChatWindow({ onClose }: ChatWindowProps) {
   const [lang, setLang] = useState<'en' | 'cn'>('en');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => [{ id: 'greeting', role: 'ai', content: enGreeting }],
+  );
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,9 +39,15 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
     placeholders: lang === 'cn' ? cnPlaceholders : enPlaceholders,
   };
 
-  // Re-seed the greeting in the active language. Switching languages resets
-  // the conversation to a fresh greeting so we never show mixed-language state.
+  // Re-seed the greeting in the active language when the user switches EN/CN.
+  // Skips the initial render (messages already seeded with the EN greeting) so
+  // we never show an empty thread or wipe a just-started conversation.
+  const didMountLang = useRef(false);
   useEffect(() => {
+    if (!didMountLang.current) {
+      didMountLang.current = true;
+      return;
+    }
     replyTimers.current.forEach(clearTimeout);
     replyTimers.current = [];
     setIsTyping(false);
@@ -93,7 +100,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
   };
 
   return (
-    <ScrollReveal direction="right" delay={0.1}>
+    <>
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -251,6 +258,6 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
           </button>
         </div>
       </motion.div>
-    </ScrollReveal>
+    </>
   );
 }

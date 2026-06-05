@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PageHero, Section, CtaBand } from '@/components/marketing/sections';
 import { ScrollReveal } from '@/components/marketing/v2/animations';
-import { AlertTriangle, RefreshCw, TrendingDown } from 'lucide-react';
+import { AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 
 export default function Page() {
   const [ctr, setCtr] = useState('');
@@ -14,13 +14,22 @@ export default function Page() {
     message: string;
     recommendation: string;
   }>(null);
+  const [error, setError] = useState('');
 
   const analyze = () => {
     const ctrVal = parseFloat(ctr);
     const freqVal = parseFloat(frequency);
     const daysVal = parseInt(days);
 
-    if (!ctrVal || !freqVal || !daysVal) return;
+    if (
+      Number.isNaN(ctrVal) || Number.isNaN(freqVal) || Number.isNaN(daysVal) ||
+      ctrVal <= 0 || freqVal <= 0 || daysVal <= 0
+    ) {
+      setResult(null);
+      setError('Enter positive numbers for CTR, frequency, and days to analyze.');
+      return;
+    }
+    setError('');
 
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
     let message = '';
@@ -141,6 +150,12 @@ export default function Page() {
                 Analyze Creative
               </button>
 
+              {error && (
+                <p className="text-[13px] mt-3" style={{ color: '#EF4444' }} role="alert">
+                  {error}
+                </p>
+              )}
+
               {/* Result */}
               {result && (
                 <div
@@ -151,7 +166,7 @@ export default function Page() {
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    {result.status === 'healthy' && <TrendingDown size={16} style={{ color: statusColors[result.status].icon }} />}
+                    {result.status === 'healthy' && <TrendingUp size={16} style={{ color: statusColors[result.status].icon }} />}
                     {result.status === 'warning' && <AlertTriangle size={16} style={{ color: statusColors[result.status].icon }} />}
                     {result.status === 'critical' && <RefreshCw size={16} style={{ color: statusColors[result.status].icon }} />}
                     <span
