@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
@@ -39,6 +39,12 @@ export function OnboardingContent() {
     },
   });
 
+  useEffect(() => {
+    if (status?.completed) {
+      router.replace('/dashboard');
+    }
+  }, [router, status?.completed]);
+
   const complete = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v2/onboarding/complete', { method: 'POST' });
@@ -47,11 +53,11 @@ export function OnboardingContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding'] });
-      router.push('/dashboard');
+      router.replace('/dashboard');
     },
   });
 
-  if (isLoading) {
+  if (isLoading || status?.completed) {
     return (
       <div className="flex h-screen items-center justify-center">
         <LoadingSpinner size="lg" />

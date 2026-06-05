@@ -31,10 +31,10 @@ describe('SignInForm', () => {
     vi.unstubAllGlobals();
   });
 
-  it('routes authenticated users to locale-aware onboarding before dashboard', async () => {
+  it('routes users without completed onboarding to onboarding', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ data: { token: 'token-123' } }),
+      json: async () => ({ data: { token: 'token-123', user: { onboardingCompleted: false } } }),
     }));
 
     renderForm();
@@ -45,5 +45,21 @@ describe('SignInForm', () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith('/onboarding'));
     expect(push).not.toHaveBeenCalledWith('/dashboard');
     expect(localStorage.getItem('adnexus_token')).toBe('token-123');
+  });
+
+  it('routes returning users with completed onboarding to dashboard', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { token: 'token-456', user: { onboardingCompleted: true } } }),
+    }));
+
+    renderForm();
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'returning@example.com' } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret123' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
+    expect(push).not.toHaveBeenCalledWith('/onboarding');
+    expect(localStorage.getItem('adnexus_token')).toBe('token-456');
   });
 });

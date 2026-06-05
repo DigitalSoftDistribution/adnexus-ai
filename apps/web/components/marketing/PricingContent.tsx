@@ -8,7 +8,7 @@ import { PRICING_TIERS, formatPrice } from '@/lib/marketing/pricing';
 
 const FAQS = [
   {
-    q: 'Can I switch plans or cancel anytime?',
+    q: 'Can I switch plans during the v1 pilot?',
     a: 'Plan changes are handled by our team during v1. Contact sales when you need to change seats, accounts, or pilot scope.',
   },
   {
@@ -100,7 +100,7 @@ export function PricingContent() {
           {[
             { icon: <CheckCircle2 size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Managed v1 pilot' },
             { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Meta launch-ready' },
-            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Cancel anytime' },
+            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Managed plan changes' },
             { icon: <Headphones size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Support included' },
           ].map((b) => (
             <div key={b.label} className="flex items-center gap-2 text-xs sm:text-sm" style={{ color: 'var(--text-tertiary)' }}>
