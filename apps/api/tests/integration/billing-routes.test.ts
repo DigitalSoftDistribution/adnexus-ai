@@ -400,3 +400,22 @@ describe('credit cost mapping', () => {
     expect(CREDIT_COSTS.audit_run).toBe(15);
   });
 });
+
+
+describe('GET /api/v1/billing/plans', () => {
+  it('returns the v2-compatible success/data envelope consumed by BillingContent', async () => {
+    const token = generateToken(UUIDS.owner, 'owner', WS_ID);
+
+    const response = await request(app)
+      .get('/api/v1/billing/plans')
+      .set('Authorization', `Bearer ${token}`)
+      .set('x-workspace-id', WS_ID);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.billingEnabled).toBe(true);
+    expect(response.body.data.plans).toEqual([
+      { plan: 'growth', priceId: 'price_123', credits: { creatives: 200, impressions: 500000, aiCredits: 5000 } },
+    ]);
+  });
+});

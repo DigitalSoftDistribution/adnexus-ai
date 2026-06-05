@@ -75,6 +75,23 @@ export function IntegrationsContent() {
   const oauthPlatform = searchParams.get("platform") ?? "meta";
   const oauthReason = searchParams.get("reason");
 
+  async function startOAuthConnect(integration: IntegrationView) {
+    const res = await fetch(integration.connectUrl, {
+      headers: { Accept: "application/json" },
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.error?.message ?? "Failed to start OAuth connection");
+    const redirectUrl = body?.data?.redirectUrl;
+    if (typeof redirectUrl !== "string" || !redirectUrl) {
+      throw new Error("OAuth provider URL was not returned");
+    }
+    window.location.href = redirectUrl;
+  }
+
+  const connect = useMutation({
+    mutationFn: startOAuthConnect,
+  });
+
   const disconnect = useMutation({
     mutationFn: async (platform: string) => {
       const res = await fetch(`/api/v2/integrations/${platform}/disconnect`, {
@@ -199,11 +216,14 @@ export function IntegrationsContent() {
                     onDisconnect={() => disconnect.mutate(integration.platform)}
                   />
                 ) : (
-                  <Button asChild size="sm" className="w-full">
-                    <a href={integration.connectUrl}>
-                      <Link2 className="mr-2 h-4 w-4" />
-                      {tc("connect")}
-                    </a>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={connect.isPending}
+                    onClick={() => connect.mutate(integration)}
+                  >
+                    <Link2 className="mr-2 h-4 w-4" />
+                    {tc("connect")}
                   </Button>
                 )}
               </CardContent>

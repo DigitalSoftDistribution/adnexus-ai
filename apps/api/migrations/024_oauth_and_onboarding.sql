@@ -64,11 +64,23 @@ END $$;
 -- Normalize legacy uppercase statuses to the lowercase status vocabulary used by
 -- OAuth, sync, repositories, and integration health.
 UPDATE ad_accounts
-SET status = CASE status
-  WHEN 'ACTIVE' THEN 'active'
-  WHEN 'DISCONNECTED' THEN 'disconnected'
-  WHEN 'ERROR' THEN 'error'
-  ELSE LOWER(status)
+SET status = CASE LOWER(COALESCE(status, ''))
+  WHEN '' THEN 'active'
+  WHEN 'active' THEN 'active'
+  WHEN 'enabled' THEN 'active'
+  WHEN 'pending' THEN 'active'
+  WHEN 'disconnected' THEN 'disconnected'
+  WHEN 'inactive' THEN 'disconnected'
+  WHEN 'paused' THEN 'disconnected'
+  WHEN 'disabled' THEN 'disconnected'
+  WHEN 'removed' THEN 'disconnected'
+  WHEN 'revoked' THEN 'disconnected'
+  WHEN 'expired' THEN 'expired'
+  WHEN 'refresh_needed' THEN 'expired'
+  WHEN 'token_expired' THEN 'expired'
+  WHEN 'needs_reauth' THEN 'expired'
+  WHEN 'error' THEN 'error'
+  ELSE 'error'
 END;
 
 -- Keep is_active consistent with canonical status for pre-existing rows.

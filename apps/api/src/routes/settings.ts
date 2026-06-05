@@ -286,13 +286,10 @@ router.post(
       })
       .eq('id', accountId);
 
-    // Build OAuth reconnect URL (platform-specific)
-    const oauthUrls: Record<string, string> = {
-      meta: `/api/v1/auth/meta/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      google: `/api/v1/auth/google/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      tiktok: `/api/v1/auth/tiktok/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      snap: `/api/v1/auth/snap/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-    };
+    const reconnectUrl =
+      platform === 'meta'
+        ? `/api/v1/auth/meta/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`
+        : null;
 
     logger(req).info(
       { accountId, platform },
@@ -305,8 +302,11 @@ router.post(
         accountId,
         platform,
         status: 'expired',
-        reconnectUrl: oauthUrls[platform] ?? null,
-        message: `Please complete OAuth reconnection for ${platform}`,
+        reconnectUrl,
+        reconnectSupported: platform === 'meta',
+        message: platform === 'meta'
+          ? 'Please complete OAuth reconnection for Meta'
+          : `${platform} reconnect is not yet supported; disconnect and connect the account again.`,
       },
     });
   }),

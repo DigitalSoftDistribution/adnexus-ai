@@ -443,7 +443,7 @@ function DashboardFirstValueState({
                 </span>
               ) : (
                 <Button asChild size="sm">
-                  <a href={meta?.connectUrl ?? "/dashboard/integrations"}>
+                  <a href="/dashboard/integrations">
                     {t("connectMetaCta")}
                   </a>
                 </Button>

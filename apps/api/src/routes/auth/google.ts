@@ -11,7 +11,8 @@ import { Router, type Request, type Response } from 'express';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
-import { v4 as uuidv4 } from 'uuid';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
+import { createOAuthState, integrationsRedirect, requestWorkspaceMatchesAuthenticatedWorkspace, userCanManageOAuthWorkspace, verifyOAuthState } from './oauthState';
 
 const router = Router();
 
@@ -30,25 +31,21 @@ const REQUIRED_SCOPES = [
  *
  * Redirects the user to Google's OAuth consent page.
  */
-router.get('/connect', (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) => {
   try {
-    const workspaceId = (req.query.workspace_id as string) || req.headers['x-workspace-id'] as string;
-    if (!workspaceId) {
-      res.status(400).json({ error: 'workspace_id is required', code: 'VALIDATION_ERROR' });
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
       return;
     }
+    const workspaceId = req.workspaceId!;
 
     if (!config.google.clientId) {
-      res.status(500).json({ error: 'Google app not configured', code: 'CONFIG_ERROR' });
+      res.redirect(integrationsRedirect('google', 'config_error', 'missing_google_oauth_config'));
       return;
     }
 
     const redirectUri = `${config.frontend.url}/auth/google/callback`;
-    const state = JSON.stringify({
-      workspaceId,
-      nonce: uuidv4(),
-    });
-    const stateB64 = Buffer.from(state).toString('base64');
+    const stateB64 = createOAuthState({ platform: 'google', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       client_id: config.google.clientId,
@@ -62,6 +59,10 @@ router.get('/connect', (req: Request, res: Response) => {
 
     const authUrl = `${GOOGLE_OAUTH_URL}?${params.toString()}`;
     logger.info({ workspaceId }, 'Redirecting to Google OAuth');
+    if (req.accepts('json')) {
+      res.json({ success: true, data: { redirectUrl: authUrl } });
+      return;
+    }
     res.redirect(authUrl);
   } catch (err) {
     logger.error({ err }, 'Google OAuth connect error');
@@ -81,7 +82,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'Google OAuth denied by user');
-      res.redirect(`${config.frontend.url}/settings?google=denied`);
+      res.redirect(integrationsRedirect('google', 'denied', 'oauth_denied'));
       return;
     }
 
@@ -90,16 +91,16 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    // Parse state
-    let stateData: { workspaceId: string; nonce: string };
-    try {
-      stateData = JSON.parse(Buffer.from(stateB64 as string, 'base64').toString());
-    } catch {
-      res.status(400).json({ error: 'Invalid state parameter', code: 'VALIDATION_ERROR' });
+    const stateData = verifyOAuthState(stateB64, 'google');
+    if (!stateData) {
+      res.redirect(integrationsRedirect('google', 'error', 'invalid_oauth_state'));
       return;
     }
-
-    const { workspaceId } = stateData;
+    const { workspaceId, userId } = stateData;
+    if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
+      res.redirect(integrationsRedirect('google', 'error', 'workspace_access_denied'));
+      return;
+    }
 
     if (!config.google.clientId || !config.google.clientSecret) {
       res.status(500).json({ error: 'Google OAuth not configured', code: 'CONFIG_ERROR' });
@@ -170,7 +171,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     logger.info({ workspaceId }, 'Google Ads account connected successfully');
 
     // Redirect back to the frontend settings page
-    res.redirect(`${config.frontend.url}/settings?google=connected`);
+    res.redirect(integrationsRedirect('google', 'connected', 'connected'));
   } catch (err) {
     logger.error({ err }, 'Google OAuth callback error');
     res.status(500).json({ error: 'OAuth callback failed', code: 'INTERNAL_ERROR' });
