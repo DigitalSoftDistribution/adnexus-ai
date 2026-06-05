@@ -102,8 +102,8 @@ function HeroSection() {
             className="text-base md:text-lg leading-relaxed max-w-[520px] mb-8"
             style={{ color: 'var(--text-secondary)' }}
           >
-            An AI agent watches your Meta, Google, TikTok, and Snap campaigns around the clock and
-            drafts the fixes. You review each one and approve with a click. Nothing reaches your live
+            An AI agent launches with Meta execution and monitors read-only/coming-soon signals for Google, TikTok, and Snap as v1 expands. It
+            drafts the fixes. You review each one, then explicitly execute approved Meta drafts. Nothing reaches your live
             budget until you say so.
           </motion.p>
 
@@ -118,7 +118,7 @@ function HeroSection() {
               className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold rounded-lg transition-all duration-150 hover:scale-[1.02]"
               style={{ background: '#c3f53b', color: '#0a0a0a' }}
             >
-              Start Free Trial
+              Request Pilot Access
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link
@@ -138,7 +138,7 @@ function HeroSection() {
             className="text-xs mb-10"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            No credit card required &bull; 2-minute setup &bull; Cancel anytime
+            Managed v1 pilot &bull; Meta launch-ready &bull; Sales-led provisioning
           </motion.p>
 
           <motion.div
@@ -283,9 +283,9 @@ function ProblemSection() {
 function SolutionPillarsSection() {
   const { ref, isVisible } = useScrollAnimation(0.15);
   const pillars = [
-    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, approve or reject. Your live budget never moves on its own.', accent: '#c3f53b' },
+    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, mark reviewed, then explicitly execute. Your live budget never moves on its own.', accent: '#c3f53b' },
     { title: 'Talk to your ads in plain English', icon: <Cable size={28} style={{ color: '#A78BFA' }} aria-hidden="true" />, description: 'Built on the open Model Context Protocol, so Claude, ChatGPT, or Cursor connect straight to your accounts. Ask a question, get an answer from live data.', accent: '#A78BFA' },
-    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#2563EB' }} aria-hidden="true" />, description: 'Meta, Google, TikTok, and Snap in a single view. The AI reasons across them together and moves budget to whatever is working this week.', accent: '#2563EB' },
+    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#2563EB' }} aria-hidden="true" />, description: 'Meta execution in v1, with Google read-only and TikTok/Snap coming soon. The AI reasons across available signals without pretending every platform has write access.', accent: '#2563EB' },
   ];
 
   return (
@@ -314,7 +314,7 @@ function SolutionPillarsSection() {
 function HowItWorksSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const steps = [
-    { num: '01', title: 'Connect in two minutes', desc: 'Link Meta, Google, TikTok, and Snap with secure OAuth. No code, no spreadsheets, no waiting on a sales call.', icon: <Globe size={24} style={{ color: '#2563EB' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
+    { num: '01', title: 'Connect in two minutes', desc: 'Connect Meta with secure OAuth during the managed pilot. Google is read-only in v1; TikTok and Snap are clearly marked coming soon.', icon: <Globe size={24} style={{ color: '#2563EB' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
     { num: '02', title: 'Let the agent find the wins', desc: 'It watches every account around the clock, spots the budget leaks and tired creative, and writes the fix as a draft. It never publishes on its own.', icon: <BrainCircuit size={24} style={{ color: '#A78BFA' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
     { num: '03', title: 'Approve with one click', desc: 'Read each draft and the reasoning behind it, tweak if you want, then approve. Every action is logged for a full audit trail.', icon: <CheckCircle2 size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click approve', 'Edit drafts', 'Full audit trail'] },
   ];
@@ -359,7 +359,7 @@ function FeaturesGridSection() {
     { title: 'Competitive Intel', desc: 'Track competitor ad activity, spending patterns, and creative strategies across platforms.', icon: <Eye size={22} style={{ color: '#2563EB' }} aria-hidden="true" /> },
     { title: 'Budget Pacing', desc: 'Smart budget allocation across campaigns and platforms to maximize ROAS throughout the month.', icon: <Wallet size={22} style={{ color: '#10B981' }} aria-hidden="true" /> },
     { title: 'Approval Workflows', desc: 'Multi-tier approval chains. Junior reviewers suggest, seniors approve. Full audit trails.', icon: <CheckCircle2 size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
-    { title: 'Cross-Platform Reporting', desc: 'Unified dashboards aggregating performance across Meta, Google, TikTok, and Snap in real-time.', icon: <BarChart2 size={22} style={{ color: '#3B82F6' }} aria-hidden="true" /> },
+    { title: 'Cross-Platform Reporting', desc: 'Unified dashboards aggregating Meta performance now, with Google, TikTok, and Snap marked read-only or coming soon as support expands.', icon: <BarChart2 size={22} style={{ color: '#3B82F6' }} aria-hidden="true" /> },
     { title: 'MCP Integration', desc: 'Native MCP server support. Works with Claude, ChatGPT, Cursor, and any MCP-compatible client.', icon: <Cable size={22} style={{ color: '#8B5CF6' }} aria-hidden="true" /> },
   ];
 
@@ -396,7 +396,7 @@ function WhyAdNexusSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const points = [
     { title: 'vs MCP-only tools', desc: 'Chat connectors like Pipeboard have no dashboard and no governance. AdNexus pairs the AI with a visual workspace and draft approvals.', icon: <Cpu size={22} style={{ color: '#A78BFA' }} aria-hidden="true" /> },
-    { title: 'vs Meta-only platforms', desc: 'Madgicx optimizes one platform. AdNexus coordinates Meta, Google, TikTok, and Snap from a single brain.', icon: <Globe size={22} style={{ color: '#2563EB' }} aria-hidden="true" /> },
+    { title: 'vs Meta-only platforms', desc: 'Madgicx optimizes one platform. AdNexus starts with Meta execution and a clear cross-platform roadmap instead of overstating launch scope.', icon: <Globe size={22} style={{ color: '#2563EB' }} aria-hidden="true" /> },
     { title: 'vs manual rule engines', desc: 'Rule-based tools make you write every trigger by hand. AdNexus is AI-native — it proposes the changes, you approve them.', icon: <BrainCircuit size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
   ];
 
@@ -438,7 +438,7 @@ function PricingTeaserSection() {
         <FadeInSection className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#2563EB' }}>Pricing</span>
           <h2 className="font-space text-4xl font-semibold text-white mb-3">Flat pricing that never scales with your ad spend</h2>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Start free. Upgrade as your strategy grows — not as your budget does.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Request pilot access. Plan changes are sales-led during v1 — pricing still does not scale with your ad budget.</p>
         </FadeInSection>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
           {PRICING_TIERS.map((tier, i) => (
@@ -503,14 +503,14 @@ function FinalCTASection() {
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={isVisible ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.2, ease: easeSmooth }} className="flex flex-wrap items-center justify-center gap-4 mb-4">
           <Link href="/auth/signup" className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-all duration-150 hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
-            Start Free Trial
+            Request Pilot Access
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
           <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-150 hover:text-white" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
             View pricing
           </Link>
         </motion.div>
-        <motion.p initial={{ opacity: 0 }} animate={isVisible ? { opacity: 1 } : {}} transition={{ delay: 0.4, duration: 0.3 }} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No credit card required</motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={isVisible ? { opacity: 1 } : {}} transition={{ delay: 0.4, duration: 0.3 }} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Sales-led provisioning</motion.p>
       </div>
     </section>
   );
