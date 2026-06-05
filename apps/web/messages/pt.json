@@ -149,7 +149,42 @@
     "emptyTitle": "Ainda sem dados de campanha",
     "emptyDescription": "Conecte uma conta de anúncios e sincronize para ver seu desempenho aqui.",
     "emptyConnect": "Conectar uma plataforma",
-    "emptyCreate": "Criar uma campanha"
+    "emptyCreate": "Criar uma campanha",
+    "firstValueTitle": "Get to your first useful dashboard",
+    "firstValueDescription": "Connect Meta, sync campaigns, then review a real insight. We will not show pretend KPI data while your workspace is empty.",
+    "connectMetaTitle": "Connect Meta account",
+    "connectMetaDescription": "Start with Meta Ads so AdNexus can import live campaign performance through OAuth.",
+    "connectMetaCta": "Connect Meta account",
+    "connectedAccount": "Connected: {account}",
+    "syncFirstAccountTitle": "Sync first account",
+    "syncFirstAccountDescription": "After OAuth, import campaigns and today's metrics before looking at dashboard KPIs.",
+    "syncFirstAccountCta": "Sync campaigns",
+    "syncing": "Syncing campaigns...",
+    "connectRequired": "Connect an account first",
+    "lastSynced": "Last synced {date}",
+    "neverSynced": "Never synced",
+    "viewFirstInsightTitle": "View first insight",
+    "viewFirstInsightDescription": "Once synced, the dashboard will show real KPIs plus a recommended action.",
+    "viewFirstInsightCta": "View dashboard",
+    "syncNoConnectedAccount": "No connected ad account to sync",
+    "syncFailed": "Sync failed. Check OAuth scopes and platform configuration, then try again.",
+    "syncErrorTitle": "Sync failed",
+    "syncErrorDescription": "The latest sync could not import campaigns. Reconnect the account if OAuth expired, or verify API credentials and scopes.",
+    "partialSyncTitle": "Partial sync completed",
+    "partialSyncDescription": "Imported {count} campaigns, but some data failed. Review sync history in Integrations before trusting all KPIs.",
+    "integrationStatusUnavailable": "Integration status unavailable",
+    "firstInsightTitle": "First insight",
+    "dataFreshness": "Data freshness: last synced {date}",
+    "dataFreshnessUnknown": "Data freshness: no completed sync recorded",
+    "insightNoCampaigns": "No synced campaigns yet.",
+    "insightNoSpend": "Campaigns are synced, but spend is currently zero for the imported window.",
+    "insightRoas": "Average ROAS is {roas}x across synced campaigns.",
+    "insightCpa": "Average CPA is {cpa} across synced campaigns.",
+    "insightMonitor": "Campaigns are synced. Review spend, click, and conversion trends before making changes.",
+    "recommendedActionRoas": "Recommended action: inspect campaigns below 1.5x ROAS and draft budget reductions before scaling spend.",
+    "recommendedActionCtr": "Recommended action: refresh low-CTR creatives before increasing budget.",
+    "recommendedActionReview": "Recommended action: open campaigns to review top movers and create a draft optimization.",
+    "viewCampaignsCta": "View campaigns"
   },
   "campaigns": {
     "title": "Campanhas",
@@ -539,7 +574,9 @@
         "partial": "Parcial",
         "failed": "Falhou"
       }
-    }
+    },
+    "oauthIssueTitle": "Connection needs attention",
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing."
   },
   "webhooks": {
     "title": "Webhooks",
@@ -571,11 +608,14 @@
     "stepConnectDesc": "Ligue Meta, Google, TikTok ou Snap para importar campanhas.",
     "stepTeam": "Convide a sua equipa",
     "stepTeamDesc": "Adicione colegas para colaborar.",
-    "stepCampaign": "Crie a sua primeira campanha",
-    "stepCampaignDesc": "Lance ou crie um rascunho de campanha.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Ignorar por agora",
     "finish": "Ir para o painel",
-    "completed": "Concluído"
+    "completed": "Concluído",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Objetivos",

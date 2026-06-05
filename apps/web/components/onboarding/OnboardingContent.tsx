@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
-import { Sparkles, Plug, Users, Megaphone, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Sparkles, Plug, Users, BarChart3, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -24,11 +24,10 @@ interface OnboardingStatus {
 
 export function OnboardingContent() {
   const t = useTranslations('onboarding');
-  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState<number | null>(null);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ['onboarding', 'status'],
@@ -88,16 +87,19 @@ export function OnboardingContent() {
     },
     {
       id: 'firstCampaign',
-      icon: Megaphone,
-      title: t('stepCampaign'),
-      description: t('stepCampaignDesc'),
-      href: '/dashboard/campaigns/new',
-      cta: t('stepCampaign'),
+      icon: BarChart3,
+      title: t('stepFirstValue'),
+      description: t('stepFirstValueDesc'),
+      href: '/dashboard',
+      cta: t('stepFirstValueCta'),
     },
   ];
 
   const stepperSteps: StepperStep[] = stepDefs.map((s) => ({ id: s.id, label: s.title }));
   const completedSet = new Set(stepDefs.filter((s) => steps[s.id]).map((s) => s.id));
+  const firstIncompleteIndex = stepDefs.findIndex((s) => !steps[s.id]);
+  const currentStepIndex = firstIncompleteIndex === -1 ? stepDefs.length - 1 : firstIncompleteIndex;
+  const highlightedStepIndex = active ?? currentStepIndex;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -114,7 +116,7 @@ export function OnboardingContent() {
           </p>
         </div>
 
-        <Stepper steps={stepperSteps} current={active} completed={completedSet} className="mb-8" />
+        <Stepper steps={stepperSteps} current={highlightedStepIndex} completed={completedSet} className="mb-8" />
 
         <div className="space-y-3">
           {stepDefs.map((step, i) => {
@@ -122,7 +124,7 @@ export function OnboardingContent() {
             return (
               <Card
                 key={step.id}
-                className={done ? 'border-success/40' : i === active ? 'border-primary/40' : ''}
+                className={done ? 'border-success/40' : i === highlightedStepIndex ? 'border-primary/40' : ''}
                 onMouseEnter={() => setActive(i)}
               >
                 <CardContent className="flex items-center justify-between gap-4 p-5">
