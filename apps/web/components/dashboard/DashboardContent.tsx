@@ -2,15 +2,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Radio, Users, MousePointer, Target, DollarSign } from 'lucide-react';
+import { Radio, Users, MousePointer, Target, DollarSign, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { StatCard } from '@/components/charts/StatCard';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { formatCurrency, formatCompact } from '@/lib/utils';
 import { platformLabel } from '@/lib/platforms';
 import { useSSE } from '@/hooks/useSSE';
+import { Link } from '@/i18n/navigation';
 
 interface SpendPoint {
   date: string;
@@ -71,6 +74,42 @@ export function DashboardContent() {
     );
   }
 
+  const connectionBadge = (
+    <div
+      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+        isConnected ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
+      }`}
+    >
+      <Radio className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
+      {isConnected ? tc('live') : tc('offline')}
+    </div>
+  );
+
+  // New-workspace zero state: a loaded summary with no campaigns means there is
+  // nothing connected/synced yet. Guide the user instead of showing zero KPIs.
+  if (summary && summary.totalCampaigns === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t('title')} description={t('description')} actions={connectionBadge} />
+        <EmptyState
+          icon={<BarChart3 className="h-6 w-6" />}
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button asChild size="sm">
+                <Link href="/dashboard/integrations">{t('emptyConnect')}</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/campaigns/new">{t('emptyCreate')}</Link>
+              </Button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
+
   const series = summary?.spendSeries ?? [];
   const chartData = series.map((p) => ({
     name: p.date.slice(5),
@@ -95,20 +134,7 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('title')}
-        description={t('description')}
-        actions={
-          <div
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-              isConnected ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
-            }`}
-          >
-            <Radio className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
-            {isConnected ? tc('live') : tc('offline')}
-          </div>
-        }
-      />
+      <PageHeader title={t('title')} description={t('description')} actions={connectionBadge} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -116,7 +142,7 @@ export function DashboardContent() {
           value={formatCurrency(summary?.totalSpend ?? 0)}
           icon={<DollarSign className="h-4 w-4" />}
           delta={deltaFor('spend')}
-          deltaLabel={tc('vsLastMonth')}
+          deltaLabel={tc('vsPrior7Days')}
           invertDelta
           sparkline={series.map((p) => p.spend)}
         />
@@ -125,7 +151,7 @@ export function DashboardContent() {
           value={formatCompact(summary?.totalImpressions ?? 0)}
           icon={<Users className="h-4 w-4" />}
           delta={deltaFor('impressions')}
-          deltaLabel={tc('vsLastMonth')}
+          deltaLabel={tc('vsPrior7Days')}
           sparkline={series.map((p) => p.impressions)}
         />
         <StatCard
@@ -133,7 +159,7 @@ export function DashboardContent() {
           value={formatCompact(summary?.totalClicks ?? 0)}
           icon={<MousePointer className="h-4 w-4" />}
           delta={deltaFor('clicks')}
-          deltaLabel={tc('vsLastMonth')}
+          deltaLabel={tc('vsPrior7Days')}
           sparkline={series.map((p) => p.clicks)}
         />
         <StatCard
@@ -141,7 +167,7 @@ export function DashboardContent() {
           value={formatCompact(summary?.totalConversions ?? 0)}
           icon={<Target className="h-4 w-4" />}
           delta={deltaFor('conversions')}
-          deltaLabel={tc('vsLastMonth')}
+          deltaLabel={tc('vsPrior7Days')}
           sparkline={series.map((p) => p.conversions)}
         />
       </div>

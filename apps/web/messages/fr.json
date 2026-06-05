@@ -72,6 +72,7 @@
     "live": "En direct",
     "offline": "Hors ligne",
     "vsLastMonth": "vs mois dernier",
+    "vsPrior7Days": "vs 7 jours précédents",
     "notSet": "Non défini",
     "configure": "Configurer",
     "generate": "Générer",
@@ -142,7 +143,11 @@
     "platformDescription": "Campagnes par plateforme",
     "avgCtr": "CTR moyen",
     "avgCpa": "CPA moyen",
-    "avgRoas": "ROAS moyen"
+    "avgRoas": "ROAS moyen",
+    "emptyTitle": "Aucune donnée de campagne",
+    "emptyDescription": "Connectez un compte publicitaire et synchronisez pour voir vos performances ici.",
+    "emptyConnect": "Connecter une plateforme",
+    "emptyCreate": "Créer une campagne"
   },
   "campaigns": {
     "title": "Campagnes",
@@ -224,7 +229,10 @@
     },
     "adAccount": "Compte publicitaire",
     "noConnectedAccount": "Aucun compte publicitaire connecté pour cette plateforme.",
-    "connectPlatform": "Connecter une plateforme"
+    "connectPlatform": "Connecter une plateforme",
+    "failedToSync": "Échec de la synchronisation de la campagne",
+    "sync": "Synchroniser",
+    "syncing": "Synchronisation..."
   },
   "drafts": {
     "title": "Brouillons",
@@ -513,7 +521,23 @@
       "connected": "connecté",
       "available": "disponible"
     },
-    "disconnect": "Déconnecter"
+    "disconnect": "Déconnecter",
+    "sync": {
+      "syncNow": "Synchroniser maintenant",
+      "syncing": "Synchronisation...",
+      "lastSynced": "Dernière synchronisation",
+      "neverSynced": "Jamais synchronisé",
+      "recentSyncs": "Synchronisations récentes",
+      "campaignsCount": "{count} campagnes",
+      "noAccount": "Aucun compte publicitaire connecté à synchroniser",
+      "failed": "Échec de la synchronisation",
+      "status": {
+        "running": "En cours",
+        "completed": "Terminé",
+        "partial": "Partiel",
+        "failed": "Échoué"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",

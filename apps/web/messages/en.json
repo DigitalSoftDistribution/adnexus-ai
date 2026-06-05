@@ -72,6 +72,7 @@
     "live": "Live",
     "offline": "Offline",
     "vsLastMonth": "vs last month",
+    "vsPrior7Days": "vs prior 7 days",
     "notSet": "Not set",
     "configure": "Configure",
     "generate": "Generate",
@@ -142,7 +143,11 @@
     "platformDescription": "Campaigns by platform",
     "avgCtr": "Avg CTR",
     "avgCpa": "Avg CPA",
-    "avgRoas": "Avg ROAS"
+    "avgRoas": "Avg ROAS",
+    "emptyTitle": "No campaign data yet",
+    "emptyDescription": "Connect an ad account and sync to see your performance here.",
+    "emptyConnect": "Connect a platform",
+    "emptyCreate": "Create a campaign"
   },
   "campaigns": {
     "title": "Campaigns",
@@ -156,6 +161,9 @@
     "failedToActivate": "Failed to activate campaign",
     "failedToDuplicate": "Failed to duplicate campaign",
     "failedToDelete": "Failed to delete campaign",
+    "failedToSync": "Failed to sync campaign",
+    "sync": "Sync",
+    "syncing": "Syncing...",
     "campaignNotFound": "Campaign not found",
     "backToCampaigns": "Back to Campaigns",
     "editCampaign": "Edit Campaign",
@@ -513,7 +521,23 @@
       "connected": "connected",
       "available": "available"
     },
-    "disconnect": "Disconnect"
+    "disconnect": "Disconnect",
+    "sync": {
+      "syncNow": "Sync now",
+      "syncing": "Syncing...",
+      "lastSynced": "Last synced",
+      "neverSynced": "Never synced",
+      "recentSyncs": "Recent syncs",
+      "campaignsCount": "{count} campaigns",
+      "noAccount": "No connected ad account to sync",
+      "failed": "Sync failed",
+      "status": {
+        "running": "Running",
+        "completed": "Completed",
+        "partial": "Partial",
+        "failed": "Failed"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",

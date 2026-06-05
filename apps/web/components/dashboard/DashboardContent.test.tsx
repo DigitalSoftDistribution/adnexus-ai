@@ -89,4 +89,30 @@ describe('DashboardContent', () => {
 
     expect(await screen.findByText('Failed to load dashboard')).toBeInTheDocument();
   });
+
+  it('shows a guided empty state when there are no campaigns', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            ...summary,
+            totalCampaigns: 0,
+            platformBreakdown: {},
+            statusBreakdown: {},
+            spendSeries: [],
+          },
+        }),
+      }),
+    );
+
+    renderWithQuery(<DashboardContent />);
+
+    expect(await screen.findByText('No campaign data yet')).toBeInTheDocument();
+    expect(screen.getByText('Connect a platform')).toBeInTheDocument();
+    expect(screen.getByText('Create a campaign')).toBeInTheDocument();
+    // KPI cards should NOT render in the empty state.
+    expect(screen.queryByText('Total Spend')).not.toBeInTheDocument();
+  });
 });

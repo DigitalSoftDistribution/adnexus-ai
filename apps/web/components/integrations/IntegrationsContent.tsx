@@ -2,12 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Plug, CheckCircle2, Link2 } from 'lucide-react';
+import { Plug, CheckCircle2, Link2, RefreshCw, History } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/utils';
 import { PLATFORMS, type PlatformId } from '@/lib/platforms';
 
 interface IntegrationView {
@@ -17,7 +18,19 @@ interface IntegrationView {
   status: string;
   accountId: string | null;
   accountName: string | null;
+  lastSyncedAt: string | null;
   connectUrl: string;
+}
+
+interface SyncJob {
+  id: string;
+  status: 'running' | 'completed' | 'partial' | 'failed';
+  campaignsSynced: number;
+  metricsSynced: number;
+  errorCount: number;
+  startedAt: string;
+  finishedAt: string | null;
+  durationMs: number | null;
 }
 
 function useIntegrations() {
@@ -30,6 +43,13 @@ function useIntegrations() {
       return json.data ?? [];
     },
   });
+}
+
+function syncJobStatusVariant(status: SyncJob['status']): 'success' | 'warning' | 'destructive' | 'secondary' {
+  if (status === 'completed') return 'success';
+  if (status === 'partial') return 'warning';
+  if (status === 'failed') return 'destructive';
+  return 'secondary';
 }
 
 export function IntegrationsContent() {
@@ -110,15 +130,13 @@ export function IntegrationsContent() {
                 )}
 
                 {integration.connected ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => disconnect.mutate(integration.platform)}
-                    disabled={disconnect.isPending}
-                  >
-                    {t('disconnect')}
-                  </Button>
+                  <ConnectedActions
+                    platform={integration.platform}
+                    accountId={integration.accountId}
+                    lastSyncedAt={integration.lastSyncedAt}
+                    disconnecting={disconnect.isPending}
+                    onDisconnect={() => disconnect.mutate(integration.platform)}
+                  />
                 ) : (
                   <Button asChild size="sm" className="w-full">
                     <a href={integration.connectUrl}>
@@ -132,6 +150,123 @@ export function IntegrationsContent() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+interface ConnectedActionsProps {
+  platform: string;
+  accountId: string | null;
+  lastSyncedAt: string | null;
+  disconnecting: boolean;
+  onDisconnect: () => void;
+}
+
+function ConnectedActions({ platform, accountId, lastSyncedAt, disconnecting, onDisconnect }: ConnectedActionsProps) {
+  const queryClient = useQueryClient();
+  const t = useTranslations('integrations');
+  const tc = useTranslations('common');
+
+  const sync = useMutation({
+    mutationFn: async () => {
+      if (!accountId) throw new Error(t('sync.noAccount'));
+      const res = await fetch(`/api/v2/integrations/accounts/${accountId}/sync`, { method: 'POST' });
+      if (!res.ok) throw new Error(t('sync.failed'));
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      if (accountId) {
+        queryClient.invalidateQueries({ queryKey: ['sync-jobs', accountId] });
+      }
+    },
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => sync.mutate()}
+          disabled={sync.isPending || !accountId}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${sync.isPending ? 'animate-spin' : ''}`} />
+          {sync.isPending ? t('sync.syncing') : t('sync.syncNow')}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDisconnect}
+          disabled={disconnecting}
+        >
+          {t('disconnect')}
+        </Button>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {lastSyncedAt
+          ? `${t('sync.lastSynced')}: ${formatDate(lastSyncedAt)}`
+          : t('sync.neverSynced')}
+      </p>
+
+      {sync.isError && (
+        <p className="text-xs text-destructive">{(sync.error as Error)?.message ?? tc('error')}</p>
+      )}
+
+      {accountId && <SyncJobHistory accountId={accountId} />}
+    </div>
+  );
+}
+
+function SyncJobHistory({ accountId }: { accountId: string }) {
+  const t = useTranslations('integrations');
+  const tc = useTranslations('common');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['sync-jobs', accountId],
+    queryFn: async (): Promise<SyncJob[]> => {
+      const res = await fetch(`/api/v2/integrations/accounts/${accountId}/sync-jobs?limit=3`);
+      if (!res.ok) throw new Error('Failed to load sync jobs');
+      const json = await res.json();
+      return json.data ?? [];
+    },
+  });
+
+  const jobs = data ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <LoadingSpinner size="sm" />
+        {tc('loading')}
+      </div>
+    );
+  }
+
+  if (jobs.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <History className="h-3 w-3" />
+        {t('sync.recentSyncs')}
+      </p>
+      {jobs.map((job) => (
+        <div key={job.id} className="flex items-center justify-between gap-2 text-xs">
+          <Badge variant={syncJobStatusVariant(job.status)} className="capitalize">
+            {t(`sync.status.${job.status}`)}
+          </Badge>
+          <span className="text-muted-foreground">
+            {t('sync.campaignsCount', { count: job.campaignsSynced })}
+          </span>
+          <span className="text-muted-foreground">{formatDate(job.startedAt)}</span>
+        </div>
+      ))}
     </div>
   );
 }

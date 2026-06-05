@@ -72,6 +72,7 @@
     "live": "Na żywo",
     "offline": "Offline",
     "vsLastMonth": "wzgl. ub. miesiąca",
+    "vsPrior7Days": "wzgl. poprzednich 7 dni",
     "notSet": "Nie ustawiono",
     "configure": "Konfiguruj",
     "generate": "Generuj",
@@ -142,7 +143,11 @@
     "platformDescription": "Kampanie według platformy",
     "avgCtr": "Śr. CTR",
     "avgCpa": "Śr. CPA",
-    "avgRoas": "Śr. ROAS"
+    "avgRoas": "Śr. ROAS",
+    "emptyTitle": "Brak danych kampanii",
+    "emptyDescription": "Połącz konto reklamowe i zsynchronizuj, aby zobaczyć tutaj swoje wyniki.",
+    "emptyConnect": "Połącz platformę",
+    "emptyCreate": "Utwórz kampanię"
   },
   "campaigns": {
     "title": "Kampanie",
@@ -224,7 +229,10 @@
     },
     "adAccount": "Konto reklamowe",
     "noConnectedAccount": "Brak połączonego konta reklamowego dla tej platformy.",
-    "connectPlatform": "Połącz platformę"
+    "connectPlatform": "Połącz platformę",
+    "failedToSync": "Nie udało się zsynchronizować kampanii",
+    "sync": "Synchronizuj",
+    "syncing": "Synchronizacja..."
   },
   "drafts": {
     "title": "Wersje robocze",
@@ -513,7 +521,23 @@
       "connected": "połączono",
       "available": "dostępne"
     },
-    "disconnect": "Rozłącz"
+    "disconnect": "Rozłącz",
+    "sync": {
+      "syncNow": "Synchronizuj teraz",
+      "syncing": "Synchronizacja...",
+      "lastSynced": "Ostatnia synchronizacja",
+      "neverSynced": "Nigdy nie synchronizowano",
+      "recentSyncs": "Ostatnie synchronizacje",
+      "campaignsCount": "Kampanie: {count}",
+      "noAccount": "Brak połączonego konta reklamowego do synchronizacji",
+      "failed": "Synchronizacja nie powiodła się",
+      "status": {
+        "running": "W toku",
+        "completed": "Zakończono",
+        "partial": "Częściowo",
+        "failed": "Niepowodzenie"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooki",

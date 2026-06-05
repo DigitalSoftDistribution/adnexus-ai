@@ -72,6 +72,7 @@
     "live": "En directo",
     "offline": "Sin conexión",
     "vsLastMonth": "vs. mes anterior",
+    "vsPrior7Days": "vs. 7 días previos",
     "notSet": "Sin definir",
     "configure": "Configurar",
     "generate": "Generar",
@@ -142,7 +143,11 @@
     "platformDescription": "Campañas por plataforma",
     "avgCtr": "CTR medio",
     "avgCpa": "CPA medio",
-    "avgRoas": "ROAS medio"
+    "avgRoas": "ROAS medio",
+    "emptyTitle": "Aún no hay datos de campañas",
+    "emptyDescription": "Conecta una cuenta publicitaria y sincroniza para ver tu rendimiento aquí.",
+    "emptyConnect": "Conectar una plataforma",
+    "emptyCreate": "Crear una campaña"
   },
   "campaigns": {
     "title": "Campañas",
@@ -224,7 +229,10 @@
     },
     "adAccount": "Cuenta publicitaria",
     "noConnectedAccount": "No hay cuenta publicitaria conectada para esta plataforma.",
-    "connectPlatform": "Conectar una plataforma"
+    "connectPlatform": "Conectar una plataforma",
+    "failedToSync": "Error al sincronizar la campaña",
+    "sync": "Sincronizar",
+    "syncing": "Sincronizando..."
   },
   "drafts": {
     "title": "Borradores",
@@ -513,7 +521,23 @@
       "connected": "conectado",
       "available": "disponible"
     },
-    "disconnect": "Desconectar"
+    "disconnect": "Desconectar",
+    "sync": {
+      "syncNow": "Sincronizar ahora",
+      "syncing": "Sincronizando...",
+      "lastSynced": "Última sincronización",
+      "neverSynced": "Nunca sincronizado",
+      "recentSyncs": "Sincronizaciones recientes",
+      "campaignsCount": "{count} campañas",
+      "noAccount": "No hay cuenta publicitaria conectada para sincronizar",
+      "failed": "Error de sincronización",
+      "status": {
+        "running": "En curso",
+        "completed": "Completado",
+        "partial": "Parcial",
+        "failed": "Fallido"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",
