@@ -12,7 +12,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, requestWorkspaceMatchesAuthenticatedWorkspace, userCanManageOAuthWorkspace, verifyOAuthState } from './oauthState';
+import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -40,11 +40,11 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     const workspaceId = req.workspaceId!;
 
     if (!config.google.clientId) {
-      res.redirect(integrationsRedirect('google', 'config_error', 'missing_google_oauth_config'));
+      sendOAuthJsonError(req, res, 500, 'google', 'config_error', 'missing_google_oauth_config', 'Google OAuth is not configured');
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/google/callback`;
+    const redirectUri = oauthCallbackUrl('google');
     const stateB64 = createOAuthState({ platform: 'google', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
@@ -59,7 +59,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
 
     const authUrl = `${GOOGLE_OAUTH_URL}?${params.toString()}`;
     logger.info({ workspaceId }, 'Redirecting to Google OAuth');
-    if (req.accepts('json')) {
+    if (wantsJson(req)) {
       res.json({ success: true, data: { redirectUrl: authUrl } });
       return;
     }
@@ -82,7 +82,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'Google OAuth denied by user');
-      res.redirect(integrationsRedirect('google', 'denied', 'oauth_denied'));
+      sendOAuthJsonError(req, res, 400, 'google', 'denied', 'oauth_denied', 'Google OAuth was denied');
       return;
     }
 
@@ -93,12 +93,12 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const stateData = verifyOAuthState(stateB64, 'google');
     if (!stateData) {
-      res.redirect(integrationsRedirect('google', 'error', 'invalid_oauth_state'));
+      sendOAuthJsonError(req, res, 400, 'google', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
-      res.redirect(integrationsRedirect('google', 'error', 'workspace_access_denied'));
+      sendOAuthJsonError(req, res, 403, 'google', 'error', 'workspace_access_denied', 'Workspace access denied');
       return;
     }
 
@@ -107,7 +107,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/google/callback`;
+    const redirectUri = oauthCallbackUrl('google');
 
     // Exchange code for tokens
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {

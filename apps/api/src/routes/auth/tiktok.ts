@@ -15,7 +15,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, requestWorkspaceMatchesAuthenticatedWorkspace, userCanManageOAuthWorkspace, verifyOAuthState } from './oauthState';
+import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -35,11 +35,11 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     const workspaceId = req.workspaceId!;
 
     if (!config.tiktok.appId) {
-      res.redirect(integrationsRedirect('tiktok', 'config_error', 'missing_tiktok_oauth_config'));
+      sendOAuthJsonError(req, res, 500, 'tiktok', 'config_error', 'missing_tiktok_oauth_config', 'TikTok OAuth is not configured');
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/tiktok/callback`;
+    const redirectUri = oauthCallbackUrl('tiktok');
     const state = createOAuthState({ platform: 'tiktok', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
@@ -50,7 +50,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
 
     logger.info({ workspaceId }, 'Redirecting to TikTok OAuth');
     const authUrl = `${TIKTOK_OAUTH_URL}?${params.toString()}`;
-    if (req.accepts('json')) {
+    if (wantsJson(req)) {
       res.json({ success: true, data: { redirectUrl: authUrl } });
       return;
     }
@@ -72,7 +72,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'TikTok OAuth denied by user');
-      res.redirect(integrationsRedirect('tiktok', 'denied', 'oauth_denied'));
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'denied', 'oauth_denied', 'TikTok OAuth was denied');
       return;
     }
     if (!authCode || !stateB64) {
@@ -82,12 +82,12 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const stateData = verifyOAuthState(stateB64, 'tiktok');
     if (!stateData) {
-      res.redirect(integrationsRedirect('tiktok', 'error', 'invalid_oauth_state'));
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
-      res.redirect(integrationsRedirect('tiktok', 'error', 'workspace_access_denied'));
+      sendOAuthJsonError(req, res, 403, 'tiktok', 'error', 'workspace_access_denied', 'Workspace access denied');
       return;
     }
 
@@ -108,14 +108,14 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (!accessToken) {
       logger.error({ body: tokenRes.data }, 'TikTok token exchange failed');
-      res.redirect(integrationsRedirect('tiktok', 'error', 'oauth_failed'));
+      sendOAuthJsonError(req, res, 502, 'tiktok', 'error', 'oauth_failed', 'TikTok OAuth failed');
       return;
     }
 
     const advertiserId = advertiserIds[0];
     if (!advertiserId) {
       logger.error({ body: tokenRes.data }, 'TikTok token exchange returned no advertiser id');
-      res.redirect(integrationsRedirect('tiktok', 'error', 'no_advertiser'));
+      sendOAuthJsonError(req, res, 502, 'tiktok', 'error', 'no_advertiser', 'TikTok OAuth returned no advertiser');
       return;
     }
     const { error: dbError } = await supabase.from('ad_accounts').upsert(
@@ -136,7 +136,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store TikTok tokens');
-      res.redirect(integrationsRedirect('tiktok', 'error', 'db'));
+      sendOAuthJsonError(req, res, 500, 'tiktok', 'error', 'db', 'Failed to store TikTok credentials');
       return;
     }
 

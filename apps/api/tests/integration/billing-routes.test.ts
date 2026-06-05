@@ -379,6 +379,32 @@ describe('GET /api/v1/billing/invoices', () => {
   });
 });
 
+
+describe('POST /api/v1/billing/webhook raw body', () => {
+  it('passes the raw Buffer body to Stripe signature verification through the mounted app route', async () => {
+    const { stripe } = jest.requireMock('../../src/services/stripe') as {
+      stripe: { webhooks: { constructEvent: jest.Mock } };
+    };
+    stripe.webhooks.constructEvent.mockReturnValueOnce({
+      id: 'evt_raw_body',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_test', metadata: { workspace_id: WS_ID } } },
+    });
+
+    const payload = JSON.stringify({ id: 'evt_raw_body', type: 'checkout.session.completed' });
+    const response = await request(app)
+      .post('/api/v1/billing/webhook')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(payload);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ received: true, eventId: 'evt_raw_body' });
+    expect(Buffer.isBuffer(stripe.webhooks.constructEvent.mock.calls[0][0])).toBe(true);
+    expect(stripe.webhooks.constructEvent.mock.calls[0][0].toString('utf8')).toBe(payload);
+  });
+});
+
 // ─── Suite: Credit Cost Mapping ──────────────────────────────────
 
 describe('credit cost mapping', () => {

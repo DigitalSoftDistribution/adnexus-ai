@@ -143,6 +143,21 @@ app.options('*', cors(corsOptions));
 
 // ─── Body Parsing ────────────────────────────────────────────
 
+// ═══════════════════════════════════════════════════════════════
+// WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
+// ═══════════════════════════════════════════════════════════════
+
+/** Stripe billing webhook — mounted before JSON parsing so signature verification receives the raw body. */
+app.post(
+  '/api/v1/billing/webhook',
+  unauthenticatedRateLimiter,
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    req.url = '/webhook';
+    billingRoutes(req, res, next);
+  },
+);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -225,22 +240,6 @@ app.use('/api/v1/auth/snap', unauthenticatedRateLimiter, snapOAuthRoutes);
 
 app.use('/api/v1/public', unauthenticatedRateLimiter, publicAuditRoutes);
 
-// ═══════════════════════════════════════════════════════════════
-// WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
-// ═══════════════════════════════════════════════════════════════
-
-/** Stripe billing webhook — dedicated handler for raw body */
-app.post(
-  '/api/v1/billing/webhook',
-  unauthenticatedRateLimiter,
-  express.raw({ type: 'application/json' }),
-  (req, res, next) => {
-    // Forward to billing route handler for webhook
-    // The billing router's POST /webhook will handle this
-    req.url = '/webhook';
-    billingRoutes(req, res, next);
-  },
-);
 
 /** External platform webhooks */
 app.use('/api/v1/webhooks', webhookRateLimiter, webhookRoutes);

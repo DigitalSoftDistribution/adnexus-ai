@@ -13,7 +13,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, requestWorkspaceMatchesAuthenticatedWorkspace, userCanManageOAuthWorkspace, verifyOAuthState } from './oauthState';
+import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -35,11 +35,11 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     const workspaceId = req.workspaceId!;
 
     if (!config.snap.clientId) {
-      res.redirect(integrationsRedirect('snap', 'config_error', 'missing_snap_oauth_config'));
+      sendOAuthJsonError(req, res, 500, 'snap', 'config_error', 'missing_snap_oauth_config', 'Snap OAuth is not configured');
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/snap/callback`;
+    const redirectUri = oauthCallbackUrl('snap');
     const state = createOAuthState({ platform: 'snap', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
@@ -52,7 +52,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
 
     logger.info({ workspaceId }, 'Redirecting to Snap OAuth');
     const authUrl = `${SNAP_OAUTH_URL}?${params.toString()}`;
-    if (req.accepts('json')) {
+    if (wantsJson(req)) {
       res.json({ success: true, data: { redirectUrl: authUrl } });
       return;
     }
@@ -73,7 +73,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'Snap OAuth denied by user');
-      res.redirect(integrationsRedirect('snap', 'denied', 'oauth_denied'));
+      sendOAuthJsonError(req, res, 400, 'snap', 'denied', 'oauth_denied', 'Snap OAuth was denied');
       return;
     }
     if (!code || !stateB64) {
@@ -83,12 +83,12 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const stateData = verifyOAuthState(stateB64, 'snap');
     if (!stateData) {
-      res.redirect(integrationsRedirect('snap', 'error', 'invalid_oauth_state'));
+      sendOAuthJsonError(req, res, 400, 'snap', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
-      res.redirect(integrationsRedirect('snap', 'error', 'workspace_access_denied'));
+      sendOAuthJsonError(req, res, 403, 'snap', 'error', 'workspace_access_denied', 'Workspace access denied');
       return;
     }
 
@@ -97,7 +97,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/snap/callback`;
+    const redirectUri = oauthCallbackUrl('snap');
     const tokenResponse = await fetch(SNAP_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -113,7 +113,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     if (!tokenResponse.ok) {
       const body = await tokenResponse.text();
       logger.error({ status: tokenResponse.status, body }, 'Snap token exchange failed');
-      res.redirect(integrationsRedirect('snap', 'error', 'oauth_failed'));
+      sendOAuthJsonError(req, res, 502, 'snap', 'error', 'oauth_failed', 'Snap OAuth failed');
       return;
     }
 
@@ -125,7 +125,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (!tokens.access_token) {
       logger.error({ body: tokens }, 'Snap token exchange returned no access token');
-      res.redirect(integrationsRedirect('snap', 'error', 'oauth_failed'));
+      sendOAuthJsonError(req, res, 502, 'snap', 'error', 'oauth_failed', 'Snap OAuth failed');
       return;
     }
 
@@ -148,7 +148,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store Snap tokens');
-      res.redirect(integrationsRedirect('snap', 'error', 'db'));
+      sendOAuthJsonError(req, res, 500, 'snap', 'error', 'db', 'Failed to store Snap credentials');
       return;
     }
 

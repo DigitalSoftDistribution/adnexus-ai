@@ -84,7 +84,7 @@ SET status = CASE LOWER(COALESCE(status, ''))
 END;
 
 -- Keep is_active consistent with canonical status for pre-existing rows.
-UPDATE ad_accounts SET is_active = (status = 'active') WHERE is_active IS NULL;
+UPDATE ad_accounts SET is_active = (status = 'active');
 
 ALTER TABLE ad_accounts DROP CONSTRAINT IF EXISTS ad_accounts_status_check;
 ALTER TABLE ad_accounts
