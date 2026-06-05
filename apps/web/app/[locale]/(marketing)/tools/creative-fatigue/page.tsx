@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { PageHero, Section, CtaBand } from '@/components/marketing/sections';
 import { FadeIn } from '@/components/marketing/v3/animations';
 import { AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Page() {
   const [ctr, setCtr] = useState('');
@@ -35,9 +38,6 @@ export default function Page() {
     let message = '';
     let recommendation = '';
 
-    // CTR is a primary fatigue signal: a low click-through rate means the
-    // audience has stopped responding, so it escalates status alongside the
-    // frequency/recency heuristics rather than being ignored.
     const lowCtr = ctrVal < 1;
     const weakCtr = ctrVal < 1.5;
 
@@ -59,139 +59,69 @@ export default function Page() {
   };
 
   const statusColors = {
-    healthy: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', icon: '#10B981' },
-    warning: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', icon: '#F59E0B' },
-    critical: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', icon: '#EF4444' },
+    healthy: { border: 'border-success', icon: 'text-success' },
+    warning: { border: 'border-warning', icon: 'text-warning' },
+    critical: { border: 'border-destructive', icon: 'text-destructive' },
   };
 
   return (
     <>
       <PageHero
         eyebrow="Free Tool"
-        title={
-          <>
-            Creative Fatigue{' '}
-            <span style={{ color: '#c3f53b' }}>Detector</span>
-          </>
-        }
+        title={<>Creative Fatigue Detector</>}
         subtitle="Check if your ad creative is showing signs of fatigue. Get instant recommendations."
       />
 
       <Section>
         <FadeIn>
-          <div
-            className="max-w-xl mx-auto rounded-xl p-6 sm:p-8"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            <div className="space-y-5">
-              {/* CTR Input */}
+          <Card className="max-w-xl mx-auto border-border/60">
+            <CardContent className="p-6 sm:p-8 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Current CTR (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={ctr}
-                  onChange={(e) => setCtr(e.target.value)}
-                  placeholder="e.g. 2.5"
-                  className="w-full px-4 py-3 rounded-lg text-sm text-white bg-transparent outline-none"
-                  style={{
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Current CTR (%)</label>
+                <Input type="number" step="0.1" value={ctr} onChange={(e) => setCtr(e.target.value)} placeholder="e.g. 2.5" />
               </div>
-
-              {/* Frequency Input */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Frequency (avg impressions per user)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
-                  placeholder="e.g. 2.8"
-                  className="w-full px-4 py-3 rounded-lg text-sm text-white bg-transparent outline-none"
-                  style={{
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Frequency (avg impressions per user)</label>
+                <Input type="number" step="0.1" value={frequency} onChange={(e) => setFrequency(e.target.value)} placeholder="e.g. 2.8" />
               </div>
-
-              {/* Days Input */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Days since launch
-                </label>
-                <input
-                  type="number"
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                  placeholder="e.g. 7"
-                  className="w-full px-4 py-3 rounded-lg text-sm text-white bg-transparent outline-none"
-                  style={{
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Days since launch</label>
+                <Input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="e.g. 7" />
               </div>
-
-              {/* Analyze Button */}
-              <button
-                onClick={analyze}
-                disabled={!ctr || !frequency || !days}
-                className="w-full py-3 text-sm font-bold rounded-lg transition-all disabled:opacity-30"
-                style={{ background: '#c3f53b', color: '#0a0a0a' }}
-              >
+              <Button onClick={analyze} disabled={!ctr || !frequency || !days} className="w-full">
                 Analyze Creative
-              </button>
-
+              </Button>
               {error && (
-                <p className="text-[13px] mt-3" style={{ color: '#EF4444' }} role="alert">
-                  {error}
-                </p>
+                <p className="text-sm text-destructive" role="alert">{error}</p>
               )}
-
-              {/* Result */}
               {result && (
-                <div
-                  className="rounded-lg p-4 mt-4"
-                  style={{
-                    background: statusColors[result.status].bg,
-                    border: `1px solid ${statusColors[result.status].border}`,
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    {result.status === 'healthy' && <TrendingUp size={16} style={{ color: statusColors[result.status].icon }} />}
-                    {result.status === 'warning' && <AlertTriangle size={16} style={{ color: statusColors[result.status].icon }} />}
-                    {result.status === 'critical' && <RefreshCw size={16} style={{ color: statusColors[result.status].icon }} />}
-                    <span
-                      className="text-sm font-semibold capitalize"
-                      style={{ color: statusColors[result.status].icon }}
-                    >
-                      {result.status}
-                    </span>
-                  </div>
-                  <p className="text-[13px] mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    {result.message}
-                  </p>
-                  <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-                    <strong>Recommendation:</strong> {result.recommendation}
-                  </p>
-                </div>
+                <Card className={`border ${statusColors[result.status].border}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      {result.status === 'healthy' && <TrendingUp size={16} className={statusColors[result.status].icon} />}
+                      {result.status === 'warning' && <AlertTriangle size={16} className={statusColors[result.status].icon} />}
+                      {result.status === 'critical' && <RefreshCw size={16} className={statusColors[result.status].icon} />}
+                      <span className={`text-sm font-semibold capitalize ${statusColors[result.status].icon}`}>
+                        {result.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{result.message}</p>
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Recommendation:</strong> {result.recommendation}
+                    </p>
+                  </CardContent>
+                </Card>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </FadeIn>
       </Section>
 
       <CtaBand
         title="Want automated fatigue detection?"
         subtitle="AdNexus AI monitors every creative 24/7 and alerts you before performance drops."
+        cta="Start Free Trial"
+        ctaHref="/auth/signup"
       />
     </>
   );
