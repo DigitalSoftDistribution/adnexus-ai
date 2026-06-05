@@ -136,17 +136,21 @@ router.get('/callback', async (req: Request, res: Response) => {
       scope: string;
     };
 
+    if (!tokens.access_token) {
+      logger.error({ body: tokens }, 'Google token exchange returned no access token');
+      res.status(502).json({ error: 'Token exchange failed', code: 'OAUTH_ERROR' });
+      return;
+    }
+
     // Store the Google ad account in the database. The Google Ads customer ID
     // is resolved out-of-band; until then use a stable per-workspace key so
-    // reconnects upsert cleanly against the (workspace_id, platform,
-    // platform_account_id) unique constraint.
+    // reconnects upsert cleanly against the canonical unique constraint.
     const { error: dbError } = await supabase
       .from('ad_accounts')
       .upsert({
         workspace_id: workspaceId,
         platform: 'google',
         platform_account_id: 'google-ads',
-        account_id: 'google-ads',
         name: 'Google Ads',
         oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
@@ -155,7 +159,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id,platform,account_id' });
+      }, { onConflict: 'workspace_id,platform,platform_account_id' });
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store Google tokens');

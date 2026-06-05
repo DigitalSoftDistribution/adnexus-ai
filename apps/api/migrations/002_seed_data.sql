@@ -48,7 +48,7 @@ VALUES
 -- =============================================================================
 -- 4. Connected Ad Accounts (Meta, Google, TikTok, Snap)
 -- =============================================================================
-INSERT INTO ad_accounts (id, workspace_id, platform, platform_account_id, account_name, access_token, refresh_token, token_expires_at, status, metadata)
+INSERT INTO ad_accounts (id, workspace_id, platform, platform_account_id, name, oauth_token, refresh_token, token_expires_at, status, metadata)
 VALUES
   ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',

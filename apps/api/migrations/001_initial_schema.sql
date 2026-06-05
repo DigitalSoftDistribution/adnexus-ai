@@ -59,11 +59,14 @@ CREATE TABLE ad_accounts (
   workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   platform VARCHAR(50) NOT NULL, -- meta, google, tiktok, snap
   platform_account_id VARCHAR(255) NOT NULL,
-  account_name VARCHAR(255) NOT NULL,
-  access_token TEXT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  oauth_token TEXT,
   refresh_token TEXT,
   token_expires_at TIMESTAMPTZ,
-  status VARCHAR(50) DEFAULT 'active', -- active, expired, disconnected
+  scopes TEXT[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT TRUE,
+  last_synced_at TIMESTAMPTZ,
+  status VARCHAR(50) DEFAULT 'active', -- active, expired, disconnected, error
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),

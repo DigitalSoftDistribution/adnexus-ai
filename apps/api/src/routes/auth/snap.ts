@@ -115,12 +115,17 @@ router.get('/callback', async (req: Request, res: Response) => {
       expires_in: number;
     };
 
+    if (!tokens.access_token) {
+      logger.error({ body: tokens }, 'Snap token exchange returned no access token');
+      res.redirect(`${config.frontend.url}/settings?snap=error&reason=oauth_failed`);
+      return;
+    }
+
     const { error: dbError } = await supabase.from('ad_accounts').upsert(
       {
         workspace_id: workspaceId,
         platform: 'snap',
         platform_account_id: 'snap-ads',
-        account_id: 'snap-ads',
         name: 'Snapchat Ads',
         oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
@@ -130,7 +135,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         is_active: true,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'workspace_id,platform,account_id' },
+      { onConflict: 'workspace_id,platform,platform_account_id' },
     );
 
     if (dbError) {
@@ -161,7 +166,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
+      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null, token_expires_at: null, updated_at: new Date().toISOString() })
       .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id)
       .eq('platform', 'snap');
