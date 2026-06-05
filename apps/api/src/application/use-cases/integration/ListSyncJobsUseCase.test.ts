@@ -23,6 +23,7 @@ const makeJobRepo = (): ISyncJobRepository => ({
   start: vi.fn(),
   finish: vi.fn(),
   listForAccount: vi.fn().mockResolvedValue([{ id: 'job-1' }, { id: 'job-2' }]),
+  findRunningForAccount: vi.fn().mockResolvedValue(null),
 });
 
 const base = { workspaceId: 'ws-1', adAccountId: 'acc-1', userRole: 'viewer' };

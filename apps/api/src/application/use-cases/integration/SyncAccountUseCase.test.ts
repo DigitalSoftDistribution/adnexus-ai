@@ -73,6 +73,7 @@ const makeJobRepo = (): ISyncJobRepository => ({
     Promise.resolve({ ...makeJob(input.status), ...input, errorCount: input.errors.length }),
   ),
   listForAccount: vi.fn(),
+  findRunningForAccount: vi.fn().mockResolvedValue(null),
 });
 
 const makeBus = (): IEventBus =>
@@ -243,6 +244,21 @@ describe('SyncAccountUseCase', () => {
       expect(res.data.liveSynced).toBe(false);
       expect(res.data.job.status).toBe('completed');
     }
+  });
+
+  it('rejects (409) when a sync is already running for the account', async () => {
+    const jobRepo = makeJobRepo();
+    (jobRepo.findRunningForAccount as ReturnType<typeof vi.fn>).mockResolvedValue(makeJob('running'));
+    const start = jobRepo.start as ReturnType<typeof vi.fn>;
+
+    const res = await new SyncAccountUseCase(
+      makeCampaignRepo(), makeAccountRepo(), jobRepo, makeBus(), makeSync(null),
+      vi.fn(), vi.fn(),
+    ).execute(base);
+
+    expect(res.success).toBe(false);
+    if (!res.success) expect((res.error as unknown as { statusCode: number }).statusCode).toBe(409);
+    expect(start).not.toHaveBeenCalled();
   });
 
   it('denies a viewer (403)', async () => {

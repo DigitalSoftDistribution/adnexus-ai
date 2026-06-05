@@ -6,7 +6,7 @@ import type { IEventBus } from '../../../domain/events/EventBus';
 import type { IPlatformSyncService, SyncedCampaign } from '../../ports/IPlatformSyncService';
 import type { Platform, CampaignStatus } from '../../../domain/entities/Campaign';
 import { CampaignUpdatedEvent } from '../../../domain/events/DomainEvent';
-import { Result, ok, err, ForbiddenError, NotFoundError } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError, NotFoundError, ConflictError } from '../../../domain/value-objects/Result';
 
 export interface SyncAccountInput {
   workspaceId: string;
@@ -62,6 +62,13 @@ export class SyncAccountUseCase {
     const account = await this.adAccountRepo.findByIdAndWorkspace(input.adAccountId, input.workspaceId);
     if (!account) {
       return err(new NotFoundError('Ad account'));
+    }
+
+    // Reject overlapping syncs for the same account so concurrent "Sync now"
+    // clicks don't run duplicate imports or leave multiple `running` rows.
+    const inFlight = await this.syncJobRepo.findRunningForAccount(account.id);
+    if (inFlight) {
+      return err(new ConflictError('A sync is already running for this account'));
     }
 
     const platform = account.platform as Platform;
