@@ -215,16 +215,18 @@ function DraftCard({ draft, locale }: { draft: Draft; locale: string }) {
         </div>
       )}
       {draft.status === 'approved' && (
-        <div className="flex gap-2 ml-4">
+        <div className="flex flex-col items-end gap-1 ml-4">
           <Button
             size="sm"
             variant="outline"
             onClick={() => actions.execute.mutate(draft.id)}
             disabled={actions.execute.isPending}
+            title={t('failedToExecute')}
           >
             <Play className="mr-1 h-3 w-3" />
             {actions.execute.isPending ? tc('executing') : t('approveAndExecute')}
           </Button>
+          <p className="max-w-48 text-right text-xs text-muted-foreground">{t('failedToExecute')}</p>
         </div>
       )}
     </div>
