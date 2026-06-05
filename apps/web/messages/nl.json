@@ -409,6 +409,8 @@
     "failedToFetchBilling": "Ophalen van factureringsgegevens mislukt",
     "failedToFetchInvoices": "Ophalen van facturen mislukt",
     "failedToCreatePortal": "Aanmaken van portalsessie mislukt",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "Abonnement beheren",
     "plan": "Abonnement",
     "currentPeriod": "Huidige periode",

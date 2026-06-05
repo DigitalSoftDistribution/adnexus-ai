@@ -409,6 +409,8 @@
     "failedToFetchBilling": "請求情報の取得に失敗しました",
     "failedToFetchInvoices": "請求書の取得に失敗しました",
     "failedToCreatePortal": "ポータルセッションの作成に失敗しました",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "サブスクリプションを管理",
     "plan": "プラン",
     "currentPeriod": "現在の期間",

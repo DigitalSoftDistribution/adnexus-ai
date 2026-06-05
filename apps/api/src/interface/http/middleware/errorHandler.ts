@@ -56,6 +56,20 @@ export function expressErrorHandler(
     return;
   }
 
+  const statusBearingError = err as Error & { status?: number; statusCode?: number; code?: string };
+  const statusCode = statusBearingError.status ?? statusBearingError.statusCode;
+  if (statusCode && statusCode >= 400 && statusCode < 600) {
+    const response: ApiErrorResponse = {
+      success: false,
+      error: {
+        code: typeof statusBearingError.code === 'string' ? statusBearingError.code : 'HTTP_ERROR',
+        message: err.message,
+      },
+    };
+    res.status(statusCode).json(response);
+    return;
+  }
+
   // Generic fallback
   console.error('Unhandled error:', err);
   const response: ApiErrorResponse = {

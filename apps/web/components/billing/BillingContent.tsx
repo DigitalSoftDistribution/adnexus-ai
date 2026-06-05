@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { CreditCard, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 interface BillingInfo {
   workspaceId: string;
@@ -49,6 +48,17 @@ interface Invoice {
   paid: boolean;
 }
 
+interface BillingPlansResponse {
+  billingEnabled: boolean;
+  stripeConfigured: boolean;
+  plans: Array<{
+    plan: string;
+    priceId: string;
+    credits: { creatives: number; impressions: number; aiCredits: number };
+  }>;
+  message: string | null;
+}
+
 function useBillingInfo() {
   const t = useTranslations('billing');
   return useQuery({
@@ -75,8 +85,26 @@ function useInvoices() {
   });
 }
 
+function useBillingPlans() {
+  return useQuery({
+    queryKey: ['billing', 'plans'],
+    queryFn: async (): Promise<BillingPlansResponse> => {
+      const res = await fetch('/api/v2/billing/plans');
+      if (!res.ok) {
+        return {
+          billingEnabled: false,
+          stripeConfigured: false,
+          plans: [],
+          message: 'Billing checkout is temporarily unavailable.',
+        };
+      }
+      const data = await res.json();
+      return data.data;
+    },
+  });
+}
+
 function useCreatePortalSession() {
-  const queryClient = useQueryClient();
   const t = useTranslations('billing');
   return useMutation({
     mutationFn: async () => {
@@ -93,7 +121,8 @@ function useCreatePortalSession() {
 
 export function BillingContent() {
   const { data: billing, isLoading: billingLoading, isError: billingError, refetch: refetchBilling } = useBillingInfo();
-  const { data: invoicesData, isLoading: invoicesLoading } = useInvoices();
+  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, refetch: refetchInvoices } = useInvoices();
+  const { data: billingPlans } = useBillingPlans();
   const portalMutation = useCreatePortalSession();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
@@ -129,6 +158,18 @@ export function BillingContent() {
 
   return (
     <div className="space-y-6">
+      {billingPlans && !billingPlans.billingEnabled && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="flex gap-3 pt-6 text-sm text-amber-900">
+            <Info className="mt-0.5 h-4 w-4 flex-none" />
+            <div>
+              <p className="font-medium">{t('checkoutUnavailable')}</p>
+              <p>{billingPlans.message ?? t('checkoutUnavailableDescription')}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
@@ -208,6 +249,13 @@ export function BillingContent() {
             <div className="flex h-32 items-center justify-center">
               <LoadingSpinner size="md" />
             </div>
+          ) : invoicesError ? (
+            <ErrorState
+              title={tc('error')}
+              description={t('failedToFetchInvoices')}
+              onRetry={() => refetchInvoices()}
+              retryLabel={tc('retry')}
+            />
           ) : invoicesData?.invoices && invoicesData.invoices.length > 0 ? (
             <div className="space-y-2">
               {invoicesData.invoices.map((invoice) => (
@@ -268,7 +316,7 @@ function UsageBar({ label, used, total }: { label: string; used: number; total: 
         </span>
       </div>
       {!unlimited && (
-        <Progress value={used} max={total} />
+        <Progress value={percentage} max={100} />
       )}
     </div>
   );

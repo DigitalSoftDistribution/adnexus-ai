@@ -409,6 +409,8 @@
     "failedToFetchBilling": "Error al obtener la información de facturación",
     "failedToFetchInvoices": "Error al obtener las facturas",
     "failedToCreatePortal": "Error al crear la sesión del portal",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "Gestionar suscripción",
     "plan": "Plan",
     "currentPeriod": "Período actual",
