@@ -85,6 +85,7 @@ describe('MarkNotificationReadUseCase', () => {
     const res = await new MarkNotificationReadUseCase(repo).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.markAsRead).not.toHaveBeenCalled();
   });
 });
 

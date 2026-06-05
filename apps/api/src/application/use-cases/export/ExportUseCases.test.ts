@@ -127,5 +127,6 @@ describe('DeleteExportUseCase', () => {
     const res = await new DeleteExportUseCase(repo).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(404);
+    expect(repo.delete).not.toHaveBeenCalled();
   });
 });
