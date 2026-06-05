@@ -58,8 +58,8 @@ export function FeatureCard({
 export function CtaBand({
   title = 'Ready to transform your ad workflow?',
   subtitle = 'Start managing campaigns smarter — with full control over every AI-generated change.',
-  primaryLabel = 'Start Free Trial',
-  primaryHref = '/auth/signup',
+  primaryLabel = 'Request Pilot Access',
+  primaryHref = '/contact',
   secondaryLabel = 'View pricing',
   secondaryHref = '/pricing',
 }: {

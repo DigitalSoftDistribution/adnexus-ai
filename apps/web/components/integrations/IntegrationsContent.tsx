@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -70,6 +70,7 @@ export function IntegrationsContent() {
   const queryClient = useQueryClient();
   const t = useTranslations("integrations");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const oauthStatus = searchParams.get("status") ?? searchParams.get("meta");
   const oauthPlatform = searchParams.get("platform") ?? "meta";
@@ -91,6 +92,13 @@ export function IntegrationsContent() {
   const connect = useMutation({
     mutationFn: startOAuthConnect,
   });
+
+  const v1Availability: Record<string, { label: string; disabled: boolean }> = {
+    meta: { label: t("availability.metaReady"), disabled: false },
+    google: { label: t("availability.readOnly"), disabled: true },
+    tiktok: { label: t("availability.comingSoon"), disabled: true },
+    snap: { label: t("availability.comingSoon"), disabled: true },
+  };
 
   const disconnect = useMutation({
     mutationFn: async (platform: string) => {
@@ -156,6 +164,7 @@ export function IntegrationsContent() {
         {items.map((integration) => {
           const meta = PLATFORMS[integration.platform];
           const color = meta ? `hsl(${meta.colorVar})` : "hsl(var(--primary))";
+          const availability = v1Availability[integration.platform] ?? { label: t("status.available"), disabled: false };
           return (
             <Card
               key={integration.platform}
@@ -183,7 +192,7 @@ export function IntegrationsContent() {
                       {tc("active")}
                     </Badge>
                   ) : (
-                    <Badge variant="secondary">{t("status.available")}</Badge>
+                    <Badge variant={availability.disabled ? "outline" : "secondary"}>{availability.label}</Badge>
                   )}
                 </div>
 
@@ -214,7 +223,13 @@ export function IntegrationsContent() {
                     lastSyncedAt={integration.lastSyncedAt}
                     disconnecting={disconnect.isPending}
                     onDisconnect={() => disconnect.mutate(integration.platform)}
+                    locale={locale}
                   />
+                ) : availability.disabled ? (
+                  <Button size="sm" className="w-full" variant="outline" disabled>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    {availability.label}
+                  </Button>
                 ) : (
                   <Button
                     size="sm"
@@ -241,6 +256,7 @@ interface ConnectedActionsProps {
   lastSyncedAt: string | null;
   disconnecting: boolean;
   onDisconnect: () => void;
+  locale: string;
 }
 
 function ConnectedActions({
@@ -249,6 +265,7 @@ function ConnectedActions({
   lastSyncedAt,
   disconnecting,
   onDisconnect,
+  locale,
 }: ConnectedActionsProps) {
   const queryClient = useQueryClient();
   const t = useTranslations("integrations");
@@ -300,7 +317,7 @@ function ConnectedActions({
 
       <p className="text-xs text-muted-foreground">
         {lastSyncedAt
-          ? `${t("sync.lastSynced")}: ${formatDate(lastSyncedAt)}`
+          ? `${t("sync.lastSynced")}: ${formatDate(lastSyncedAt, locale)}`
           : t("sync.neverSynced")}
       </p>
 
@@ -314,12 +331,12 @@ function ConnectedActions({
         </Alert>
       )}
 
-      {accountId && <SyncJobHistory accountId={accountId} />}
+      {accountId && <SyncJobHistory accountId={accountId} locale={locale} />}
     </div>
   );
 }
 
-function SyncJobHistory({ accountId }: { accountId: string }) {
+function SyncJobHistory({ accountId, locale }: { accountId: string; locale: string }) {
   const t = useTranslations("integrations");
   const tc = useTranslations("common");
 
@@ -371,7 +388,7 @@ function SyncJobHistory({ accountId }: { accountId: string }) {
             {t("sync.campaignsCount", { count: job.campaignsSynced })}
           </span>
           <span className="text-muted-foreground">
-            {formatDate(job.startedAt)}
+            {formatDate(job.startedAt, locale)}
           </span>
         </div>
       ))}

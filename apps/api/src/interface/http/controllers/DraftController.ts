@@ -117,7 +117,14 @@ export function createDraftController(container: Container) {
         throw result.error;
       }
 
-      res.json({ success: true, data: result.data });
+      res.json({
+        success: true,
+        data: result.data,
+        execution: {
+          mode: 'platform',
+          platformApplied: true,
+        },
+      });
     }),
 
     listComments: asyncHandler<AuthenticatedRequest>(async (req, res) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ExecuteDraftUseCase } from './ExecuteDraftUseCase';
+import { DraftExecutionDisabledError, ExecuteDraftUseCase } from './ExecuteDraftUseCase';
 import type { IDraftRepository } from '../../../domain/repositories/IDraftRepository';
 import type { IAuditLogger } from '../../ports/IAuditLogger';
 import type { Draft } from '../../../domain/entities/Draft';
@@ -61,38 +61,37 @@ const baseInput = {
 };
 
 describe('ExecuteDraftUseCase', () => {
-  it('executes only an approved draft and stores execution + rollback metadata', async () => {
+  it('keeps approved drafts local-only and never marks them platform executed', async () => {
     const repo = makeRepo();
     const audit = makeAudit();
     const useCase = new ExecuteDraftUseCase(repo, audit);
 
     const result = await useCase.execute(baseInput);
 
-    expect(result.success).toBe(true);
-    expect(repo.updateStatus).toHaveBeenCalledWith(
-      'draft-1',
-      'executed',
-      expect.objectContaining({
-        execution: expect.objectContaining({
-          executedBy: 'user-1',
-          status: 'succeeded',
-          source: 'draft_approval_flow',
-        }),
-        rollback: expect.objectContaining({
-          condition: 'Rollback if ROAS drops below baseline',
-          status: 'available',
-          sourceDraftId: 'draft-1',
-        }),
-      }),
-    );
+    expect(result.success).toBe(false);
+    expect(repo.updateStatus).not.toHaveBeenCalled();
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(DraftExecutionDisabledError);
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
+      expect(result.error.message).toContain('Platform execution is disabled');
+    }
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
-        actionCategory: 'draft_executed',
+        action: expect.stringContaining('Draft platform execution blocked'),
+        actionCategory: 'draft_execution_disabled',
         entityType: 'draft',
         entityId: 'draft-1',
         metadata: expect.objectContaining({
-          execution: expect.objectContaining({ executedBy: 'user-1' }),
-          rollback: expect.objectContaining({ status: 'available' }),
+          execution: expect.objectContaining({
+            requestedBy: 'user-1',
+            status: 'disabled',
+            platformApplied: false,
+            limitation: 'v1_pilot_platform_execution_disabled',
+          }),
+          rollback: expect.objectContaining({
+            status: 'not_available',
+            reason: 'no_platform_write_was_applied',
+          }),
         }),
       }),
     );

@@ -80,7 +80,7 @@
     "dismiss": "Dismiss",
     "approve": "Approve",
     "reject": "Reject",
-    "execute": "Execute",
+    "execute": "Platform execution disabled",
     "pause": "Pause",
     "activate": "Activate",
     "duplicate": "Duplicate",
@@ -97,7 +97,7 @@
     "deleting": "Deleting...",
     "analyzing": "Analyzing...",
     "applying": "Applying...",
-    "executing": "Executing...",
+    "executing": "Checking execution...",
     "opening": "Opening...",
     "noResults": "No results found",
     "searching": "Searching…",
@@ -273,22 +273,25 @@
   },
   "drafts": {
     "title": "Drafts",
-    "description": "Review and approve optimization drafts.",
+    "description": "Review and approve optimization drafts. V1 pilot approvals do not write to ad platforms yet.",
     "failedToFetch": "Failed to fetch drafts",
     "failedToApprove": "Failed to approve draft",
     "failedToReject": "Failed to reject draft",
-    "failedToExecute": "Failed to execute draft",
+    "failedToExecute": "Platform execution is disabled for the v1 pilot. Approval records review intent only; no ad platform changes were applied.",
     "recentDrafts": "Recent Drafts",
     "noDrafts": "No drafts yet",
     "draftsPlaceholder": "AI-generated recommendations will appear here",
     "status": {
       "pending": "Pending",
       "approved": "Approved",
-      "executed": "Executed",
+      "executed": "Platform executed",
       "failed": "Failed",
       "rejected": "Rejected",
       "rolled_back": "Rolled Back"
-    }
+    },
+    "executionNotice": "Reviewing a draft only marks it approved. Live campaign writes happen only when an approved draft is explicitly executed.",
+    "markReviewed": "Mark reviewed",
+    "approveAndExecute": "Approve & execute"
   },
   "aiAgent": {
     "title": "AI Agent",
@@ -578,7 +581,12 @@
       }
     },
     "oauthIssueTitle": "Connection needs attention",
-    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing."
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "availability": {
+      "metaReady": "Launch-ready",
+      "readOnly": "Read-only in v1",
+      "comingSoon": "Coming soon"
+    }
   },
   "webhooks": {
     "title": "Webhooks",
@@ -607,7 +615,7 @@
     "title": "Welcome to AdNexus AI",
     "description": "Let's get your workspace set up in a few steps.",
     "stepConnect": "Connect a platform",
-    "stepConnectDesc": "Link Meta, Google, TikTok or Snap to import campaigns.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
     "stepTeam": "Invite your team",
     "stepTeamDesc": "Add teammates to collaborate on campaigns.",
     "stepCampaign": "View first insight",

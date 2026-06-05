@@ -1,6 +1,6 @@
 import type { IDraftRepository } from '../../../domain/repositories/IDraftRepository';
 import type { Draft } from '../../../domain/entities/Draft';
-import { Result, ok, err, ForbiddenError, NotFoundError } from '../../../domain/value-objects/Result';
+import { Result, err, ForbiddenError, NotFoundError, DomainError } from '../../../domain/value-objects/Result';
 import type { IAuditLogger } from '../../ports/IAuditLogger';
 
 export interface ExecuteDraftInput {
@@ -8,6 +8,18 @@ export interface ExecuteDraftInput {
   workspaceId: string;
   executedBy: string;
   userRole: string;
+}
+
+export class DraftExecutionDisabledError extends DomainError {
+  constructor() {
+    super(
+      'Platform execution is disabled for the v1 pilot. Approval records review intent only; no ad platform changes were applied.',
+      'DRAFT_EXECUTION_DISABLED',
+      403,
+    );
+    this.name = 'DraftExecutionDisabledError';
+    Object.setPrototypeOf(this, DraftExecutionDisabledError.prototype);
+  }
 }
 
 export class ExecuteDraftUseCase {
@@ -47,45 +59,42 @@ export class ExecuteDraftUseCase {
       return err(new ForbiddenError('Only approved drafts can be executed'));
     }
 
-    const executedAt = new Date().toISOString();
-    const executionMetadata = {
+    const attemptedAt = new Date().toISOString();
+    const disabledMetadata = {
       execution: {
-        executedBy: input.executedBy,
-        executedAt,
-        status: 'succeeded',
+        requestedBy: input.executedBy,
+        requestedAt: attemptedAt,
+        status: 'disabled',
+        platformApplied: false,
         source: 'draft_approval_flow',
+        limitation: 'v1_pilot_platform_execution_disabled',
       },
       rollback: {
         condition: draft.changeDetail.rollbackCondition ?? draft.changeDetail.rollback_condition ?? null,
-        status: 'available',
+        status: 'not_available',
+        reason: 'no_platform_write_was_applied',
         sourceDraftId: draft.id,
       },
     };
 
-    const updated = await this.draftRepo.updateStatus(input.draftId, 'executed', executionMetadata);
-    if (!updated) {
-      return err(new NotFoundError('Draft'));
-    }
-
     await this.auditLogger?.log({
       workspaceId: input.workspaceId,
       userId: input.executedBy,
-      action: `Draft executed: ${updated.changeSummary}`,
-      actionCategory: 'draft_executed',
-      campaignId: updated.campaignId ?? undefined,
+      action: `Draft platform execution blocked (v1 pilot disabled): ${draft.changeSummary}`,
+      actionCategory: 'draft_execution_disabled',
+      campaignId: draft.campaignId ?? undefined,
       entityType: 'draft',
-      entityId: updated.id,
+      entityId: draft.id,
       actorType: 'user',
       actorId: input.executedBy,
       metadata: {
-        draftType: updated.draftType,
-        platform: updated.platform,
-        execution: executionMetadata.execution,
-        rollback: executionMetadata.rollback,
+        draftType: draft.draftType,
+        platform: draft.platform,
+        ...disabledMetadata,
       },
       source: 'dashboard',
     });
 
-    return ok(updated);
+    return err(new DraftExecutionDisabledError());
   }
 }

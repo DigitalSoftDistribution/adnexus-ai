@@ -13,7 +13,7 @@ import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
 import axios from "axios";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
-import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
+import { createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
 
 const router = Router();
 const META_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth";

@@ -5,7 +5,7 @@ import { JsonLd } from '@/components/marketing/JsonLd';
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Flat, transparent AdNexus AI pricing that never scales with your ad spend. Start free, upgrade for AI optimization, cross-platform reporting, and team workflows.',
+    'Flat, transparent AdNexus AI pricing that never scales with your ad spend. Request managed v1 pilot access for Meta execution, cross-platform reporting, and team workflows.',
   alternates: { canonical: '/pricing' },
 };
 
@@ -23,10 +23,10 @@ const FAQ_JSONLD = {
     },
     {
       '@type': 'Question',
-      name: 'How does the 14-day free trial work?',
+      name: 'Is self-serve checkout available?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Start any paid plan with a 14-day free trial with no credit card required. At the end you can subscribe or drop to the free tier automatically.',
+        text: 'Not yet. AdNexus AI v1 is provisioned through a managed pilot so platform access, guardrails, and Meta write permissions are verified before launch.',
       },
     },
     {
@@ -34,7 +34,7 @@ const FAQ_JSONLD = {
       name: 'Which ad platforms are supported?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one dashboard.',
+        text: 'Meta is launch-ready for v1 execution. Google, TikTok, and Snap are read-only or coming soon while production write support is completed.',
       },
     },
   ],
