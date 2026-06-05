@@ -217,9 +217,14 @@ export class SyncAccountUseCase {
       }
     }
 
-    await this.stampSynced(account.id).catch(() => undefined);
-
     const status = errors.length === 0 ? 'completed' : campaignsSynced > 0 ? 'partial' : 'failed';
+
+    // Only stamp last_synced_at when at least one campaign actually imported, so
+    // a fully failed run does not show a fresh "last synced" in the UI.
+    if (campaignsSynced > 0) {
+      await this.stampSynced(account.id).catch(() => undefined);
+    }
+
     const finished = await this.syncJobRepo.finish(job.id, {
       status,
       campaignsSynced,
@@ -227,10 +232,21 @@ export class SyncAccountUseCase {
       errors,
     });
 
-    await this.eventBus.publish(
-      new CampaignUpdatedEvent(account.id, input.workspaceId, { accountSync: true, campaignsSynced }),
-    );
+    // Only notify when something changed. The account UUID is passed as the
+    // event's accountId (not a campaign id); the payload carries accountSync so
+    // consumers refresh list/summary rather than a single campaign.
+    if (campaignsSynced > 0) {
+      await this.eventBus.publish(
+        new CampaignUpdatedEvent(account.id, input.workspaceId, {
+          accountSync: true,
+          adAccountId: account.id,
+          campaignsSynced,
+        }),
+      );
+    }
 
-    return ok({ job: finished ?? job, liveSynced: true });
+    // liveSynced reflects whether real data was persisted, so callers can tell a
+    // successful import from a no-op or failed run.
+    return ok({ job: finished ?? job, liveSynced: campaignsSynced > 0 });
   }
 }

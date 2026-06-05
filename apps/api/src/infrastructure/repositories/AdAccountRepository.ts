@@ -2,37 +2,60 @@ import type { IAdAccountRepository, AdAccountFilters, AdAccountListResult } from
 import type { AdAccount } from '../../domain/entities/AdAccount';
 import { query } from '../database/connection';
 
+/**
+ * Map a snake_case `ad_accounts` row to the camelCase AdAccount entity.
+ * The driver returns column names verbatim (e.g. `platform_account_id`), so a
+ * bare `SELECT *` cast would leave camelCase fields undefined — which silently
+ * breaks consumers like account sync that read `platformAccountId`.
+ */
+function mapRow(r: Record<string, unknown>): AdAccount {
+  return {
+    id: r.id as string,
+    workspaceId: r.workspace_id as string,
+    platform: r.platform as AdAccount['platform'],
+    platformAccountId: r.platform_account_id as string,
+    name: (r.name ?? '') as string,
+    status: r.status as AdAccount['status'],
+    tokenExpiresAt: r.token_expires_at ? new Date(r.token_expires_at as string) : null,
+    spendCap: r.spend_cap === null || r.spend_cap === undefined ? null : Number(r.spend_cap),
+    disabledReason: (r.disabled_reason ?? null) as string | null,
+    metadata: (r.metadata ?? {}) as Record<string, unknown>,
+    createdAt: new Date(r.created_at as string),
+    updatedAt: new Date((r.updated_at ?? r.created_at) as string),
+  };
+}
+
 export class AdAccountRepository implements IAdAccountRepository {
   async findById(id: string): Promise<AdAccount | null> {
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM ad_accounts WHERE id = $1 LIMIT 1`,
       [id],
     );
-    return rows[0] ?? null;
+    return rows[0] ? mapRow(rows[0]) : null;
   }
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<AdAccount | null> {
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM ad_accounts WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
       [id, workspaceId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? mapRow(rows[0]) : null;
   }
 
   async findByPlatformAccountId(platformAccountId: string, platform: string): Promise<AdAccount | null> {
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM ad_accounts WHERE platform_account_id = $1 AND platform = $2 LIMIT 1`,
       [platformAccountId, platform],
     );
-    return rows[0] ?? null;
+    return rows[0] ? mapRow(rows[0]) : null;
   }
 
   async findByWorkspace(workspaceId: string): Promise<AdAccount[]> {
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM ad_accounts WHERE workspace_id = $1 ORDER BY created_at DESC`,
       [workspaceId],
     );
-    return rows;
+    return rows.map(mapRow);
   }
 
   async list(filters: AdAccountFilters): Promise<AdAccountListResult> {
@@ -68,16 +91,16 @@ export class AdAccountRepository implements IAdAccountRepository {
     );
     const total = parseInt(countRows[0].count, 10);
 
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `SELECT * FROM ad_accounts WHERE ${whereClause} ORDER BY created_at DESC LIMIT $${++idx} OFFSET $${++idx}`,
       [...params, limit, offset],
     );
 
-    return { adAccounts: rows, total, page, totalPages: Math.ceil(total / limit) };
+    return { adAccounts: rows.map(mapRow), total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async create(adAccount: Omit<AdAccount, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdAccount> {
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, name, status, token_expires_at, spend_cap, disabled_reason, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
@@ -86,7 +109,7 @@ export class AdAccountRepository implements IAdAccountRepository {
         adAccount.spendCap, adAccount.disabledReason, adAccount.metadata,
       ],
     );
-    return rows[0];
+    return mapRow(rows[0]);
   }
 
   async update(id: string, updates: Partial<AdAccount>): Promise<AdAccount | null> {
@@ -103,11 +126,11 @@ export class AdAccountRepository implements IAdAccountRepository {
 
     if (setClauses.length === 0) return this.findById(id);
 
-    const { rows } = await query<AdAccount>(
+    const { rows } = await query<Record<string, unknown>>(
       `UPDATE ad_accounts SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`,
       params,
     );
-    return rows[0] ?? null;
+    return rows[0] ? mapRow(rows[0]) : null;
   }
 
   async delete(id: string): Promise<boolean> {
