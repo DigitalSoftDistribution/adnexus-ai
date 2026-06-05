@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
+import { FadeIn } from './v3/animations';
 
 /** Page hero used across the new marketing pages. */
 export function PageHero({
@@ -15,13 +16,21 @@ export function PageHero({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative overflow-hidden px-6 pt-24 sm:pt-32 pb-12" style={{ background: 'var(--bg-primary)' }}>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none" style={{ background: 'rgba(195,245,59,0.04)', filter: 'blur(120px)' }} />
+    <section className="relative overflow-hidden px-6 pt-24 sm:pt-32 pb-16" style={{ background: 'var(--bg-primary)' }}>
+      <div className="gradient-mesh" aria-hidden="true">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%)',
+          }}
+        />
+      </div>
       <div className="max-w-4xl mx-auto text-center relative z-10">
-        <span className="inline-flex items-center gap-2 text-[11px] font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(195,245,59,0.1)', border: '1px solid rgba(195,245,59,0.2)', color: '#c3f53b' }}>
+        <span className="inline-flex items-center gap-2 text-[11px] font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8' }}>
           {eyebrow}
         </span>
-        <h1 className="font-space text-4xl sm:text-5xl font-bold tracking-tight text-white mb-5">{title}</h1>
+        <h1 className="font-space text-4xl sm:text-5xl lg:text-6xl font-bold tracking-[-0.03em] text-white mb-5">{title}</h1>
         {subtitle && (
           <p className="text-base sm:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {subtitle}
@@ -44,7 +53,7 @@ export function FeatureCard({
   desc: string;
 }) {
   return (
-    <div className="card-surface p-6 hover-lift">
+    <div className="card-surface p-6 hover-lift card-glow">
       <div className="mb-3">{icon}</div>
       <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
       <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -72,16 +81,16 @@ export function CtaBand({
 }) {
   return (
     <section className="w-full py-24 px-6 relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(195,245,59,0.08) 0%, rgba(37,99,235,0.06) 40%, transparent 65%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.04) 40%, transparent 65%)' }} />
       <div className="max-w-[640px] mx-auto text-center relative z-10">
         <h2 className="font-space text-3xl sm:text-4xl font-bold text-white mb-5">{title}</h2>
         <p className="text-base mb-8 max-w-[460px] mx-auto" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link href={primaryHref} className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
+          <Link href={primaryHref} className="btn-primary inline-flex items-center gap-2 px-8 py-3.5 text-sm rounded-xl">
             {primaryLabel}
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
-          <Link href={secondaryHref} className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium rounded-lg border transition-colors hover:text-white" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
+          <Link href={secondaryHref} className="btn-secondary inline-flex items-center gap-2 px-6 py-3.5 text-sm rounded-xl">
             {secondaryLabel}
           </Link>
         </div>
@@ -117,7 +126,7 @@ export function Section({
         {(eyebrow || title) && (
           <div className="text-center mb-12">
             {eyebrow && (
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#2563EB' }}>
+              <span className="eyebrow mb-4 block">
                 {eyebrow}
               </span>
             )}
@@ -161,7 +170,7 @@ export function WorkflowSteps({ steps }: { steps: { title: string; desc: string 
         <div key={s.title} className="flex items-start gap-4 rounded-xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
           <span
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
-            style={{ background: 'rgba(195,245,59,0.1)', color: 'var(--accent)' }}
+            style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)' }}
           >
             {i + 1}
           </span>

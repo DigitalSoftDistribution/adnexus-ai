@@ -25,15 +25,14 @@ type Category = (typeof categories)[number];
 
 const categoryMeta: Record<string, { icon: typeof BookOpen; color: string; bg: string }> = {
   All: { icon: BookOpen, color: '#FFFFFF', bg: 'rgba(255,255,255,0.08)' },
-  Product: { icon: Sparkles, color: '#2563EB', bg: 'rgba(37,99,235,0.15)' },
-  AI: { icon: TrendingUp, color: '#A78BFA', bg: 'rgba(139,92,246,0.15)' },
-  'Case Studies': { icon: Briefcase, color: '#34D399', bg: 'rgba(16,185,129,0.15)' },
-  Tips: { icon: Lightbulb, color: '#FBBF24', bg: 'rgba(245,158,11,0.15)' },
+  Product: { icon: Sparkles, color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
+  AI: { icon: TrendingUp, color: '#a78bfa', bg: 'rgba(139,92,246,0.15)' },
+  'Case Studies': { icon: Briefcase, color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
+  Tips: { icon: Lightbulb, color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' },
 };
 
 /* ─── posts data (single source of truth) ─── */
 const posts = BLOG_POSTS;
-
 
 const POSTS_PER_PAGE = 6;
 
@@ -90,11 +89,11 @@ export function BlogContent() {
         <div className="absolute inset-0 opacity-25">
           <div
             className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full blur-[150px]"
-            style={{ background: 'var(--accent-glow)' }}
+            style={{ background: 'rgba(99,102,241,0.06)' }}
           />
           <div
             className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-[120px]"
-            style={{ background: 'rgba(139,92,246,0.08)' }}
+            style={{ background: 'rgba(139,92,246,0.05)' }}
           />
         </div>
 
@@ -124,7 +123,7 @@ export function BlogContent() {
             className="font-space text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5"
           >
             <span style={{ color: 'var(--text-primary)' }}>Insights for </span>
-            <span className="text-gradient-blue">Modern Agencies</span>
+            <span className="text-gradient-indigo">Modern Agencies</span>
           </motion.h1>
 
           <motion.p
@@ -258,36 +257,35 @@ export function BlogContent() {
                     </Link>
 
                     {/* Content */}
-                    <div className="flex flex-col justify-center p-8 lg:p-10">
-                      <span
-                        className="inline-flex self-start items-center px-2.5 py-0.5 rounded-full text-xs font-semibold mb-4"
-                        style={{
-                          background: categoryMeta[featuredPost.category]?.bg,
-                          color: categoryMeta[featuredPost.category]?.color,
-                        }}
-                      >
-                        {featuredPost.category}
-                      </span>
-
+                    <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
+                      <div className="mb-3">
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                          style={{
+                            background: categoryMeta[featuredPost.category]?.bg,
+                            color: categoryMeta[featuredPost.category]?.color,
+                          }}
+                        >
+                          {featuredPost.category}
+                        </span>
+                      </div>
                       <Link href={`/blog/${featuredPost.slug}`} className="block mb-3">
                         <h2
-                          className="font-space text-2xl lg:text-3xl font-bold leading-tight group-hover:opacity-80 transition-opacity"
+                          className="font-space text-xl sm:text-2xl font-semibold leading-snug group-hover:opacity-80 transition-opacity"
                           style={{ color: 'var(--text-primary)' }}
                         >
                           {featuredPost.title}
                         </h2>
                       </Link>
-
                       <p
-                        className="font-inter text-sm leading-relaxed mb-6 line-clamp-3"
+                        className="font-inter text-sm leading-relaxed mb-5"
                         style={{ color: 'var(--text-secondary)' }}
                       >
                         {featuredPost.excerpt}
                       </p>
-
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 mt-auto">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center font-space text-xs font-semibold"
+                          className="w-8 h-8 rounded-full flex items-center justify-center font-space text-xs font-semibold"
                           style={{
                             background: 'var(--bg-hover)',
                             color: categoryMeta[featuredPost.category]?.color,
@@ -297,36 +295,20 @@ export function BlogContent() {
                           {featuredPost.initials}
                         </div>
                         <div>
-                          <p
-                            className="font-inter text-sm font-medium"
+                          <span
+                            className="font-inter text-sm font-medium block"
                             style={{ color: 'var(--text-primary)' }}
                           >
                             {featuredPost.author}
-                          </p>
-                          <div
-                            className="flex items-center gap-2 font-inter text-xs"
+                          </span>
+                          <span
+                            className="font-inter text-xs"
                             style={{ color: 'var(--text-tertiary)' }}
                           >
-                            <span>{featuredPost.role}</span>
-                            <span>·</span>
-                            <span>{featuredPost.date}</span>
-                            <span>·</span>
-                            <span className="inline-flex items-center gap-1">
-                              <Clock size={11} />
-                              {featuredPost.readTime}
-                            </span>
-                          </div>
+                            {featuredPost.date} · {featuredPost.readTime}
+                          </span>
                         </div>
                       </div>
-
-                      <Link
-                        href={`/blog/${featuredPost.slug}`}
-                        className="inline-flex items-center gap-2 mt-6 font-inter text-sm font-medium transition-opacity hover:opacity-70"
-                        style={{ color: 'var(--accent)' }}
-                      >
-                        Read Article
-                        <ArrowRight size={16} />
-                      </Link>
                     </div>
                   </div>
                 </motion.article>
@@ -335,7 +317,7 @@ export function BlogContent() {
           )}
       </AnimatePresence>
 
-      {/* ─── Recent Posts Grid ─── */}
+      {/* ─── Post Grid ─── */}
       <section className="px-6 pb-12">
         <div className="max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
@@ -344,10 +326,9 @@ export function BlogContent() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: easeSmooth }}
+              transition={{ duration: 0.3 }}
             >
-              {/* Section header */}
-              {(activeCategory !== 'All' || searchQuery) && (
+              {(searchQuery || activeCategory !== 'All') && (
                 <div className="mb-8">
                   <h2
                     className="font-space text-xl font-semibold"
@@ -536,7 +517,7 @@ export function BlogContent() {
                 style={{
                   background: currentPage === page ? 'var(--accent)' : 'var(--bg-elevated)',
                   border: '1px solid var(--border-subtle)',
-                  color: currentPage === page ? '#0a0a0a' : 'var(--text-secondary)',
+                  color: currentPage === page ? 'var(--text-inverse)' : 'var(--text-secondary)',
                 }}
               >
                 {page}
@@ -574,8 +555,8 @@ export function BlogContent() {
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-        .text-gradient-blue {
-          background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+        .text-gradient-indigo {
+          background: linear-gradient(135deg, #6366f1, #818cf8);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;

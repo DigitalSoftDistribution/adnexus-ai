@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 
 const ITEMS = [
   { icon: <ListChecks size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Everything Is a Draft', desc: 'AI suggestions never touch live campaigns directly. They queue up for review first — always.' },
-  { icon: <Edit3 size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Edit Before You Ship', desc: 'Tweak a budget number, narrow an audience, or adjust copy before approving. You stay in control of the details.' },
-  { icon: <CheckCircle2 size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'One-Click Approve', desc: 'Approve a single draft or batch-approve a set. Changes publish to the platform instantly.' },
-  { icon: <Users size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Multi-Tier Workflows', desc: 'Junior reviewers suggest, senior approvers sign off. Perfect for agencies and structured teams.' },
+  { icon: <Edit3 size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Edit Before You Ship', desc: 'Tweak a budget number, narrow an audience, or adjust copy before approving. You stay in control of the details.' },
+  { icon: <CheckCircle2 size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'One-Click Approve', desc: 'Approve a single draft or batch-approve a set. Changes publish to the platform instantly.' },
+  { icon: <Users size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Multi-Tier Workflows', desc: 'Junior reviewers suggest, senior approvers sign off. Perfect for agencies and structured teams.' },
   { icon: <History size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Full Audit Trail', desc: 'Who approved what, when, and why — every action logged for compliance and peace of mind.' },
   { icon: <ShieldCheck size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'No Rogue Changes', desc: 'The architecture makes accidental or autonomous live edits impossible by design.' },
 ];
@@ -23,7 +23,7 @@ export default function Page() {
     <>
       <PageHero
         eyebrow="Draft-First Approvals"
-        title={<>Nothing goes live without <span style={{ color: '#c3f53b' }}>your</span> approval</>}
+        title={<>Nothing goes live without <span className="text-gradient-indigo">your</span> approval</>}
         subtitle="The governance layer that lets you trust AI with your ad spend — because you sign off on every change."
       />
       <Section title="Governance, built in">

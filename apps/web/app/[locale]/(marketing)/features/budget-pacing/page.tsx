@@ -1,192 +1,45 @@
 import type { Metadata } from 'next';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
-import { ScrollReveal } from '@/components/marketing/v2/animations';
-import { Wallet, TrendingUp, Shield, BarChart3, Zap, Globe } from 'lucide-react';
+import { Wallet, BarChart2, Target, Zap, Clock, ShieldCheck } from 'lucide-react';
+import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
-  title: 'Budget Pacing — AdNexus AI',
+  title: 'Budget Pacing',
   description:
-    'Smart budget allocation across campaigns and platforms to maximize ROAS throughout the month. Never overspend or underspend again.',
+    'Smart budget allocation across campaigns and platforms. AdNexus AI monitors spend velocity, forecasts month-end outcomes, and drafts reallocation recommendations to maximize ROAS.',
   alternates: { canonical: '/features/budget-pacing' },
-  openGraph: {
-    title: 'Budget Pacing — AdNexus AI',
-    description: 'Smart budget allocation across campaigns and platforms. Maximize ROAS every day.',
-    url: '/features/budget-pacing',
-  },
 };
 
-const FEATURES = [
-  {
-    icon: <Wallet size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />,
-    title: 'Daily Pacing Targets',
-    desc: 'AI calculates optimal daily spend for each campaign based on month-to-date performance and remaining budget.',
-  },
-  {
-    icon: <TrendingUp size={22} style={{ color: '#2563EB' }} aria-hidden="true" />,
-    title: 'Performance-Based Shifts',
-    desc: 'Automatically reallocate budget from underperformers to campaigns with the highest ROAS potential.',
-  },
-  {
-    icon: <Shield size={22} style={{ color: '#10B981' }} aria-hidden="true" />,
-    title: 'Overspend Protection',
-    desc: 'Hard stops and soft warnings when campaigns approach their daily or monthly limits. Never blow a budget.',
-  },
-  {
-    icon: <BarChart3 size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />,
-    title: 'Cross-Platform Balance',
-    desc: 'See budget allocation across Meta, Google, TikTok, and Snap in one view. Rebalance with one click.',
-  },
-  {
-    icon: <Zap size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />,
-    title: 'Opportunity Alerts',
-    desc: 'Get notified when a high-performing campaign has budget headroom — so you can scale before the opportunity fades.',
-  },
-  {
-    icon: <Globe size={22} style={{ color: '#34D399' }} aria-hidden="true" />,
-    title: 'Seasonal Adjustments',
-    desc: 'AI learns your seasonal patterns and pre-adjusts pacing for Black Friday, holiday seasons, and sale events.',
-  },
+const ITEMS = [
+  { icon: <BarChart2 size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Spend Velocity Tracking', desc: 'Monitors how fast each campaign burns budget versus its target pace — catching over- and under-spenders early.' },
+  { icon: <Target size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Forecasting', desc: 'Predicts month-end spend and ROAS based on current trajectory, so you can adjust before it is too late.' },
+  { icon: <Zap size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Smart Reallocation', desc: 'Drafts recommendations to shift budget from underperformers to winners — pending your approval.' },
+  { icon: <Wallet size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Cross-Platform Coordination', desc: 'Allocates budget across Meta, Google, TikTok, and Snap based on where it performs best this week.' },
+  { icon: <Clock size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'Daily Check-ins', desc: 'The agent reviews pacing every morning and flags issues in the Morning Brief before they compound.' },
+  { icon: <ShieldCheck size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Guardrails', desc: 'Set minimum and maximum spend limits per campaign. The agent respects them in every recommendation.' },
 ];
 
 export default function Page() {
   return (
     <>
       <PageHero
-        eyebrow="Feature"
-        title={
-          <>
-            Smart budget pacing,{' '}
-            <span style={{ color: '#c3f53b' }}>maximum ROAS</span>
-          </>
-        }
-        subtitle="AI allocates your budget across campaigns and platforms in real-time, so every dollar works as hard as possible."
+        eyebrow="Budget Pacing"
+        title={<>Smart spend <span className="text-gradient-indigo">allocation</span></>}
+        subtitle="Maximize ROAS through the whole month. The agent monitors pacing, forecasts outcomes, and drafts reallocations — you approve every move."
       />
-
-      {/* Visual Demo */}
-      <Section title="How it works" subtitle="From monthly goal to daily execution">
-        <ScrollReveal>
-          <div
-            className="max-w-3xl mx-auto rounded-xl p-6 sm:p-8"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            <div className="space-y-6">
-              {/* Monthly budget */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white">Monthly Budget</span>
-                  <span className="text-sm font-bold text-white font-mono-data">$50,000</span>
-                </div>
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ background: 'var(--bg-primary)' }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all duration-1000"
-                    style={{ background: '#c3f53b', width: '62%' }}
-                  />
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                    Spent: $31,200
-                  </span>
-                  <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                    Remaining: $18,800
-                  </span>
-                </div>
-              </div>
-
-              {/* Platform breakdown */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { platform: 'Meta', spend: '$14,200', pct: 45, color: '#1877F2' },
-                  { platform: 'Google', spend: '$10,800', pct: 35, color: '#EA4335' },
-                  { platform: 'TikTok', spend: '$4,200', pct: 13, color: '#FF0050' },
-                  { platform: 'Snap', spend: '$2,000', pct: 6, color: '#FFFC00' },
-                ].map((p) => (
-                  <div
-                    key={p.platform}
-                    className="rounded-lg p-3"
-                    style={{ background: 'var(--bg-primary)' }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ background: p.color }}
-                      />
-                      <span className="text-[11px] font-medium text-white">{p.platform}</span>
-                    </div>
-                    <div className="text-sm font-bold text-white font-mono-data">
-                      {p.spend}
-                    </div>
-                    <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                      {p.pct}% of spend
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* AI Recommendation */}
-              <div
-                className="rounded-lg p-4 flex items-start gap-3"
-                style={{
-                  background: 'rgba(195,245,59,0.05)',
-                  border: '1px solid rgba(195,245,59,0.15)',
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(195,245,59,0.12)' }}
-                >
-                  <Zap size={14} style={{ color: '#c3f53b' }} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white mb-1">AI Recommendation</p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    Meta ROAS is 5.2x vs Google at 3.1x. Reallocate $3,000 from Google to Meta
-                    for the remaining 10 days. Estimated ROAS improvement: +18%.
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span
-                      className="text-[10px] px-2 py-1 rounded font-medium"
-                      style={{ background: '#c3f53b', color: '#0a0a0a' }}
-                    >
-                      Create Draft
-                    </span>
-                    <span
-                      className="text-[10px] px-2 py-1 rounded font-medium"
-                      style={{
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      Dismiss
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
+      <Section eyebrow="A day in the life" title="The mid-month surprise">
+        <ScenarioBlock
+          situation="It's the 15th. Your top-performing Meta campaign burned through 70% of its monthly budget in the first two weeks. Meanwhile, a Google campaign with better ROAS is underspending by 40%. You won't find out until the end-of-month review — when it's too late to fix."
+          outcome="AdNexus tracks spend velocity daily and forecasts month-end outcomes. The moment it detects the imbalance, it drafts a reallocation: pull $3,200 from Meta, push to Google. You review the reasoning, approve, and the rest of the month runs on optimized pacing."
+        />
       </Section>
-
-      {/* Features */}
-      <Section title="What you get" subtitle="Six capabilities that optimize every dollar" alt>
+      <Section title="How budget pacing works" alt>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f, i) => (
-            <ScrollReveal key={f.title} delay={i * 0.08}>
-              <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
-            </ScrollReveal>
+          {ITEMS.map((c) => (
+            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} />
           ))}
         </div>
       </Section>
-
-      <CtaBand
-        title="Make every dollar count"
-        subtitle="Set up smart budget pacing in 2 minutes. The AI optimizes allocation 24/7."
-      />
+      <CtaBand title="Optimize every dollar of spend" subtitle="Connect your accounts and start smart budget pacing today." />
     </>
   );
 }

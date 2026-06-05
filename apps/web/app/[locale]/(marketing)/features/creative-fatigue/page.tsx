@@ -1,172 +1,45 @@
 import type { Metadata } from 'next';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
-import { ScrollReveal } from '@/components/marketing/v2/animations';
-import { AlertTriangle, RefreshCw, BarChart3, Eye, Zap, Shield } from 'lucide-react';
+import { Palette, Eye, TrendingDown, Zap, BarChart2, Clock } from 'lucide-react';
+import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
-  title: 'Creative Fatigue Detection — AdNexus AI',
+  title: 'Creative Fatigue Detection',
   description:
-    'AI detects when ad creative performance drops, alerts you, and suggests replacements before budget is wasted. Catch tired creative before it burns budget.',
+    'Catch declining ad performance before it burns budget. AdNexus AI monitors creative fatigue signals and drafts replacement suggestions while you still have time to act.',
   alternates: { canonical: '/features/creative-fatigue' },
-  openGraph: {
-    title: 'Creative Fatigue Detection — AdNexus AI',
-    description: 'Catch tired creative before it burns budget. AI-powered fatigue detection across all platforms.',
-    url: '/features/creative-fatigue',
-  },
 };
 
-const FEATURES = [
-  {
-    icon: <AlertTriangle size={22} style={{ color: '#EF4444' }} aria-hidden="true" />,
-    title: 'Early Warning System',
-    desc: 'Get alerted when CTR drops 15% or conversion rate falls below your baseline — before the budget drain becomes visible in weekly reports.',
-  },
-  {
-    icon: <RefreshCw size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />,
-    title: 'Smart Replacements',
-    desc: 'AI recommends which creative to replace and generates new variants to test, complete with predicted performance lift.',
-  },
-  {
-    icon: <BarChart3 size={22} style={{ color: '#2563EB' }} aria-hidden="true" />,
-    title: 'Cross-Platform View',
-    desc: 'See fatigue patterns across Meta, Google, TikTok, and Snap in one dashboard. No more switching between four tabs.',
-  },
-  {
-    icon: <Eye size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />,
-    title: 'Visual Timeline',
-    desc: 'Track every creative\'s performance lifecycle from launch to fatigue. Spot the exact moment performance starts declining.',
-  },
-  {
-    icon: <Zap size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />,
-    title: 'Auto-Generated Briefs',
-    desc: 'When fatigue is detected, AI writes a creative brief for your design team with data-backed recommendations.',
-  },
-  {
-    icon: <Shield size={22} style={{ color: '#10B981' }} aria-hidden="true" />,
-    title: 'Budget Protection',
-    desc: 'Set automatic pause rules when fatigue thresholds are hit. Never waste another dollar on tired creative.',
-  },
-];
-
-const HOW_IT_WORKS = [
-  {
-    step: '01',
-    title: 'Baseline Establishment',
-    desc: 'AI learns your creative\'s normal performance range within 48 hours of launch, accounting for platform, audience, and objective differences.',
-  },
-  {
-    step: '02',
-    title: 'Continuous Monitoring',
-    desc: 'Every hour, the agent checks CTR, conversion rate, frequency, and engagement velocity against the baseline and industry benchmarks.',
-  },
-  {
-    step: '03',
-    title: 'Fatigue Detection',
-    desc: 'When performance drops below your threshold for 6+ hours, a fatigue alert is generated with confidence score and estimated impact.',
-  },
-  {
-    step: '04',
-    title: 'Actionable Draft',
-    desc: 'The AI creates an optimization draft: pause the tired creative, suggest replacements, or generate a new brief — all awaiting your approval.',
-  },
+const ITEMS = [
+  { icon: <Eye size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Early Warning', desc: 'Detects fatigue signals — rising frequency, dropping CTR, climbing CPM — before they show up in ROAS.' },
+  { icon: <TrendingDown size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Performance Baselines', desc: 'Each creative gets its own baseline. The agent knows when performance deviates from normal, not just from "good."' },
+  { icon: <Zap size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Auto-Generated Suggestions', desc: 'Get draft recommendations for creative refreshes, headline variants, and audience pivots — ready to review.' },
+  { icon: <Palette size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Cross-Platform Tracking', desc: 'A creative that fatigues on Meta may still work on TikTok. The agent tracks per-platform performance separately.' },
+  { icon: <BarChart2 size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Fatigue Score', desc: 'A simple 0-100 score for every creative, so you can spot trouble at a glance without digging into spreadsheets.' },
+  { icon: <Clock size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'Timely Alerts', desc: 'Get notified when a creative crosses the fatigue threshold — typically 3-5 days before ROAS starts dropping.' },
 ];
 
 export default function Page() {
   return (
     <>
       <PageHero
-        eyebrow="Feature"
-        title={
-          <>
-            Catch tired creative{' '}
-            <span style={{ color: '#c3f53b' }}>before it burns budget</span>
-          </>
-        }
-        subtitle="AdNexus AI monitors every creative across all platforms and flags fatigue the moment performance drops. No more guessing when to refresh."
+        eyebrow="Creative Fatigue"
+        title={<>Catch tired creative <span className="text-gradient-indigo">early</span></>}
+        subtitle="Stop wasting budget on fatigued ads. The agent monitors every creative and drafts refreshes before performance drops."
       />
-
-      {/* How it works */}
-      <Section title="How it works" subtitle="Four steps from launch to protection">
-        <div className="max-w-3xl mx-auto space-y-4">
-          {HOW_IT_WORKS.map((item, i) => (
-            <ScrollReveal key={item.step} delay={i * 0.1}>
-              <div
-                className="flex items-start gap-4 rounded-xl p-5"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <span
-                  className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
-                  style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}
-                >
-                  {item.step}
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold text-white mb-1">{item.title}</h3>
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
+      <Section eyebrow="A day in the life" title="The slow leak you don't see coming">
+        <ScenarioBlock
+          situation="Your winning Meta creative has been running for a week. It's still profitable on paper, so you leave it alone. But frequency is climbing, CTR is sliding, and CPMs are creeping up — the ad is quietly fatiguing, and the budget keeps flowing into it."
+          outcome="AdNexus baselines each creative's first days and watches the slope. The moment fatigue crosses the line, it drafts an alert and a suggested refresh — before the dip shows up in your ROAS. You approve the swap and the leak is sealed."
+        />
       </Section>
-
-      {/* Features grid */}
-      <Section title="What you get" subtitle="Six capabilities that protect your creative investment" alt>
+      <Section title="How fatigue detection works" alt>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f, i) => (
-            <ScrollReveal key={f.title} delay={i * 0.08}>
-              <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
-            </ScrollReveal>
+          {ITEMS.map((c) => (
+            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} />
           ))}
         </div>
       </Section>
-
-      {/* Scenario */}
-      <Section>
-        <ScrollReveal>
-          <div
-            className="max-w-3xl mx-auto rounded-xl p-6 sm:p-8"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-3"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              Real-world scenario
-            </p>
-            <p className="font-space text-lg sm:text-xl font-medium leading-relaxed text-white mb-6">
-              &ldquo;Our hero image was converting at 4.2% on day one. By day five, it had dropped
-              to 2.1% — but our weekly report wouldn&apos;t flag it for another two days. We burned
-              $3,400 before noticing.&rdquo;
-            </p>
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-2"
-              style={{ color: '#c3f53b' }}
-            >
-              With AdNexus
-            </p>
-            <p className="text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              The AI detected the CTR decline within 6 hours of crossing the threshold. It
-              generated a draft to pause the creative, suggested two replacement variants from your
-              media library, and wrote a brief for your designer. You approved the draft at 2 PM.
-              The new creative was live by 3 PM. Estimated savings: $2,800.
-            </p>
-          </div>
-        </ScrollReveal>
-      </Section>
-
-      <CtaBand
-        title="Never let tired creative burn budget again"
-        subtitle="Set up fatigue detection in 2 minutes. The AI watches every creative, every hour."
-      />
+      <CtaBand title="Protect your creative performance" subtitle="Connect your accounts and start monitoring creative fatigue today." />
     </>
   );
 }

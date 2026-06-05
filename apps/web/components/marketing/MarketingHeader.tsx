@@ -78,12 +78,10 @@ export function MarketingHeader() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close mobile drawer on route change.
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => {
@@ -96,7 +94,7 @@ export function MarketingHeader() {
       role="banner"
       className="fixed top-0 inset-x-0 z-40 transition-all duration-300"
       style={{
-        background: scrolled ? 'rgba(5,5,5,0.85)' : 'transparent',
+        background: scrolled ? 'rgba(10,10,15,0.85)' : 'transparent',
         backdropFilter: scrolled ? 'blur(16px)' : 'none',
         borderBottom: scrolled ? '1px solid var(--border-subtle)' : '1px solid transparent',
       }}
@@ -106,9 +104,9 @@ export function MarketingHeader() {
         <Link href="/" className="flex items-center gap-2" aria-label="AdNexus AI home">
           <span
             className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--accent)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
-            <Zap size={16} style={{ color: '#0a0a0a' }} aria-hidden="true" />
+            <Zap size={16} style={{ color: 'var(--text-inverse)' }} aria-hidden="true" />
           </span>
           <span className="font-space text-base font-bold text-white">AdNexus AI</span>
         </Link>
@@ -140,8 +138,7 @@ export function MarketingHeader() {
           </Link>
           <Link
             href="/auth/signup"
-            className="inline-flex items-center px-4 py-2 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]"
-            style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+            className="btn-primary inline-flex items-center px-4 py-2 text-sm rounded-lg"
           >
             Start Free Trial
           </Link>
@@ -170,8 +167,8 @@ export function MarketingHeader() {
         >
           <div className="flex items-center justify-between h-16 px-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             <Link href="/" className="flex items-center gap-2" aria-label="AdNexus AI home">
-              <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-                <Zap size={16} style={{ color: '#0a0a0a' }} aria-hidden="true" />
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-gradient)' }}>
+                <Zap size={16} style={{ color: 'var(--text-inverse)' }} aria-hidden="true" />
               </span>
               <span className="font-space text-base font-bold text-white">AdNexus AI</span>
             </Link>
@@ -222,8 +219,7 @@ export function MarketingHeader() {
               </Link>
               <Link
                 href="/auth/signup"
-                className="w-full text-center px-4 py-3 text-sm font-bold rounded-lg"
-                style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+                className="btn-primary w-full text-center px-4 py-3 text-sm rounded-lg"
               >
                 Start Free Trial
               </Link>

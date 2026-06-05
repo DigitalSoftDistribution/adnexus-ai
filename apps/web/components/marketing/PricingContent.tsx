@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ChevronDown, Sparkles, CreditCard, Shield, Headphones, CheckCircle2, ArrowRight } from 'lucide-react';
 import { PRICING_TIERS, formatPrice } from '@/lib/marketing/pricing';
+import { FadeIn } from './v3/animations';
 
 const FAQS = [
   {
@@ -47,7 +48,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
         className="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-[var(--bg-hover)]"
       >
         <span className="text-white font-medium text-sm pr-4">{q}</span>
-        <ChevronDown size={18} style={{ color: '#c3f53b', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s' }} aria-hidden="true" />
+        <ChevronDown size={18} style={{ color: 'var(--accent)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s' }} aria-hidden="true" />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -69,14 +70,14 @@ export function PricingContent() {
     <div style={{ background: 'var(--bg-primary)' }}>
       {/* Hero */}
       <section className="relative pt-24 sm:pt-32 pb-12 px-6">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none" style={{ background: 'rgba(195,245,59,0.04)', filter: 'blur(120px)' }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none" style={{ background: 'rgba(99,102,241,0.04)', filter: 'blur(120px)' }} />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(195,245,59,0.1)', border: '1px solid rgba(195,245,59,0.2)', color: '#c3f53b' }}>
+          <span className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8' }}>
             <Sparkles size={13} aria-hidden="true" />
             Flat, transparent pricing
           </span>
           <h1 className="font-space text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-5">
-            Pricing that scales with your <span style={{ color: '#c3f53b' }}>strategy</span>, not your spend
+            Pricing that scales with your <span className="text-gradient-indigo">strategy</span>, not your spend
           </h1>
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Start free for 14 days. No credit card required. Your bill never rises just because your ad budget does.
@@ -85,11 +86,11 @@ export function PricingContent() {
           {/* Toggle */}
           <div className="flex items-center justify-center gap-3">
             <button type="button" onClick={() => setIsAnnual(false)} className="text-sm font-medium transition-colors" style={{ color: !isAnnual ? '#fff' : 'var(--text-tertiary)' }}>Monthly</button>
-            <button type="button" onClick={() => setIsAnnual((v) => !v)} aria-label="Toggle annual billing" className="relative w-14 h-7 rounded-full transition-colors duration-300" style={{ background: isAnnual ? '#c3f53b' : 'var(--bg-hover)' }}>
+            <button type="button" onClick={() => setIsAnnual((v) => !v)} aria-label="Toggle annual billing" className="relative w-14 h-7 rounded-full transition-colors duration-300" style={{ background: isAnnual ? 'var(--accent)' : 'var(--bg-hover)' }}>
               <motion.div animate={{ x: isAnnual ? 28 : 4 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="absolute top-1 w-5 h-5 rounded-full shadow-md" style={{ background: '#0d0e10' }} />
             </button>
             <button type="button" onClick={() => setIsAnnual(true)} className="text-sm font-medium transition-colors" style={{ color: isAnnual ? '#fff' : 'var(--text-tertiary)' }}>Annual</button>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ml-1" style={{ background: 'rgba(195,245,59,0.15)', color: '#c3f53b' }}>2 months free</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ml-1" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>2 months free</span>
           </div>
         </div>
       </section>
@@ -98,10 +99,10 @@ export function PricingContent() {
       <section className="pb-10 px-6">
         <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
           {[
-            { icon: <CheckCircle2 size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: '14-day free trial' },
-            { icon: <CreditCard size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'No credit card required' },
-            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Cancel anytime' },
-            { icon: <Headphones size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Support included' },
+            { icon: <CheckCircle2 size={15} style={{ color: 'var(--accent)' }} aria-hidden="true" />, label: '14-day free trial' },
+            { icon: <CreditCard size={15} style={{ color: 'var(--accent)' }} aria-hidden="true" />, label: 'No credit card required' },
+            { icon: <Shield size={15} style={{ color: 'var(--accent)' }} aria-hidden="true" />, label: 'Cancel anytime' },
+            { icon: <Headphones size={15} style={{ color: 'var(--accent)' }} aria-hidden="true" />, label: 'Support included' },
           ].map((b) => (
             <div key={b.label} className="flex items-center gap-2 text-xs sm:text-sm" style={{ color: 'var(--text-tertiary)' }}>
               {b.icon}
@@ -126,10 +127,10 @@ export function PricingContent() {
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.4, delay: index * 0.08 }}
                 className="relative rounded-2xl overflow-hidden flex flex-col p-6"
-                style={{ border: tier.popular ? '1px solid rgba(195,245,59,0.4)' : '1px solid var(--border-subtle)', background: tier.popular ? 'rgba(195,245,59,0.03)' : 'var(--bg-elevated)', boxShadow: tier.popular ? '0 0 40px rgba(195,245,59,0.08)' : undefined }}
+                style={{ border: tier.popular ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border-subtle)', background: tier.popular ? 'rgba(99,102,241,0.03)' : 'var(--bg-elevated)', boxShadow: tier.popular ? '0 0 40px rgba(99,102,241,0.08)' : undefined }}
               >
                 {tier.popular && (
-                  <div className="absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-wider uppercase" style={{ background: '#c3f53b', color: '#0d0e10' }}>Most Popular</div>
+                  <div className="absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-wider uppercase" style={{ background: 'var(--accent)', color: 'var(--text-inverse)' }}>Most Popular</div>
                 )}
                 <h3 className="text-xl font-semibold text-white mb-1">{tier.name}</h3>
                 <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>{tier.description}</p>
@@ -139,10 +140,10 @@ export function PricingContent() {
                     {displayPrice !== null && displayPrice > 0 && <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>/mo</span>}
                   </div>
                   {isAnnual && monthly !== null && monthly > 0 && (
-                    <span className="text-xs mt-1 block" style={{ color: '#c3f53b' }}>billed annually</span>
+                    <span className="text-xs mt-1 block" style={{ color: 'var(--accent)' }}>billed annually</span>
                   )}
                 </div>
-                <Link href={tier.ctaHref} className="block w-full text-center py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-200 mb-6" style={{ background: tier.popular ? '#c3f53b' : 'var(--bg-hover)', color: tier.popular ? '#0d0e10' : '#fff', border: tier.popular ? 'none' : '1px solid var(--border-subtle)' }}>
+                <Link href={tier.ctaHref} className="block w-full text-center py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-200 mb-6" style={{ background: tier.popular ? 'var(--accent-gradient)' : 'var(--bg-hover)', color: tier.popular ? 'var(--text-inverse)' : '#fff', border: tier.popular ? 'none' : '1px solid var(--border-subtle)' }}>
                   {tier.cta}
                 </Link>
                 <div className="pt-5 flex-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -150,7 +151,7 @@ export function PricingContent() {
                   <ul className="space-y-2.5">
                     {tier.features.map((f) => (
                       <li key={f} className="flex items-start gap-2.5">
-                        <Check size={16} className="flex-shrink-0 mt-0.5" style={{ color: '#c3f53b' }} aria-hidden="true" />
+                        <Check size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} aria-hidden="true" />
                         <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{f}</span>
                       </li>
                     ))}
@@ -191,11 +192,11 @@ export function PricingContent() {
             <h3 className="text-lg font-semibold text-white mb-2">Still have questions?</h3>
             <p className="text-sm mb-5 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>Our team responds within one business day. Reach out and we&apos;ll help you find the right plan.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm" style={{ background: '#c3f53b', color: '#0d0e10' }}>
+              <Link href="/auth/signup" className="btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm">
                 Start Free Trial
                 <ArrowRight size={15} aria-hidden="true" />
               </Link>
-              <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}>
+              <Link href="/contact" className="btn-secondary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm">
                 Contact Sales
               </Link>
             </div>

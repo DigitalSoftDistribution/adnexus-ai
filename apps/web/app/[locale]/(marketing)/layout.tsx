@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
-import { ChatWidgetWrapper } from '@/components/marketing/v2/chat/ChatWidgetWrapper';
 import './marketing.css';
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
@@ -10,7 +9,6 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <MarketingHeader />
       <main className="flex-1 pt-16">{children}</main>
       <MarketingFooter />
-      <ChatWidgetWrapper />
     </div>
   );
 }

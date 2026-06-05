@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageHero, Section, CtaBand } from '@/components/marketing/sections';
-import { ScrollReveal } from '@/components/marketing/v2/animations';
+import { FadeIn } from '@/components/marketing/v3/animations';
 import { AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 
 export default function Page() {
@@ -78,7 +78,7 @@ export default function Page() {
       />
 
       <Section>
-        <ScrollReveal>
+        <FadeIn>
           <div
             className="max-w-xl mx-auto rounded-xl p-6 sm:p-8"
             style={{
@@ -186,7 +186,7 @@ export default function Page() {
               )}
             </div>
           </div>
-        </ScrollReveal>
+        </FadeIn>
       </Section>
 
       <CtaBand

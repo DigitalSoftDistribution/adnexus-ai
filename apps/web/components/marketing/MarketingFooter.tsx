@@ -22,8 +22,8 @@ export function MarketingFooter() {
           {/* Brand block */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-3" aria-label="AdNexus AI home">
-              <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-                <Zap size={16} style={{ color: '#0a0a0a' }} aria-hidden="true" />
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-gradient)' }}>
+                <Zap size={16} style={{ color: 'var(--text-inverse)' }} aria-hidden="true" />
               </span>
               <span className="font-space text-base font-bold text-white">AdNexus AI</span>
             </Link>
