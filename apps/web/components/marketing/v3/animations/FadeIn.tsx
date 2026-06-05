@@ -1,46 +1,59 @@
 'use client';
 
-import { motion, useInView } from 'framer-motion';
-import { useRef, ReactNode } from 'react';
+import { motion, useInView, type Variants } from 'framer-motion';
+import { useRef, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+
+const directions = {
+  up: { y: 24, x: 0 },
+  down: { y: -24, x: 0 },
+  left: { y: 0, x: 24 },
+  right: { y: 0, x: -24 },
+};
 
 interface FadeInProps {
   children: ReactNode;
   className?: string;
+  direction?: keyof typeof directions;
   delay?: number;
-  direction?: 'up' | 'down' | 'left' | 'right';
   duration?: number;
   once?: boolean;
 }
 
 export function FadeIn({
   children,
-  className = '',
-  delay = 0,
+  className,
   direction = 'up',
+  delay = 0,
   duration = 0.5,
   once = true,
 }: FadeInProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once, margin: '-50px' });
+  const isInView = useInView(ref, { once, margin: '-60px' });
 
-  const directions = {
-    up: { y: 30, x: 0 },
-    down: { y: -30, x: 0 },
-    left: { x: 30, y: 0 },
-    right: { x: -30, y: 0 },
+  const offset = directions[direction];
+
+  const variants: Variants = {
+    hidden: { opacity: 0, ...offset },
+    visible: {
+      opacity: 1,
+      y: 0,
+      x: 0,
+      transition: {
+        duration,
+        delay,
+        ease: [0.25, 0.1, 0.25, 1],
+      },
+    },
   };
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, ...directions[direction] }}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, ...directions[direction] }}
-      transition={{
-        duration,
-        delay,
-        ease: [0.4, 0, 0.2, 1],
-      }}
-      className={className}
+      initial="hidden"
+      animate={isInView ? 'visible' : 'hidden'}
+      variants={variants}
+      className={cn(className)}
     >
       {children}
     </motion.div>

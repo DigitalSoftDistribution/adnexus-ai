@@ -1,254 +1,162 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import {
-  Search,
-  Clock,
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  Sparkles,
-  TrendingUp,
-  Briefcase,
-  Lightbulb,
-} from 'lucide-react';
-import { BLOG_POSTS } from '@/lib/marketing/blog-posts';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { FadeIn } from './v3/animations';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Section } from './sections';
+import { FadeIn, StaggerContainer, StaggerItem } from './v3/animations';
 
-const categories = ['All', 'Product', 'AI', 'Case Studies', 'Tips'] as const;
-type Category = (typeof categories)[number];
+const POSTS = [
+  {
+    title: 'How AI is Transforming Digital Advertising in 2026',
+    excerpt: 'From autonomous optimization to predictive analytics, explore how AI is reshaping the advertising landscape.',
+    category: 'AI',
+    date: 'Jun 1, 2026',
+    href: '/blog/ai-transforming-advertising',
+    featured: true,
+  },
+  {
+    title: 'Cross-Platform Attribution: The Complete Guide',
+    excerpt: 'Understanding the true impact of your campaigns across Meta, Google, TikTok, and Snap.',
+    category: 'Analytics',
+    date: 'May 28, 2026',
+    href: '/blog/cross-platform-attribution',
+    featured: false,
+  },
+  {
+    title: 'Creative Fatigue: Detect It Before It Costs You',
+    excerpt: 'Learn the early warning signs of ad fatigue and how to keep your creatives performing.',
+    category: 'Creative',
+    date: 'May 20, 2026',
+    href: '/blog/creative-fatigue-detection',
+    featured: false,
+  },
+  {
+    title: 'Budget Pacing Strategies for Maximum ROAS',
+    excerpt: 'Smart allocation techniques to get the most out of every dollar spent.',
+    category: 'Strategy',
+    date: 'May 15, 2026',
+    href: '/blog/budget-pacing-strategies',
+    featured: false,
+  },
+  {
+    title: 'The Morning Brief: A New Way to Start Your Day',
+    excerpt: 'How automated daily digests are saving marketing teams hours every week.',
+    category: 'Product',
+    date: 'May 10, 2026',
+    href: '/blog/morning-brief',
+    featured: false,
+  },
+  {
+    title: 'Building an AI-First Marketing Team',
+    excerpt: 'Hiring, tooling, and processes for teams that leverage AI at every stage.',
+    category: 'Team',
+    date: 'May 5, 2026',
+    href: '/blog/ai-first-marketing-team',
+    featured: false,
+  },
+];
 
-const categoryMeta: Record<string, { icon: typeof BookOpen; color: string }> = {
-  All: { icon: BookOpen, color: 'text-foreground' },
-  Product: { icon: Sparkles, color: 'text-primary' },
-  AI: { icon: TrendingUp, color: 'text-accent' },
-  'Case Studies': { icon: Briefcase, color: 'text-success' },
-  Tips: { icon: Lightbulb, color: 'text-warning' },
+const CATEGORY_COLORS: Record<string, 'teal' | 'violet' | 'default'> = {
+  AI: 'teal',
+  Analytics: 'violet',
+  Creative: 'teal',
+  Strategy: 'violet',
+  Product: 'teal',
+  Team: 'violet',
 };
 
-const posts = BLOG_POSTS;
-const POSTS_PER_PAGE = 6;
-
 export function BlogContent() {
-  const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState('');
 
-  const filteredPosts = useMemo(() => {
-    let result = posts;
-    if (activeCategory !== 'All') {
-      result = result.filter((p) => p.category === activeCategory);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.excerpt.toLowerCase().includes(q) ||
-          p.author.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [activeCategory, searchQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
-  const paginatedPosts = filteredPosts.slice(
-    (currentPage - 1) * POSTS_PER_PAGE,
-    currentPage * POSTS_PER_PAGE
+  const filtered = POSTS.filter(
+    (p) =>
+      p.title.toLowerCase().includes(query.toLowerCase()) ||
+      p.excerpt.toLowerCase().includes(query.toLowerCase()) ||
+      p.category.toLowerCase().includes(query.toLowerCase())
   );
 
-  const featuredPost = filteredPosts[0];
-  const gridPosts =
-    currentPage === 1 && !searchQuery && activeCategory === 'All'
-      ? paginatedPosts.slice(1)
-      : paginatedPosts;
-
-  const handleCategoryChange = (cat: Category) => {
-    setActiveCategory(cat);
-    setCurrentPage(1);
-  };
+  const featured = filtered.find((p) => p.featured);
+  const rest = filtered.filter((p) => !p.featured);
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="pt-28 pb-12 px-6">
-        <div className="max-w-4xl mx-auto text-center">
+    <>
+      <Section className="pt-24">
+        <div className="max-w-3xl mx-auto text-center mb-12">
           <FadeIn>
-            <h1 className="font-serif text-4xl sm:text-5xl font-medium tracking-tight text-foreground mb-4">
+            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
               Blog
             </h1>
-          </FadeIn>
-          <FadeIn delay={0.1}>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Insights, product updates, and strategies for modern advertising teams.
+            <p className="mt-4 text-lg text-muted-foreground">
+              Insights, strategies, and product updates from the AdNexus team.
             </p>
           </FadeIn>
-        </div>
-      </section>
 
-      {/* Search + filters */}
-      <section className="pb-10 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="relative mb-6">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search articles..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => {
-              const Icon = categoryMeta[cat].icon;
-              const isActive = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon size={12} />
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          <FadeIn delay={0.1}>
+            <div className="mt-8 relative max-w-md mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                placeholder="Search articles..."
+                className="pl-10"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </FadeIn>
         </div>
-      </section>
 
-      {/* Featured post */}
-      {featuredPost && currentPage === 1 && !searchQuery && activeCategory === 'All' && (
-        <section className="pb-10 px-6">
-          <div className="max-w-4xl mx-auto">
-            <FadeIn>
-              <Link href={`/blog/${featuredPost.slug}`} className="block group">
-                <Card className="overflow-hidden border-border/60 hover:border-primary/40 transition-colors">
-                  <div className="grid md:grid-cols-2">
-                    <div className="aspect-video md:aspect-auto bg-muted flex items-center justify-center">
-                      <span className="text-muted-foreground text-sm">Featured image</span>
-                    </div>
-                    <CardContent className="p-6 md:p-8 flex flex-col justify-center">
-                      <Badge variant="secondary" className="w-fit mb-3">
-                        {featuredPost.category}
-                      </Badge>
-                      <h2 className="text-xl md:text-2xl font-semibold text-foreground group-hover:text-primary transition-colors mb-3">
-                        {featuredPost.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                        {featuredPost.excerpt}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>{featuredPost.author}</span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {featuredPost.readTime}
-                        </span>
-                      </div>
-                    </CardContent>
+        {featured && (
+          <FadeIn className="max-w-4xl mx-auto mb-12">
+            <Link href={featured.href} className="block group">
+              <Card className="overflow-hidden hover:border-primary/30 transition-all">
+                <div className="grid md:grid-cols-2">
+                  <div className="bg-secondary/50 h-48 md:h-auto flex items-center justify-center">
+                    <span className="text-4xl font-display font-bold text-muted-foreground/30">
+                      Featured
+                    </span>
                   </div>
+                  <div className="p-6 md:p-8 flex flex-col justify-center">
+                    <Badge variant={CATEGORY_COLORS[featured.category] || 'default'} className="w-fit mb-3">
+                      {featured.category}
+                    </Badge>
+                    <CardTitle className="text-xl md:text-2xl group-hover:text-primary transition-colors">
+                      {featured.title}
+                    </CardTitle>
+                    <CardDescription className="mt-3 text-base">{featured.excerpt}</CardDescription>
+                    <p className="mt-4 text-xs text-muted-foreground">{featured.date}</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          </FadeIn>
+        )}
+
+        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {rest.map((post) => (
+            <StaggerItem key={post.href}>
+              <Link href={post.href} className="block group h-full">
+                <Card className="h-full hover:border-primary/30 transition-all">
+                  <CardHeader>
+                    <Badge variant={CATEGORY_COLORS[post.category] || 'default'} className="w-fit mb-2">
+                      {post.category}
+                    </Badge>
+                    <CardTitle className="text-base group-hover:text-primary transition-colors">
+                      {post.title}
+                    </CardTitle>
+                    <CardDescription>{post.excerpt}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-muted-foreground">{post.date}</p>
+                  </CardContent>
                 </Card>
               </Link>
-            </FadeIn>
-          </div>
-        </section>
-      )}
-
-      {/* Grid */}
-      <section className="pb-16 px-6">
-        <div className="max-w-4xl mx-auto">
-          {gridPosts.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {gridPosts.map((post, i) => (
-                <FadeIn key={post.slug} delay={i * 0.05}>
-                  <Link href={`/blog/${post.slug}`} className="block group h-full">
-                    <Card className="h-full border-border/60 hover:border-primary/40 transition-colors">
-                      <CardHeader>
-                        <Badge variant="secondary" className="w-fit">
-                          {post.category}
-                        </Badge>
-                        <CardTitle className="text-base group-hover:text-primary transition-colors">
-                          {post.title}
-                        </CardTitle>
-                        <CardDescription className="line-clamp-2">
-                          {post.excerpt}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{post.author}</span>
-                          <span>·</span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
-                            {post.readTime}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </FadeIn>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground">No posts found.</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === currentPage ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </Section>
+    </>
   );
 }

@@ -1,66 +1,67 @@
 'use client';
 
-import { motion, useInView } from 'framer-motion';
-import { useRef, ReactNode } from 'react';
-
-interface StaggerContainerProps {
-  children: ReactNode;
-  className?: string;
-  staggerDelay?: number;
-  delay?: number;
-}
+import { motion, useInView, type Variants } from 'framer-motion';
+import { useRef, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 export function StaggerContainer({
   children,
-  className = '',
+  className,
   staggerDelay = 0.08,
-  delay = 0,
-}: StaggerContainerProps) {
+  once = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  staggerDelay?: number;
+  once?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
+  const isInView = useInView(ref, { once, margin: '-60px' });
+
+  const container: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: staggerDelay,
+      },
+    },
+  };
 
   return (
     <motion.div
       ref={ref}
       initial="hidden"
       animate={isInView ? 'visible' : 'hidden'}
-      variants={{
-        hidden: {},
-        visible: {
-          transition: {
-            staggerChildren: staggerDelay,
-            delayChildren: delay,
-          },
-        },
-      }}
-      className={className}
+      variants={container}
+      className={cn(className)}
     >
       {children}
     </motion.div>
   );
 }
 
-interface StaggerItemProps {
+export function StaggerItem({
+  children,
+  className,
+}: {
   children: ReactNode;
   className?: string;
-}
+}) {
+  const item: Variants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.25, 0.1, 0.25, 1] as const,
+      },
+    },
+  };
 
-export function StaggerItem({ children, className = '' }: StaggerItemProps) {
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: {
-            duration: 0.5,
-            ease: [0.4, 0, 0.2, 1],
-          },
-        },
-      }}
-      className={className}
-    >
+    <motion.div variants={item} className={cn(className)}>
       {children}
     </motion.div>
   );

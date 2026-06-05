@@ -1,34 +1,31 @@
 import type { ReactNode } from 'react';
+import { Section } from './sections';
+import { FadeIn } from './v3/animations';
 
-export function LegalPage({
-  title,
-  updated,
-  children,
-}: {
-  title: string;
-  updated: string;
-  children: ReactNode;
-}) {
+export function LegalPage({ title, updated, children }: { title: string; updated?: string; children: ReactNode }) {
   return (
-    <section className="px-6 pt-28 sm:pt-36 pb-24 bg-background">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="font-serif text-3xl sm:text-4xl font-medium text-foreground mb-2">{title}</h1>
-        <p className="text-xs mb-8 text-muted-foreground">
-          Effective: {updated}
-        </p>
-        <div className="space-y-6 text-[15px] leading-relaxed text-muted-foreground">
+    <Section className="pt-24">
+      <FadeIn className="max-w-3xl mx-auto">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-2">
+          {title}
+        </h1>
+        {updated && (
+          <p className="text-sm text-muted-foreground mb-8">Last updated: {updated}</p>
+        )}
+        <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed">
           {children}
         </div>
-      </div>
-    </section>
+      </FadeIn>
+    </Section>
   );
 }
 
-export function LegalSection({ heading, children }: { heading: string; children: ReactNode }) {
+export function LegalSection({ title, heading, children }: { title?: string; heading?: string; children: ReactNode }) {
+  const displayTitle = title || heading || '';
   return (
-    <div>
-      <h2 className="font-serif text-lg font-medium text-foreground mb-2">{heading}</h2>
-      <div>{children}</div>
+    <div className="mt-8">
+      <h2 className="font-display text-xl font-semibold text-foreground mb-3">{displayTitle}</h2>
+      <div className="text-muted-foreground leading-relaxed">{children}</div>
     </div>
   );
 }

@@ -1,63 +1,60 @@
-import type { Metadata } from 'next';
-import { Cable, Slack, Bot } from 'lucide-react';
 import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
-import { Card, CardContent } from '@/components/ui/card';
+import { FadeIn, StaggerContainer, StaggerItem } from '@/components/marketing/v3/animations';
+import { Globe, BarChart3, Layers, Link2 } from 'lucide-react';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Integrations',
-  description:
-    'AdNexus AI connects to Meta, Google, TikTok, and Snap ad platforms, plus MCP clients like Claude and ChatGPT, Slack alerts, and an API for custom workflows.',
-  alternates: { canonical: '/integrations' },
+  description: 'Connect AdNexus AI with your favorite tools — Meta, Google, TikTok, Snap, and more.',
 };
 
-const PLATFORMS = [
-  { name: 'Meta Ads', color: 'bg-blue-500', detail: 'Facebook & Instagram — full write access' },
-  { name: 'Google Ads', color: 'bg-red-500', detail: 'Search, Display, PMax, Demand Gen' },
-  { name: 'TikTok Ads', color: 'bg-cyan-400', detail: 'Campaign, ad group, creative management' },
-  { name: 'Snap Ads', color: 'bg-yellow-400', detail: 'Snap, Story & Collection Ads' },
-];
-
-const TOOLS = [
-  { icon: <Bot size={20} />, title: 'MCP Clients', desc: 'Claude, ChatGPT, Cursor, and any MCP-compatible assistant connect natively.' },
-  { icon: <Slack size={20} />, title: 'Slack', desc: 'Get alerts and approval requests where your team already works.' },
-  { icon: <Cable size={20} />, title: 'API & Webhooks', desc: 'Build custom automations on top of AdNexus with our REST API and event webhooks.' },
-];
-
-export default function Page() {
+export default function IntegrationsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Integrations"
-        title={<>Connects to your stack</>}
-        subtitle="AdNexus plugs into the platforms and tools you already use — no migration, no disruption."
+        badge="Integrations"
+        title={<>Connect your <span className="text-gradient">entire stack</span></>}
+        subtitle="AdNexus AI integrates with the platforms and tools you already use."
       />
+
       <Section>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {PLATFORMS.map((p) => (
-            <Card key={p.name} className="border-border/60">
-              <CardContent className="pt-6 flex items-start gap-4">
-                <span className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${p.color}`} aria-hidden="true" />
-                <div>
-                  <h3 className="text-base font-semibold text-foreground mb-1">{p.name}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{p.detail}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <StaggerContainer>
+          <FeatureGrid className="max-w-5xl mx-auto">
+            {[
+              {
+                icon: Globe,
+                title: 'Meta Ads',
+                description: 'Full support for Facebook, Instagram, Messenger, and Audience Network.',
+              },
+              {
+                icon: BarChart3,
+                title: 'Google Ads',
+                description: 'Search, Display, YouTube, Shopping, and Performance Max.',
+              },
+              {
+                icon: Layers,
+                title: 'TikTok Ads',
+                description: 'In-Feed, TopView, Spark Ads, and Shopping Ads.',
+              },
+              {
+                icon: Link2,
+                title: 'Snapchat Ads',
+                description: 'Snap Ads, Story Ads, Collection Ads, and Dynamic Ads.',
+              },
+            ].map((item) => (
+              <StaggerItem key={item.title}>
+                <FeatureCard icon={item.icon} title={item.title} description={item.description} />
+              </StaggerItem>
+            ))}
+          </FeatureGrid>
+        </StaggerContainer>
       </Section>
-      <Section className="bg-card">
-        <FeatureGrid className="md:grid-cols-3">
-          {TOOLS.map((t) => (
-            <FeatureCard key={t.title} icon={t.icon} title={t.title} description={t.desc} />
-          ))}
-        </FeatureGrid>
-      </Section>
+
       <CtaBand
         title="Need a custom integration?"
-        subtitle="We are expanding our integration library. Let us know what you need."
-        cta="Contact us"
+        subtitle="Our API and engineering team can build connections to your internal tools."
+        cta="Contact Sales"
         ctaHref="/contact"
+        variant="dark"
       />
     </>
   );

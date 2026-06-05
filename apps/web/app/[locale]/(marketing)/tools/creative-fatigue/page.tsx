@@ -67,7 +67,7 @@ export default function Page() {
   return (
     <>
       <PageHero
-        eyebrow="Free Tool"
+        badge="Free Tool"
         title={<>Creative Fatigue Detector</>}
         subtitle="Check if your ad creative is showing signs of fatigue. Get instant recommendations."
       />

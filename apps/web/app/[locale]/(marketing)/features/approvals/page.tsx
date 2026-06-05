@@ -1,41 +1,66 @@
-import type { Metadata } from 'next';
-import { CheckCircle2, Edit3, ListChecks, ShieldCheck, Users, History } from 'lucide-react';
 import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
+import { FadeIn, StaggerContainer, StaggerItem } from '@/components/marketing/v3/animations';
+import { CheckCircle, Shield, Clock, Users } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Draft-First Approvals',
-  description:
-    'Nothing goes live without your approval. Every AI-generated change in AdNexus is staged as a draft you can review, edit, approve, or reject.',
-  alternates: { canonical: '/features/approvals' },
+export const metadata = {
+  title: 'Draft Approvals',
+  description: 'AI-generated optimization drafts with one-click approval. Stay in control without the manual work.',
 };
 
-const ITEMS = [
-  { icon: <ListChecks size={20} />, title: 'Everything Is a Draft', desc: 'AI suggestions never touch live campaigns directly. They queue up for review first — always.' },
-  { icon: <Edit3 size={20} />, title: 'Edit Before You Ship', desc: 'Tweak a budget number, narrow an audience, or adjust copy before approving. You stay in control of the details.' },
-  { icon: <CheckCircle2 size={20} />, title: 'One-Click Approve', desc: 'Approve a single draft or batch-approve a set. Changes publish to the platform instantly.' },
-  { icon: <Users size={20} />, title: 'Multi-Tier Workflows', desc: 'Junior reviewers suggest, senior approvers sign off. Perfect for agencies and structured teams.' },
-  { icon: <History size={20} />, title: 'Full Audit Trail', desc: 'Who approved what, when, and why — every action logged for compliance and peace of mind.' },
-  { icon: <ShieldCheck size={20} />, title: 'No Rogue Changes', desc: 'The architecture makes accidental or autonomous live edits impossible by design.' },
-];
-
-export default function Page() {
+export default function ApprovalsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Draft-First Approvals"
-        title={<>Nothing goes live without your approval</>}
-        subtitle="The governance layer that lets you trust AI with your ad spend — because you sign off on every change."
+        badge="Draft Approvals"
+        title={<>Stay in control, <span className="text-gradient">without the work</span></>}
+        subtitle="AI generates optimization drafts based on real data. You review and approve with one click. Full audit trail included."
+        cta="Start Free Trial"
+        ctaHref="/auth/signup"
       />
+
       <Section>
-        <FeatureGrid>
-          {ITEMS.map((c) => (
-            <FeatureCard key={c.title} icon={c.icon} title={c.title} description={c.desc} />
-          ))}
-        </FeatureGrid>
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <FadeIn>
+            <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+              How approvals work
+            </h2>
+          </FadeIn>
+        </div>
+        <StaggerContainer>
+          <FeatureGrid className="max-w-5xl mx-auto">
+            {[
+              {
+                icon: Shield,
+                title: 'AI Generates Drafts',
+                description: 'The AI creates optimization proposals with predicted impact and confidence scores.',
+              },
+              {
+                icon: Users,
+                title: 'Team Review',
+                description: 'Share drafts with stakeholders. Comment, discuss, and refine before execution.',
+              },
+              {
+                icon: CheckCircle,
+                title: 'One-Click Approve',
+                description: 'Approve individual changes or entire batches. Changes deploy instantly.',
+              },
+              {
+                icon: Clock,
+                title: 'Full Audit Trail',
+                description: 'Every change is logged with who approved it, when, and the predicted vs actual impact.',
+              },
+            ].map((item) => (
+              <StaggerItem key={item.title}>
+                <FeatureCard icon={item.icon} title={item.title} description={item.description} />
+              </StaggerItem>
+            ))}
+          </FeatureGrid>
+        </StaggerContainer>
       </Section>
+
       <CtaBand
-        title="Trust AI without losing control"
-        subtitle="See draft-first approval in action on your own accounts."
+        title="Never miss an optimization opportunity"
+        subtitle="AI handles the analysis. You make the decisions."
         cta="Start Free Trial"
         ctaHref="/auth/signup"
       />

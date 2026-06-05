@@ -10,9 +10,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['var(--font-serif)', 'Fraunces', 'Georgia', 'serif'],
         sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
+        display: ['var(--font-display)', 'Geist', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'Geist Mono', 'JetBrains Mono', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -89,6 +89,8 @@ module.exports = {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        glow: "0 0 20px hsl(var(--primary) / 0.15), 0 0 40px hsl(var(--primary) / 0.08)",
+        "glow-accent": "0 0 20px hsl(var(--accent) / 0.15), 0 0 40px hsl(var(--accent) / 0.08)",
       },
       keyframes: {
         "accordion-down": {
@@ -110,6 +112,10 @@ module.exports = {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        pulse: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -117,6 +123,7 @@ module.exports = {
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
         shimmer: "shimmer 1.5s infinite",
+        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },
