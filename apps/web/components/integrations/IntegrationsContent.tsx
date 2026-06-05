@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -70,6 +70,7 @@ export function IntegrationsContent() {
   const queryClient = useQueryClient();
   const t = useTranslations("integrations");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const oauthStatus = searchParams.get("status") ?? searchParams.get("meta");
   const oauthPlatform = searchParams.get("platform") ?? "meta";
@@ -205,6 +206,7 @@ export function IntegrationsContent() {
                     lastSyncedAt={integration.lastSyncedAt}
                     disconnecting={disconnect.isPending}
                     onDisconnect={() => disconnect.mutate(integration.platform)}
+                    locale={locale}
                   />
                 ) : availability.disabled ? (
                   <Button size="sm" className="w-full" variant="outline" disabled>
@@ -234,6 +236,7 @@ interface ConnectedActionsProps {
   lastSyncedAt: string | null;
   disconnecting: boolean;
   onDisconnect: () => void;
+  locale: string;
 }
 
 function ConnectedActions({
@@ -242,6 +245,7 @@ function ConnectedActions({
   lastSyncedAt,
   disconnecting,
   onDisconnect,
+  locale,
 }: ConnectedActionsProps) {
   const queryClient = useQueryClient();
   const t = useTranslations("integrations");
@@ -293,7 +297,7 @@ function ConnectedActions({
 
       <p className="text-xs text-muted-foreground">
         {lastSyncedAt
-          ? `${t("sync.lastSynced")}: ${formatDate(lastSyncedAt)}`
+          ? `${t("sync.lastSynced")}: ${formatDate(lastSyncedAt, locale)}`
           : t("sync.neverSynced")}
       </p>
 
@@ -307,12 +311,12 @@ function ConnectedActions({
         </Alert>
       )}
 
-      {accountId && <SyncJobHistory accountId={accountId} />}
+      {accountId && <SyncJobHistory accountId={accountId} locale={locale} />}
     </div>
   );
 }
 
-function SyncJobHistory({ accountId }: { accountId: string }) {
+function SyncJobHistory({ accountId, locale }: { accountId: string; locale: string }) {
   const t = useTranslations("integrations");
   const tc = useTranslations("common");
 
@@ -364,7 +368,7 @@ function SyncJobHistory({ accountId }: { accountId: string }) {
             {t("sync.campaignsCount", { count: job.campaignsSynced })}
           </span>
           <span className="text-muted-foreground">
-            {formatDate(job.startedAt)}
+            {formatDate(job.startedAt, locale)}
           </span>
         </div>
       ))}

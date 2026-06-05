@@ -44,7 +44,13 @@ export function SignUpForm() {
         return;
       }
       localStorage.setItem('adnexus_token', token);
-      router.push('/onboarding');
+      const onboardingCompleted = Boolean(
+        data?.data?.user?.onboardingCompleted ??
+          data?.user?.onboardingCompleted ??
+          data?.data?.onboarding?.completed ??
+          data?.onboarding?.completed,
+      );
+      router.push(onboardingCompleted ? '/dashboard' : '/onboarding');
       router.refresh();
     } catch {
       setError(t('unexpectedError'));

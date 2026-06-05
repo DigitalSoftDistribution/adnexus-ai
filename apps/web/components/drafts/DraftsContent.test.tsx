@@ -9,7 +9,7 @@ import messages from '@/messages/en.json';
 function renderWithQuery(ui: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <NextIntlClientProvider locale="en" messages={messages}>
+    <NextIntlClientProvider locale="de" messages={messages}>
       <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </NextIntlClientProvider>,
   );
@@ -37,5 +37,6 @@ describe('DraftsContent', () => {
     expect(screen.getByText(/Reviewing a draft only marks it approved/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mark reviewed/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /approve & execute/i })).toBeInTheDocument();
+    expect(screen.getByText('1. Juni 2026')).toBeInTheDocument();
   });
 });
