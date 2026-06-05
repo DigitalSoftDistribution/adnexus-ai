@@ -67,7 +67,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
   }, [messages]);
 
   const handleSend = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
