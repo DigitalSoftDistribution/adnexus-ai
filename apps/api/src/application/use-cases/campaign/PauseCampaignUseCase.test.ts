@@ -61,12 +61,16 @@ describe('PauseCampaignUseCase', () => {
       ),
     });
     const write = makeWrite({ applied: true });
-    const res = await new PauseCampaignUseCase(repo, write).execute(base);
+    const audit = { log: vi.fn().mockResolvedValue(undefined), logBatch: vi.fn() };
+    const res = await new PauseCampaignUseCase(repo, write, audit).execute(base);
     expect(res.success).toBe(true);
     expect(write.pauseCampaign).toHaveBeenCalledWith({
       platform: 'meta', platformCampaignId: 'fb-1', adAccountId: 'acc-1',
     });
     expect(repo.update).toHaveBeenCalledWith('camp-1', { status: 'paused' });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'campaign_paused', metadata: expect.objectContaining({ platformApplied: true }) }),
+    );
   });
 
   it('aborts (502) without local update when the platform rejects the pause', async () => {

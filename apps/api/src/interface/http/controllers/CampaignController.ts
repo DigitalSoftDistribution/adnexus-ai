@@ -118,6 +118,7 @@ export function createCampaignController(container: Container) {
         campaignId: req.params.id,
         workspaceId: req.user!.workspaceId,
         userRole: req.user!.role,
+        userId: req.user!.id,
       });
 
       if (!result.success) {
@@ -132,6 +133,7 @@ export function createCampaignController(container: Container) {
         campaignId: req.params.id,
         workspaceId: req.user!.workspaceId,
         userRole: req.user!.role,
+        userId: req.user!.id,
       });
 
       if (!result.success) {

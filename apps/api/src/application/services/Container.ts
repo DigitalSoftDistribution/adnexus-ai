@@ -355,8 +355,8 @@ export class Container {
     this.getCampaignById = new GetCampaignByIdUseCase(config.campaignRepository);
     this.updateCampaign = new UpdateCampaignUseCase(config.campaignRepository);
     this.deleteCampaign = new DeleteCampaignUseCase(config.campaignRepository);
-    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository, config.platformWriteService);
-    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository, config.platformWriteService);
+    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository, config.platformWriteService, config.auditLogger);
+    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository, config.platformWriteService, config.auditLogger);
     this.duplicateCampaign = new DuplicateCampaignUseCase(config.campaignRepository);
 
     this.createDraft = new CreateDraftUseCase(
