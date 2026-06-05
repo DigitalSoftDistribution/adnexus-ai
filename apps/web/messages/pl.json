@@ -100,6 +100,8 @@
     "executing": "Wykonywanie...",
     "opening": "Otwieranie...",
     "noResults": "Nie znaleziono wyników",
+    "searching": "Wyszukiwanie…",
+    "searchFailed": "Wyszukiwanie nie powiodło się. Spróbuj ponownie.",
     "comingSoon": "Wkrótce",
     "placeholder": "Zastępczy komponent wykresu — zintegruj tutaj recharts",
     "all": "Wszystkie",

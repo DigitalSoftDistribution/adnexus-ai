@@ -100,6 +100,8 @@
     "executing": "A executar...",
     "opening": "A abrir...",
     "noResults": "Nenhum resultado encontrado",
+    "searching": "Pesquisando…",
+    "searchFailed": "A pesquisa falhou. Tente novamente.",
     "comingSoon": "Em breve",
     "placeholder": "Espaço reservado para o componente de gráfico — integre o recharts aqui",
     "all": "Todos",

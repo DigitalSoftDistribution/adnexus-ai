@@ -100,6 +100,8 @@
     "executing": "Uitvoeren...",
     "opening": "Openen...",
     "noResults": "Geen resultaten gevonden",
+    "searching": "Zoeken…",
+    "searchFailed": "Zoeken mislukt. Probeer opnieuw.",
     "comingSoon": "Binnenkort beschikbaar",
     "placeholder": "Tijdelijke aanduiding voor grafiekcomponent — integreer hier recharts",
     "all": "Alle",

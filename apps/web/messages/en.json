@@ -100,6 +100,8 @@
     "executing": "Executing...",
     "opening": "Opening...",
     "noResults": "No results found",
+    "searching": "Searching…",
+    "searchFailed": "Search failed. Try again.",
     "comingSoon": "Coming soon",
     "placeholder": "Chart component placeholder — integrate recharts here",
     "all": "All",
