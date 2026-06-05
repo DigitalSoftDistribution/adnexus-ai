@@ -1,62 +1,67 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { motion, useInView } from 'framer-motion';
+import { useRef, ReactNode } from 'react';
 
-interface StaggerTextProps {
-  children: string;
+interface StaggerContainerProps {
+  children: ReactNode;
   className?: string;
-  delay?: number;
   staggerDelay?: number;
-  as?: 'h1' | 'h2' | 'h3' | 'p' | 'span';
+  delay?: number;
 }
 
-export function StaggerText({
+export function StaggerContainer({
   children,
   className = '',
+  staggerDelay = 0.08,
   delay = 0,
-  staggerDelay = 0.03,
-  as: Tag = 'span',
-}: StaggerTextProps) {
-  const words = children.split(' ');
-
-  const container = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({
-      opacity: 1,
-      transition: { staggerChildren: staggerDelay, delayChildren: delay },
-    }),
-  };
-
-  const child = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: 'spring' as const,
-        damping: 20,
-        stiffness: 120,
-      },
-    },
-  };
+}: StaggerContainerProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-50px' });
 
   return (
-    <motion.span
-      className={`inline-flex flex-wrap ${className}`}
-      variants={container}
+    <motion.div
+      ref={ref}
       initial="hidden"
-      animate="visible"
+      animate={isInView ? 'visible' : 'hidden'}
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: staggerDelay,
+            delayChildren: delay,
+          },
+        },
+      }}
+      className={className}
     >
-      {words.map((word, index) => (
-        <motion.span
-          key={index}
-          variants={child}
-          className="mr-[0.25em] inline-block"
-        >
-          {word}
-        </motion.span>
-      ))}
-    </motion.span>
+      {children}
+    </motion.div>
+  );
+}
+
+interface StaggerItemProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function StaggerItem({ children, className = '' }: StaggerItemProps) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: {
+            duration: 0.5,
+            ease: [0.4, 0, 0.2, 1],
+          },
+        },
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }

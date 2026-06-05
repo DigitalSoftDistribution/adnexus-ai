@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-/** Shared shell for legal pages. */
 export function LegalPage({
   title,
   updated,
@@ -11,14 +10,13 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <section className="px-6 pt-24 sm:pt-32 pb-24" style={{ background: 'var(--bg-primary)' }}>
+    <section className="px-6 pt-28 sm:pt-36 pb-24 bg-background">
       <div className="max-w-3xl mx-auto">
-        <h1 className="font-space text-3xl sm:text-4xl font-bold text-white mb-2">{title}</h1>
-        <p className="text-xs mb-8" style={{ color: 'var(--text-tertiary)' }}>
+        <h1 className="font-serif text-3xl sm:text-4xl font-medium text-foreground mb-2">{title}</h1>
+        <p className="text-xs mb-8 text-muted-foreground">
           Effective: {updated}
         </p>
-
-        <div className="space-y-6 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+        <div className="space-y-6 text-[15px] leading-relaxed text-muted-foreground">
           {children}
         </div>
       </div>
@@ -29,7 +27,7 @@ export function LegalPage({
 export function LegalSection({ heading, children }: { heading: string; children: ReactNode }) {
   return (
     <div>
-      <h2 className="font-space text-lg font-semibold text-white mb-2">{heading}</h2>
+      <h2 className="font-serif text-lg font-medium text-foreground mb-2">{heading}</h2>
       <div>{children}</div>
     </div>
   );

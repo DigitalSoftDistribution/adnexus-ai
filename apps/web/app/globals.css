@@ -3,110 +3,106 @@
 @tailwind utilities;
 
 /*
- * AdNexus AI — Design tokens
- * --------------------------
- * Modern analytics aesthetic: deep neutral canvas, a single vivid violet
- * accent, semantic success/warning/danger, and per-platform brand tokens for
- * data-viz. Dark mode is the default (applied on <html> in the root layout);
- * the .light class opts back into the bright theme.
+ * AdNexus AI — Shadcn Design Tokens (Warm Dark Editorial)
+ * -------------------------------------------------------
+ * Deep warm black surfaces, amber/brass accent, cream text.
+ * Dark mode is the default. The .light class opts into light theme.
  */
 
 @layer base {
   :root {
     /* Light theme (opt-in via .light) */
-    --background: 0 0% 100%;
-    --foreground: 240 14% 9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 14% 9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 14% 9%;
-    --primary: 256 90% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 14% 12%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 256 90% 96%;
-    --accent-foreground: 256 70% 36%;
-    --success: 152 62% 40%;
+    --background: 40 20% 96%;
+    --foreground: 30 15% 8%;
+    --card: 40 18% 98%;
+    --card-foreground: 30 15% 8%;
+    --popover: 40 18% 98%;
+    --popover-foreground: 30 15% 8%;
+    --primary: 40 60% 55%;
+    --primary-foreground: 30 20% 6%;
+    --secondary: 35 15% 92%;
+    --secondary-foreground: 30 15% 12%;
+    --muted: 35 12% 92%;
+    --muted-foreground: 30 8% 45%;
+    --accent: 25 55% 50%;
+    --accent-foreground: 40 20% 96%;
+    --success: 145 35% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 96% 12%;
-    --destructive: 0 78% 56%;
+    --warning: 38 80% 55%;
+    --warning-foreground: 30 20% 6%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 256 90% 60%;
+    --border: 30 12% 85%;
+    --input: 30 12% 88%;
+    --ring: 40 60% 55%;
     --radius: 0.75rem;
 
-    /* Data-viz palette */
-    --chart-1: 256 90% 62%;
-    --chart-2: 173 70% 42%;
-    --chart-3: 32 95% 56%;
-    --chart-4: 200 90% 52%;
-    --chart-5: 330 80% 58%;
+    --chart-1: 40 60% 55%;
+    --chart-2: 145 35% 45%;
+    --chart-3: 25 55% 50%;
+    --chart-4: 200 50% 55%;
+    --chart-5: 330 60% 55%;
 
-    /* Platform brand tokens */
     --platform-meta: 214 89% 52%;
     --platform-google: 4 81% 56%;
     --platform-tiktok: 348 92% 56%;
     --platform-snap: 51 100% 50%;
 
-    --sidebar-background: 240 8% 98%;
-    --sidebar-foreground: 240 5% 30%;
-    --sidebar-primary: 256 90% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 95%;
-    --sidebar-accent-foreground: 240 14% 12%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 256 90% 60%;
+    --sidebar-background: 40 15% 97%;
+    --sidebar-foreground: 30 10% 30%;
+    --sidebar-primary: 40 60% 55%;
+    --sidebar-primary-foreground: 30 20% 6%;
+    --sidebar-accent: 35 12% 92%;
+    --sidebar-accent-foreground: 30 15% 8%;
+    --sidebar-border: 30 12% 88%;
+    --sidebar-ring: 40 60% 55%;
   }
 
   .dark {
-    /* Dark theme (default) */
-    --background: 240 14% 6%;
-    --foreground: 240 12% 96%;
-    --card: 240 13% 9%;
-    --card-foreground: 240 12% 96%;
-    --popover: 240 13% 9%;
-    --popover-foreground: 240 12% 96%;
-    --primary: 256 95% 68%;
-    --primary-foreground: 240 14% 6%;
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 240 12% 96%;
-    --muted: 240 8% 15%;
-    --muted-foreground: 240 6% 60%;
-    --accent: 256 40% 20%;
-    --accent-foreground: 256 90% 86%;
-    --success: 152 58% 48%;
-    --success-foreground: 152 70% 10%;
-    --warning: 38 92% 56%;
-    --warning-foreground: 38 96% 10%;
-    --destructive: 0 72% 58%;
+    /* Dark theme (default) — warm dark editorial */
+    --background: 24 18% 4%;
+    --foreground: 40 25% 93%;
+    --card: 24 15% 7%;
+    --card-foreground: 40 25% 93%;
+    --popover: 24 15% 9%;
+    --popover-foreground: 40 25% 93%;
+    --primary: 40 60% 55%;
+    --primary-foreground: 24 20% 5%;
+    --secondary: 24 12% 11%;
+    --secondary-foreground: 40 20% 90%;
+    --muted: 24 10% 12%;
+    --muted-foreground: 35 10% 55%;
+    --accent: 20 55% 45%;
+    --accent-foreground: 40 25% 93%;
+    --success: 145 30% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 70% 55%;
+    --warning-foreground: 24 20% 5%;
+    --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 18%;
-    --input: 240 8% 18%;
-    --ring: 256 95% 68%;
+    --border: 24 12% 16%;
+    --input: 24 12% 14%;
+    --ring: 40 60% 55%;
 
-    --chart-1: 256 95% 72%;
-    --chart-2: 173 70% 52%;
-    --chart-3: 32 95% 62%;
-    --chart-4: 200 90% 62%;
-    --chart-5: 330 82% 66%;
+    --chart-1: 40 60% 55%;
+    --chart-2: 145 35% 50%;
+    --chart-3: 20 55% 50%;
+    --chart-4: 200 50% 55%;
+    --chart-5: 330 60% 55%;
 
-    --platform-meta: 214 89% 60%;
-    --platform-google: 4 86% 62%;
-    --platform-tiktok: 348 92% 62%;
+    --platform-meta: 214 89% 58%;
+    --platform-google: 4 86% 60%;
+    --platform-tiktok: 348 92% 60%;
     --platform-snap: 51 100% 56%;
 
-    --sidebar-background: 240 14% 7%;
-    --sidebar-foreground: 240 8% 80%;
-    --sidebar-primary: 256 95% 68%;
-    --sidebar-primary-foreground: 240 14% 6%;
-    --sidebar-accent: 240 9% 14%;
-    --sidebar-accent-foreground: 240 12% 96%;
-    --sidebar-border: 240 8% 14%;
-    --sidebar-ring: 256 95% 68%;
+    --sidebar-background: 24 15% 5%;
+    --sidebar-foreground: 35 10% 70%;
+    --sidebar-primary: 40 60% 55%;
+    --sidebar-primary-foreground: 24 20% 5%;
+    --sidebar-accent: 24 10% 12%;
+    --sidebar-accent-foreground: 40 25% 93%;
+    --sidebar-border: 24 10% 12%;
+    --sidebar-ring: 40 60% 55%;
   }
 }
 
@@ -116,18 +112,19 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer utilities {
-  /* Subtle ambient gradient used behind hero/shell surfaces */
   .bg-grid {
     background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+      linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
     background-size: 32px 32px;
   }
   .scrollbar-thin {

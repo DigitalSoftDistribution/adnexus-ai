@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 import { Palette, Eye, TrendingDown, Zap, BarChart2, Clock } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock } from '@/components/marketing/sections';
+import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand, ScenarioBlock } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
   title: 'Creative Fatigue Detection',
   description:
-    'Catch declining ad performance before it burns budget. AdNexus AI monitors creative fatigue signals and drafts replacement suggestions while you still have time to act.',
+    'Catch declining ad performance before it burns budget. AdNexus AI monitors creative fatigue signals and drafts replacement suggestions.',
   alternates: { canonical: '/features/creative-fatigue' },
 };
 
 const ITEMS = [
-  { icon: <Eye size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Early Warning', desc: 'Detects fatigue signals — rising frequency, dropping CTR, climbing CPM — before they show up in ROAS.' },
-  { icon: <TrendingDown size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Performance Baselines', desc: 'Each creative gets its own baseline. The agent knows when performance deviates from normal, not just from "good."' },
-  { icon: <Zap size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Auto-Generated Suggestions', desc: 'Get draft recommendations for creative refreshes, headline variants, and audience pivots — ready to review.' },
-  { icon: <Palette size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Cross-Platform Tracking', desc: 'A creative that fatigues on Meta may still work on TikTok. The agent tracks per-platform performance separately.' },
-  { icon: <BarChart2 size={22} style={{ color: '#818cf8' }} aria-hidden="true" />, title: 'Fatigue Score', desc: 'A simple 0-100 score for every creative, so you can spot trouble at a glance without digging into spreadsheets.' },
-  { icon: <Clock size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'Timely Alerts', desc: 'Get notified when a creative crosses the fatigue threshold — typically 3-5 days before ROAS starts dropping.' },
+  { icon: <Eye size={20} />, title: 'Early Warning', desc: 'Detects fatigue signals — rising frequency, dropping CTR, climbing CPM — before they show up in ROAS.' },
+  { icon: <TrendingDown size={20} />, title: 'Performance Baselines', desc: 'Each creative gets its own baseline. The agent knows when performance deviates from normal, not just from "good."' },
+  { icon: <Zap size={20} />, title: 'Auto-Generated Suggestions', desc: 'Get draft recommendations for creative refreshes, headline variants, and audience pivots — ready to review.' },
+  { icon: <Palette size={20} />, title: 'Cross-Platform Tracking', desc: 'A creative that fatigues on Meta may still work on TikTok. The agent tracks per-platform performance separately.' },
+  { icon: <BarChart2 size={20} />, title: 'Fatigue Score', desc: 'A simple 0-100 score for every creative, so you can spot trouble at a glance without digging into spreadsheets.' },
+  { icon: <Clock size={20} />, title: 'Timely Alerts', desc: 'Get notified when a creative crosses the fatigue threshold — typically 3-5 days before ROAS starts dropping.' },
 ];
 
 export default function Page() {
@@ -23,23 +23,44 @@ export default function Page() {
     <>
       <PageHero
         eyebrow="Creative Fatigue"
-        title={<>Catch tired creative <span className="text-gradient-indigo">early</span></>}
+        title={<>Catch tired creative early</>}
         subtitle="Stop wasting budget on fatigued ads. The agent monitors every creative and drafts refreshes before performance drops."
       />
-      <Section eyebrow="A day in the life" title="The slow leak you don't see coming">
+      <Section>
         <ScenarioBlock
-          situation="Your winning Meta creative has been running for a week. It's still profitable on paper, so you leave it alone. But frequency is climbing, CTR is sliding, and CPMs are creeping up — the ad is quietly fatiguing, and the budget keeps flowing into it."
-          outcome="AdNexus baselines each creative's first days and watches the slope. The moment fatigue crosses the line, it drafts an alert and a suggested refresh — before the dip shows up in your ROAS. You approve the swap and the leak is sealed."
+          before={{
+            title: 'The slow leak',
+            points: [
+              'Winning creative runs for weeks unchecked',
+              'Frequency climbs, CTR slides quietly',
+              'Budget keeps flowing into declining ads',
+              'ROAS drops before you notice',
+            ],
+          }}
+          after={{
+            title: 'The fix',
+            points: [
+              'Agent baselines every creative from day one',
+              'Fatigue signals detected 3-5 days early',
+              'Draft refresh ready for your approval',
+              'Swap before ROAS is impacted',
+            ],
+          }}
         />
       </Section>
-      <Section title="How fatigue detection works" alt>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Section className="bg-card">
+        <FeatureGrid>
           {ITEMS.map((c) => (
-            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} />
+            <FeatureCard key={c.title} icon={c.icon} title={c.title} description={c.desc} />
           ))}
-        </div>
+        </FeatureGrid>
       </Section>
-      <CtaBand title="Protect your creative performance" subtitle="Connect your accounts and start monitoring creative fatigue today." />
+      <CtaBand
+        title="Protect your creative performance"
+        subtitle="Connect your accounts and start monitoring creative fatigue today."
+        cta="Start Free Trial"
+        ctaHref="/auth/signup"
+      />
     </>
   );
 }
