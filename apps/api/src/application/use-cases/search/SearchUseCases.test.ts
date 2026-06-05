@@ -26,8 +26,8 @@ const status = (r: { success: boolean; error?: unknown }) =>
 describe('SearchUseCase', () => {
   const base = { workspaceId: 'ws-1', userRole: 'viewer', query: 'spring' };
 
-  it('allows workspace members to search', async () => {
-    const res = await new SearchUseCase(makeRepo()).execute(base);
+  it.each(['owner', 'admin', 'editor', 'viewer'])('allows a %s to search', async (userRole) => {
+    const res = await new SearchUseCase(makeRepo()).execute({ ...base, userRole });
     expect(res.success).toBe(true);
     if (res.success) expect(res.data).toEqual([result]);
   });
@@ -60,8 +60,8 @@ describe('SearchUseCase', () => {
 describe('GetSuggestionsUseCase', () => {
   const base = { workspaceId: 'ws-1', userRole: 'viewer', prefix: 'spr' };
 
-  it('returns suggestions for a workspace member', async () => {
-    const res = await new GetSuggestionsUseCase(makeRepo()).execute(base);
+  it.each(['owner', 'admin', 'editor', 'viewer'])('returns suggestions for a %s', async (userRole) => {
+    const res = await new GetSuggestionsUseCase(makeRepo()).execute({ ...base, userRole });
     expect(res.success).toBe(true);
     if (res.success) expect(res.data).toEqual(['spring campaign', 'spring audience']);
   });

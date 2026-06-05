@@ -189,7 +189,10 @@ describe('InviteMemberUseCase', () => {
   });
 
   it('rejects when the workspace member limit is reached', async () => {
-    const workspaceRepo = makeWorkspaceRepo({ checkLimit: vi.fn().mockResolvedValue(false) });
+    const workspaceRepo = makeWorkspaceRepo({
+      getMember: vi.fn().mockResolvedValue(null),
+      checkLimit: vi.fn().mockResolvedValue(false),
+    });
     const res = await new InviteMemberUseCase(workspaceRepo, makeUserRepo(), makeBus(), makeAudit()).execute(base);
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(400);
@@ -197,7 +200,7 @@ describe('InviteMemberUseCase', () => {
   });
 
   it('rejects when the invitee has not signed up', async () => {
-    const workspaceRepo = makeWorkspaceRepo();
+    const workspaceRepo = makeWorkspaceRepo({ getMember: vi.fn().mockResolvedValue(null) });
     const res = await new InviteMemberUseCase(
       workspaceRepo,
       makeUserRepo({ findByEmail: vi.fn().mockResolvedValue(null) }),

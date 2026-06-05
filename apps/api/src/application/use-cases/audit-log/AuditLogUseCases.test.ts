@@ -45,7 +45,12 @@ describe('ListAuditLogUseCase', () => {
   it('lists audit log entries', async () => {
     const res = await new ListAuditLogUseCase(makeRepo()).execute({ workspaceId: 'ws-1' });
     expect(res.success).toBe(true);
-    if (res.success) expect(res.data.entries).toEqual([entry]);
+    if (res.success) {
+      expect(res.data.entries).toEqual([entry]);
+      expect(res.data.total).toBe(1);
+      expect(res.data.page).toBe(1);
+      expect(res.data.totalPages).toBe(1);
+    }
   });
 
   it('forwards all audit log filters', async () => {
