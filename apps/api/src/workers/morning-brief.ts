@@ -1029,7 +1029,7 @@ export class MorningBriefWorker {
     const cpaMean = mean(cpaValues);
     const _cpaStd = stdDev(cpaValues);
     const ctrMean = mean(ctrValues);
-    const _ctrStd = stdDev(ctrValues);
+    const ctrStd = stdDev(ctrValues);
     const convMean = mean(convValues);
     const _convStd = stdDev(convValues);
 
