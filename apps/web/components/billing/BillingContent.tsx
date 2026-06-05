@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { CreditCard, Download, CheckCircle, AlertCircle } from 'lucide-react';
@@ -91,7 +92,7 @@ function useCreatePortalSession() {
 }
 
 export function BillingContent() {
-  const { data: billing, isLoading: billingLoading } = useBillingInfo();
+  const { data: billing, isLoading: billingLoading, isError: billingError, refetch: refetchBilling } = useBillingInfo();
   const { data: invoicesData, isLoading: invoicesLoading } = useInvoices();
   const portalMutation = useCreatePortalSession();
   const t = useTranslations('billing');
@@ -101,6 +102,23 @@ export function BillingContent() {
     return (
       <div className="flex h-96 items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (billingError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
+        </div>
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToFetchBilling')}
+          onRetry={() => refetchBilling()}
+          retryLabel={tc('retry')}
+        />
       </div>
     );
   }

@@ -14,7 +14,7 @@ import { formatCurrency, formatNumber, formatPercent, formatDate } from '@/lib/u
 import {
   ArrowLeft, Edit, Pause, Play, BarChart3, Users, Calendar,
   History, Megaphone, TrendingUp, MousePointer, Target, Copy, Trash2, MoreHorizontal,
-  Image, AlertTriangle,
+  Image, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 
 interface Campaign {
@@ -177,7 +177,21 @@ function useCampaignActions(id: string) {
     },
   });
 
-  return { pause, activate, duplicate, delete: deleteCampaign };
+  const sync = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${id}/sync`, { method: 'POST' });
+      if (!res.ok) throw new Error(t('failedToSync'));
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign', id] });
+      queryClient.invalidateQueries({ queryKey: ['campaign', 'history', id] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'summary'] });
+    },
+  });
+
+  return { pause, activate, duplicate, delete: deleteCampaign, sync };
 }
 
 export function CampaignDetailContent() {
@@ -259,6 +273,15 @@ export function CampaignDetailContent() {
               {actions.activate.isPending ? tc('activating') : tc('activate')}
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => actions.sync.mutate()}
+            disabled={actions.sync.isPending}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${actions.sync.isPending ? 'animate-spin' : ''}`} />
+            {actions.sync.isPending ? t('syncing') : t('sync')}
+          </Button>
           <Button size="sm" asChild>
             <Link href={`/dashboard/campaigns/${id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />

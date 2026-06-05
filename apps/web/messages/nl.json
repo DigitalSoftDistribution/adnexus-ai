@@ -72,6 +72,7 @@
     "live": "Live",
     "offline": "Offline",
     "vsLastMonth": "t.o.v. vorige maand",
+    "vsPrior7Days": "t.o.v. vorige 7 dagen",
     "notSet": "Niet ingesteld",
     "configure": "Configureren",
     "generate": "Genereren",
@@ -99,6 +100,8 @@
     "executing": "Uitvoeren...",
     "opening": "Openen...",
     "noResults": "Geen resultaten gevonden",
+    "searching": "Zoeken…",
+    "searchFailed": "Zoeken mislukt. Probeer opnieuw.",
     "comingSoon": "Binnenkort beschikbaar",
     "placeholder": "Tijdelijke aanduiding voor grafiekcomponent — integreer hier recharts",
     "all": "Alle",
@@ -142,7 +145,11 @@
     "platformDescription": "Campagnes per platform",
     "avgCtr": "Gem. CTR",
     "avgCpa": "Gem. CPA",
-    "avgRoas": "Gem. ROAS"
+    "avgRoas": "Gem. ROAS",
+    "emptyTitle": "Nog geen campagnegegevens",
+    "emptyDescription": "Koppel een advertentieaccount en synchroniseer om hier je prestaties te zien.",
+    "emptyConnect": "Platform koppelen",
+    "emptyCreate": "Campagne maken"
   },
   "campaigns": {
     "title": "Campagnes",
@@ -224,7 +231,10 @@
     },
     "adAccount": "Advertentieaccount",
     "noConnectedAccount": "Geen gekoppeld advertentieaccount voor dit platform.",
-    "connectPlatform": "Platform verbinden"
+    "connectPlatform": "Platform verbinden",
+    "failedToSync": "Synchroniseren van campagne mislukt",
+    "sync": "Synchroniseren",
+    "syncing": "Synchroniseren..."
   },
   "drafts": {
     "title": "Concepten",
@@ -513,7 +523,23 @@
       "connected": "verbonden",
       "available": "beschikbaar"
     },
-    "disconnect": "Loskoppelen"
+    "disconnect": "Loskoppelen",
+    "sync": {
+      "syncNow": "Nu synchroniseren",
+      "syncing": "Synchroniseren...",
+      "lastSynced": "Laatst gesynchroniseerd",
+      "neverSynced": "Nooit gesynchroniseerd",
+      "recentSyncs": "Recente synchronisaties",
+      "campaignsCount": "{count} campagnes",
+      "noAccount": "Geen gekoppeld advertentieaccount om te synchroniseren",
+      "failed": "Synchronisatie mislukt",
+      "status": {
+        "running": "Bezig",
+        "completed": "Voltooid",
+        "partial": "Gedeeltelijk",
+        "failed": "Mislukt"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",

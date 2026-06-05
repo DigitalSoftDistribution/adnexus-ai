@@ -72,6 +72,7 @@
     "live": "Live",
     "offline": "Offline",
     "vsLastMonth": "vs mese scorso",
+    "vsPrior7Days": "vs 7 giorni precedenti",
     "notSet": "Non impostato",
     "configure": "Configura",
     "generate": "Genera",
@@ -99,6 +100,8 @@
     "executing": "Esecuzione in corso...",
     "opening": "Apertura in corso...",
     "noResults": "Nessun risultato trovato",
+    "searching": "Ricerca…",
+    "searchFailed": "Ricerca non riuscita. Riprova.",
     "comingSoon": "Disponibile a breve",
     "placeholder": "Segnaposto componente grafico — integra recharts qui",
     "all": "Tutti",
@@ -142,7 +145,11 @@
     "platformDescription": "Campagne per piattaforma",
     "avgCtr": "CTR medio",
     "avgCpa": "CPA medio",
-    "avgRoas": "ROAS medio"
+    "avgRoas": "ROAS medio",
+    "emptyTitle": "Nessun dato di campagna",
+    "emptyDescription": "Collega un account pubblicitario e sincronizza per vedere qui le tue prestazioni.",
+    "emptyConnect": "Collega una piattaforma",
+    "emptyCreate": "Crea una campagna"
   },
   "campaigns": {
     "title": "Campagne",
@@ -224,7 +231,10 @@
     },
     "adAccount": "Account pubblicitario",
     "noConnectedAccount": "Nessun account pubblicitario collegato per questa piattaforma.",
-    "connectPlatform": "Connetti una piattaforma"
+    "connectPlatform": "Connetti una piattaforma",
+    "failedToSync": "Impossibile sincronizzare la campagna",
+    "sync": "Sincronizza",
+    "syncing": "Sincronizzazione..."
   },
   "drafts": {
     "title": "Bozze",
@@ -513,7 +523,23 @@
       "connected": "connesso",
       "available": "disponibile"
     },
-    "disconnect": "Disconnetti"
+    "disconnect": "Disconnetti",
+    "sync": {
+      "syncNow": "Sincronizza ora",
+      "syncing": "Sincronizzazione...",
+      "lastSynced": "Ultima sincronizzazione",
+      "neverSynced": "Mai sincronizzato",
+      "recentSyncs": "Sincronizzazioni recenti",
+      "campaignsCount": "{count} campagne",
+      "noAccount": "Nessun account pubblicitario collegato da sincronizzare",
+      "failed": "Sincronizzazione non riuscita",
+      "status": {
+        "running": "In corso",
+        "completed": "Completato",
+        "partial": "Parziale",
+        "failed": "Non riuscito"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhook",

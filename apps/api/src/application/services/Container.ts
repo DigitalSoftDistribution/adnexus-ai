@@ -27,10 +27,15 @@ import type { IAutomationRuleRepository } from '../../domain/repositories/IAutom
 import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRepository';
 import type { IExportRepository } from '../../domain/repositories/IExportRepository';
 import type { IAssetRepository } from '../../domain/repositories/IAssetRepository';
+import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
+import type { ISyncJobRepository } from '../../domain/repositories/ISyncJobRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
 import type { INotificationService } from '../ports/INotificationService';
 import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
+import type { IPlatformSyncService } from '../ports/IPlatformSyncService';
+import type { IPlatformWriteService } from '../ports/IPlatformWriteService';
+import type { Platform } from '../../domain/entities/Campaign';
 
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
 import { ListCampaignsUseCase } from '../use-cases/campaign/ListCampaignsUseCase';
@@ -102,6 +107,8 @@ import { DeleteDraftCommentUseCase } from '../use-cases/draft/DeleteDraftComment
 import { GetCampaignInsightsUseCase } from '../use-cases/campaign/GetCampaignInsightsUseCase';
 import { GetCampaignHistoryUseCase } from '../use-cases/campaign/GetCampaignHistoryUseCase';
 import { SyncCampaignUseCase } from '../use-cases/campaign/SyncCampaignUseCase';
+import { SyncAccountUseCase } from '../use-cases/integration/SyncAccountUseCase';
+import { ListSyncJobsUseCase } from '../use-cases/integration/ListSyncJobsUseCase';
 import { ListAdSetsUseCase } from '../use-cases/ad-set/ListAdSetsUseCase';
 import { GetAdSetByIdUseCase } from '../use-cases/ad-set/GetAdSetByIdUseCase';
 import { CreateAdSetUseCase } from '../use-cases/ad-set/CreateAdSetUseCase';
@@ -184,6 +191,28 @@ export interface ContainerConfig {
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
   agentAdvisor: IAgentAdvisor;
+  /** Optional live ad-platform sync service (e.g. Meta). */
+  platformSyncService?: IPlatformSyncService;
+  /** Optional ad-platform write service for pause/resume (e.g. Meta). */
+  platformWriteService?: IPlatformWriteService;
+  /** Optional account-sync deps; required to expose the account sync use-case. */
+  adAccountRepository?: IAdAccountRepository;
+  syncJobRepository?: ISyncJobRepository;
+  /** Writes a per-day campaign_metrics row (infra-supplied). */
+  writeCampaignMetrics?: (
+    campaignId: string,
+    date: string,
+    m: { spend: number; impressions: number; clicks: number; ctr: number; conversions: number; cpa: number; roas: number; frequency: number; cpm: number; cpc: number },
+  ) => Promise<void>;
+  /** Stamps ad_accounts.last_synced_at (infra-supplied). */
+  stampAccountSynced?: (adAccountId: string) => Promise<void>;
+  /** Optional: persists ad sets + ads for a campaign during account sync. */
+  writeAdSets?: (
+    workspaceId: string,
+    campaignId: string,
+    platform: Platform,
+    adSets: NonNullable<import('../ports/IPlatformSyncService').SyncedCampaign['adSets']>,
+  ) => Promise<{ adSets: number; ads: number }>;
 }
 
 export class Container {
@@ -258,6 +287,10 @@ export class Container {
   readonly getCampaignInsights: GetCampaignInsightsUseCase;
   readonly getCampaignHistory: GetCampaignHistoryUseCase;
   readonly syncCampaign: SyncCampaignUseCase;
+  /** Present only when account-sync deps are configured. */
+  readonly syncAccount?: SyncAccountUseCase;
+  /** Present only when sync-job deps are configured. */
+  readonly listSyncJobs?: ListSyncJobsUseCase;
   readonly listAdSets: ListAdSetsUseCase;
   readonly getAdSetById: GetAdSetByIdUseCase;
   readonly createAdSet: CreateAdSetUseCase;
@@ -322,8 +355,8 @@ export class Container {
     this.getCampaignById = new GetCampaignByIdUseCase(config.campaignRepository);
     this.updateCampaign = new UpdateCampaignUseCase(config.campaignRepository);
     this.deleteCampaign = new DeleteCampaignUseCase(config.campaignRepository);
-    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository);
-    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository);
+    this.pauseCampaign = new PauseCampaignUseCase(config.campaignRepository, config.platformWriteService, config.auditLogger);
+    this.activateCampaign = new ActivateCampaignUseCase(config.campaignRepository, config.platformWriteService, config.auditLogger);
     this.duplicateCampaign = new DuplicateCampaignUseCase(config.campaignRepository);
 
     this.createDraft = new CreateDraftUseCase(
@@ -427,7 +460,37 @@ export class Container {
       config.campaignRepository,
       config.campaignHistoryRepository,
       config.eventBus,
+      config.platformSyncService,
     );
+
+    // Account-level sync is only wired when all of its collaborators are
+    // supplied (platform sync service + ad-account/sync-job repos + metric/stamp
+    // writers). Keeps the container valid for lightweight/test configs.
+    if (
+      config.platformSyncService &&
+      config.adAccountRepository &&
+      config.syncJobRepository &&
+      config.writeCampaignMetrics &&
+      config.stampAccountSynced
+    ) {
+      this.syncAccount = new SyncAccountUseCase(
+        config.campaignRepository,
+        config.adAccountRepository,
+        config.syncJobRepository,
+        config.eventBus,
+        config.platformSyncService,
+        config.writeCampaignMetrics,
+        config.stampAccountSynced,
+        config.writeAdSets,
+      );
+    }
+
+    if (config.adAccountRepository && config.syncJobRepository) {
+      this.listSyncJobs = new ListSyncJobsUseCase(
+        config.adAccountRepository,
+        config.syncJobRepository,
+      );
+    }
 
     this.listAdSets = new ListAdSetsUseCase(config.adSetRepository);
     this.getAdSetById = new GetAdSetByIdUseCase(config.adSetRepository);

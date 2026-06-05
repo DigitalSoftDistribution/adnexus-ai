@@ -47,6 +47,11 @@ import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
 import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
+import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
+import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
+import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
+import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
+import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
 import { registerAllPlatformClients } from '../../platforms/register';
 
 // Application
@@ -118,6 +123,13 @@ export function buildContainer(): Container {
     auditLogger,
     notificationService,
     agentAdvisor: new AgentAdvisor(),
+    platformSyncService: new MetaPlatformSyncService(),
+    platformWriteService: new MetaPlatformWriteService(),
+    adAccountRepository: new AdAccountRepository(),
+    syncJobRepository: new SyncJobRepository(),
+    writeCampaignMetrics,
+    stampAccountSynced,
+    writeAdSets,
   });
 }
 

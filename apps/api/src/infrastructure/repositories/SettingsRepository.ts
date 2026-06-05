@@ -201,8 +201,9 @@ export class SettingsRepository implements ISettingsRepository {
       metadata: Record<string, unknown> | null;
       created_at: string;
       updated_at: string | null;
+      last_synced_at: string | null;
     }>(
-      `SELECT id, platform, name, status, platform_account_id, metadata, created_at, updated_at
+      `SELECT id, platform, name, status, platform_account_id, metadata, created_at, updated_at, last_synced_at
        FROM ad_accounts WHERE workspace_id = $1`,
       [workspaceId],
     );
@@ -215,7 +216,9 @@ export class SettingsRepository implements ISettingsRepository {
       accountId: r.platform_account_id,
       accountName: (r.metadata as Record<string, string> | null)?.accountName ?? r.name,
       connectedAt: r.created_at,
-      lastSyncedAt: r.updated_at,
+      // Real last-sync time; falls back to null (not updated_at) so unrelated
+      // row updates like token refresh don't masquerade as a sync.
+      lastSyncedAt: r.last_synced_at,
     }));
   }
 
@@ -229,8 +232,9 @@ export class SettingsRepository implements ISettingsRepository {
       metadata: Record<string, unknown> | null;
       created_at: string;
       updated_at: string | null;
+      last_synced_at: string | null;
     }>(
-      `SELECT id, platform, name, status, platform_account_id, metadata, created_at, updated_at
+      `SELECT id, platform, name, status, platform_account_id, metadata, created_at, updated_at, last_synced_at
        FROM ad_accounts WHERE workspace_id = $1 AND platform = $2 LIMIT 1`,
       [workspaceId, platform],
     );
@@ -244,7 +248,7 @@ export class SettingsRepository implements ISettingsRepository {
       accountId: r.platform_account_id,
       accountName: (r.metadata as Record<string, string> | null)?.accountName ?? r.name,
       connectedAt: r.created_at,
-      lastSyncedAt: r.updated_at,
+      lastSyncedAt: r.last_synced_at,
     };
   }
 

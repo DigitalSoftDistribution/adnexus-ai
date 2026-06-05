@@ -72,6 +72,7 @@
     "live": "Live",
     "offline": "Offline",
     "vsLastMonth": "ggü. Vormonat",
+    "vsPrior7Days": "ggü. vorherigen 7 Tagen",
     "notSet": "Nicht festgelegt",
     "configure": "Konfigurieren",
     "generate": "Generieren",
@@ -99,6 +100,8 @@
     "executing": "Wird ausgeführt...",
     "opening": "Wird geöffnet...",
     "noResults": "Keine Ergebnisse gefunden",
+    "searching": "Suche läuft…",
+    "searchFailed": "Suche fehlgeschlagen. Erneut versuchen.",
     "comingSoon": "Demnächst verfügbar",
     "placeholder": "Platzhalter für Diagrammkomponente — recharts hier integrieren",
     "all": "Alle",
@@ -142,7 +145,11 @@
     "platformDescription": "Kampagnen nach Plattform",
     "avgCtr": "Durchschn. CTR",
     "avgCpa": "Durchschn. CPA",
-    "avgRoas": "Durchschn. ROAS"
+    "avgRoas": "Durchschn. ROAS",
+    "emptyTitle": "Noch keine Kampagnendaten",
+    "emptyDescription": "Verbinde ein Werbekonto und synchronisiere, um hier deine Leistung zu sehen.",
+    "emptyConnect": "Plattform verbinden",
+    "emptyCreate": "Kampagne erstellen"
   },
   "campaigns": {
     "title": "Kampagnen",
@@ -224,7 +231,10 @@
     },
     "adAccount": "Werbekonto",
     "noConnectedAccount": "Kein verbundenes Werbekonto für diese Plattform.",
-    "connectPlatform": "Plattform verbinden"
+    "connectPlatform": "Plattform verbinden",
+    "failedToSync": "Kampagne konnte nicht synchronisiert werden",
+    "sync": "Synchronisieren",
+    "syncing": "Synchronisierung..."
   },
   "drafts": {
     "title": "Entwürfe",
@@ -513,7 +523,23 @@
       "connected": "verbunden",
       "available": "verfügbar"
     },
-    "disconnect": "Trennen"
+    "disconnect": "Trennen",
+    "sync": {
+      "syncNow": "Jetzt synchronisieren",
+      "syncing": "Synchronisierung...",
+      "lastSynced": "Zuletzt synchronisiert",
+      "neverSynced": "Nie synchronisiert",
+      "recentSyncs": "Letzte Synchronisierungen",
+      "campaignsCount": "{count} Kampagnen",
+      "noAccount": "Kein verbundenes Werbekonto zum Synchronisieren",
+      "failed": "Synchronisierung fehlgeschlagen",
+      "status": {
+        "running": "Läuft",
+        "completed": "Abgeschlossen",
+        "partial": "Teilweise",
+        "failed": "Fehlgeschlagen"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",

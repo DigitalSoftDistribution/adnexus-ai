@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { formatCompact } from '@/lib/utils';
 import { BarChart3, Plus, FileText, Calendar, Download, TrendingUp, Users, DollarSign } from 'lucide-react';
@@ -41,7 +42,7 @@ interface Report {
 function useReports() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'list'],
     queryFn: async () => {
       const res = await fetch('/api/v2/reports');
@@ -52,7 +53,7 @@ function useReports() {
 
   const reports: Report[] = data?.data?.reports ?? [];
 
-  return { reports, isLoading, activeCategory, setActiveCategory, total: data?.data?.total ?? 0 };
+  return { reports, isLoading, isError, refetch, activeCategory, setActiveCategory, total: data?.data?.total ?? 0 };
 }
 
 interface ReportTemplate {
@@ -64,7 +65,7 @@ interface ReportTemplate {
 }
 
 export function ReportsContent() {
-  const { reports, isLoading, activeCategory, setActiveCategory, total } = useReports();
+  const { reports, isLoading, isError, refetch, activeCategory, setActiveCategory, total } = useReports();
   const series = useSummarySeries();
   const t = useTranslations('reports');
   const tc = useTranslations('common');
@@ -130,6 +131,13 @@ export function ReportsContent() {
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToFetch')}
+          onRetry={() => refetch()}
+          retryLabel={tc('retry')}
+        />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">

@@ -1,4 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../../../config';
 import { UnauthorizedError, ForbiddenError } from '../../../domain/value-objects/Result';
 
 export interface AuthenticatedRequest extends Request {
@@ -8,6 +10,30 @@ export interface AuthenticatedRequest extends Request {
     workspaceId: string;
     role: string;
   } | any;
+}
+
+/**
+ * Verify a JWT signature with the shared secret and map it to the v2 user
+ * shape. Throws UnauthorizedError on any signature/expiry/format failure so
+ * the v2 error handler returns the documented 401 envelope.
+ */
+function verifyToken(token: string): AuthenticatedRequest['user'] {
+  let payload: Record<string, unknown>;
+  try {
+    payload = jwt.verify(token, config.jwt.secret, {
+      clockTolerance: 60,
+    }) as Record<string, unknown>;
+  } catch {
+    throw new UnauthorizedError('Invalid token');
+  }
+
+  return {
+    id: (payload.sub as string) || (payload.id as string) || 'unknown',
+    email: (payload.email as string) || '',
+    workspaceId:
+      (payload.workspace_id as string) || (payload.workspaceId as string) || '',
+    role: (payload.role as string) || 'viewer',
+  };
 }
 
 export function requireAuth(
@@ -21,25 +47,11 @@ export function requireAuth(
     return;
   }
 
-  // For now, decode JWT payload without verification (legacy v1 auth handles verification)
-  // In production, this should verify the token properly
   try {
-    const token = authHeader.slice(7);
-    const base64Payload = token.split('.')[1];
-    if (!base64Payload) {
-      next(new UnauthorizedError('Invalid token format'));
-      return;
-    }
-    const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
-    req.user = {
-      id: payload.sub || payload.id || 'unknown',
-      email: payload.email || '',
-      workspaceId: payload.workspace_id || payload.workspaceId || '',
-      role: payload.role || 'viewer',
-    };
+    req.user = verifyToken(authHeader.slice(7));
     next();
   } catch (err) {
-    next(new UnauthorizedError('Invalid token'));
+    next(err);
   }
 }
 
@@ -64,21 +76,10 @@ export function requireAuthQuery(
   }
 
   try {
-    const base64Payload = token.split('.')[1];
-    if (!base64Payload) {
-      next(new UnauthorizedError('Invalid token format'));
-      return;
-    }
-    const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
-    req.user = {
-      id: payload.sub || payload.id || 'unknown',
-      email: payload.email || '',
-      workspaceId: payload.workspace_id || payload.workspaceId || '',
-      role: payload.role || 'viewer',
-    };
+    req.user = verifyToken(token);
     next();
-  } catch {
-    next(new UnauthorizedError('Invalid token'));
+  } catch (err) {
+    next(err);
   }
 }
 

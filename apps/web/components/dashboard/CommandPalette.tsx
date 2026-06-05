@@ -46,12 +46,12 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const { data: results } = useQuery({
+  const { data: results, isFetching: isSearchLoading, isError: isSearchError } = useQuery({
     queryKey: ['search', query],
     enabled: open && query.trim().length >= 2,
     queryFn: async (): Promise<SearchResult[]> => {
       const res = await fetch(`/api/v2/search?q=${encodeURIComponent(query)}`);
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error('Search failed');
       const json = await res.json();
       return json.data ?? [];
     },
@@ -91,6 +91,12 @@ export function CommandPalette() {
         <CommandInput placeholder={tc('search')} value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>{tc('noResults')}</CommandEmpty>
+          {isSearching && isSearchLoading && (
+            <div className="px-3 py-2 text-sm text-muted-foreground">{tc('searching')}</div>
+          )}
+          {isSearching && isSearchError && (
+            <div className="px-3 py-2 text-sm text-destructive">{tc('searchFailed')}</div>
+          )}
           {isSearching && results && results.length > 0 && (
             <>
               <CommandGroup heading={tc('search')}>

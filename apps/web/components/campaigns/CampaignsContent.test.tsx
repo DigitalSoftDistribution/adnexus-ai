@@ -69,6 +69,20 @@ describe('CampaignsContent', () => {
     expect(newLink).toHaveAttribute('href', '/en/dashboard/campaigns/new');
   });
 
+  it('shows an error state with retry when the request fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
+    );
+
+    renderWithQuery(<CampaignsContent />);
+
+    // common.error title + campaigns.failedToFetch description
+    expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText('Failed to fetch campaigns')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+  });
+
   it('requests the v2 campaigns endpoint with pagination params', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

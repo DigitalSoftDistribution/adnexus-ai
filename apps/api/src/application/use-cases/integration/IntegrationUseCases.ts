@@ -24,6 +24,9 @@ export interface IntegrationView {
   label: string;
   connected: boolean;
   status: Integration['status'] | 'not_connected';
+  /** Internal ad_accounts.id UUID — use this for sync/sync-jobs endpoints. */
+  id: string | null;
+  /** The platform's own account id (e.g. Meta act_123) — display only. */
   accountId: string | null;
   accountName: string | null;
   connectedAt: string | null;
@@ -45,6 +48,7 @@ function toView(platform: SupportedPlatform, workspaceId: string, integration?: 
     label: PLATFORM_LABELS[platform],
     connected,
     status: integration ? (connected ? 'connected' : integration.status) : 'not_connected',
+    id: integration?.id ?? null,
     accountId: integration?.accountId ?? null,
     accountName: integration?.accountName ?? null,
     connectedAt: integration?.connectedAt ?? null,

@@ -72,6 +72,7 @@
     "live": "Ao vivo",
     "offline": "Offline",
     "vsLastMonth": "vs. mês anterior",
+    "vsPrior7Days": "vs. 7 dias anteriores",
     "notSet": "Não definido",
     "configure": "Configurar",
     "generate": "Gerar",
@@ -99,6 +100,8 @@
     "executing": "A executar...",
     "opening": "A abrir...",
     "noResults": "Nenhum resultado encontrado",
+    "searching": "Pesquisando…",
+    "searchFailed": "A pesquisa falhou. Tente novamente.",
     "comingSoon": "Em breve",
     "placeholder": "Espaço reservado para o componente de gráfico — integre o recharts aqui",
     "all": "Todos",
@@ -142,7 +145,11 @@
     "platformDescription": "Campanhas por plataforma",
     "avgCtr": "CTR médio",
     "avgCpa": "CPA médio",
-    "avgRoas": "ROAS médio"
+    "avgRoas": "ROAS médio",
+    "emptyTitle": "Ainda sem dados de campanha",
+    "emptyDescription": "Conecte uma conta de anúncios e sincronize para ver seu desempenho aqui.",
+    "emptyConnect": "Conectar uma plataforma",
+    "emptyCreate": "Criar uma campanha"
   },
   "campaigns": {
     "title": "Campanhas",
@@ -224,7 +231,10 @@
     },
     "adAccount": "Conta de anúncios",
     "noConnectedAccount": "Nenhuma conta de anúncios conectada para esta plataforma.",
-    "connectPlatform": "Conectar uma plataforma"
+    "connectPlatform": "Conectar uma plataforma",
+    "failedToSync": "Falha ao sincronizar a campanha",
+    "sync": "Sincronizar",
+    "syncing": "A sincronizar..."
   },
   "drafts": {
     "title": "Rascunhos",
@@ -513,7 +523,23 @@
       "connected": "ligado",
       "available": "disponível"
     },
-    "disconnect": "Desconectar"
+    "disconnect": "Desconectar",
+    "sync": {
+      "syncNow": "Sincronizar agora",
+      "syncing": "A sincronizar...",
+      "lastSynced": "Última sincronização",
+      "neverSynced": "Nunca sincronizado",
+      "recentSyncs": "Sincronizações recentes",
+      "campaignsCount": "{count} campanhas",
+      "noAccount": "Nenhuma conta de anúncios ligada para sincronizar",
+      "failed": "Falha na sincronização",
+      "status": {
+        "running": "Em execução",
+        "completed": "Concluído",
+        "partial": "Parcial",
+        "failed": "Falhou"
+      }
+    }
   },
   "webhooks": {
     "title": "Webhooks",

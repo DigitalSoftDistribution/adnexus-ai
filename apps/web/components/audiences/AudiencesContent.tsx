@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { platformLabel } from '@/lib/platforms';
 import { Users, Plus, Target, Globe, Smartphone, Heart, ShoppingCart } from 'lucide-react';
@@ -24,7 +25,7 @@ function useAudiences() {
   const t = useTranslations('audiences');
   const [filter, setFilter] = useState<string>('all');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['audiences', 'list'],
     queryFn: async () => {
       const res = await fetch('/api/v2/audiences');
@@ -38,11 +39,11 @@ function useAudiences() {
     ? audiences
     : audiences.filter((s: Audience) => s.platform === filter);
 
-  return { audiences: filtered, isLoading, filter, setFilter, total: data?.data?.total ?? 0 };
+  return { audiences: filtered, isLoading, isError, refetch, filter, setFilter, total: data?.data?.total ?? 0 };
 }
 
 export function AudiencesContent() {
-  const { audiences, isLoading, filter, setFilter, total } = useAudiences();
+  const { audiences, isLoading, isError, refetch, filter, setFilter, total } = useAudiences();
   const t = useTranslations('audiences');
   const tc = useTranslations('common');
 
@@ -80,6 +81,13 @@ export function AudiencesContent() {
         <div className="flex h-64 items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
+      ) : isError ? (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToFetch')}
+          onRetry={() => refetch()}
+          retryLabel={tc('retry')}
+        />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">

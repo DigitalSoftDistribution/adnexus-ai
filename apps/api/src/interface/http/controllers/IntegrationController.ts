@@ -42,5 +42,43 @@ export function createIntegrationController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    sync: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.syncAccount) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SYNC_UNAVAILABLE', message: 'Account sync is not configured' },
+        });
+        return;
+      }
+      const result = await container.syncAccount.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        adAccountId: req.params.accountId,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    syncJobs: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.listSyncJobs) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SYNC_UNAVAILABLE', message: 'Sync history is not configured' },
+        });
+        return;
+      }
+      const parsedLimit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : undefined;
+      const limit = parsedLimit !== undefined && Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+      const result = await container.listSyncJobs.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        adAccountId: req.params.accountId,
+        limit,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

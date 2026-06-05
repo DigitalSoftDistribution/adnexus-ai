@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface SSEEvent {
@@ -13,6 +13,9 @@ interface SSEEvent {
 export function useSSE(enabled: boolean = true) {
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
+  // Tracks the *actual* connection state from EventSource lifecycle events,
+  // not merely whether an EventSource object was constructed.
+  const [isConnected, setIsConnected] = useState(false);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
@@ -76,17 +79,20 @@ export function useSSE(enabled: boolean = true) {
     const es = new EventSource(url.toString());
     eventSourceRef.current = es;
 
+    es.onopen = () => setIsConnected(true);
     es.onmessage = handleMessage;
 
     es.onerror = () => {
-      // Auto-reconnect is handled by EventSource
+      // EventSource auto-reconnects; reflect the dropped state until it reopens.
+      setIsConnected(false);
     };
 
     return () => {
       es.close();
       eventSourceRef.current = null;
+      setIsConnected(false);
     };
   }, [enabled, handleMessage]);
 
-  return { isConnected: !!eventSourceRef.current };
+  return { isConnected };
 }
