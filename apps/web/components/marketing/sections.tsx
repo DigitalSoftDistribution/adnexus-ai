@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Quote } from 'lucide-react';
+import { CountUp, HoverScale } from './v3/animations';
 
 /** Page hero used across the new marketing pages. */
 export function PageHero({
@@ -44,13 +45,15 @@ export function FeatureCard({
   desc: string;
 }) {
   return (
-    <div className="card-surface p-6 hover-lift">
-      <div className="mb-3">{icon}</div>
-      <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-      <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {desc}
-      </p>
-    </div>
+    <HoverScale>
+      <div className="card-surface p-6 hover-lift h-full">
+        <div className="mb-3">{icon}</div>
+        <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
+        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          {desc}
+        </p>
+      </div>
+    </HoverScale>
   );
 }
 
@@ -72,7 +75,8 @@ export function CtaBand({
 }) {
   return (
     <section className="w-full py-24 px-6 relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(195,245,59,0.08) 0%, rgba(37,99,235,0.06) 40%, transparent 65%)' }} />
+      {/* Single-color ambient glow instead of rainbow gradient */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(195,245,59,0.06) 0%, transparent 60%)' }} />
       <div className="max-w-[640px] mx-auto text-center relative z-10">
         <h2 className="font-space text-3xl sm:text-4xl font-bold text-white mb-5">{title}</h2>
         <p className="text-base mb-8 max-w-[460px] mx-auto" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
@@ -117,7 +121,7 @@ export function Section({
         {(eyebrow || title) && (
           <div className="text-center mb-12">
             {eyebrow && (
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#2563EB' }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#c3f53b' }}>
                 {eyebrow}
               </span>
             )}
@@ -161,7 +165,7 @@ export function WorkflowSteps({ steps }: { steps: { title: string; desc: string 
         <div key={s.title} className="flex items-start gap-4 rounded-xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
           <span
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
-            style={{ background: 'rgba(195,245,59,0.1)', color: 'var(--accent)' }}
+            style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}
           >
             {i + 1}
           </span>
@@ -171,6 +175,126 @@ export function WorkflowSteps({ steps }: { steps: { title: string; desc: string 
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Testimonial card with quote, name, role, company. */
+export function TestimonialCard({
+  quote,
+  name,
+  role,
+  company,
+}: {
+  quote: string;
+  name: string;
+  role: string;
+  company: string;
+}) {
+  return (
+    <HoverScale className="h-full">
+      <div className="card-surface p-6 h-full flex flex-col">
+        <Quote size={20} className="mb-4" style={{ color: '#c3f53b' }} aria-hidden="true" />
+        <p className="text-[14px] leading-relaxed flex-1 mb-6" style={{ color: 'var(--text-secondary)' }}>
+          &ldquo;{quote}&rdquo;
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}>
+            {name.charAt(0)}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white">{name}</div>
+            <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{role}, {company}</div>
+          </div>
+        </div>
+      </div>
+    </HoverScale>
+  );
+}
+
+/** Horizontal logo bar with platform names. */
+export function LogoBar({
+  title = 'Trusted by teams at',
+  logos,
+}: {
+  title?: string;
+  logos: { name: string; color?: string }[];
+}) {
+  return (
+    <div className="w-full py-12 px-6" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div className="max-w-6xl mx-auto">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] mb-8" style={{ color: 'var(--text-tertiary)' }}>
+          {title}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
+          {logos.map((logo) => (
+            <span key={logo.name} className="inline-flex items-center gap-2">
+              {logo.color && (
+                <span className="w-2 h-2 rounded-full" style={{ background: logo.color }} aria-hidden="true" />
+              )}
+              <span className="font-space text-lg font-semibold text-white/70">{logo.name}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Stats counter with animated count-up. */
+export function StatsCounter({
+  value,
+  suffix = '',
+  prefix = '',
+  decimals = 0,
+  label,
+}: {
+  value: number;
+  suffix?: string;
+  prefix?: string;
+  decimals?: number;
+  label: string;
+}) {
+  return (
+    <div className="text-center">
+      <div className="font-mono-data text-4xl md:text-5xl font-bold text-white mb-2">
+        <CountUp end={value} prefix={prefix} suffix={suffix} decimals={decimals} />
+      </div>
+      <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+    </div>
+  );
+}
+
+/** Step timeline with numbered steps and connecting line. */
+export function StepTimeline({
+  steps,
+}: {
+  steps: { title: string; desc: string }[];
+}) {
+  return (
+    <div className="relative max-w-4xl mx-auto">
+      {/* Connecting line */}
+      <div className="absolute left-6 top-8 bottom-8 w-px hidden md:block" style={{ background: 'var(--border-subtle)' }} />
+      
+      <div className="space-y-8">
+        {steps.map((step, i) => (
+          <div key={step.title} className="relative flex gap-6 items-start">
+            {/* Numbered circle */}
+            <div 
+              className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
+              style={{ background: 'rgba(195,245,59,0.1)', border: '2px solid rgba(195,245,59,0.3)', color: '#c3f53b' }}
+            >
+              {i + 1}
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 pt-2">
+              <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
+              <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{step.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
