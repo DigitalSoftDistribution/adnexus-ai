@@ -60,7 +60,7 @@ function HeroSection() {
           >
             Nothing goes live
             <br />
-            without <span className="text-lime-400">your</span>
+            without <span className="text-[#c3f53b]">your</span>
             <br />
             approval
           </motion.h1>
@@ -302,7 +302,7 @@ function HowItWorksSection() {
       <div className="max-w-[1000px] mx-auto">
         <FadeIn className="text-center mb-14">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#c3f53b' }}>How It Works</span>
-          <h2 className="font-space text-4xl font-semibold text-white mb-3">From insight to action in <span className="text-lime-400">3 steps</span></h2>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">From insight to action in <span className="text-[#c3f53b]">3 steps</span></h2>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>AI does the heavy lifting. You stay in control.</p>
         </FadeIn>
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
@@ -568,6 +568,68 @@ function FinalCTASection() {
         </FadeIn>
       </div>
     </section>
+
+  );
+}
+/* ───────── Testimonials ───────── */
+function TestimonialsSection() {
+  const testimonials = [
+    {
+      quote: "We cut our reporting time by 80%. The AI drafts budget shifts overnight and I approve them with my morning coffee. No more jumping between four dashboards.",
+      name: "Sarah Chen",
+      role: "Performance Marketing Director",
+      company: "ScaleUp Commerce",
+    },
+    {
+      quote: "The draft-approval workflow is exactly what we needed. Our team was skeptical about AI autonomy, but having full control over every change won them over in a week.",
+      name: "Marcus Johnson",
+      role: "Head of Growth",
+      company: "Nordic Brands Group",
+    },
+    {
+      quote: "We caught creative fatigue before it burned through our budget. The AI flagged declining CTR on our top performer and suggested a replacement that outperformed the original.",
+      name: "Elena Rodriguez",
+      role: "Paid Social Lead",
+      company: "Velocity Agency",
+    },
+  ];
+
+  return (
+    <section className="w-full py-24 px-6" style={{ background: 'var(--bg-primary)' }}>
+      <div className="max-w-6xl mx-auto">
+        <FadeIn className="text-center mb-14">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4 block" style={{ color: '#c3f53b' }}>What teams say</span>
+          <h2 className="font-space text-4xl font-semibold text-white mb-3">Trusted by marketers who demand control</h2>
+          <p className="text-sm max-w-[520px] mx-auto" style={{ color: 'var(--text-secondary)' }}>Teams managing $10M+ in annual ad spend rely on AdNexus to scale without losing oversight.</p>
+        </FadeIn>
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {testimonials.map((t) => (
+            <StaggerItem key={t.name}>
+              <HoverScale>
+                <div className="card-surface p-6 h-full flex flex-col">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c3f53b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4" aria-hidden="true">
+                    <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" />
+                    <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
+                  </svg>
+                  <p className="text-[14px] leading-relaxed flex-1 mb-6" style={{ color: 'var(--text-secondary)' }}>
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}>
+                      {t.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">{t.name}</div>
+                      <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t.role}, {t.company}</div>
+                    </div>
+                  </div>
+                </div>
+              </HoverScale>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
+    </section>
   );
 }
 
@@ -580,6 +642,7 @@ export function HomeContent() {
       <SolutionPillarsSection />
       <HowItWorksSection />
       <ProductShowcase />
+      <TestimonialsSection />
       <FeaturesGridSection />
       <StatsBandSection />
       <TrustBadgesSection />
