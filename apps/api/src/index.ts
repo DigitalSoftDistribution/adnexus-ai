@@ -17,7 +17,7 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config, isProduction } from './config';
+import { config, isDevelopment, isProduction, isAllowedCorsOrigin } from './config';
 import { logger, getModuleLogger } from './lib/logger';
 import { requestLogger } from './middleware/requestLogger';
 import {
@@ -114,11 +114,11 @@ const corsOptions = {
       return;
     }
     const allowedOrigins = config.cors.origin;
-    if (allowedOrigins.includes(origin) || !isProduction) {
+    if (isAllowedCorsOrigin(origin, allowedOrigins) || isDevelopment) {
       callback(null, true);
     } else {
       loggerApp.warn({ origin }, 'CORS blocked request from disallowed origin');
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: config.cors.credentials,
