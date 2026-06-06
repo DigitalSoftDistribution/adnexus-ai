@@ -112,6 +112,35 @@ if (!parsedEnv.success) {
 
 const env = parsedEnv.data;
 
+export const BRANCH_PREVIEW_HOST_SUFFIX = '.apps.softblaze.net';
+
+function isAllowedBranchPreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+    if (!hostname.endsWith(BRANCH_PREVIEW_HOST_SUFFIX)) {
+      return false;
+    }
+
+    const previewLabel = hostname.slice(0, -BRANCH_PREVIEW_HOST_SUFFIX.length);
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(previewLabel);
+  } catch {
+    return false;
+  }
+}
+
+export function isAllowedCorsOrigin(origin: string, allowedOrigins: readonly string[]): boolean {
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return isAllowedBranchPreviewOrigin(origin);
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  Typed Config Object
 // ═══════════════════════════════════════════════════════════════
