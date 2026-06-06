@@ -11,7 +11,8 @@ import { Router, type Request, type Response } from 'express';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
-import { v4 as uuidv4 } from 'uuid';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
+import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -30,25 +31,21 @@ const REQUIRED_SCOPES = [
  *
  * Redirects the user to Google's OAuth consent page.
  */
-router.get('/connect', (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) => {
   try {
-    const workspaceId = (req.query.workspace_id as string) || req.headers['x-workspace-id'] as string;
-    if (!workspaceId) {
-      res.status(400).json({ error: 'workspace_id is required', code: 'VALIDATION_ERROR' });
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
       return;
     }
+    const workspaceId = req.workspaceId!;
 
     if (!config.google.clientId) {
-      res.status(500).json({ error: 'Google app not configured', code: 'CONFIG_ERROR' });
+      sendOAuthJsonError(req, res, 500, 'google', 'config_error', 'missing_google_oauth_config', 'Google OAuth is not configured');
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/google/callback`;
-    const state = JSON.stringify({
-      workspaceId,
-      nonce: uuidv4(),
-    });
-    const stateB64 = Buffer.from(state).toString('base64');
+    const redirectUri = oauthCallbackUrl('google');
+    const stateB64 = createOAuthState({ platform: 'google', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       client_id: config.google.clientId,
@@ -62,6 +59,10 @@ router.get('/connect', (req: Request, res: Response) => {
 
     const authUrl = `${GOOGLE_OAUTH_URL}?${params.toString()}`;
     logger.info({ workspaceId }, 'Redirecting to Google OAuth');
+    if (wantsJson(req)) {
+      res.json({ success: true, data: { redirectUrl: authUrl } });
+      return;
+    }
     res.redirect(authUrl);
   } catch (err) {
     logger.error({ err }, 'Google OAuth connect error');
@@ -81,7 +82,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'Google OAuth denied by user');
-      res.redirect(`${config.frontend.url}/settings?google=denied`);
+      sendOAuthJsonError(req, res, 400, 'google', 'denied', 'oauth_denied', 'Google OAuth was denied');
       return;
     }
 
@@ -90,23 +91,23 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    // Parse state
-    let stateData: { workspaceId: string; nonce: string };
-    try {
-      stateData = JSON.parse(Buffer.from(stateB64 as string, 'base64').toString());
-    } catch {
-      res.status(400).json({ error: 'Invalid state parameter', code: 'VALIDATION_ERROR' });
+    const stateData = verifyOAuthState(stateB64, 'google');
+    if (!stateData) {
+      sendOAuthJsonError(req, res, 400, 'google', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
-
-    const { workspaceId } = stateData;
+    const { workspaceId, userId } = stateData;
+    if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
+      sendOAuthJsonError(req, res, 403, 'google', 'error', 'workspace_access_denied', 'Workspace access denied');
+      return;
+    }
 
     if (!config.google.clientId || !config.google.clientSecret) {
       res.status(500).json({ error: 'Google OAuth not configured', code: 'CONFIG_ERROR' });
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/google/callback`;
+    const redirectUri = oauthCallbackUrl('google');
 
     // Exchange code for tokens
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
@@ -136,17 +137,21 @@ router.get('/callback', async (req: Request, res: Response) => {
       scope: string;
     };
 
+    if (!tokens.access_token) {
+      logger.error({ body: tokens }, 'Google token exchange returned no access token');
+      res.status(502).json({ error: 'Token exchange failed', code: 'OAUTH_ERROR' });
+      return;
+    }
+
     // Store the Google ad account in the database. The Google Ads customer ID
     // is resolved out-of-band; until then use a stable per-workspace key so
-    // reconnects upsert cleanly against the (workspace_id, platform,
-    // platform_account_id) unique constraint.
+    // reconnects upsert cleanly against the canonical unique constraint.
     const { error: dbError } = await supabase
       .from('ad_accounts')
       .upsert({
         workspace_id: workspaceId,
         platform: 'google',
         platform_account_id: 'google-ads',
-        account_id: 'google-ads',
         name: 'Google Ads',
         oauth_token: tokens.access_token,
         refresh_token: tokens.refresh_token || null,
@@ -155,7 +160,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id,platform,account_id' });
+      }, { onConflict: 'workspace_id,platform,platform_account_id' });
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store Google tokens');
@@ -166,7 +171,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     logger.info({ workspaceId }, 'Google Ads account connected successfully');
 
     // Redirect back to the frontend settings page
-    res.redirect(`${config.frontend.url}/settings?google=connected`);
+    res.redirect(integrationsRedirect('google', 'connected', 'connected'));
   } catch (err) {
     logger.error({ err }, 'Google OAuth callback error');
     res.status(500).json({ error: 'OAuth callback failed', code: 'INTERNAL_ERROR' });

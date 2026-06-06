@@ -7,23 +7,20 @@
  *
  * After successful OAuth, stores tokens in ad_accounts for the workspace.
  */
-import { Router, type Request, type Response } from 'express';
-import { config } from '../../config';
-import { supabase } from '../../lib/supabase';
-import { logger } from '../../lib/logger';
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+import { Router, type Request, type Response } from "express";
+import { config } from "../../config";
+import { supabase } from "../../lib/supabase";
+import { logger } from "../../lib/logger";
+import axios from "axios";
+import { requireAuth, requireAdmin } from "../../middleware/auth";
+import { createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
 
 const router = Router();
-const META_OAUTH_URL = 'https://www.facebook.com/v19.0/dialog/oauth';
-const META_TOKEN_URL = 'https://graph.facebook.com/v19.0/oauth/access_token';
-const META_GRAPH_URL = 'https://graph.facebook.com/v19.0';
+const META_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth";
+const META_TOKEN_URL = "https://graph.facebook.com/v19.0/oauth/access_token";
+const META_GRAPH_URL = "https://graph.facebook.com/v19.0";
 
-const REQUIRED_SCOPES = [
-  'ads_read',
-  'ads_management',
-  'business_management',
-];
+const REQUIRED_SCOPES = ["ads_read", "ads_management", "business_management"];
 
 /**
  * GET /api/v1/auth/meta/connect
@@ -35,42 +32,48 @@ const REQUIRED_SCOPES = [
  *
  * Redirects the user to Meta's OAuth consent page.
  */
-router.get('/connect', (req: Request, res: Response) => {
+router.get("/connect", requireAuth, requireAdmin, (req: Request, res: Response) => {
   try {
-    const workspaceId = (req.query.workspace_id as string) || req.headers['x-workspace-id'] as string;
-    if (!workspaceId) {
-      res.status(400).json({ error: 'workspace_id is required', code: 'VALIDATION_ERROR' });
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: "Workspace mismatch", code: "FORBIDDEN" });
+      return;
+    }
+    const workspaceId = req.workspaceId!;
+
+    if (!config.meta.appId || !config.meta.appSecret) {
+      sendOAuthJsonError(req, res, 500, "meta", "config_error", "missing_meta_oauth_config", "Meta OAuth is not configured");
       return;
     }
 
-    if (!config.meta.appId) {
-      res.status(500).json({ error: 'Meta app not configured', code: 'CONFIG_ERROR' });
-      return;
-    }
-
-    const redirectUri = `${config.frontend.url}/auth/meta/callback`;
-    const state = JSON.stringify({
+    const redirectUri = oauthCallbackUrl('meta');
+    const stateB64 = createOAuthState({
+      platform: "meta",
       workspaceId,
-      accountId: req.query.account_id as string || null,
-      reconnect: req.query.reconnect === 'true',
-      nonce: uuidv4(),
+      userId: req.user!.sub,
+      accountId: (req.query.account_id as string) || null,
+      reconnect: req.query.reconnect === "true",
     });
-    const stateB64 = Buffer.from(state).toString('base64');
 
     const params = new URLSearchParams({
       client_id: config.meta.appId,
       redirect_uri: redirectUri,
-      scope: REQUIRED_SCOPES.join(','),
+      scope: REQUIRED_SCOPES.join(","),
       state: stateB64,
-      response_type: 'code',
+      response_type: "code",
     });
 
     const authUrl = `${META_OAUTH_URL}?${params.toString()}`;
-    logger.info({ workspaceId }, 'Redirecting to Meta OAuth');
+    logger.info({ workspaceId }, "Redirecting to Meta OAuth");
+    if (wantsJson(req)) {
+      res.json({ success: true, data: { redirectUrl: authUrl } });
+      return;
+    }
     res.redirect(authUrl);
   } catch (err) {
-    logger.error({ err }, 'Meta OAuth connect error');
-    res.status(500).json({ error: 'OAuth initiation failed', code: 'INTERNAL_ERROR' });
+    logger.error({ err }, "Meta OAuth connect error");
+    res
+      .status(500)
+      .json({ error: "OAuth initiation failed", code: "INTERNAL_ERROR" });
   }
 });
 
@@ -84,29 +87,53 @@ router.get('/connect', (req: Request, res: Response) => {
  * Exchanges the code for tokens, gets ad accounts,
  * and stores everything in the ad_accounts table.
  */
-router.get('/callback', async (req: Request, res: Response) => {
+router.get("/callback", async (req: Request, res: Response) => {
   try {
-    const { code, state: stateB64 } = req.query;
+    const { code, state: stateB64, error: oauthError } = req.query;
+
+    if (oauthError) {
+      logger.warn({ error: oauthError }, "Meta OAuth denied by user");
+      sendOAuthJsonError(req, res, 400, "meta", "denied", "oauth_denied", "Meta OAuth was denied");
+      return;
+    }
 
     if (!code || !stateB64) {
-      res.status(400).json({ error: 'Missing code or state', code: 'VALIDATION_ERROR' });
+      res
+        .status(400)
+        .json({ error: "Missing code or state", code: "VALIDATION_ERROR" });
       return;
     }
 
-    // Parse state
-    let stateData: { workspaceId: string; accountId: string | null; reconnect: boolean };
-    try {
-      stateData = JSON.parse(Buffer.from(stateB64 as string, 'base64').toString());
-    } catch {
-      res.status(400).json({ error: 'Invalid state parameter', code: 'VALIDATION_ERROR' });
+    const stateData = verifyOAuthState(stateB64, "meta");
+    if (!stateData) {
+      sendOAuthJsonError(req, res, 400, "meta", "error", "invalid_oauth_state", "Invalid OAuth state");
       return;
     }
 
-    const { workspaceId, accountId, reconnect } = stateData;
-    const redirectUri = `${config.frontend.url}/auth/meta/callback`;
+    const { workspaceId, userId, accountId, reconnect } = stateData;
+    if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
+      sendOAuthJsonError(req, res, 403, "meta", "error", "workspace_access_denied", "Workspace access denied");
+      return;
+    }
+    const redirectUri = oauthCallbackUrl('meta');
+
+    let reconnectPlatformAccountId = accountId;
+    if (reconnect && accountId && /^[0-9a-f-]{36}$/i.test(accountId)) {
+      const { data: reconnectAccount } = await supabase
+        .from('ad_accounts')
+        .select('platform_account_id')
+        .eq('id', accountId)
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+      if (!reconnectAccount?.platform_account_id) {
+        sendOAuthJsonError(req, res, 404, "meta", "error", "account_not_found", "Account not found");
+        return;
+      }
+      reconnectPlatformAccountId = reconnectAccount.platform_account_id;
+    }
 
     // Step 1: Exchange code for short-lived token
-    logger.info({ workspaceId }, 'Exchanging Meta OAuth code for token');
+    logger.info({ workspaceId }, "Exchanging Meta OAuth code for token");
     const tokenRes = await axios.get(META_TOKEN_URL, {
       params: {
         client_id: config.meta.appId,
@@ -118,15 +145,17 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const shortLivedToken = tokenRes.data.access_token as string;
     if (!shortLivedToken) {
-      res.status(500).json({ error: 'Failed to obtain access token', code: 'OAUTH_ERROR' });
+      res
+        .status(500)
+        .json({ error: "Failed to obtain access token", code: "OAUTH_ERROR" });
       return;
     }
 
     // Step 2: Exchange for long-lived token (60 days)
-    logger.info({ workspaceId }, 'Exchanging for long-lived token');
+    logger.info({ workspaceId }, "Exchanging for long-lived token");
     const llRes = await axios.get(META_TOKEN_URL, {
       params: {
-        grant_type: 'fb_exchange_token',
+        grant_type: "fb_exchange_token",
         client_id: config.meta.appId,
         client_secret: config.meta.appSecret,
         fb_exchange_token: shortLivedToken,
@@ -134,15 +163,19 @@ router.get('/callback', async (req: Request, res: Response) => {
     });
 
     const accessToken = llRes.data.access_token as string;
+    if (!accessToken) {
+      res.status(500).json({ error: 'Failed to obtain long-lived access token', code: 'OAUTH_ERROR' });
+      return;
+    }
     const expiresIn = (llRes.data.expires_in as number) || 5184000; // default 60 days
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     // Step 3: Fetch ad accounts
-    logger.info({ workspaceId }, 'Fetching Meta ad accounts');
+    logger.info({ workspaceId }, "Fetching Meta ad accounts");
     const accountsRes = await axios.get(`${META_GRAPH_URL}/me/adaccounts`, {
       params: {
         access_token: accessToken,
-        fields: 'id,name,account_status,business_name,currency,timezone_name',
+        fields: "id,name,account_status,business_name,currency,timezone_name",
         limit: 100,
       },
     });
@@ -159,81 +192,83 @@ router.get('/callback', async (req: Request, res: Response) => {
     // Step 4: Store in ad_accounts table
     const results: string[] = [];
     for (const acc of ad_accounts) {
-      if (reconnect && accountId) {
-        // Update existing account
+      if (reconnect && reconnectPlatformAccountId) {
+        if (acc.id !== reconnectPlatformAccountId) continue;
         const { error: updateErr } = await supabase
-          .from('ad_accounts')
+          .from("ad_accounts")
           .update({
             oauth_token: accessToken,
             refresh_token: accessToken, // Meta uses same token refreshed
             token_expires_at: expiresAt,
             scopes: REQUIRED_SCOPES,
-            status: 'active',
+            status: "active",
             is_active: true,
             metadata: {
+              accountName: acc.name || `Meta Ads Account ${acc.id}`,
               business_name: acc.business_name,
               currency: acc.currency,
               timezone: acc.timezone_name,
             },
             updated_at: new Date().toISOString(),
           })
-          .eq('platform_account_id', accountId)
-          .eq('workspace_id', workspaceId);
+          .eq("platform_account_id", reconnectPlatformAccountId)
+          .eq("workspace_id", workspaceId);
 
         if (!updateErr) results.push(acc.id);
       } else if (!reconnect) {
         // Check if account already exists
         const { data: existing } = await supabase
-          .from('ad_accounts')
-          .select('id')
-          .eq('platform_account_id', acc.id)
-          .eq('workspace_id', workspaceId)
+          .from("ad_accounts")
+          .select("id")
+          .eq("platform_account_id", acc.id)
+          .eq("workspace_id", workspaceId)
           .maybeSingle();
 
         if (existing) {
           // Update
           const { error: updateErr } = await supabase
-            .from('ad_accounts')
+            .from("ad_accounts")
             .update({
               oauth_token: accessToken,
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
-              status: 'active',
+              status: "active",
               is_active: true,
               metadata: {
+                accountName: acc.name || `Meta Ads Account ${acc.id}`,
                 business_name: acc.business_name,
                 currency: acc.currency,
                 timezone: acc.timezone_name,
               },
               updated_at: new Date().toISOString(),
             })
-            .eq('id', existing.id);
+            .eq("id", existing.id);
 
           if (!updateErr) results.push(acc.id);
         } else {
           // Insert new
           const { data: inserted, error: insertErr } = await supabase
-            .from('ad_accounts')
+            .from("ad_accounts")
             .insert({
               workspace_id: workspaceId,
-              platform: 'meta',
+              platform: "meta",
               platform_account_id: acc.id,
-              account_id: acc.id,
               name: acc.name || `Meta Ads Account ${acc.id}`,
-              status: acc.account_status === 1 ? 'active' : 'pending',
+              status: acc.account_status === 1 ? "active" : "error",
               oauth_token: accessToken,
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
               is_active: acc.account_status === 1,
               metadata: {
+                accountName: acc.name || `Meta Ads Account ${acc.id}`,
                 business_name: acc.business_name,
                 currency: acc.currency,
                 timezone: acc.timezone_name,
               },
             })
-            .select('id')
+            .select("id")
             .single();
 
           if (!insertErr && inserted) results.push(acc.id);
@@ -241,18 +276,24 @@ router.get('/callback', async (req: Request, res: Response) => {
       }
     }
 
-    logger.info({ workspaceId, accountsAdded: results.length }, 'Meta OAuth complete');
+    logger.info(
+      { workspaceId, accountsAdded: results.length },
+      "Meta OAuth complete",
+    );
 
     // Redirect back to frontend with success
     const frontendParams = new URLSearchParams({
-      platform: 'meta',
-      status: 'connected',
+      platform: "meta",
+      status: results.length > 0 ? "connected" : "no_accounts",
       accounts: results.length.toString(),
+      reason: results.length > 0 ? "connected" : "no_eligible_ad_accounts",
     });
-    res.redirect(`${config.frontend.url}/settings?${frontendParams.toString()}`);
+    res.redirect(
+      `${config.frontend.url}/dashboard/integrations?${frontendParams.toString()}`,
+    );
   } catch (err) {
-    logger.error({ err }, 'Meta OAuth callback error');
-    res.redirect(`${config.frontend.url}/settings?platform=meta&status=error&reason=oauth_failed`);
+    logger.error({ err }, "Meta OAuth callback error");
+    sendOAuthJsonError(req, res, 502, "meta", "error", "oauth_failed", "Meta OAuth callback failed");
   }
 });
 
@@ -262,21 +303,29 @@ router.get('/callback', async (req: Request, res: Response) => {
  * Disconnects a Meta ad account by revoking the stored token.
  * Body: { account_id: string, workspace_id: string }
  */
-router.post('/disconnect', async (req: Request, res: Response) => {
+router.post("/disconnect", requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { account_id, workspace_id } = req.body;
 
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: "Workspace mismatch", code: "FORBIDDEN" });
+      return;
+    }
+
     if (!account_id || !workspace_id) {
-      res.status(400).json({ error: 'account_id and workspace_id required', code: 'VALIDATION_ERROR' });
+      res.status(400).json({
+        error: "account_id and workspace_id required",
+        code: "VALIDATION_ERROR",
+      });
       return;
     }
 
     // Fetch the token
     const { data: account } = await supabase
-      .from('ad_accounts')
-      .select('oauth_token')
-      .eq('platform_account_id', account_id)
-      .eq('workspace_id', workspace_id)
+      .from("ad_accounts")
+      .select("oauth_token")
+      .eq("platform_account_id", account_id)
+      .eq("workspace_id", workspace_id)
       .single();
 
     if (account?.oauth_token) {
@@ -291,15 +340,24 @@ router.post('/disconnect', async (req: Request, res: Response) => {
     }
 
     await supabase
-      .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
-      .eq('platform_account_id', account_id)
-      .eq('workspace_id', workspace_id);
+      .from("ad_accounts")
+      .update({
+        status: "disconnected",
+        is_active: false,
+        oauth_token: null,
+        refresh_token: null,
+        token_expires_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("platform_account_id", account_id)
+      .eq("workspace_id", workspace_id);
 
-    res.json({ success: true, message: 'Meta account disconnected' });
+    res.json({ success: true, message: "Meta account disconnected" });
   } catch (err) {
-    logger.error({ err }, 'Meta disconnect error');
-    res.status(500).json({ error: 'Disconnect failed', code: 'INTERNAL_ERROR' });
+    logger.error({ err }, "Meta disconnect error");
+    res
+      .status(500)
+      .json({ error: "Disconnect failed", code: "INTERNAL_ERROR" });
   }
 });
 

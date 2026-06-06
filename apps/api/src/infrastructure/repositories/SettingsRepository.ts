@@ -2,7 +2,7 @@ import type { ISettingsRepository, TeamMember, Integration, NotificationPreferen
 import type { ApiKey } from '../../domain/entities/ApiKey';
 import type { WorkspaceRole } from '../../domain/entities/User';
 import { query } from '../database/connection';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 export class SettingsRepository implements ISettingsRepository {
   // Workspace
@@ -264,70 +264,112 @@ export class SettingsRepository implements ISettingsRepository {
   }
 
   // Notifications
-  async getNotificationPreferences(_workspaceId: string, _userId: string): Promise<NotificationPreferences | null> {
-    // For now, return defaults — in production this would query a user_prefs table
-    return {
-      email: {
-        campaignAlerts: true,
-        budgetAlerts: true,
-        dailyDigest: false,
-        weeklyReport: true,
-        teamActivity: true,
-        productUpdates: true,
-      },
-      inApp: {
-        campaignAlerts: true,
-        budgetAlerts: true,
-        aiRecommendations: true,
-        teamActivity: true,
-      },
-      slack: {
-        enabled: false,
-        webhookUrl: null,
-        channel: null,
-      },
-    };
+  async getNotificationPreferences(workspaceId: string, userId: string): Promise<NotificationPreferences | null> {
+    const workspace = await this.getWorkspace(workspaceId);
+    if (!workspace) return null;
+
+    const settings = workspace.settings ?? {};
+    const allPrefs = (settings.notificationPreferences as Record<string, NotificationPreferences> | undefined) ?? {};
+    return allPrefs[userId] ?? null;
   }
 
-  async updateNotificationPreferences(_workspaceId: string, _userId: string, _prefs: Partial<NotificationPreferences>): Promise<boolean> {
-    // Placeholder — would update user_prefs table
-    return true;
+  async updateNotificationPreferences(workspaceId: string, userId: string, prefs: Partial<NotificationPreferences>): Promise<boolean> {
+    const workspace = await this.getWorkspace(workspaceId);
+    if (!workspace) return false;
+
+    const defaults: NotificationPreferences = {
+      email: { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true },
+      inApp: { campaignAlerts: true, budgetAlerts: true, aiRecommendations: true, teamActivity: true },
+      slack: { enabled: false, webhookUrl: null, channel: null },
+    };
+
+    const settings = workspace.settings ?? {};
+    const allPrefs = (settings.notificationPreferences as Record<string, NotificationPreferences> | undefined) ?? {};
+    const current = allPrefs[userId] ?? defaults;
+    const next: NotificationPreferences = {
+      email: { ...current.email, ...(prefs.email ?? {}) },
+      inApp: { ...current.inApp, ...(prefs.inApp ?? {}) },
+      slack: { ...current.slack, ...(prefs.slack ?? {}) },
+    };
+
+    return this.updateWorkspace(workspaceId, {
+      settings: {
+        ...settings,
+        notificationPreferences: {
+          ...allPrefs,
+          [userId]: next,
+        },
+      },
+    });
   }
 
   // API Keys
-  async getApiKeys(_workspaceId: string): Promise<ApiKey[]> {
-    // Placeholder — would query api_keys table
-    return [];
+  async getApiKeys(workspaceId: string): Promise<ApiKey[]> {
+    const { rows } = await query<Record<string, unknown>>(
+      `SELECT id, workspace_id, name, key_hash, key_prefix, scopes, status,
+              expires_at, created_by, revoked_by, revoked_at, last_used_at,
+              calls_today, calls_this_month, created_at, updated_at
+         FROM api_keys
+        WHERE workspace_id = $1
+        ORDER BY created_at DESC`,
+      [workspaceId],
+    );
+
+    return rows.map((row) => this.mapApiKey(row));
   }
 
   async createApiKey(workspaceId: string, name: string): Promise<ApiKey & { fullKey: string }> {
-    const keyId = `key_${randomBytes(8).toString('hex')}`;
-    const fullKey = `adnx_${randomBytes(32).toString('hex')}`;
-    const keyPrefix = fullKey.slice(0, 12);
+    const fullKey = `ak_live_${randomBytes(24).toString('base64url')}`;
+    const keyHash = createHash('sha256').update(fullKey).digest('hex');
+    const keyPrefix = `${fullKey.slice(0, 8)}...${fullKey.slice(-4)}`;
+    const scopes = ['read'];
 
-    return {
-      id: keyId,
-      workspaceId,
-      name,
-      keyHash: '',
-      keyPrefix,
-      scopes: [],
-      status: 'active',
-      expiresAt: null,
-      createdBy: null,
-      revokedBy: null,
-      revokedAt: null,
-      lastUsedAt: null,
-      callsToday: 0,
-      callsThisMonth: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      fullKey,
-    };
+    const { rows } = await query<Record<string, unknown>>(
+      `INSERT INTO api_keys (workspace_id, name, key_hash, key_prefix, scopes, status, created_by, calls_today, calls_this_month)
+       VALUES ($1, $2, $3, $4, $5, 'active', NULL, 0, 0)
+       RETURNING id, workspace_id, name, key_hash, key_prefix, scopes, status,
+                 expires_at, created_by, revoked_by, revoked_at, last_used_at,
+                 calls_today, calls_this_month, created_at, updated_at`,
+      [workspaceId, name, keyHash, keyPrefix, scopes],
+    );
+
+    return { ...this.mapApiKey(rows[0]), fullKey };
   }
 
-  async revokeApiKey(_workspaceId: string, _keyId: string): Promise<boolean> {
-    // Placeholder — would delete from api_keys table
-    return true;
+  async revokeApiKey(workspaceId: string, keyId: string): Promise<boolean> {
+    const { rowCount } = await query(
+      `UPDATE api_keys
+          SET status = 'revoked', revoked_at = NOW(), updated_at = NOW()
+        WHERE id = $1 AND workspace_id = $2 AND status = 'active'`,
+      [keyId, workspaceId],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  private mapApiKey(row: Record<string, unknown>): ApiKey {
+    const scopes = Array.isArray(row.scopes)
+      ? row.scopes as string[]
+      : typeof row.scopes === 'string'
+        ? JSON.parse(row.scopes) as string[]
+        : [];
+
+    return {
+      id: row.id as string,
+      workspaceId: row.workspace_id as string,
+      name: row.name as string,
+      keyHash: row.key_hash as string,
+      keyPrefix: row.key_prefix as string,
+      scopes,
+      status: (row.status as ApiKey['status']) ?? 'active',
+      expiresAt: row.expires_at ? new Date(row.expires_at as string) : null,
+      createdBy: (row.created_by as string | null) ?? null,
+      revokedBy: (row.revoked_by as string | null) ?? null,
+      revokedAt: row.revoked_at ? new Date(row.revoked_at as string) : null,
+      lastUsedAt: row.last_used_at ? new Date(row.last_used_at as string) : null,
+      callsToday: Number(row.calls_today ?? 0),
+      callsThisMonth: Number(row.calls_this_month ?? 0),
+      createdAt: row.created_at ? new Date(row.created_at as string) : new Date(),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string) : new Date(),
+    };
   }
 }

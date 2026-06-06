@@ -68,6 +68,14 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_PUBLISHABLE_KEY: z.string().default(''),
+  STRIPE_PRICE_STARTER: z.string().default(''),
+  STRIPE_PRICE_GROWTH: z.string().default(''),
+  STRIPE_PRICE_PRO: z.string().default(''),
+  STRIPE_PRICE_ENTERPRISE: z.string().default(''),
+  STRIPE_PRICE_ID_STARTER: z.string().default(''),
+  STRIPE_PRICE_ID_GROWTH: z.string().default(''),
+  STRIPE_PRICE_ID_PRO: z.string().default(''),
+  STRIPE_PRICE_ID_ENTERPRISE: z.string().default(''),
 
   // MCP
   MCP_API_KEY: z.string().default(''),
@@ -103,6 +111,35 @@ if (!parsedEnv.success) {
 }
 
 const env = parsedEnv.data;
+
+export const BRANCH_PREVIEW_HOST_SUFFIX = '.apps.softblaze.net';
+
+function isAllowedBranchPreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+    if (!hostname.endsWith(BRANCH_PREVIEW_HOST_SUFFIX)) {
+      return false;
+    }
+
+    const previewLabel = hostname.slice(0, -BRANCH_PREVIEW_HOST_SUFFIX.length);
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(previewLabel);
+  } catch {
+    return false;
+  }
+}
+
+export function isAllowedCorsOrigin(origin: string, allowedOrigins: readonly string[]): boolean {
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return isAllowedBranchPreviewOrigin(origin);
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  Typed Config Object
@@ -175,6 +212,12 @@ export const config = {
     secretKey: env.STRIPE_SECRET_KEY,
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
     publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    prices: {
+      starter: env.STRIPE_PRICE_STARTER || env.STRIPE_PRICE_ID_STARTER,
+      growth: env.STRIPE_PRICE_GROWTH || env.STRIPE_PRICE_ID_GROWTH,
+      pro: env.STRIPE_PRICE_PRO || env.STRIPE_PRICE_ID_PRO,
+      enterprise: env.STRIPE_PRICE_ENTERPRISE || env.STRIPE_PRICE_ID_ENTERPRISE,
+    },
   },
 
   mcp: {

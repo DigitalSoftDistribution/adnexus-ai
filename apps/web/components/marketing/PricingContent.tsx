@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, ChevronDown, Sparkles, CreditCard, Shield, Headphones, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Check, X, ChevronDown, Sparkles, Shield, Headphones, CheckCircle2, ArrowRight } from 'lucide-react';
 import { PRICING_TIERS, formatPrice } from '@/lib/marketing/pricing';
 
 const FAQS = [
   {
-    q: 'Can I switch plans or cancel anytime?',
-    a: "Yes. Upgrade, downgrade, or cancel at any time from billing settings. If you cancel, you keep access until the end of your current period.",
+    q: 'Can I switch plans during the v1 pilot?',
+    a: 'Plan changes are handled by our team during v1. Contact sales when you need to change seats, accounts, or pilot scope.',
   },
   {
-    q: 'How does the 14-day free trial work?',
-    a: 'Start any paid plan with a 14-day free trial — no credit card required. At the end you can subscribe, or your account drops to the free tier automatically.',
+    q: 'Is self-serve checkout available?',
+    a: 'Not yet. AdNexus AI v1 is provisioned as a managed pilot so we can verify account access, guardrails, and Meta write permissions before anything goes live.',
   },
   {
     q: 'Does pricing scale with my ad spend?',
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'Which ad platforms are supported?',
-    a: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one unified dashboard.',
+    a: 'Growth is Meta-first: Meta write access plus Google read-only reporting. Scale and Agency add Google write access plus TikTok and Snapchat, so all four major platforms are available in one unified dashboard.',
   },
   {
     q: 'Do you offer agency or volume pricing?',
@@ -79,17 +79,17 @@ export function PricingContent() {
             Pricing that scales with your <span style={{ color: '#c3f53b' }}>strategy</span>, not your spend
           </h1>
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            Start free for 14 days. No credit card required. Your bill never rises just because your ad budget does.
+            Join the managed v1 pilot. Meta execution is launch-ready; Google, TikTok, and Snap are read-only or coming soon. Your bill never rises just because your ad budget does.
           </p>
 
           {/* Toggle */}
           <div className="flex items-center justify-center gap-3">
-            <button type="button" onClick={() => setIsAnnual(false)} className="text-sm font-medium transition-colors" style={{ color: !isAnnual ? '#fff' : 'var(--text-tertiary)' }}>Monthly</button>
+            <button type="button" onClick={() => setIsAnnual(false)} className="text-sm font-medium transition-colors" style={{ color: !isAnnual ? '#fff' : '#d6d9df' }}>Monthly</button>
             <button type="button" onClick={() => setIsAnnual((v) => !v)} aria-label="Toggle annual billing" className="relative w-14 h-7 rounded-full transition-colors duration-300" style={{ background: isAnnual ? '#c3f53b' : 'var(--bg-hover)' }}>
               <motion.div animate={{ x: isAnnual ? 28 : 4 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="absolute top-1 w-5 h-5 rounded-full shadow-md" style={{ background: '#0d0e10' }} />
             </button>
-            <button type="button" onClick={() => setIsAnnual(true)} className="text-sm font-medium transition-colors" style={{ color: isAnnual ? '#fff' : 'var(--text-tertiary)' }}>Annual</button>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ml-1" style={{ background: 'rgba(195,245,59,0.15)', color: '#c3f53b' }}>2 months free</span>
+            <button type="button" onClick={() => setIsAnnual(true)} className="text-sm font-medium transition-colors" style={{ color: isAnnual ? '#fff' : '#d6d9df' }}>Annual</button>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ml-1" style={{ background: 'rgba(195,245,59,0.18)', color: '#e7ff8a' }}>annual invoice available</span>
           </div>
         </div>
       </section>
@@ -98,9 +98,9 @@ export function PricingContent() {
       <section className="pb-10 px-6">
         <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
           {[
-            { icon: <CheckCircle2 size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: '14-day free trial' },
-            { icon: <CreditCard size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'No credit card required' },
-            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Cancel anytime' },
+            { icon: <CheckCircle2 size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Managed v1 pilot' },
+            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Meta launch-ready' },
+            { icon: <Shield size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Managed plan changes' },
             { icon: <Headphones size={15} style={{ color: '#c3f53b' }} aria-hidden="true" />, label: 'Support included' },
           ].map((b) => (
             <div key={b.label} className="flex items-center gap-2 text-xs sm:text-sm" style={{ color: 'var(--text-tertiary)' }}>
@@ -131,7 +131,7 @@ export function PricingContent() {
                 {tier.popular && (
                   <div className="absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-wider uppercase" style={{ background: '#c3f53b', color: '#0d0e10' }}>Most Popular</div>
                 )}
-                <h3 className="text-xl font-semibold text-white mb-1">{tier.name}</h3>
+                <h2 className="text-xl font-semibold text-white mb-1">{tier.name}</h2>
                 <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>{tier.description}</p>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
@@ -191,8 +191,8 @@ export function PricingContent() {
             <h3 className="text-lg font-semibold text-white mb-2">Still have questions?</h3>
             <p className="text-sm mb-5 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>Our team responds within one business day. Reach out and we&apos;ll help you find the right plan.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/auth/signup" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm" style={{ background: '#c3f53b', color: '#0d0e10' }}>
-                Start Free Trial
+              <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm" style={{ background: '#c3f53b', color: '#0d0e10' }}>
+                Request Pilot Access
                 <ArrowRight size={15} aria-hidden="true" />
               </Link>
               <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}>

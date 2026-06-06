@@ -374,7 +374,7 @@ export class Container {
       config.auditLogger,
     );
     this.rejectDraft = new RejectDraftUseCase(config.draftRepository);
-    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository);
+    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository, config.auditLogger);
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);
 
