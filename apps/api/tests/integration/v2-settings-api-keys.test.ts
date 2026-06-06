@@ -35,7 +35,10 @@ describe('V2 runtime mount — /api/v2/settings/api-keys', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, data: [] });
-    expect(v2Query).not.toHaveBeenCalled();
+    expect(v2Query).toHaveBeenCalledWith(
+      expect.stringContaining('FROM api_keys'),
+      [UUIDS.workspace1],
+    );
   });
 
   it('returns 403 for a non-admin workspace role', async () => {
