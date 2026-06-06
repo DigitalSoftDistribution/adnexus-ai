@@ -75,6 +75,7 @@ export function IntegrationsContent() {
   const oauthStatus = searchParams.get("status") ?? searchParams.get("meta");
   const oauthPlatform = searchParams.get("platform") ?? "meta";
   const oauthReason = searchParams.get("reason");
+  const isNoAccountsNotice = oauthStatus === "no_accounts";
 
   async function startOAuthConnect(integration: IntegrationView) {
     const res = await fetch(integration.connectUrl, {
@@ -149,8 +150,8 @@ export function IntegrationsContent() {
       />
 
       {oauthStatus && oauthStatus !== "connected" ? (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant={isNoAccountsNotice ? "default" : "destructive"}>
+          {isNoAccountsNotice ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <AlertTitle>{t("oauthIssueTitle")}</AlertTitle>
           <AlertDescription>
             {t("oauthIssueDescription", {

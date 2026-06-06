@@ -121,8 +121,8 @@ export function createDraftController(container: Container) {
         success: true,
         data: result.data,
         execution: {
-          mode: 'platform',
-          platformApplied: true,
+          mode: 'review_only',
+          platformApplied: false,
         },
       });
     }),

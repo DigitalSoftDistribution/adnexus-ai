@@ -303,9 +303,14 @@ router.get("/callback", async (req: Request, res: Response) => {
  * Disconnects a Meta ad account by revoking the stored token.
  * Body: { account_id: string, workspace_id: string }
  */
-router.post("/disconnect", async (req: Request, res: Response) => {
+router.post("/disconnect", requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { account_id, workspace_id } = req.body;
+
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: "Workspace mismatch", code: "FORBIDDEN" });
+      return;
+    }
 
     if (!account_id || !workspace_id) {
       res.status(400).json({

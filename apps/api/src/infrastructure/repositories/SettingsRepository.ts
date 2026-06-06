@@ -330,7 +330,7 @@ export class SettingsRepository implements ISettingsRepository {
        RETURNING id, workspace_id, name, key_hash, key_prefix, scopes, status,
                  expires_at, created_by, revoked_by, revoked_at, last_used_at,
                  calls_today, calls_this_month, created_at, updated_at`,
-      [workspaceId, name, keyHash, keyPrefix, JSON.stringify(scopes)],
+      [workspaceId, name, keyHash, keyPrefix, scopes],
     );
 
     return { ...this.mapApiKey(rows[0]), fullKey };
