@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'Which ad platforms are supported?',
-    a: 'Meta is launch-ready for v1 execution. Google, TikTok, and Snap are marked as read-only or coming soon while we finish production write support.',
+    a: 'Growth is Meta-first: Meta write access plus Google read-only reporting. Scale and Agency add Google write access plus TikTok and Snapchat, so all four major platforms are available in one unified dashboard.',
   },
   {
     q: 'Do you offer agency or volume pricing?',

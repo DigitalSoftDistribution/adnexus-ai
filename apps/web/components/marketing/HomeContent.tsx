@@ -257,9 +257,9 @@ function ProblemSection() {
 function SolutionPillarsSection() {
   const { ref, isVisible } = useScrollAnimation(0.15);
   const pillars = [
-    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, mark reviewed, then explicitly execute. Your live budget never moves on its own.', accent: '#c3f53b' },
-    { title: 'Talk to your ads in plain English', icon: <Cable size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Built on the open Model Context Protocol, so Claude, ChatGPT, or Cursor connect straight to your accounts. Ask a question, get an answer from live data.', accent: '#c3f53b' },
-    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Meta execution in v1, with Google read-only and TikTok/Snap coming soon. The AI reasons across available signals without pretending every platform has write access.', accent: '#c3f53b' },
+    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, approve or reject. Your live budget never moves on its own.', accent: '#c3f53b' },
+    { title: 'Talk to your ads in plain English', icon: <Cable size={28} style={{ color: '#A78BFA' }} aria-hidden="true" />, description: 'Built on the open Model Context Protocol, so Claude, ChatGPT, or Cursor connect straight to your accounts. Ask a question, get an answer from live data.', accent: '#A78BFA' },
+    { title: 'See every platform clearly', icon: <Globe size={28} style={{ color: '#2563EB' }} aria-hidden="true" />, description: 'Start Meta-first with Google reporting, then add Google write access plus TikTok and Snap on Scale. The AI reasons across connected channels without implying unsupported writes.', accent: '#2563EB' },
   ];
 
   return (
@@ -292,8 +292,8 @@ function SolutionPillarsSection() {
 function HowItWorksSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const steps = [
-    { num: '01', title: 'Connect in two minutes', desc: 'Connect Meta with secure OAuth during the managed pilot. Google is read-only in v1; TikTok and Snap are clearly marked coming soon.', icon: <Globe size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
-    { num: '02', title: 'Let the agent find the wins', desc: 'It watches every account around the clock, spots the budget leaks and tired creative, and writes the fix as a draft. It never publishes on its own.', icon: <BrainCircuit size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
+    { num: '01', title: 'Connect in two minutes', desc: 'Link Meta with secure OAuth, add Google for read-only reporting on Growth, and unlock Google writes plus TikTok/Snap on Scale. No code, no spreadsheets, no waiting on a sales call.', icon: <Globe size={24} style={{ color: '#2563EB' }} aria-hidden="true" />, features: ['One-click OAuth', 'Clear access levels', 'Secure tokens'] },
+    { num: '02', title: 'Let the agent find the wins', desc: 'It watches every account around the clock, spots the budget leaks and tired creative, and writes the fix as a draft. It never publishes on its own.', icon: <BrainCircuit size={24} style={{ color: '#A78BFA' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
     { num: '03', title: 'Approve with one click', desc: 'Read each draft and the reasoning behind it, tweak if you want, then approve. Every action is logged for a full audit trail.', icon: <CheckCircle2 size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click approve', 'Edit drafts', 'Full audit trail'] },
   ];
 
