@@ -4,12 +4,15 @@ import { NextIntlClientProvider } from 'next-intl';
 import { SignInForm } from './SignInForm';
 import messages from '@/messages/en.json';
 
-const push = vi.fn();
-const refresh = vi.fn();
+const locationAssign = vi.fn();
+
+Object.defineProperty(window, 'location', {
+  value: { ...window.location, assign: locationAssign },
+  writable: true,
+});
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => <a href={href} {...props}>{children}</a>,
-  useRouter: () => ({ push, refresh }),
 }));
 
 function renderForm() {
@@ -22,8 +25,7 @@ function renderForm() {
 
 describe('SignInForm', () => {
   beforeEach(() => {
-    push.mockReset();
-    refresh.mockReset();
+    locationAssign.mockReset();
     localStorage.clear();
   });
 
@@ -31,7 +33,7 @@ describe('SignInForm', () => {
     vi.unstubAllGlobals();
   });
 
-  it('routes users without completed onboarding to onboarding', async () => {
+  it('routes signed-in users to the localized dashboard', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { token: 'token-123', user: { onboardingCompleted: false } } }),
@@ -42,12 +44,11 @@ describe('SignInForm', () => {
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret123' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/onboarding'));
-    expect(push).not.toHaveBeenCalledWith('/dashboard');
+    await waitFor(() => expect(locationAssign).toHaveBeenCalledWith('/en/dashboard'));
     expect(localStorage.getItem('adnexus_token')).toBe('token-123');
   });
 
-  it('routes returning users with completed onboarding to dashboard', async () => {
+  it('routes returning users to the localized dashboard', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { token: 'token-456', user: { onboardingCompleted: true } } }),
@@ -58,8 +59,7 @@ describe('SignInForm', () => {
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret123' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
-    expect(push).not.toHaveBeenCalledWith('/onboarding');
+    await waitFor(() => expect(locationAssign).toHaveBeenCalledWith('/en/dashboard'));
     expect(localStorage.getItem('adnexus_token')).toBe('token-456');
   });
 });

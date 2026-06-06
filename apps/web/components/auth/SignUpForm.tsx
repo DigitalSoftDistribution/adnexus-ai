@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function SignUpForm() {
-  const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations('auth');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,14 +44,7 @@ export function SignUpForm() {
         return;
       }
       localStorage.setItem('adnexus_token', token);
-      const onboardingCompleted = Boolean(
-        data?.data?.user?.onboardingCompleted ??
-          data?.user?.onboardingCompleted ??
-          data?.data?.onboarding?.completed ??
-          data?.onboarding?.completed,
-      );
-      router.push(onboardingCompleted ? '/dashboard' : '/onboarding');
-      router.refresh();
+      window.location.assign(`/${locale}/onboarding`);
     } catch {
       setError(t('unexpectedError'));
     } finally {
