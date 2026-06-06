@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'Which ad platforms are supported?',
-    a: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one unified dashboard.',
+    a: 'Growth is Meta-first: Meta write access plus Google read-only reporting. Scale and Agency add Google write access plus TikTok and Snapchat, so all four major platforms are available in one unified dashboard.',
   },
   {
     q: 'Do you offer agency or volume pricing?',
