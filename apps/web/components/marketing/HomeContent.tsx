@@ -88,7 +88,7 @@ function HeroSection() {
               className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold rounded-lg transition-all duration-150 hover:scale-[1.02]"
               style={{ background: '#c3f53b', color: '#0a0a0a' }}
             >
-              Start Free Trial
+              Request Pilot Access
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link
@@ -108,7 +108,7 @@ function HeroSection() {
             className="text-xs mb-10"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            No credit card required &bull; 2-minute setup &bull; Cancel anytime
+            Sales-led provisioning &bull; 2-minute setup &bull; Cancel anytime
           </motion.p>
 
           <motion.div
@@ -257,9 +257,9 @@ function ProblemSection() {
 function SolutionPillarsSection() {
   const { ref, isVisible } = useScrollAnimation(0.15);
   const pillars = [
-    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, approve or reject. Your live budget never moves on its own.', accent: '#c3f53b' },
+    { title: 'Approve before anything ships', icon: <CheckCircle2 size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Every change the AI proposes arrives as a draft. Read the reasoning, edit a number, mark reviewed, then explicitly execute. Your live budget never moves on its own.', accent: '#c3f53b' },
     { title: 'Talk to your ads in plain English', icon: <Cable size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Built on the open Model Context Protocol, so Claude, ChatGPT, or Cursor connect straight to your accounts. Ask a question, get an answer from live data.', accent: '#c3f53b' },
-    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Meta, Google, TikTok, and Snap in a single view. The AI reasons across them together and moves budget to whatever is working this week.', accent: '#c3f53b' },
+    { title: 'See all four platforms as one', icon: <Globe size={28} style={{ color: '#c3f53b' }} aria-hidden="true" />, description: 'Meta execution in v1, with Google read-only and TikTok/Snap coming soon. The AI reasons across available signals without pretending every platform has write access.', accent: '#c3f53b' },
   ];
 
   return (
@@ -292,7 +292,7 @@ function SolutionPillarsSection() {
 function HowItWorksSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const steps = [
-    { num: '01', title: 'Connect in two minutes', desc: 'Link Meta, Google, TikTok, and Snap with secure OAuth. No code, no spreadsheets, no waiting on a sales call.', icon: <Globe size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
+    { num: '01', title: 'Connect in two minutes', desc: 'Connect Meta with secure OAuth during the managed pilot. Google is read-only in v1; TikTok and Snap are clearly marked coming soon.', icon: <Globe size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click OAuth', '4 platforms', 'Secure tokens'] },
     { num: '02', title: 'Let the agent find the wins', desc: 'It watches every account around the clock, spots the budget leaks and tired creative, and writes the fix as a draft. It never publishes on its own.', icon: <BrainCircuit size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['24/7 monitoring', 'Predictive insights', 'Draft generation'] },
     { num: '03', title: 'Approve with one click', desc: 'Read each draft and the reasoning behind it, tweak if you want, then approve. Every action is logged for a full audit trail.', icon: <CheckCircle2 size={24} style={{ color: '#c3f53b' }} aria-hidden="true" />, features: ['One-click approve', 'Edit drafts', 'Full audit trail'] },
   ];
@@ -339,7 +339,7 @@ function FeaturesGridSection() {
     { title: 'Competitive Intel', desc: 'Track competitor ad activity, spending patterns, and creative strategies across platforms.', icon: <Eye size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
     { title: 'Budget Pacing', desc: 'Smart budget allocation across campaigns and platforms to maximize ROAS throughout the month.', icon: <Wallet size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
     { title: 'Approval Workflows', desc: 'Multi-tier approval chains. Junior reviewers suggest, seniors approve. Full audit trails.', icon: <CheckCircle2 size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
-    { title: 'Cross-Platform Reporting', desc: 'Unified dashboards aggregating performance across Meta, Google, TikTok, and Snap in real-time.', icon: <BarChart2 size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
+    { title: 'Cross-Platform Reporting', desc: 'Unified dashboards aggregating Meta performance now, with Google, TikTok, and Snap marked read-only or coming soon as support expands.', icon: <BarChart2 size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
     { title: 'MCP Integration', desc: 'Native MCP server support. Works with Claude, ChatGPT, Cursor, and any MCP-compatible client.', icon: <Cable size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
   ];
 
@@ -442,7 +442,7 @@ function WhyAdNexusSection() {
   const { ref, isVisible } = useScrollAnimation(0.2);
   const points = [
     { title: 'vs MCP-only tools', desc: 'Chat connectors like Pipeboard have no dashboard and no governance. AdNexus pairs the AI with a visual workspace and draft approvals.', icon: <Cpu size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
-    { title: 'vs Meta-only platforms', desc: 'Madgicx optimizes one platform. AdNexus coordinates Meta, Google, TikTok, and Snap from a single brain.', icon: <Globe size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
+    { title: 'vs Meta-only platforms', desc: 'Madgicx optimizes one platform. AdNexus starts with Meta execution and a clear cross-platform roadmap instead of overstating launch scope.', icon: <Globe size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
     { title: 'vs manual rule engines', desc: 'Rule-based tools make you write every trigger by hand. AdNexus is AI-native — it proposes the changes, you approve them.', icon: <BrainCircuit size={22} style={{ color: '#c3f53b' }} aria-hidden="true" /> },
   ];
 
@@ -555,7 +555,7 @@ function FinalCTASection() {
         <FadeIn delay={0.2}>
           <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
             <Link href="/auth/signup" className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-all duration-150 hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
-              Start Free Trial
+              Request Pilot Access
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-150 hover:text-white" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
@@ -564,7 +564,7 @@ function FinalCTASection() {
           </div>
         </FadeIn>
         <FadeIn delay={0.4}>
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No credit card required</p>
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Sales-led provisioning</p>
         </FadeIn>
       </div>
     </section>

@@ -5,15 +5,15 @@ import { PageHero, Section, CtaBand, WorkflowSteps } from '@/components/marketin
 export const metadata: Metadata = {
   title: 'Integrations',
   description:
-    'AdNexus AI connects to Meta, Google, TikTok, and Snap ad platforms, plus MCP clients like Claude and ChatGPT, Slack alerts, and an API for custom workflows.',
+    'AdNexus AI v1 launches with Meta Ads execution, plus read-only/coming-soon coverage for Google, TikTok, and Snap, MCP clients like Claude and ChatGPT, Slack alerts, and an API roadmap for custom workflows.',
   alternates: { canonical: '/integrations' },
 };
 
 const PLATFORMS = [
-  { name: 'Meta Ads', color: '#1877F2', detail: 'Facebook & Instagram — full write access' },
-  { name: 'Google Ads', color: '#DB4437', detail: 'Search, Display, PMax, Demand Gen' },
-  { name: 'TikTok Ads', color: '#00F2EA', detail: 'Campaign, ad group, creative management' },
-  { name: 'Snap Ads', color: '#FFFC00', detail: 'Snap, Story & Collection Ads' },
+  { name: 'Meta Ads', color: '#1877F2', detail: 'Facebook & Instagram — launch-ready write access' },
+  { name: 'Google Ads', color: '#DB4437', detail: 'Search, Display, PMax — read-only in v1' },
+  { name: 'TikTok Ads', color: '#00F2EA', detail: 'Coming soon for managed write access' },
+  { name: 'Snap Ads', color: '#FFFC00', detail: 'Coming soon for managed write access' },
 ];
 
 const TOOLS = [
@@ -61,7 +61,7 @@ export default function Page() {
             { title: 'Authorize over OAuth', desc: 'Click connect and approve access through each platform\u2019s official OAuth screen. We never see or store your passwords.' },
             { title: 'We request only what we need', desc: 'Scopes are least-privilege. Tokens are encrypted at rest and can be revoked from your settings or the platform at any time.' },
             { title: 'The agent reads, then drafts', desc: 'AdNexus pulls live data through official APIs and the MCP layer, then stages every proposed change as a draft.' },
-            { title: 'You stay in control', desc: 'Nothing writes back to a live campaign until you approve it, and every action is recorded in the audit trail.' },
+            { title: 'You stay in control', desc: 'Nothing writes back to a live Meta campaign until you explicitly execute an approved draft, and every action is recorded in the audit trail.' },
           ]}
         />
       </Section>

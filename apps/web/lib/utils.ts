@@ -20,7 +20,7 @@ export function formatPercent(value: number, decimals = 2): string {
   return `${(value * 100).toFixed(decimals)}%`;
 }
 
-export function formatDate(date: string | Date, locale = 'en-US'): string {
+export function formatDate(date: string | Date, locale = Intl.DateTimeFormat().resolvedOptions().locale): string {
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: 'short',

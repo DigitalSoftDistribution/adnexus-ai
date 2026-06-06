@@ -6,17 +6,46 @@
  * interface so use-cases stay independent of the ai-engine + persistence.
  */
 
+export interface AgentRecommendationEvidenceMetric {
+  metric: string;
+  value: number | string;
+  baseline?: number | string;
+  changePct?: number;
+  unit?: string;
+  source: string;
+}
+
+export interface AgentRecommendationTargetEntity {
+  type: string;
+  id: string;
+}
+
+export interface AgentRecommendationProposedChange {
+  field: string;
+  currentValue?: unknown;
+  proposedValue: unknown;
+}
+
 export interface AgentRecommendation {
   id: string;
   type: string;
   title: string;
   description: string;
   campaignId: string | null;
+  targetEntity: AgentRecommendationTargetEntity;
+  explanation: string;
+  evidenceMetrics: AgentRecommendationEvidenceMetric[];
   platform: string;
   estimatedImpact: string;
   confidence: string;
+  riskLevel: 'low' | 'medium' | 'high';
   priority: number;
   status: 'pending' | 'applied' | 'dismissed';
+  proposedChanges: AgentRecommendationProposedChange[];
+  rollbackCondition: string;
+  model: string;
+  modelVersion: string;
+  source: string;
   reasoning: string;
   createdAt: string;
   expiresAt: string | null;

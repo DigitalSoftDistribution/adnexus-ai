@@ -65,6 +65,10 @@ pnpm build
 
 See `apps/api/src/config/index.ts` and `apps/web/.env.example` for required variables.
 
+## Launch readiness
+
+The v1 launch safety net lives in `docs/V1_LAUNCH_READINESS.md`. Run `pnpm smoke:v1 -- --base-url <api-url> --web-url <web-url>` against a deployed preview before go/no-go.
+
 ## License
 
 MIT

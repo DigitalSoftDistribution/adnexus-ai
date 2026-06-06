@@ -61,8 +61,8 @@ export function FeatureCard({
 export function CtaBand({
   title = 'Ready to transform your ad workflow?',
   subtitle = 'Start managing campaigns smarter — with full control over every AI-generated change.',
-  primaryLabel = 'Start Free Trial',
-  primaryHref = '/auth/signup',
+  primaryLabel = 'Request Pilot Access',
+  primaryHref = '/contact',
   secondaryLabel = 'View pricing',
   secondaryHref = '/pricing',
 }: {
@@ -275,18 +275,18 @@ export function StepTimeline({
     <div className="relative max-w-4xl mx-auto">
       {/* Connecting line */}
       <div className="absolute left-6 top-8 bottom-8 w-px hidden md:block" style={{ background: 'var(--border-subtle)' }} />
-      
+
       <div className="space-y-8">
         {steps.map((step, i) => (
           <div key={step.title} className="relative flex gap-6 items-start">
             {/* Numbered circle */}
-            <div 
+            <div
               className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
               style={{ background: 'rgba(195,245,59,0.1)', border: '2px solid rgba(195,245,59,0.3)', color: '#c3f53b' }}
             >
               {i + 1}
             </div>
-            
+
             {/* Content */}
             <div className="flex-1 pt-2">
               <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
