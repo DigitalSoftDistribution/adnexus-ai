@@ -7,6 +7,10 @@ import {
   handleWebhookEvent,
   retrieveInvoices,
   stripe,
+  getConfiguredPlans,
+  getPlanForPrice,
+  isBillingCheckoutConfigured,
+  isStripeSecretConfigured,
 } from "../services/stripe";
 import { db } from "../db";
 import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
@@ -70,6 +74,29 @@ router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
   }
 });
 
+// ─── GET /billing/plans — configured launch-safe paid plans ───
+router.get("/plans", requireAuth, requireWorkspace, async (_req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        billingEnabled: isBillingCheckoutConfigured(),
+        stripeConfigured: isStripeSecretConfigured(),
+        plans: getConfiguredPlans().map(({ plan, priceId, limits }) => ({
+          plan,
+          priceId,
+          credits: limits,
+        })),
+        message: isBillingCheckoutConfigured()
+          ? null
+          : "Billing checkout is not configured. Set Stripe secret and price mapping environment variables before enabling upgrades.",
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── POST /billing/checkout — create Stripe Checkout session ───
 router.post("/checkout", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
@@ -79,6 +106,14 @@ router.post("/checkout", requireAuth, requireWorkspace, async (req, res, next) =
 
     if (!priceId) {
       throw new HttpError(400, "Price ID is required");
+    }
+
+    if (!isBillingCheckoutConfigured()) {
+      throw new HttpError(503, "Billing checkout is not configured");
+    }
+
+    if (!getPlanForPrice(priceId)) {
+      throw new HttpError(400, "Unknown Stripe price ID");
     }
 
     // Fetch workspace

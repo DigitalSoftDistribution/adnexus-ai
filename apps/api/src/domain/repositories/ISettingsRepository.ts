@@ -16,7 +16,7 @@ export interface Integration {
   id: string;
   platform: string;
   name: string;
-  status: 'connected' | 'disconnected' | 'expired' | 'error';
+  status: 'active' | 'connected' | 'disconnected' | 'expired' | 'error';
   accountId: string | null;
   accountName: string | null;
   connectedAt: string | null;

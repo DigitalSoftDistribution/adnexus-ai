@@ -285,10 +285,10 @@ export function CompareAdKitContent() {
               See Your Ad Opportunities <span className="text-sky-400">Today</span>
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-zinc-400">
-              Get a free AI-powered audit of your ad accounts. No credit card required.
+              Request a managed v1 pilot audit of your Meta ad account. Google, TikTok, and Snap are clearly marked read-only or coming soon until production write support is ready.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <Link href="/auth/signup" className="rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400">
+              <Link href="/contact" className="rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400">
                 Start Free Audit
               </Link>
               <Link href="/compare/pipeboard" className="rounded-lg border border-white/10 px-8 py-3 font-semibold text-zinc-300 transition hover:bg-white/5">

@@ -40,4 +40,4 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
 CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(key_hash) WHERE status = 'active';
 
 -- Comment on table
-cOMMENT ON TABLE api_keys IS 'Stores API keys for programmatic workspace access. Full keys are never stored; only SHA-256 hashes and display prefixes are kept.';
+COMMENT ON TABLE api_keys IS 'Stores API keys for programmatic workspace access. Full keys are never stored; only SHA-256 hashes and display prefixes are kept.';

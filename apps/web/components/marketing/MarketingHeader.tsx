@@ -139,11 +139,11 @@ export function MarketingHeader() {
             Sign in
           </Link>
           <Link
-            href="/auth/signup"
+            href="/contact"
             className="inline-flex items-center px-4 py-2 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]"
             style={{ background: 'var(--accent)', color: '#0a0a0a' }}
           >
-            Start Free Trial
+            Request Pilot Access
           </Link>
         </div>
 
@@ -221,11 +221,11 @@ export function MarketingHeader() {
                 Sign in
               </Link>
               <Link
-                href="/auth/signup"
+                href="/contact"
                 className="w-full text-center px-4 py-3 text-sm font-bold rounded-lg"
                 style={{ background: 'var(--accent)', color: '#0a0a0a' }}
               >
-                Start Free Trial
+                Request Pilot Access
               </Link>
             </div>
           </div>

@@ -29,12 +29,13 @@ export class SyncAdAccountUseCase {
       return err(new NotFoundError('Ad account'));
     }
 
-    if (adAccount.status === 'DISCONNECTED') {
+    if (adAccount.status === 'disconnected') {
       return err(new ForbiddenError('Cannot sync a disconnected ad account'));
     }
 
     const syncedAccount = await this.adAccountRepo.update(adAccount.id, {
       metadata: { ...adAccount.metadata, lastSyncAt: new Date().toISOString() },
+      lastSyncedAt: new Date(),
     });
 
     await this.auditLogger.log({
