@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +73,7 @@ export function CampaignsContent() {
   const { campaigns, isLoading, isError, refetch, search, setSearch } = useCampaigns();
   const t = useTranslations('campaigns');
   const tc = useTranslations('common');
+  const locale = useLocale();
 
   const columns: DataTableColumn<Campaign>[] = [
     {
@@ -105,21 +106,21 @@ export function CampaignsContent() {
       id: 'spend',
       header: tc('spend'),
       align: 'right',
-      accessor: (c) => formatCurrency(c.spend),
+      accessor: (c) => formatCurrency(c.spend, 'USD', locale),
       sortValue: (c) => c.spend,
     },
     {
       id: 'impressions',
       header: tc('impressions'),
       align: 'right',
-      accessor: (c) => formatNumber(c.impressions),
+      accessor: (c) => formatNumber(c.impressions, locale),
       sortValue: (c) => c.impressions,
     },
     {
       id: 'clicks',
       header: tc('clicks'),
       align: 'right',
-      accessor: (c) => formatNumber(c.clicks),
+      accessor: (c) => formatNumber(c.clicks, locale),
       sortValue: (c) => c.clicks,
     },
     {
@@ -132,7 +133,7 @@ export function CampaignsContent() {
     {
       id: 'period',
       header: tc('period'),
-      accessor: (c) => (c.startDate ? formatDate(c.startDate) : '-'),
+      accessor: (c) => (c.startDate ? formatDate(c.startDate, locale) : '-'),
     },
   ];
 

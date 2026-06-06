@@ -1,8 +1,9 @@
 import type { IAutomationRuleRepository, AutomationRuleListResult } from '../../../domain/repositories/IAutomationRuleRepository';
-import { Result, ok } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
 
 interface ListAutomationRulesInput {
   workspaceId: string;
+  userRole: string;
   status?: string | string[];
   triggerType?: string;
   search?: string;
@@ -14,6 +15,10 @@ export class ListAutomationRulesUseCase {
   constructor(private readonly automationRuleRepository: IAutomationRuleRepository) {}
 
   async execute(input: ListAutomationRulesInput): Promise<Result<AutomationRuleListResult>> {
+    if (!['owner', 'admin', 'editor', 'viewer'].includes(input.userRole)) {
+      return err(new ForbiddenError('Insufficient permissions'));
+    }
+
     const result = await this.automationRuleRepository.list({
       workspaceId: input.workspaceId,
       status: input.status as any,

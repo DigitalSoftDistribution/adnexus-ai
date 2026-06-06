@@ -4,7 +4,9 @@ import { Globe, BarChart3, Layers, Link2 } from 'lucide-react';
 
 export const metadata = {
   title: 'Integrations',
-  description: 'Connect AdNexus AI with your favorite tools — Meta, Google, TikTok, Snap, and more.',
+  description:
+    'Connect AdNexus AI to Meta Ads execution, read-only Google Ads coverage, coming-soon TikTok and Snap support, MCP clients, and your internal workflows.',
+  alternates: { canonical: '/integrations' },
 };
 
 export default function IntegrationsPage() {
@@ -13,7 +15,7 @@ export default function IntegrationsPage() {
       <PageHero
         badge="Integrations"
         title={<>Connect your <span className="text-gradient">entire stack</span></>}
-        subtitle="AdNexus AI integrates with the platforms and tools you already use."
+        subtitle="AdNexus AI connects launch-ready Meta execution with read-only and coming-soon platform coverage, MCP clients, and your internal workflows."
       />
 
       <Section>
@@ -23,22 +25,22 @@ export default function IntegrationsPage() {
               {
                 icon: Globe,
                 title: 'Meta Ads',
-                description: 'Full support for Facebook, Instagram, Messenger, and Audience Network.',
+                description: 'Facebook and Instagram campaign execution is launch-ready for the managed v1 pilot.',
               },
               {
                 icon: BarChart3,
                 title: 'Google Ads',
-                description: 'Search, Display, YouTube, Shopping, and Performance Max.',
+                description: 'Search, Display, YouTube, Shopping, and Performance Max are read-only in v1.',
               },
               {
                 icon: Layers,
                 title: 'TikTok Ads',
-                description: 'In-Feed, TopView, Spark Ads, and Shopping Ads.',
+                description: 'TikTok Ads support is coming soon for managed write access.',
               },
               {
                 icon: Link2,
                 title: 'Snapchat Ads',
-                description: 'Snap Ads, Story Ads, Collection Ads, and Dynamic Ads.',
+                description: 'Snap Ads support is coming soon for managed write access.',
               },
             ].map((item) => (
               <StaggerItem key={item.title}>
@@ -51,7 +53,7 @@ export default function IntegrationsPage() {
 
       <CtaBand
         title="Need a custom integration?"
-        subtitle="Our API and engineering team can build connections to your internal tools."
+        subtitle="Talk to us about MCP clients, Slack alerts, API access, and internal workflow connections."
         cta="Contact Sales"
         ctaHref="/contact"
         variant="dark"

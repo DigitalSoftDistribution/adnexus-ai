@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ScrollText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -22,6 +22,7 @@ interface AuditEntry {
 export function AuditLogContent() {
   const t = useTranslations('auditLog');
   const tc = useTranslations('common');
+  const locale = useLocale();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['audit-log', 'list'],
@@ -53,7 +54,7 @@ export function AuditLogContent() {
       id: 'date',
       header: tc('created'),
       align: 'right',
-      accessor: (e) => formatDate(e.created_at),
+      accessor: (e) => formatDate(e.created_at, locale),
       sortValue: (e) => e.created_at,
     },
   ];

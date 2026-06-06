@@ -45,15 +45,13 @@ jest.mock('stripe', () => {
 // Configure the price->plan map BEFORE importing the service.
 process.env.STRIPE_PRICE_GROWTH = GROWTH_PRICE;
 
-import { handleWebhookEvent, PRICE_TO_PLAN } from '../../src/services/stripe';
+import { handleWebhookEvent } from '../../src/services/stripe';
 
 describe('E2E: billing plan-upgrade -> Stripe webhook -> credits', () => {
   const WORKSPACE_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1';
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Make the growth price resolve to a known plan for the assertion.
-    PRICE_TO_PLAN[GROWTH_PRICE] = 'growth';
   });
 
   it('checkout.session.completed upgrades plan, provisions credits, resets usage', async () => {

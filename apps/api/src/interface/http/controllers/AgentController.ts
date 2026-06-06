@@ -19,6 +19,7 @@ export function createAgentController(container: Container) {
     listRules: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.listAutomationRules.execute({
         workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
         status: req.query.status as string | string[] | undefined,
         triggerType: req.query.triggerType as string | undefined,
         search: req.query.search as string | undefined,
@@ -37,6 +38,7 @@ export function createAgentController(container: Container) {
       const result = await container.getAutomationRuleById.execute({
         ruleId: req.params.id,
         workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
       });
 
       if (!result.success) {

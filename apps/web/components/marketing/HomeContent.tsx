@@ -44,7 +44,7 @@ export function HomeContent() {
             <FadeIn delay={0.3}>
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Button size="lg" asChild>
-                  <Link href="/auth/signup">Start Free Trial</Link>
+                  <Link href="/contact">Talk to Sales</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link href="/features/ai-agent">See How It Works</Link>
@@ -247,13 +247,13 @@ export function HomeContent() {
                 icon: Shield,
                 title: 'Brand Safety',
                 description: 'Automated checks ensure every ad meets your brand guidelines.',
-                href: '/features/brand-safety',
+                href: '/features',
               },
               {
                 icon: TrendingUp,
                 title: 'Attribution',
                 description: 'Cross-platform attribution modeling to understand true campaign impact.',
-                href: '/features/attribution',
+                href: '/features',
               },
             ].map((item) => (
               <StaggerItem key={item.title}>
@@ -293,9 +293,9 @@ export function HomeContent() {
       {/* ─── Final CTA ─── */}
       <CtaBand
         title="Ready to transform your advertising?"
-        subtitle="Join thousands of marketers who use AdNexus AI to run smarter campaigns."
-        cta="Start Free Trial"
-        ctaHref="/auth/signup"
+        subtitle="Bring AI-assisted campaign monitoring and draft approvals into your team workflow."
+        cta="Talk to Sales"
+        ctaHref="/contact"
         secondaryCta="Talk to Sales"
         secondaryCtaHref="/contact"
       />

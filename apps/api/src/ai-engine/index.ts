@@ -127,14 +127,40 @@ export interface SignificanceResult {
 }
 
 /** Base recommendation */
+export type RecommendationRiskLevel = 'low' | 'medium' | 'high';
+
+export interface RecommendationEvidenceMetric {
+  metric: string;
+  value: number | string;
+  baseline?: number | string;
+  changePct?: number;
+  unit?: string;
+  source: string;
+}
+
+export interface RecommendationTargetEntity {
+  type: 'campaign' | 'adset' | 'ad' | 'audience' | 'workspace';
+  id: string;
+}
+
+export interface RecommendationProposedChange {
+  field: string;
+  currentValue?: unknown;
+  proposedValue: unknown;
+}
+
 export interface Recommendation {
   id: string;
   workspaceId: string;
   type: 'budget_reallocation' | 'creative_refresh' | 'audience_optimization' | 'bid_adjustment' | 'status_change' | 'rule_suggestion';
   title: string;
   description: string;
+  targetEntity: RecommendationTargetEntity;
+  explanation: string;
+  evidenceMetrics: RecommendationEvidenceMetric[];
   priority: number;          // 1-100, higher = more urgent
   confidence: 'high' | 'medium' | 'low';
+  riskLevel: RecommendationRiskLevel;
   estimatedImpact: {
     metric: string;
     direction: 'increase' | 'decrease';
@@ -142,10 +168,15 @@ export interface Recommendation {
     unit: string;
   };
   campaignIds: string[];
+  proposedChanges: RecommendationProposedChange[];
+  rollbackCondition: string;
   platform: Platform;
   reasoning: string;
+  model: string;
+  modelVersion: string;
+  source: 'deterministic-rules' | 'model' | 'platform-sync';
   createdAt: string;
-  expiresAt?: string;
+  expiresAt: string;
 }
 
 /** Budget-specific recommendation */
@@ -1359,8 +1390,26 @@ export class RecommendationGenerator {
       },
       campaignIds: [...topPerformers.map((t) => t.campaign.id), ...lowPerformers.map((l) => l.campaign.id)],
       platform: topPerformers[0]?.campaign.platform ?? 'meta',
+      targetEntity: { type: 'workspace', id: workspaceId },
+      explanation: `Budget should move from lower marginal ROAS campaigns to higher marginal ROAS campaigns.`,
+      evidenceMetrics: [
+        { metric: 'top_marginal_roas', value: Number(avgTopRoas.toFixed(2)), unit: 'x', source: 'campaign_metrics' },
+        { metric: 'low_marginal_roas', value: Number(avgLowRoas.toFixed(2)), unit: 'x', source: 'campaign_metrics' },
+        { metric: 'expected_roas_improvement', value: Number(expectedImprovement.toFixed(1)), unit: '%', source: 'recommendation_engine' },
+      ],
+      riskLevel: expectedImprovement > 50 ? 'high' : 'medium',
+      proposedChanges: Object.entries(proposedAllocation).map(([campaignId, budget]) => ({
+        field: 'daily_budget',
+        currentValue: currentAllocation[campaignId],
+        proposedValue: budget,
+      })),
+      rollbackCondition: 'Rollback if ROAS drops below pre-change baseline or spend pacing exceeds approved budget after execution.',
       reasoning: `Top campaigns show marginal ROAS of ${avgTopRoas.toFixed(2)}x vs ${avgLowRoas.toFixed(2)}x for low performers. Reallocating budget improves blended ROAS by ~${expectedImprovement.toFixed(1)}%.`,
+      model: 'adnexus-recommendation-engine',
+      modelVersion: 'v1',
+      source: 'deterministic-rules',
       createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       currentAllocation,
       proposedAllocation,
       marginalRoas: marginalRoasMap,
@@ -1406,8 +1455,22 @@ export class RecommendationGenerator {
       },
       campaignIds: campaigns.filter((c) => fatiguedAds.some((a) => a.adset_id === c.id)).map((c) => c.id),
       platform: campaigns[0]?.platform ?? 'meta',
+      targetEntity: { type: 'ad', id: fatiguedAds[0]?.id ?? workspaceId },
+      explanation: 'Creative fatigue signals indicate the current ads need a human-approved refresh draft before any platform changes.',
+      evidenceMetrics: fatiguedAds.map((ad) => ({
+        metric: 'fatigue_score',
+        value: ad.fatigue_score,
+        source: 'creative_fatigue_detector',
+      })),
+      riskLevel: fatiguedAds.some((a) => a.fatigue_status === 'critical') ? 'medium' : 'low',
+      proposedChanges: [{ field: 'creative_variations', proposedValue: 'Create and review refreshed creative variants' }],
+      rollbackCondition: 'Rollback if refreshed creative CTR or conversion rate underperforms the original creative baseline.',
       reasoning: `Creative fatigue detected: CTR declining while frequency rises. Refreshing creatives can restore performance to baseline levels.`,
+      model: 'adnexus-recommendation-engine',
+      modelVersion: 'v1',
+      source: 'deterministic-rules',
       createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       adIds: fatiguedAds.map((a) => a.id),
       fatigueScores,
       suggestedVariations: [
@@ -1456,8 +1519,21 @@ export class RecommendationGenerator {
       },
       campaignIds: [...new Set(adsets.map((a: Record<string, unknown>) => a.campaign_id as string))],
       platform: 'meta',
+      targetEntity: { type: 'audience', id: String(adsets[0]?.id ?? workspaceId) },
+      explanation: 'Audience overlap creates internal auction competition; consolidation should be reviewed as a draft before execution.',
+      evidenceMetrics: [
+        { metric: 'audience_overlap', value: overlapPct, unit: '%', source: 'adset_targeting_similarity' },
+        { metric: 'active_adsets', value: adsets.length, source: 'adsets' },
+      ],
+      riskLevel: overlapPct > 60 ? 'high' : 'medium',
+      proposedChanges: [{ field: 'audience_structure', proposedValue: 'Consolidate overlapping adsets and review suggested audiences' }],
+      rollbackCondition: 'Rollback if CPM or frequency worsens relative to the pre-consolidation baseline.',
       reasoning: `Audience overlap of ${overlapPct}% causes internal auction competition. Consolidating adsets reduces CPM and improves frequency distribution.`,
+      model: 'adnexus-recommendation-engine',
+      modelVersion: 'v1',
+      source: 'deterministic-rules',
       createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       adsetIds: adsets.map((a: Record<string, unknown>) => a.id as string),
       overlapPct,
       suggestedAudiences: [
@@ -1504,8 +1580,22 @@ export class RecommendationGenerator {
           },
           campaignIds: [campaign.id],
           platform: campaign.platform,
+          targetEntity: { type: 'campaign', id: campaign.id },
+          explanation: 'CPA trend indicates bids may be too aggressive and should be reduced through an approved draft.',
+          evidenceMetrics: [
+            { metric: 'cpa_trend_slope', value: Number(trend.slope.toFixed(3)), source: 'campaign_metrics' },
+            { metric: 'trend_r_squared', value: Number(trend.rSquared.toFixed(2)), source: 'trend_analysis' },
+            { metric: 'current_cpa', value: campaign.cpa, source: 'campaign_metrics' },
+          ],
+          riskLevel: 'medium',
+          proposedChanges: [{ field: 'bid_amount', currentValue: campaign.cpc * 2, proposedValue: campaign.cpc * 2 * 0.85 }],
+          rollbackCondition: 'Rollback if CPA does not improve or conversion volume drops below baseline after execution.',
           reasoning: `Linear regression on 14d CPA data shows upward trend (r²=${trend.rSquared.toFixed(2)}, slope=${trend.slope.toFixed(3)}). Bid reduction counters rising auction costs.`,
+          model: 'adnexus-recommendation-engine',
+          modelVersion: 'v1',
+          source: 'deterministic-rules',
           createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           adsetId: campaign.id, // In production, use actual adset ID
           currentBid: campaign.cpc * 2, // Approximate
           suggestedBid: campaign.cpc * 2 * 0.85,
@@ -1532,8 +1622,21 @@ export class RecommendationGenerator {
           },
           campaignIds: [campaign.id],
           platform: campaign.platform,
+          targetEntity: { type: 'campaign', id: campaign.id },
+          explanation: 'Strong ROAS with declining CPA indicates bids can be raised, but the live change must remain draft-first.',
+          evidenceMetrics: [
+            { metric: 'roas', value: campaign.roas, unit: 'x', source: 'campaign_metrics' },
+            { metric: 'cpa_trend_slope', value: Number(trend.slope.toFixed(3)), source: 'campaign_metrics' },
+          ],
+          riskLevel: 'medium',
+          proposedChanges: [{ field: 'bid_amount', currentValue: campaign.cpc * 2, proposedValue: campaign.cpc * 2 * 1.1 }],
+          rollbackCondition: 'Rollback if CPA rises above target or ROAS drops below the pre-change baseline after execution.',
           reasoning: `High ROAS (${campaign.roas}x) with efficient CPA indicates room to scale bids while maintaining profitability.`,
+          model: 'adnexus-recommendation-engine',
+          modelVersion: 'v1',
+          source: 'deterministic-rules',
           createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           adsetId: campaign.id,
           currentBid: campaign.cpc * 2,
           suggestedBid: campaign.cpc * 2 * 1.1,
@@ -2216,7 +2319,20 @@ export class DraftCreator {
       campaignId: recommendation.campaignIds[0],
       draftType,
       changeSummary,
-      changeDetail,
+      changeDetail: {
+        ...changeDetail,
+        recommendationId: recommendation.id,
+        evidenceMetrics: recommendation.evidenceMetrics,
+        estimatedImpact: recommendation.estimatedImpact,
+        confidence: recommendation.confidence,
+        riskLevel: recommendation.riskLevel,
+        proposedChanges: recommendation.proposedChanges,
+        rollbackCondition: recommendation.rollbackCondition,
+        model: recommendation.model,
+        modelVersion: recommendation.modelVersion,
+        source: recommendation.source,
+        expiresAt: recommendation.expiresAt,
+      },
       aiReasoning: recommendation.reasoning,
       impactEstimate: `${recommendation.estimatedImpact.direction} ${recommendation.estimatedImpact.magnitude}${recommendation.estimatedImpact.unit} in ${recommendation.estimatedImpact.metric}`,
       actorType: 'ai',

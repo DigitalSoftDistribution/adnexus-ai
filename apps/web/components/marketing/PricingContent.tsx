@@ -27,8 +27,8 @@ const PLANS = [
       'Email support',
     ],
     highlighted: false,
-    cta: 'Start Free Trial',
-    ctaHref: '/auth/signup',
+    cta: 'Talk to Sales',
+    ctaHref: '/contact',
   },
   {
     name: 'Professional',
@@ -46,8 +46,8 @@ const PLANS = [
       'Priority support',
     ],
     highlighted: true,
-    cta: 'Start Free Trial',
-    ctaHref: '/auth/signup',
+    cta: 'Talk to Sales',
+    ctaHref: '/contact',
   },
   {
     name: 'Business',
@@ -90,24 +90,24 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: 'Can I switch plans at any time?',
-    a: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.',
+    q: 'Can I switch plans?',
+    a: 'During v1, plan changes are sales-led and handled by our team so billing and platform access stay aligned.'
   },
   {
     q: 'Is there a free trial?',
-    a: 'Yes, every plan includes a 14-day free trial with full access to all features. No credit card required.',
+    a: 'The managed v1 pilot is sales-led. Contact us and we will recommend the right trial or onboarding path for your team.'
   },
   {
-    q: 'What happens when I exceed my ad account limit?',
-    a: 'You will receive a notification when approaching your limit. You can upgrade to a higher tier or contact us for a custom arrangement.',
+    q: 'What happens when I need more ad accounts?',
+    a: 'Contact us and we will adjust your plan or create a custom arrangement for larger account portfolios.'
   },
   {
-    q: 'Do you offer refunds?',
-    a: 'We offer a 30-day money-back guarantee for annual plans. Monthly plans can be cancelled anytime.',
+    q: 'Do you offer custom terms?',
+    a: 'Yes. Enterprise and agency agreements can include custom onboarding, support, and commercial terms.'
   },
   {
     q: 'Is my data secure?',
-    a: 'Absolutely. We use industry-standard encryption, SOC 2 Type II compliance, and never share your data with third parties.',
+    a: 'We use OAuth instead of platform passwords, encrypt data in transit and at rest, and apply least-privilege access controls.'
   },
 ];
 
@@ -123,7 +123,7 @@ export function PricingContent() {
               Simple, transparent pricing
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              Start free for 14 days. No credit card required.
+              Flat plans for the managed v1 pilot. Talk to us to choose the right setup.
             </p>
           </FadeIn>
 
