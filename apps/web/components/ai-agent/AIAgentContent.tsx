@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Link } from '@/i18n/navigation';
+import { formatDate } from '@/lib/utils';
 import { Bot, Sparkles, TrendingUp, AlertTriangle, CheckCircle, XCircle, FileEdit, ShieldCheck } from 'lucide-react';
 
 interface AgentStatus {
@@ -125,6 +126,7 @@ export function AIAgentContent() {
   const { data: recommendations, isLoading: recsLoading } = useRecommendations();
   const actions = useAgentActions();
   const t = useTranslations('aiAgent');
+  const locale = useLocale();
 
   const isLoading = statusLoading || recsLoading;
 
@@ -183,7 +185,7 @@ export function AIAgentContent() {
         />
         <StatusCard
           label={t('lastRun')}
-          value={status?.lastRunAt ? new Date(status.lastRunAt).toLocaleDateString() : t('never')}
+          value={status?.lastRunAt ? formatDate(status.lastRunAt, locale) : t('never')}
           icon={Bot}
           color="text-muted-foreground"
         />

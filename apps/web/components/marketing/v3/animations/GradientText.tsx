@@ -1,16 +1,21 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 
-interface GradientTextProps {
+export function GradientText({
+  children,
+  className,
+}: {
   children: ReactNode;
   className?: string;
-}
-
-export function GradientText({ children, className = '' }: GradientTextProps) {
+}) {
   return (
     <span
-      className={`bg-clip-text text-transparent bg-gradient-to-r from-lime-400 to-lime-300 ${className}`}
+      className={cn(
+        'bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent',
+        className
+      )}
     >
       {children}
     </span>
