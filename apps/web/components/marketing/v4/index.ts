@@ -1,0 +1,12 @@
+export { HeroV2 } from './HeroV2';
+export { SocialProofBar } from './SocialProofBar';
+export { ProblemAgitation } from './ProblemAgitation';
+export { SolutionShowcase } from './SolutionShowcase';
+export { FeatureHighlights } from './FeatureHighlights';
+export { TestimonialCarousel } from './TestimonialCarousel';
+export { PricingPreview } from './PricingPreview';
+export { FAQAccordion } from './FAQAccordion';
+export { FinalCTA } from './FinalCTA';
+export { FeatureMatrix } from './FeatureMatrix';
+export { ROICalculator } from './ROICalculator';
+export { PricingComparisonTable } from './PricingComparisonTable';
