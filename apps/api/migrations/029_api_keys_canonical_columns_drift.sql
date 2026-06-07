@@ -10,6 +10,26 @@ DO $$
 BEGIN
   IF to_regclass('public.api_keys') IS NOT NULL THEN
     ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS scopes JSONB NOT NULL DEFAULT '["read"]'::jsonb;
+
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'api_keys'
+        AND column_name = 'scopes'
+        AND data_type = 'ARRAY'
+    ) THEN
+      ALTER TABLE api_keys
+        ALTER COLUMN scopes DROP DEFAULT,
+        ALTER COLUMN scopes TYPE JSONB USING to_jsonb(COALESCE(scopes, ARRAY['read']::TEXT[])),
+        ALTER COLUMN scopes SET DEFAULT '["read"]'::jsonb,
+        ALTER COLUMN scopes SET NOT NULL;
+    ELSE
+      ALTER TABLE api_keys
+        ALTER COLUMN scopes SET DEFAULT '["read"]'::jsonb,
+        ALTER COLUMN scopes SET NOT NULL;
+    END IF;
+
     ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id) ON DELETE SET NULL;
     ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS revoked_by UUID REFERENCES users(id) ON DELETE SET NULL;
     ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ;

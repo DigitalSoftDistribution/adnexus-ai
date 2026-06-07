@@ -12,6 +12,14 @@ describe('migration hardening', () => {
     expect(seed).not.toContain('::jsonb, NOW() - INTERVAL');
   });
 
+  it('converts legacy api_keys.scopes text arrays to jsonb before API inserts', () => {
+    const migration = readFileSync(join(migrationsDir, '029_api_keys_canonical_columns_drift.sql'), 'utf8');
+
+    expect(migration).toContain("AND data_type = 'ARRAY'");
+    expect(migration).toContain("ALTER COLUMN scopes TYPE JSONB USING to_jsonb(COALESCE(scopes, ARRAY['read']::TEXT[]))");
+    expect(migration).toContain("ALTER COLUMN scopes SET DEFAULT '[\"read\"]'::jsonb");
+  });
+
   it('synchronizes ad_accounts.is_active for every normalized status', () => {
     const migration = readFileSync(join(migrationsDir, '024_oauth_and_onboarding.sql'), 'utf8');
 
