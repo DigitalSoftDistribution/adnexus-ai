@@ -456,7 +456,6 @@
     "revokeApiKey": "Revoke API key",
     "lastUsed": "Last used",
     "neverUsed": "Never used",
-    "inviteUnavailable": "Team invites are temporarily disabled while the invite flow is being finalized.",
     "noApiKeys": "Nessuna chiave API ancora",
     "apiKeysPlaceholder": "Genera una chiave API per accedere all'API di AdNexus a livello di programmazione.",
     "created": "Creato"
