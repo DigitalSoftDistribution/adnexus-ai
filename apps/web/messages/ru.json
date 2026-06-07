@@ -132,7 +132,15 @@
     "emailPlaceholder": "vy@kompaniya.com",
     "namePlaceholder": "Иван Иванов",
     "signInSubtitle": "Войдите в свою учётную запись AdNexus AI",
-    "signUpSubtitle": "Начните работу с AdNexus AI"
+    "signUpSubtitle": "Начните работу с AdNexus AI",
+    "forgotPassword": "Forgot your password?",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMinLength": "Password must be at least {min} characters",
+    "nameRequired": "Please enter your full name",
+    "emailRequired": "Please enter your email address",
+    "passwordRequired": "Please enter your password",
+    "invalidCredentials": "Invalid email or password"
   },
   "dashboard": {
     "title": "Панель",
