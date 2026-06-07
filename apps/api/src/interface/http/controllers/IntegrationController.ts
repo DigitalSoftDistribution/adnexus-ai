@@ -106,5 +106,38 @@ export function createIntegrationController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    platformCapabilities: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.getPlatformCapabilities) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'CAPABILITIES_UNAVAILABLE', message: 'Capability query is not configured' },
+        });
+        return;
+      }
+      const result = await container.getPlatformCapabilities.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    allCapabilities: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.getAllPlatformCapabilities) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'CAPABILITIES_UNAVAILABLE', message: 'Capability query is not configured' },
+        });
+        return;
+      }
+      const result = await container.getAllPlatformCapabilities.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

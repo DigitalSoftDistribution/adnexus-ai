@@ -8,6 +8,10 @@ export function createIntegrationRoutes(container: Container): Router {
   const controller = createIntegrationController(container);
 
   router.get('/', requireAuth, controller.list as any);
+  // Feature-toggle / capability gating — MUST be registered before `/:platform`
+  // so `/integrations/capabilities` is not swallowed as `:platform = "capabilities"`.
+  router.get('/capabilities', requireAuth, controller.allCapabilities as any);
+  router.get('/:platform/capabilities', requireAuth, controller.platformCapabilities as any);
   router.get('/:platform', requireAuth, controller.get as any);
   router.get('/:platform/health', requireAuth, controller.health as any);
   router.post(
@@ -25,6 +29,7 @@ export function createIntegrationRoutes(container: Container): Router {
   );
   // Sync-job history for an ad account.
   router.get('/accounts/:accountId/sync-jobs', requireAuth, controller.syncJobs as any);
+
   // Preview/dev-only QA harness: seeds fake Meta/Google accounts, campaigns, and metrics.
   router.post(
     '/mock-traffic/seed',

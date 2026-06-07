@@ -35,6 +35,7 @@ import type { INotificationService } from '../ports/INotificationService';
 import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
 import type { IPlatformSyncService } from '../ports/IPlatformSyncService';
 import type { IPlatformWriteService } from '../ports/IPlatformWriteService';
+import type { IAdPlatformCapabilities } from '../ports/AdPlatformCapabilities';
 import type { IMockTrafficSeeder } from '../ports/IMockTrafficSeeder';
 import type { Platform } from '../../domain/entities/Campaign';
 
@@ -57,6 +58,7 @@ import { ExecuteDraftUseCase } from '../use-cases/draft/ExecuteDraftUseCase';
 import { GetWorkspaceUseCase } from '../use-cases/workspace/GetWorkspaceUseCase';
 import { InviteMemberUseCase } from '../use-cases/workspace/InviteMemberUseCase';
 import { GetBillingInfoUseCase } from '../use-cases/billing/GetBillingInfoUseCase';
+import { GetPlatformCapabilitiesUseCase, GetAllPlatformCapabilitiesUseCase } from '../use-cases/integration/GetPlatformCapabilitiesUseCase';
 import { CreateCheckoutSessionUseCase } from '../use-cases/billing/CreateCheckoutSessionUseCase';
 import { CreatePortalSessionUseCase } from '../use-cases/billing/CreatePortalSessionUseCase';
 import { ListInvoicesUseCase } from '../use-cases/billing/ListInvoicesUseCase';
@@ -197,6 +199,8 @@ export interface ContainerConfig {
   platformSyncService?: IPlatformSyncService;
   /** Optional ad-platform write service for pause/resume (e.g. Meta). */
   platformWriteService?: IPlatformWriteService;
+  /** Optional ad-platform capability query service. */
+  platformCapabilities?: IAdPlatformCapabilities;
   /** Optional preview/dev-only mock traffic seeder. */
   mockTrafficSeeder?: IMockTrafficSeeder;
   /** Optional account-sync deps; required to expose the account sync use-case. */
@@ -295,6 +299,10 @@ export class Container {
   readonly syncAccount?: SyncAccountUseCase;
   /** Present only when sync-job deps are configured. */
   readonly listSyncJobs?: ListSyncJobsUseCase;
+  /** Present only when platform capabilities are configured. */
+  readonly getPlatformCapabilities?: GetPlatformCapabilitiesUseCase;
+  /** Present only when platform capabilities are configured. */
+  readonly getAllPlatformCapabilities?: GetAllPlatformCapabilitiesUseCase;
   /** Present only when the preview/dev-only mock traffic seeder is configured. */
   readonly seedMockTraffic?: SeedMockTrafficUseCase;
   readonly listAdSets: ListAdSetsUseCase;
@@ -496,6 +504,11 @@ export class Container {
         config.adAccountRepository,
         config.syncJobRepository,
       );
+    }
+
+    if (config.platformCapabilities) {
+      this.getPlatformCapabilities = new GetPlatformCapabilitiesUseCase(config.platformCapabilities);
+      this.getAllPlatformCapabilities = new GetAllPlatformCapabilitiesUseCase(config.platformCapabilities);
     }
 
     if (config.mockTrafficSeeder) {

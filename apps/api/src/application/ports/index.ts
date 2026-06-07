@@ -1,3 +1,4 @@
+export * from './AdPlatformCapabilities';
 export * from './IAuditLogger';
 export * from './IPlatformClient';
 export * from './INotificationService';
