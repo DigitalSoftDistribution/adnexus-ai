@@ -24,14 +24,24 @@
       "priority": 10,
       "request": {
         "method": "GET",
-        "urlPathPattern": "/v[0-9.]+/act_.*/adsets"
+        "urlPathPattern": "/v[0-9.]+/[^/]+/adsets"
       },
       "response": {
         "status": 200,
         "headers": { "Content-Type": "application/json" },
         "jsonBody": {
           "data": [
-            { "id": "6300000000000001", "name": "Test AdSet 1", "status": "ACTIVE", "campaign_id": "12020000000000001", "optimization_goal": "CONVERSIONS" }
+            {
+              "id": "6300000000000001",
+              "name": "Test AdSet 1",
+              "status": "ACTIVE",
+              "campaign_id": "12020000000000001",
+              "daily_budget": "7500",
+              "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
+              "bid_amount": "125",
+              "targeting": { "geo_locations": { "countries": ["US"] }, "age_min": 18, "age_max": 65 },
+              "optimization_goal": "CONVERSIONS"
+            }
           ],
           "paging": {}
         }
@@ -42,14 +52,27 @@
       "priority": 10,
       "request": {
         "method": "GET",
-        "urlPathPattern": "/v[0-9.]+/act_.*/ads"
+        "urlPathPattern": "/v[0-9.]+/[^/]+/ads"
       },
       "response": {
         "status": 200,
         "headers": { "Content-Type": "application/json" },
         "jsonBody": {
           "data": [
-            { "id": "73000000000000001", "name": "Test Ad 1", "status": "ACTIVE", "creative": { "id": "640000000000001" } }
+            {
+              "id": "73000000000000001",
+              "name": "Test Ad 1",
+              "status": "ACTIVE",
+              "adset_id": "6300000000000001",
+              "campaign_id": "12020000000000001",
+              "creative": {
+                "id": "640000000000001",
+                "title": "WireMock Meta Creative",
+                "body": "Bounded Meta V2 fixture creative body",
+                "image_url": "https://example.test/meta-creative.png",
+                "object_type": "PHOTO"
+              }
+            }
           ],
           "paging": {}
         }
@@ -60,7 +83,7 @@
       "priority": 10,
       "request": {
         "method": "GET",
-        "urlPathPattern": "/v[0-9.]+/act_.*/insights"
+        "urlPathPattern": "/v[0-9.]+/[^/]+/insights"
       },
       "response": {
         "status": 200,

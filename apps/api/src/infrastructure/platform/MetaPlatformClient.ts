@@ -69,29 +69,67 @@ export class MetaPlatformClient implements IPlatformClient {
     return this.updateCampaign(campaignId, { status: 'ACTIVE' }).then(() => ok(undefined));
   }
 
-  async listAdSets(_campaignId: string): Promise<Result<PlatformAdSet[]>> {
-    return ok([]); // TODO: implement via meta-api
+  async listAdSets(campaignId: string): Promise<Result<PlatformAdSet[]>> {
+    try {
+      const { getMetaAdSets } = await import('../../services/meta-api');
+      const adSets = await getMetaAdSets(campaignId, getAccessToken());
+      return ok(adSets as unknown as PlatformAdSet[]);
+    } catch (error) {
+      return err(new Error(`Meta list ad sets failed: ${(error as Error).message}`));
+    }
   }
 
-  async updateAdSet(_adsetId: string, _data: Record<string, unknown>): Promise<Result<PlatformAdSet>> {
-    return ok({} as PlatformAdSet); // TODO: implement
+  async updateAdSet(adsetId: string, data: Record<string, unknown>): Promise<Result<PlatformAdSet>> {
+    try {
+      const { updateMetaCampaign } = await import('../../services/meta-api');
+      await updateMetaCampaign(adsetId, getAccessToken(), data);
+      return ok({ id: adsetId } as unknown as PlatformAdSet);
+    } catch (error) {
+      return err(new Error(`Meta update ad set failed: ${(error as Error).message}`));
+    }
   }
 
-  async listAds(_adsetId: string): Promise<Result<PlatformAd[]>> {
-    return ok([]); // TODO: implement
+  async listAds(adsetId: string): Promise<Result<PlatformAd[]>> {
+    try {
+      const { getMetaAds } = await import('../../services/meta-api');
+      const ads = await getMetaAds(adsetId, getAccessToken());
+      return ok(ads as unknown as PlatformAd[]);
+    } catch (error) {
+      return err(new Error(`Meta list ads failed: ${(error as Error).message}`));
+    }
   }
 
-  async updateAd(_adId: string, _data: Record<string, unknown>): Promise<Result<PlatformAd>> {
-    return ok({} as PlatformAd); // TODO: implement
+  async updateAd(adId: string, data: Record<string, unknown>): Promise<Result<PlatformAd>> {
+    try {
+      const { updateMetaCampaign } = await import('../../services/meta-api');
+      await updateMetaCampaign(adId, getAccessToken(), data);
+      return ok({ id: adId } as unknown as PlatformAd);
+    } catch (error) {
+      return err(new Error(`Meta update ad failed: ${(error as Error).message}`));
+    }
   }
 
   async getInsights(
-    _entityId: string,
-    _entityType: 'campaign' | 'adset' | 'ad',
-    _dateRange: { since: string; until: string },
-    _fields?: string[],
+    entityId: string,
+    entityType: 'campaign' | 'adset' | 'ad',
+    dateRange: { since: string; until: string },
+    fields?: string[],
   ): Promise<Result<Record<string, unknown>>> {
-    return ok({}); // TODO: implement
+    try {
+      const { getMetaInsights } = await import('../../services/meta-api');
+      const insights = await getMetaInsights(
+        entityId,
+        getAccessToken(),
+        dateRange.since,
+        dateRange.until,
+        undefined,
+        entityType,
+        fields,
+      );
+      return ok(insights);
+    } catch (error) {
+      return err(new Error(`Meta insights failed: ${(error as Error).message}`));
+    }
   }
 
   async healthCheck(): Promise<Result<{ status: string; latencyMs: number }>> {
