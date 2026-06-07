@@ -41,6 +41,52 @@ describe('V2 runtime mount — /api/v2/settings/api-keys', () => {
     );
   });
 
+  it('creates an API key with JSON scopes for an owner', async () => {
+    v2Query.mockResolvedValueOnce({
+      rows: [{
+        id: '99999999-9999-9999-9999-999999999999',
+        workspace_id: UUIDS.workspace1,
+        name: 'QA Key',
+        key_hash: 'hash',
+        key_prefix: 'ak_live_...abcd',
+        scopes: ['read'],
+        status: 'active',
+        expires_at: null,
+        created_by: null,
+        revoked_by: null,
+        revoked_at: null,
+        last_used_at: null,
+        calls_today: 0,
+        calls_this_month: 0,
+        created_at: '2026-06-07T00:00:00.000Z',
+        updated_at: '2026-06-07T00:00:00.000Z',
+      }],
+      rowCount: 1,
+    });
+
+    const token = generateToken(UUIDS.owner, 'owner', UUIDS.workspace1);
+    const res = await request(app)
+      .post('/api/v2/settings/api-keys')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'QA Key' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      success: true,
+      data: {
+        id: '99999999-9999-9999-9999-999999999999',
+        name: 'QA Key',
+        scopes: ['read'],
+        status: 'active',
+      },
+    });
+    expect(res.body.data.fullKey).toEqual(expect.stringMatching(/^ak_live_/));
+    expect(v2Query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO api_keys'),
+      expect.arrayContaining([JSON.stringify(['read'])]),
+    );
+  });
+
   it('returns 403 for a non-admin workspace role', async () => {
     const token = generateToken(UUIDS.viewer, 'viewer', UUIDS.workspace1);
     const res = await request(app)
