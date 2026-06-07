@@ -6,10 +6,10 @@
     "keywords": "Werbung, KI, Kampagnenverwaltung, Marketing, Analyse"
   },
   "navigation": {
-    "dashboard": "Dashboard",
-    "campaigns": "Kampagnen",
-    "aiAgent": "KI-Agent",
-    "drafts": "Entwürfe",
+    "dashboard": "Command Center",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "KI-Operator",
+    "drafts": "Freigaben",
     "reports": "Berichte",
     "audiences": "Zielgruppen",
     "alerts": "Benachrichtigungen",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Übersicht",
       "campaigns": "Kampagnen",
+      "campaignWorkspace": "Workspace",
       "automation": "Automatisierung",
+      "dataHub": "Data Hub",
       "connect": "Verbinden",
+      "developerPlatform": "Developer Platform",
       "workspace": "Arbeitsbereich",
+      "admin": "Admin",
       "create": "Erstellen"
     }
   },

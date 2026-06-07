@@ -6,10 +6,10 @@
     "keywords": "advertising, AI, campaign management, marketing, analytics"
   },
   "navigation": {
-    "dashboard": "Dashboard",
-    "campaigns": "Campaigns",
-    "aiAgent": "AI Agent",
-    "drafts": "Drafts",
+    "dashboard": "Command Center",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "AI Operator",
+    "drafts": "Approvals",
     "reports": "Reports",
     "audiences": "Audiences",
     "alerts": "Alerts",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Overview",
       "campaigns": "Campaigns",
+      "campaignWorkspace": "Workspace",
       "automation": "Automation",
+      "dataHub": "Data Hub",
       "connect": "Connect",
+      "developerPlatform": "Developer Platform",
       "workspace": "Workspace",
+      "admin": "Admin",
       "create": "Create"
     }
   },

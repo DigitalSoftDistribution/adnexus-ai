@@ -6,10 +6,10 @@
     "keywords": "publicité, IA, gestion de campagnes, marketing, analytique"
   },
   "navigation": {
-    "dashboard": "Tableau de bord",
-    "campaigns": "Campagnes",
-    "aiAgent": "Agent IA",
-    "drafts": "Brouillons",
+    "dashboard": "Centre de commande",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "Opérateur IA",
+    "drafts": "Approbations",
     "reports": "Rapports",
     "audiences": "Audiences",
     "alerts": "Alertes",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Vue d'ensemble",
       "campaigns": "Campagnes",
+      "campaignWorkspace": "Workspace",
       "automation": "Automatisation",
+      "dataHub": "Data Hub",
       "connect": "Connecter",
+      "developerPlatform": "Developer Platform",
       "workspace": "Espace de travail",
+      "admin": "Admin",
       "create": "Créer"
     }
   },

@@ -6,10 +6,10 @@
     "keywords": "реклама, ИИ, управление кампаниями, маркетинг, аналитика"
   },
   "navigation": {
-    "dashboard": "Панель",
-    "campaigns": "Кампании",
-    "aiAgent": "ИИ-агент",
-    "drafts": "Черновики",
+    "dashboard": "Командный центр",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "ИИ-оператор",
+    "drafts": "Утверждения",
     "reports": "Отчёты",
     "audiences": "Аудитории",
     "alerts": "Оповещения",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Обзор",
       "campaigns": "Кампании",
+      "campaignWorkspace": "Workspace",
       "automation": "Автоматизация",
+      "dataHub": "Data Hub",
       "connect": "Подключения",
+      "developerPlatform": "Developer Platform",
       "workspace": "Рабочая область",
+      "admin": "Admin",
       "create": "Создать"
     }
   },
