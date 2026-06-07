@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PricingContent } from '@/components/marketing/PricingContent';
+import { ROICalculator } from '@/components/marketing/v4/ROICalculator';
 import { JsonLd } from '@/components/marketing/JsonLd';
 
 export const metadata: Metadata = {
@@ -37,6 +38,22 @@ const FAQ_JSONLD = {
         text: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one dashboard.',
       },
     },
+    {
+      '@type': 'Question',
+      name: 'Do I need a credit card to start?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No credit card is required for the 14-day free trial. You only enter payment details when you choose to subscribe.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What happens after the 14-day trial ends?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can subscribe to keep your paid features, or your account automatically drops to the Free tier with read-only access. No data is lost.',
+      },
+    },
   ],
 };
 
@@ -45,6 +62,7 @@ export default function PricingPage() {
     <>
       <JsonLd data={FAQ_JSONLD} />
       <PricingContent />
+      <ROICalculator />
     </>
   );
 }
