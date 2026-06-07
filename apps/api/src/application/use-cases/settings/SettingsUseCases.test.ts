@@ -254,7 +254,21 @@ describe('integration and notification settings use-cases', () => {
     const repo = makeRepo();
     const res = await new GetIntegrationsUseCase(repo).execute({ workspaceId: 'ws-1', userRole: 'viewer' });
     expect(res.success).toBe(true);
-    if (res.success) expect(res.data).toEqual([integration]);
+    if (res.success) {
+      const metaResult = res.data.find((i) => i.platform === 'meta');
+      expect(metaResult).toBeDefined();
+      if (metaResult) {
+        expect(metaResult.platform).toBe('meta');
+        expect(metaResult.connected).toBe(true);
+        expect(metaResult.capability.status).toBe('live');
+      }
+      const tiktokResult = res.data.find((i) => i.platform === 'tiktok');
+      expect(tiktokResult).toBeDefined();
+      if (tiktokResult) {
+        expect(tiktokResult.status).toBe('disconnected');
+        expect(tiktokResult.capability.status).toBe('mock_ready');
+      }
+    }
     expect(repo.getIntegrations).toHaveBeenCalledWith('ws-1');
   });
 
