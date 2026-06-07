@@ -22,7 +22,7 @@ export function PricingPreview({
   differentiator = 'Unlike Madgicx or Revealbot, we don\'t take a percentage.',
 }: PricingPreviewProps) {
   const { ref, isVisible } = useScrollAnimation(0.2);
-  const tiers = PRICING_TIERS.slice(0, 3);
+  const tiers = PRICING_TIERS;
 
   return (
     <section ref={ref} className="w-full py-24 px-6" style={{ background: 'var(--bg-primary)' }}>

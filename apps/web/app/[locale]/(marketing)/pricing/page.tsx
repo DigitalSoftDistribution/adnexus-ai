@@ -64,8 +64,8 @@ export default function PricingPage() {
       <JsonLd data={FAQ_JSONLD} />
       <PricingPreview
         headline="Transparent plans for every stage"
-        subtitle="Compare Free, Growth, and Scale with flat monthly pricing before you dive into the full feature matrix."
-        differentiator="Agency plans are custom for teams that need advanced onboarding, SLAs, and platform roadmap access."
+        subtitle="Compare Free, Growth, Scale, and Agency with flat monthly pricing before you dive into the full feature matrix."
+        differentiator="Agency plans include advanced onboarding, SLAs, and platform roadmap access for teams that need more control."
       />
       <PricingComparisonTable />
       <ROICalculator />
