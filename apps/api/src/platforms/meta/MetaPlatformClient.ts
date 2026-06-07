@@ -330,9 +330,8 @@ export class MetaPlatformClient implements PlatformClient {
           title: data.headline,
           body: data.body,
           image_url: data.creativeUrl ?? '',
-          call_to_action: { type: data.callToAction },
         },
-        status: data.status === 'paused' ? 'PAUSED' : 'ACTIVE',
+        status: (data.status === 'paused' ? 'PAUSED' : 'ACTIVE') as MetaAdStatus,
       };
 
       const result = await client.createAd(this.account.platformAccountId, metaData);
@@ -350,7 +349,7 @@ export class MetaPlatformClient implements PlatformClient {
       if (data.name !== undefined) metaData.name = data.name;
       if (data.status !== undefined) metaData.status = data.status === 'paused' ? 'PAUSED' : 'ACTIVE';
 
-      await client.updateAd(adId, metaData as { name?: string; status?: string });
+      await client.updateAd(adId, metaData as unknown as { name?: string; status?: MetaAdStatus });
       const ads = await client.getAds(this.account.platformAccountId, {});
       const found = (ads.data ?? []).find((a: MetaAd) => a.id === adId);
       if (!found) {
@@ -561,7 +560,7 @@ export async function connectMetaAccount(
   const authState = await tempClient.exchangeCodeForToken(code);
 
   // Try to resolve ad account info via the Graph API /me endpoint
-  let platformAccountId = authState.userId ?? 'pending';
+  let platformAccountId = authState.adAccountId || 'pending';
   let accountName = 'Meta Account';
   let currency = 'USD';
   let timezone = 'America/New_York';
@@ -571,7 +570,7 @@ export async function connectMetaAccount(
     const accountsResult = await (tempClient as unknown as Record<string, unknown>).request?.(
       'GET', '/me/adaccounts', undefined,
       { params: { fields: 'id,name,account_id,account_status,currency,timezone_name', limit: 1 } }
-    );
+    ) as { data?: Array<Record<string, unknown>> };
 
     const accountsData = (accountsResult as { data?: Array<Record<string, unknown>> })?.data;
     if (accountsData && accountsData.length > 0) {
@@ -596,7 +595,7 @@ export async function connectMetaAccount(
     status: 'active',
     accessToken: authState.accessToken,
     refreshToken: authState.refreshToken,
-    tokenExpiresAt: authState.tokenExpiresAt ? new Date(authState.tokenExpiresAt).toISOString() : undefined,
+    tokenExpiresAt: authState.expiresAt ? new Date(authState.expiresAt * 1000).toISOString() : undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
