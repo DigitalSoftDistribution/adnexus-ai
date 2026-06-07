@@ -63,7 +63,7 @@ import {
   type TargetingConfig,
   type Creative,
 } from '../draft-engine/types';
-import type { Campaign as GooglePlatformCampaign } from '../platforms/google/types';
+
 import type { Platform, DraftType, Draft as AppDraft } from '../types';
 import { config } from '../config';
 import { MetaApiClient } from '../platforms/meta/client';
@@ -680,8 +680,6 @@ function mapDbCampaignToEngineCampaign(db: Record<string, unknown>): Campaign {
     updatedAt: new Date(db.updated_at as string ?? db.created_at as string),
   };
 }
-
-
 function mapGoogleCampaignToEngineCampaign(
   campaign: unknown,
   _platform: AdPlatform,
@@ -714,8 +712,6 @@ function mapGoogleCampaignToEngineCampaign(
     updatedAt: new Date(),
   };
 }
-
-
 function mapPlatformCampaignToEngineCampaign(
   platformCampaign: Record<string, unknown>,
   platform: AdPlatform,
