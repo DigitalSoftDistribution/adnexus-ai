@@ -127,6 +127,14 @@ export function AIAgentContent() {
   const actions = useAgentActions();
   const t = useTranslations('aiAgent');
   const locale = useLocale();
+  const queryClient = useQueryClient();
+
+  const isGenerating = false; // Backend generates recommendations on fetch
+
+  const triggerGeneration = () => {
+    queryClient.invalidateQueries({ queryKey: ['agent', 'recommendations'] });
+    queryClient.invalidateQueries({ queryKey: ['agent', 'status'] });
+  };
 
   const isLoading = statusLoading || recsLoading;
 
@@ -147,6 +155,12 @@ export function AIAgentContent() {
         icon={<Bot className="h-5 w-5" />}
         title={t('title')}
         description={t('description')}
+        actions={
+          <Button onClick={triggerGeneration} disabled={isGenerating}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {t('generateRecommendations')}
+          </Button>
+        }
       />
 
       <Card className="border-primary/20 bg-primary/5">
