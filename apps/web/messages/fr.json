@@ -392,6 +392,7 @@
     "failedToFetchWorkspace": "Échec de la récupération de l'espace de travail",
     "failedToUpdateWorkspace": "Échec de la mise à jour de l'espace de travail",
     "failedToFetchTeam": "Échec de la récupération de l'équipe",
+    "failedToInviteMember": "Échec de l'invitation du membre",
     "failedToUpdateRole": "Échec de la mise à jour du rôle",
     "failedToRemoveMember": "Échec de la suppression du membre",
     "failedToFetchIntegrations": "Échec de la récupération des intégrations",
@@ -415,6 +416,10 @@
     "teamMembers": "Membres de l'équipe",
     "teamDescription": "Gérez l'accès et les autorisations",
     "inviteMember": "Inviter un membre",
+    "inviteDescription": "Envoyez une invitation à l'espace de travail avec le bon niveau d'accès.",
+    "inviteEmail": "Adresse e-mail",
+    "inviteRole": "Rôle",
+    "inviteSuccess": "Invitation créée et la liste de l'équipe a été actualisée.",
     "roles": {
       "viewer": "Lecteur",
       "editor": "Éditeur",

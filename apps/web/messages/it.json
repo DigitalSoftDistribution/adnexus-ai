@@ -392,6 +392,7 @@
     "failedToFetchWorkspace": "Impossibile recuperare l'area di lavoro",
     "failedToUpdateWorkspace": "Impossibile aggiornare l'area di lavoro",
     "failedToFetchTeam": "Impossibile recuperare il team",
+    "failedToInviteMember": "Impossibile invitare il membro",
     "failedToUpdateRole": "Impossibile aggiornare il ruolo",
     "failedToRemoveMember": "Impossibile rimuovere il membro",
     "failedToFetchIntegrations": "Impossibile recuperare le integrazioni",
@@ -415,6 +416,10 @@
     "teamMembers": "Membri del team",
     "teamDescription": "Gestisci accessi e autorizzazioni",
     "inviteMember": "Invita un membro",
+    "inviteDescription": "Invia un invito all'area di lavoro con il livello di accesso corretto.",
+    "inviteEmail": "Indirizzo email",
+    "inviteRole": "Ruolo",
+    "inviteSuccess": "Invito creato e l'elenco del team è stato aggiornato.",
     "roles": {
       "viewer": "Visualizzatore",
       "editor": "Editor",

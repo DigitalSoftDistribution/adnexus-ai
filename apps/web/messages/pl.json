@@ -392,6 +392,7 @@
     "failedToFetchWorkspace": "Nie udało się pobrać obszaru roboczego",
     "failedToUpdateWorkspace": "Nie udało się zaktualizować obszaru roboczego",
     "failedToFetchTeam": "Nie udało się pobrać zespołu",
+    "failedToInviteMember": "Nie udało się zaprosić członka",
     "failedToUpdateRole": "Nie udało się zaktualizować roli",
     "failedToRemoveMember": "Nie udało się usunąć członka",
     "failedToFetchIntegrations": "Nie udało się pobrać integracji",
@@ -415,6 +416,10 @@
     "teamMembers": "Członkowie zespołu",
     "teamDescription": "Zarządzaj dostępem i uprawnieniami",
     "inviteMember": "Zaproś członka",
+    "inviteDescription": "Wyślij zaproszenie do obszaru roboczego z odpowiednim poziomem dostępu.",
+    "inviteEmail": "Adres e-mail",
+    "inviteRole": "Rola",
+    "inviteSuccess": "Zaproszenie utworzone, a lista zespołu została odświeżona.",
     "roles": {
       "viewer": "Obserwator",
       "editor": "Edytor",

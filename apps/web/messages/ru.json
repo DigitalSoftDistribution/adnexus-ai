@@ -392,6 +392,7 @@
     "failedToFetchWorkspace": "Не удалось загрузить рабочее пространство",
     "failedToUpdateWorkspace": "Не удалось обновить рабочее пространство",
     "failedToFetchTeam": "Не удалось загрузить команду",
+    "failedToInviteMember": "Не удалось пригласить участника",
     "failedToUpdateRole": "Не удалось обновить роль",
     "failedToRemoveMember": "Не удалось удалить участника",
     "failedToFetchIntegrations": "Не удалось загрузить интеграции",
@@ -415,6 +416,10 @@
     "teamMembers": "Участники команды",
     "teamDescription": "Управляйте доступом и правами",
     "inviteMember": "Пригласить участника",
+    "inviteDescription": "Отправьте приглашение в рабочее пространство с нужным уровнем доступа.",
+    "inviteEmail": "Адрес электронной почты",
+    "inviteRole": "Роль",
+    "inviteSuccess": "Приглашение создано, список команды обновлён.",
     "roles": {
       "viewer": "Наблюдатель",
       "editor": "Редактор",

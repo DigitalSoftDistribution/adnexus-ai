@@ -1,6 +1,7 @@
 import type { ISettingsRepository, TeamMember, Integration, NotificationPreferences } from '../../domain/repositories/ISettingsRepository';
 import type { ApiKey } from '../../domain/entities/ApiKey';
 import type { WorkspaceRole } from '../../domain/entities/User';
+import { PLAN_LIMITS, type WorkspaceLimits, type PlanTier } from '../../domain/entities/Workspace';
 import { query } from '../database/connection';
 import { createHash, randomBytes } from 'crypto';
 
@@ -134,6 +135,36 @@ export class SettingsRepository implements ISettingsRepository {
     }));
   }
 
+  async findUserByEmail(email: string): Promise<{ id: string; email: string } | null> {
+    const { rows } = await query<{ id: string; email: string }>(
+      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email],
+    );
+    return rows[0] ?? null;
+  }
+
+  async findTeamMember(workspaceId: string, userId: string): Promise<TeamMember | null> {
+    const members = await this.getTeamMembers(workspaceId);
+    return members.find((member) => member.userId === userId) ?? null;
+  }
+
+  async canAddTeamMember(workspaceId: string): Promise<boolean> {
+    const { rows } = await query<{ plan: PlanTier }>(
+      `SELECT plan FROM workspaces WHERE id = $1`,
+      [workspaceId],
+    );
+    const plan = rows[0]?.plan ?? 'free';
+    const maxUsers = (PLAN_LIMITS[plan] as WorkspaceLimits).maxUsers;
+
+    const { rows: countRows } = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM workspace_members WHERE workspace_id = $1`,
+      [workspaceId],
+    );
+    const current = parseInt(countRows[0]?.count ?? '0', 10);
+
+    return current < maxUsers;
+  }
+
   async addTeamMember(workspaceId: string, userId: string, role: WorkspaceRole, invitedBy: string): Promise<TeamMember> {
     const { rows } = await query<{
       id: string;
@@ -153,7 +184,6 @@ export class SettingsRepository implements ISettingsRepository {
     );
     const member = rows[0];
 
-    // Fetch user details
     const { rows: userRows } = await query<{ name: string | null; email: string; avatar_url: string | null }>(
       `SELECT name, email, avatar_url FROM users WHERE id = $1`,
       [userId],

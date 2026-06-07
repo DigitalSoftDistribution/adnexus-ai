@@ -392,6 +392,7 @@
     "failedToFetchWorkspace": "Ophalen van werkruimte mislukt",
     "failedToUpdateWorkspace": "Bijwerken van werkruimte mislukt",
     "failedToFetchTeam": "Ophalen van team mislukt",
+    "failedToInviteMember": "Uitnodigen van lid mislukt",
     "failedToUpdateRole": "Bijwerken van rol mislukt",
     "failedToRemoveMember": "Verwijderen van lid mislukt",
     "failedToFetchIntegrations": "Ophalen van integraties mislukt",
@@ -415,6 +416,10 @@
     "teamMembers": "Teamleden",
     "teamDescription": "Beheer toegang en machtigingen",
     "inviteMember": "Lid uitnodigen",
+    "inviteDescription": "Stuur een werkruimte-uitnodiging met het juiste toegangsniveau.",
+    "inviteEmail": "E-mailadres",
+    "inviteRole": "Rol",
+    "inviteSuccess": "Uitnodiging aangemaakt en de teamlijst is vernieuwd.",
     "roles": {
       "viewer": "Kijker",
       "editor": "Bewerker",
