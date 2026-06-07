@@ -48,8 +48,12 @@ export function OnboardingContent() {
   const complete = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v2/onboarding/complete', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to complete onboarding');
-      return res.json();
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message = body?.error?.message ?? body?.message ?? t('completeBlocked');
+        throw new Error(message);
+      }
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding'] });
@@ -106,6 +110,7 @@ export function OnboardingContent() {
   const firstIncompleteIndex = stepDefs.findIndex((s) => !steps[s.id]);
   const currentStepIndex = firstIncompleteIndex === -1 ? stepDefs.length - 1 : firstIncompleteIndex;
   const highlightedStepIndex = active ?? currentStepIndex;
+  const canComplete = steps.connectPlatform && steps.firstCampaign;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -161,14 +166,23 @@ export function OnboardingContent() {
           })}
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => complete.mutate()} disabled={complete.isPending}>
-            {t('skip')}
+        {complete.isError ? (
+          <p className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {(complete.error as Error).message}
+          </p>
+        ) : null}
+
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <Button asChild variant="ghost">
+            <Link href="/dashboard/campaigns">{t('skip')}</Link>
           </Button>
-          <Button onClick={() => complete.mutate()} disabled={complete.isPending}>
-            {complete.isPending ? '...' : t('finish')}
+          <Button onClick={() => complete.mutate()} disabled={complete.isPending || !canComplete}>
+            {complete.isPending ? '...' : canComplete ? t('finish') : t('finishLocked')}
           </Button>
         </div>
+        {!canComplete ? (
+          <p className="mt-3 text-center text-sm text-muted-foreground">{t('finishLockedDescription')}</p>
+        ) : null}
       </div>
     </div>
   );
