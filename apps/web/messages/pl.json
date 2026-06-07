@@ -6,10 +6,10 @@
     "keywords": "reklama, SI, zarządzanie kampaniami, marketing, analityka"
   },
   "navigation": {
-    "dashboard": "Pulpit",
-    "campaigns": "Kampanie",
-    "aiAgent": "Agent SI",
-    "drafts": "Wersje robocze",
+    "dashboard": "Centrum dowodzenia",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "Operator SI",
+    "drafts": "Zatwierdzenia",
     "reports": "Raporty",
     "audiences": "Odbiorcy",
     "alerts": "Alerty",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Przegląd",
       "campaigns": "Kampanie",
+      "campaignWorkspace": "Workspace",
       "automation": "Automatyzacja",
+      "dataHub": "Data Hub",
       "connect": "Połącz",
+      "developerPlatform": "Developer Platform",
       "workspace": "Obszar roboczy",
+      "admin": "Admin",
       "create": "Utwórz"
     }
   },

@@ -6,10 +6,10 @@
     "keywords": "advertenties, AI, campagnebeheer, marketing, analyse"
   },
   "navigation": {
-    "dashboard": "Dashboard",
-    "campaigns": "Campagnes",
-    "aiAgent": "AI-agent",
-    "drafts": "Concepten",
+    "dashboard": "Command Center",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "AI-operator",
+    "drafts": "Goedkeuringen",
     "reports": "Rapporten",
     "audiences": "Doelgroepen",
     "alerts": "Meldingen",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "Overzicht",
       "campaigns": "Campagnes",
+      "campaignWorkspace": "Workspace",
       "automation": "Automatisering",
+      "dataHub": "Data Hub",
       "connect": "Verbinden",
+      "developerPlatform": "Developer Platform",
       "workspace": "Werkruimte",
+      "admin": "Admin",
       "create": "Aanmaken"
     }
   },

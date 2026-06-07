@@ -6,10 +6,10 @@
     "keywords": "広告, AI, キャンペーン管理, マーケティング, 分析"
   },
   "navigation": {
-    "dashboard": "ダッシュボード",
-    "campaigns": "キャンペーン",
-    "aiAgent": "AIエージェント",
-    "drafts": "下書き",
+    "dashboard": "Command Center",
+    "campaigns": "Campaign Workspace",
+    "aiAgent": "AIオペレーター",
+    "drafts": "承認",
     "reports": "レポート",
     "audiences": "オーディエンス",
     "alerts": "アラート",
@@ -28,9 +28,13 @@
     "groups": {
       "overview": "概要",
       "campaigns": "キャンペーン",
+      "campaignWorkspace": "Workspace",
       "automation": "自動化",
+      "dataHub": "Data Hub",
       "connect": "連携",
+      "developerPlatform": "Developer Platform",
       "workspace": "ワークスペース",
+      "admin": "Admin",
       "create": "作成"
     }
   },
