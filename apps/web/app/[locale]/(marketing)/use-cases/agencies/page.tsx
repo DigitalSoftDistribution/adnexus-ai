@@ -1,57 +1,70 @@
-import type { Metadata } from 'next';
-import { Briefcase, Users, FileText, ShieldCheck, Layers, Clock } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { UseCasePainGain, UseCaseTimeline, ROICalculator } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
 
-export const metadata: Metadata = {
-  title: 'AdNexus for Agencies',
-  description:
-    'AdNexus AI for agencies: manage many clients from one workspace with per-client scopes, multi-tier approvals, white-label reports, and flat pricing that never scales with spend.',
-  alternates: { canonical: '/use-cases/agencies' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'Agencies — AdNexus AI',
+    description: 'Manage 20+ client accounts from one dashboard. White-label reports, cross-platform attribution, and AI that drafts while you approve.',
+    openGraph: { title: 'Agencies — AdNexus AI', description: 'Manage 20+ client accounts from one dashboard. White-label reports, cross-platform attribution, and AI that drafts while you approve.' },
+  };
+}
 
-const POINTS = [
-  { icon: <Layers size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Many Clients, One Workspace', desc: 'Switch between client accounts instantly, with isolated scopes so nothing crosses wires.' },
-  { icon: <ShieldCheck size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Approval Chains', desc: 'Junior buyers propose, account leads approve. Every client change is reviewed and logged.' },
-  { icon: <FileText size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'White-Label Reports', desc: 'Send branded, client-ready reports on a schedule — without the manual export grind.' },
-  { icon: <Clock size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Reclaim Hours Weekly', desc: 'The AI handles monitoring and first-draft optimizations so your team focuses on strategy.' },
-  { icon: <Users size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Unlimited Seats', desc: 'On the Agency plan, bring your whole team — no per-seat surprises.' },
-  { icon: <Briefcase size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Flat Pricing', desc: 'Your bill does not balloon as client spend grows. Margins stay predictable.' },
+const AGENCY_PAIN_GAIN = [
+  {
+    pain: 'Switching between 5+ ad managers',
+    painDesc: 'Every client uses different platforms. You log into Meta, Google, TikTok, and Snap separately — wasting hours every day.',
+    gain: 'One dashboard for all clients',
+    gainDesc: 'All platforms, all clients, one screen. Switch accounts in one click and see cross-platform performance at a glance.',
+  },
+  {
+    pain: 'Manual reporting every Monday',
+    painDesc: 'You spend 3+ hours every Monday pulling numbers, formatting spreadsheets, and building client presentations.',
+    gain: 'AI-generated reports in seconds',
+    gainDesc: 'Morning Brief auto-generates performance summaries. Export white-label PDFs or share live dashboards with clients.',
+  },
+  {
+    pain: 'Clients scared of AI mistakes',
+    painDesc: 'Clients worry AI will publish bad changes to their live campaigns without asking.',
+    gain: 'Draft-first approval',
+    gainDesc: 'Every AI change is a draft awaiting approval. Clients see exactly what would change before it goes live.',
+  },
 ];
 
-export default function Page() {
+const AGENCY_TIMELINE = [
+  { time: '8:00 AM', oldWay: 'Log into 4 different ad managers, check spend and performance manually.', newWay: 'Morning Brief arrives with cross-platform summary and 3 draft suggestions.' },
+  { time: '10:00 AM', oldWay: 'Spend 2 hours building Monday client report in Google Sheets.', newWay: 'Export white-label report PDF in 30 seconds. Send to clients.' },
+  { time: '2:00 PM', oldWay: 'Notice underperforming ad set, manually adjust bids across platforms.', newWay: 'AI flagged the ad set at 9 AM. Review and approve the bid adjustment draft.' },
+  { time: '5:00 PM', oldWay: 'Client calls asking why spend is up 40%. Scramble to investigate.', newWay: 'AI alerted you to the anomaly at 11 AM with root cause analysis. Already handled.' },
+];
+
+export default async function AgenciesPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
-    <>
-      <PageHero
-        eyebrow="For Agencies"
-        title={<>Run more accounts with <span style={{ color: '#c3f53b' }}>fewer fire drills</span></>}
-        subtitle="The workspace, governance, and reporting agencies need to scale client work profitably."
-      />
-      <Section eyebrow="A day in the life" title="Monday morning, fifteen client accounts">
-        <ScenarioBlock
-          situation="It's 8am. You manage fifteen clients across Meta, Google, TikTok, and Snap. Over the weekend, two budgets overpaced, a TikTok creative fatigued, and one client's CPA crept past target. In the old world, you'd find out by logging into fifteen accounts."
-          outcome="Instead, you open one brief. The agent already caught all four issues and drafted the fixes — a budget pull-back, a creative refresh, an audience tweak. You read the reasoning, approve three, edit one, and you're done before your coffee's cold. Every approval is logged for the client report."
-        />
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-12 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Use Case</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">Built for agencies</h1>
+        <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Manage 20+ client accounts from one dashboard. AI drafts optimizations — you review and approve.
+        </p>
+      </section>
+
+      <Section title="The agency problem" subtitle="Click any card to see how AdNexus solves it">
+        <UseCasePainGain items={AGENCY_PAIN_GAIN} />
       </Section>
 
-      <Section title="How it works for agencies" alt>
-        <WorkflowSteps
-          steps={[
-            { title: 'Add clients as isolated workspaces', desc: 'Each client gets its own scope. Nothing crosses wires, and access is controlled per team member.' },
-            { title: 'Set the approval chain', desc: 'Junior buyers propose, account leads sign off. The structure matches how your team already works.' },
-            { title: 'Start the day with one brief', desc: 'The agent monitors every account overnight and ranks what needs attention across all clients.' },
-            { title: 'Approve, then report', desc: 'Approve drafts in seconds. The audit trail doubles as a clean, client-ready record of every change.' },
-          ]}
-        />
+      <Section title="A day in the life" subtitle="Before vs. after AdNexus">
+        <UseCaseTimeline steps={AGENCY_TIMELINE} />
       </Section>
 
-      <Section title="Everything your team needs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {POINTS.map((p) => (
-            <FeatureCard key={p.title} icon={p.icon} title={p.title} desc={p.desc} />
-          ))}
-        </div>
+      <Section title="ROI calculator" subtitle="See how much time and money you could save">
+        <ROICalculator />
       </Section>
-      <CtaBand title="Scale your agency without scaling headcount" primaryLabel="Talk to Sales" primaryHref="/contact" secondaryLabel="See pricing" secondaryHref="/pricing" />
-    </>
+    </main>
   );
 }

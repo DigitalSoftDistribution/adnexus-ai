@@ -1,55 +1,60 @@
-import type { Metadata } from 'next';
-import { Lock, KeyRound, ShieldCheck, Eye, Server, FileText } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { SecurityArchitecture, ComplianceTimeline } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
+import { Shield, Lock, Eye, Server, FileCheck, KeyRound } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Security',
-  description:
-    'How AdNexus AI protects your data: OAuth-based platform connections, encryption in transit and at rest, least-privilege access, audit logging, and draft-first safety by design.',
-  alternates: { canonical: '/security' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'Security — AdNexus AI',
+    description: 'Enterprise-grade security. OAuth, encryption, draft-first, audit logging, and compliance.',
+    openGraph: { title: 'Security — AdNexus AI', description: 'Enterprise-grade security. OAuth, encryption, draft-first, audit logging, and compliance.' },
+  };
+}
 
-const CONTROLS = [
-  { icon: <KeyRound size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'OAuth, Never Passwords', desc: 'We connect to ad platforms via official OAuth. We never see or store your platform passwords.' },
-  { icon: <Lock size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Encryption Everywhere', desc: 'All data is encrypted in transit (TLS) and at rest. Access tokens are stored encrypted.' },
-  { icon: <ShieldCheck size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Draft-First by Design', desc: 'The architecture makes autonomous live changes impossible — a person approves every action.' },
-  { icon: <Eye size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Audit Logging', desc: 'Every mutating action is recorded: who did what, when, and which campaign it touched.' },
-  { icon: <Server size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Least-Privilege Access', desc: 'Role-based access control ensures team members only reach the accounts and actions they need.' },
-  { icon: <FileText size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Data Processing Agreement', desc: 'A DPA is available for customers with regulatory or procurement requirements.' },
+const BADGES = [
+  { icon: <Lock size={18} />, label: 'AES-256', desc: 'Encryption at rest' },
+  { icon: <KeyRound size={18} />, label: 'OAuth 2.0', desc: 'No passwords stored' },
+  { icon: <Eye size={18} />, label: 'Audit Log', desc: 'Every action tracked' },
+  { icon: <Server size={18} />, label: 'RBAC', desc: 'Role-based access' },
+  { icon: <FileCheck size={18} />, label: 'GDPR', desc: 'EU compliant' },
+  { icon: <Shield size={18} />, label: 'Draft-First', desc: 'No auto-publish' },
 ];
 
-export default function Page() {
-  return (
-    <>
-      <PageHero
-        eyebrow="Security"
-        title={<>Your spend, <span style={{ color: '#c3f53b' }}>your control</span>, your data</>}
-        subtitle="Security and governance are foundational to AdNexus — not an afterthought bolted on later."
-      />
+export default async function SecurityPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
 
-      <Section title="How we protect your accounts">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {CONTROLS.map((c) => (
-            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} />
+  return (
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-12 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Trust & Safety</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">Security built in, not bolted on</h1>
+        <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Every layer of AdNexus is designed with security as a first-class concern — from OAuth connections to draft-first approval.
+        </p>
+      </section>
+
+      <section className="pb-16 px-4">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          {BADGES.map((b) => (
+            <div key={b.label} className="card-surface p-4 text-center">
+              <div className="flex justify-center mb-2" style={{ color: '#c3f53b' }}>{b.icon}</div>
+              <div className="text-xs font-semibold text-white">{b.label}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{b.desc}</div>
+            </div>
           ))}
         </div>
+      </section>
+
+      <Section title="Security architecture" subtitle="Five layers of protection from connection to campaign">
+        <SecurityArchitecture />
       </Section>
 
-      <Section alt>
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-space text-2xl font-semibold text-white mb-3">Compliance</h2>
-          <p className="text-[15px] leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
-            AdNexus is built to SOC 2 control principles, and our formal certification is in progress.
-            We&apos;re happy to share our current security posture, sub-processor list, and DPA with
-            prospective customers under NDA.
-          </p>
-          <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            Have a specific requirement? Reach out and we&apos;ll route you to the right details.
-          </p>
-        </div>
+      <Section title="Compliance roadmap" subtitle="Certifications in progress and planned">
+        <ComplianceTimeline />
       </Section>
-
-      <CtaBand title="Questions about security?" subtitle="Our team is glad to walk through our controls and documentation." primaryLabel="Contact us" primaryHref="/contact" secondaryLabel="Read the FAQ" secondaryHref="/faq" />
-    </>
+    </main>
   );
 }
