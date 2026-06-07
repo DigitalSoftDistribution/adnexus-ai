@@ -110,11 +110,52 @@
     },
 
     {
-      "name": "Google Ads API — List campaigns",
-      "priority": 10,
+      "name": "Google Ads API — List accessible customers",
+      "priority": 5,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/customers:listAccessibleCustomers"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "resourceNames": ["customers/1234567890"]
+        }
+      }
+    },
+    {
+      "name": "Google Ads API — Customer details",
+      "priority": 4,
       "request": {
         "method": "POST",
-        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search"
+        "urlPathPattern": "/v[0-9]+/customers/1234567890/googleAds:search",
+        "bodyPatterns": [{ "contains": "FROM customer" }]
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "results": [
+            {
+              "customer": {
+                "id": "1234567890",
+                "descriptiveName": "WireMock Google Ads Account",
+                "currencyCode": "USD",
+                "timeZone": "America/New_York"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Google Ads API — List campaigns with metrics",
+      "priority": 8,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search",
+        "bodyPatterns": [{ "contains": "FROM campaign" }]
       },
       "response": {
         "status": 200,
@@ -123,13 +164,24 @@
           "results": [
             {
               "campaign": {
-                "resourceName": "customers/1234567890/campaigns/1111111111",
+                "resource_name": "customers/1234567890/campaigns/1111111111",
                 "id": "1111111111",
                 "name": "Google Test Campaign 1",
                 "status": "ENABLED",
-                "advertisingChannelType": "SEARCH"
+                "advertising_channel_type": "SEARCH",
+                "campaign_budget": "100000000",
+                "start_date": "20260601"
               },
-              "metrics": { "impressions": "5000", "clicks": "200", "costMicros": "150000000" }
+              "metrics": {
+                "impressions": "5000",
+                "clicks": "200",
+                "ctr": "4",
+                "averageCpc": "750000",
+                "costMicros": "150000000",
+                "conversions": "12",
+                "conversionsValue": "450000000",
+                "viewThroughConversions": "2"
+              }
             }
           ]
         }
@@ -147,8 +199,10 @@
         "headers": { "Content-Type": "application/json" },
         "jsonBody": {
           "access_token": "ya29.MockGoogleAccessToken1234567890",
+          "refresh_token": "1//MockGoogleRefreshToken1234567890",
           "token_type": "Bearer",
-          "expires_in": 3599
+          "expires_in": 3599,
+          "scope": "https://www.googleapis.com/auth/adwords"
         }
       }
     },

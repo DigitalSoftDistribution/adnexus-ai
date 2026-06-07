@@ -57,6 +57,9 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
+  GOOGLE_ADS_API_BASE_URL: z.string().url().default('https://googleads.googleapis.com'),
+  GOOGLE_OAUTH_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
+  GOOGLE_OAUTH_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
 
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
@@ -196,6 +199,9 @@ export const config = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
     developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
+    adsApiBaseUrl: env.GOOGLE_ADS_API_BASE_URL,
+    oauthTokenUrl: env.GOOGLE_OAUTH_TOKEN_URL,
+    oauthTokenInfoUrl: env.GOOGLE_OAUTH_TOKEN_INFO_URL,
   },
 
   tiktok: {

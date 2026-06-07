@@ -4,10 +4,20 @@ import { PlatformError } from '../lib/errors';
 import { supabase } from '../lib/supabase';
 import type { Platform, UnifiedCampaign, UnifiedAdSet, UnifiedAd } from '../types';
 
-const GOOGLE_ADS_API = 'https://googleads.googleapis.com/v16';
 const GOOGLE_OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
+const GOOGLE_ADS_API_VERSION = 'v16';
+
+function googleAdsApiBaseUrl(): string {
+  return `${config.google.adsApiBaseUrl.replace(/\/$/, '')}/${GOOGLE_ADS_API_VERSION}`;
+}
+
+function googleTokenUrl(): string {
+  return config.google.oauthTokenUrl;
+}
+
+function googleTokenInfoUrl(): string {
+  return config.google.oauthTokenInfoUrl;
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -198,7 +208,7 @@ async function searchGoogleAds<T>(
       total_results_count?: string;
       field_mask?: string;
     }>(
-      `${GOOGLE_ADS_API}/customers/${customerId}/googleAds:search`,
+      `${googleAdsApiBaseUrl()}/customers/${customerId}/googleAds:search`,
       { query, page_size: 1000 },
       { headers: googleHeaders(accessToken) },
     );
@@ -221,7 +231,7 @@ async function mutateGoogleAds(
 ): Promise<GoogleMutateResponse> {
   try {
     const { data } = await axios.post<GoogleMutateResponse>(
-      `${GOOGLE_ADS_API}/customers/${customerId}/googleAds:mutate`,
+      `${googleAdsApiBaseUrl()}/customers/${customerId}/googleAds:mutate`,
       { partial_failure: partialFailure, operations },
       { headers: googleHeaders(accessToken) },
     );
@@ -266,7 +276,7 @@ export async function handleGoogleCallback(code: string, workspaceId: string): P
     // 1. Exchange code for tokens
     const redirectUri = `${config.frontend.url}/auth/google/callback`;
     const { data: tokenData } = await axios.post<GoogleTokenResponse>(
-      GOOGLE_TOKEN_URL,
+      googleTokenUrl(),
       {
         client_id: config.google.clientId,
         client_secret: config.google.clientSecret,
@@ -286,7 +296,7 @@ export async function handleGoogleCallback(code: string, workspaceId: string): P
     // 2. Get list of accessible customers (MCC accounts the user has access to)
     const { data: accessibleCustomers } = await axios.get<{
       resource_names?: string[];
-    }>(`${GOOGLE_ADS_API}/customers:listAccessibleCustomers`, {
+    }>(`${googleAdsApiBaseUrl()}/customers:listAccessibleCustomers`, {
       headers: googleHeaders(tokenData.access_token),
     });
 
@@ -1033,7 +1043,7 @@ export async function refreshGoogleToken(refreshToken: string): Promise<{ access
     console.log('[google] Refreshing access token');
 
     const { data } = await axios.post<GoogleTokenResponse>(
-      GOOGLE_TOKEN_URL,
+      googleTokenUrl(),
       {
         client_id: config.google.clientId,
         client_secret: config.google.clientSecret,
@@ -1067,7 +1077,7 @@ export async function validateGoogleToken(accessToken: string): Promise<boolean>
     const { data } = await axios.get<{
       expires_in?: number;
       scope?: string;
-    }>(GOOGLE_TOKEN_INFO_URL, {
+    }>(googleTokenInfoUrl(), {
       params: { access_token: accessToken },
     });
 
