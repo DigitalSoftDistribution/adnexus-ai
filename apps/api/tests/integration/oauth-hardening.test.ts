@@ -9,20 +9,22 @@ import { generateToken } from '../utils/helpers';
 const mockSupabaseFrom = jest.fn();
 const mockAxiosGet = jest.fn();
 
-const memoryNonceStore = new Map<string, string>();
-const mockRedisClient = {
-  set: jest.fn((key: string) => {
-    memoryNonceStore.set(key, '1');
-    return Promise.resolve('OK');
-  }),
-  get: jest.fn((key: string) => Promise.resolve(memoryNonceStore.get(key) ?? null)),
-  del: jest.fn((key: string) => Promise.resolve(memoryNonceStore.delete(key) ? 1 : 0)),
-};
+const mockMemoryNonceStore = new Map<string, string>();
 
-jest.mock('../../src/lib/redis', () => ({
-  getRedisClient: () => mockRedisClient,
-  isRedisAvailable: () => true,
-}));
+jest.mock('../../src/lib/redis', () => {
+  const mockRedisClient = {
+    set: (key: string) => {
+      mockMemoryNonceStore.set(key, '1');
+      return Promise.resolve('OK');
+    },
+    get: (key: string) => Promise.resolve(mockMemoryNonceStore.get(key) ?? null),
+    del: (key: string) => Promise.resolve(mockMemoryNonceStore.delete(key) ? 1 : 0),
+  };
+  return {
+    getRedisClient: () => mockRedisClient,
+    isRedisAvailable: () => true,
+  };
+});
 
 jest.mock('../../src/lib/supabase', () => ({
   supabase: { from: (...args: unknown[]) => mockSupabaseFrom(...args) },
@@ -53,7 +55,7 @@ const ownerId = UUIDS.owner;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  memoryNonceStore.clear();
+  mockMemoryNonceStore.clear();
   process.env.FRONTEND_URL = 'http://localhost:5173';
   process.env.META_APP_ID = 'meta-app';
   process.env.META_APP_SECRET = 'meta-secret';
