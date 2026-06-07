@@ -1,110 +1,79 @@
-import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
-import { FadeIn, StaggerContainer, StaggerItem } from '@/components/marketing/v3/animations';
-import {
-  Brain,
-  CheckCircle,
-  Globe,
-  MessageSquare,
-  Zap,
-  BarChart3,
-  Shield,
-  TrendingUp,
-} from 'lucide-react';
+import type { Metadata } from 'next';
+import { Bot, FileText, Palette, Eye, Wallet, BarChart2, Cable, BrainCircuit, Shield, Bell, ArrowRight, Play } from 'lucide-react';
+import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
+import { JsonLd, SOFTWARE_APPLICATION_JSONLD } from '@/components/marketing/JsonLd';
+import { FeatureMatrix } from '@/components/marketing/v4/FeatureMatrix';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Features',
-  description: 'Discover all the features of AdNexus AI — from AI-powered campaign management to cross-platform analytics.',
+  description:
+    'Everything AdNexus AI does: an autonomous AI agent, draft-first approvals, cross-platform reporting, creative fatigue detection, budget pacing, and MCP-native integration.',
+  alternates: { canonical: '/features' },
 };
 
 const FEATURES = [
-  {
-    icon: Brain,
-    title: 'AI Agent',
-    description: 'Autonomous monitoring that detects anomalies, suggests actions, and learns from every campaign.',
-    href: '/features/ai-agent',
-  },
-  {
-    icon: CheckCircle,
-    title: 'Draft Approvals',
-    description: 'AI-generated optimization drafts with one-click approval. Stay in control without the manual work.',
-    href: '/features/approvals',
-  },
-  {
-    icon: Globe,
-    title: 'Cross-Platform',
-    description: 'Unified dashboard for Meta, Google, TikTok, and Snap. One login, complete visibility.',
-    href: '/features/platforms',
-  },
-  {
-    icon: MessageSquare,
-    title: 'Morning Brief',
-    description: 'Daily digest of campaign performance, anomalies, and recommended actions.',
-    href: '/features/morning-brief',
-  },
-  {
-    icon: Zap,
-    title: 'Creative Fatigue',
-    description: 'Detect ad fatigue before it hurts performance. Get refresh recommendations.',
-    href: '/features/creative-fatigue',
-  },
-  {
-    icon: BarChart3,
-    title: 'Budget Pacing',
-    description: 'Smart budget allocation and pacing alerts to maximize ROAS.',
-    href: '/features/budget-pacing',
-  },
-  {
-    icon: Shield,
-    title: 'Brand Safety',
-    description: 'Automated checks ensure every ad meets your brand guidelines.',
-    href: '/features/brand-safety',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Attribution',
-    description: 'Cross-platform attribution modeling to understand true campaign impact.',
-    href: '/features/attribution',
-  },
+  { icon: <FileText size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Morning Brief', desc: 'A daily summary of what changed, what needs attention, and what the AI recommends.' },
+  { icon: <Palette size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Creative Fatigue Detection', desc: 'Catch declining ad performance early and get replacement suggestions before budget is wasted.' },
+  { icon: <Eye size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Competitive Intelligence', desc: 'Track competitor ad activity, spend patterns, and creative strategies across platforms.' },
+  { icon: <Wallet size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'Budget Pacing', desc: 'Smart allocation across campaigns and platforms to maximize ROAS through the whole month.' },
+  { icon: <BarChart2 size={22} style={{ color: '#3B82F6' }} aria-hidden="true" />, title: 'Cross-Platform Reporting', desc: 'Unified dashboards aggregating performance across all four platforms in real time.' },
+  { icon: <Cable size={22} style={{ color: '#8B5CF6' }} aria-hidden="true" />, title: 'MCP Integration', desc: 'Native MCP server. Works with Claude, ChatGPT, Cursor, and any MCP-compatible client.' },
+  { icon: <BrainCircuit size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Predictive Analytics', desc: 'Forecast spend, ROAS, and creative fatigue before they happen — not after.' },
+  { icon: <Bell size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Smart Alerts', desc: 'Anomaly detection for budget pacing, performance drops, and account issues.' },
+  { icon: <Shield size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Approval Workflows', desc: 'Multi-tier approval chains — juniors suggest, seniors approve, everything is logged.' },
 ];
 
 export default function FeaturesPage() {
   return (
     <>
+      <JsonLd data={SOFTWARE_APPLICATION_JSONLD} />
       <PageHero
-        badge="Features"
-        title={<>Everything you need to <span className="text-gradient">scale</span></>}
-        subtitle="A complete toolkit for modern advertising teams. AI-powered, cross-platform, and built for performance."
-        cta="Start Free Trial"
-        ctaHref="/auth/signup"
-        secondaryCta="See Pricing"
-        secondaryCtaHref="/pricing"
+        eyebrow="Features"
+        title={<>Everything you need to run <span style={{ color: '#c3f53b' }}>smarter campaigns</span></>}
+        subtitle="Open the dashboard, read the morning brief, approve a few drafts, and your day's optimization is done."
       />
 
-      <Section>
-        <StaggerContainer>
-          <FeatureGrid className="max-w-5xl mx-auto">
-            {FEATURES.map((feature) => (
-              <StaggerItem key={feature.title}>
-                <FeatureCard
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                  href={feature.href}
-                />
-              </StaggerItem>
-            ))}
-          </FeatureGrid>
-        </StaggerContainer>
+      {/* Interactive Demo Embed */}
+      <Section eyebrow="See it in action" title="Interactive product demo">
+        <div className="max-w-4xl mx-auto">
+          <div
+            className="relative rounded-xl overflow-hidden aspect-video flex items-center justify-center group cursor-pointer"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110" style={{ background: 'rgba(195,245,59,0.15)', border: '1px solid rgba(195,245,59,0.3)' }}>
+                  <Play size={28} style={{ color: '#c3f53b' }} />
+                </div>
+                <p className="text-sm font-medium text-white mb-1">Watch the 2-minute demo</p>
+                <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>See how AdNexus drafts, explains, and awaits your approval</p>
+              </div>
+            </div>
+            {/* Decorative grid lines */}
+            <div className="absolute inset-0 opacity-5" style={{
+              backgroundImage: 'linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }} />
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#c3f53b' }} /> Draft-first workflow</span>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#2563EB' }} /> Cross-platform</span>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#A78BFA' }} /> MCP-native</span>
+          </div>
+        </div>
       </Section>
 
-      <CtaBand
-        title="Ready to experience the future of advertising?"
-        subtitle="Join thousands of marketers who trust AdNexus AI."
-        cta="Start Free Trial"
-        ctaHref="/auth/signup"
-        secondaryCta="Talk to Sales"
-        secondaryCtaHref="/contact"
-      />
+      <FeatureMatrix />
+
+      <Section eyebrow="The Toolkit" title="Built for performance teams" alt>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {FEATURES.map((f) => (
+            <FeatureCard key={f.title} icon={f.icon} title={f.title} desc={f.desc} />
+          ))}
+        </div>
+      </Section>
+
+      <CtaBand />
     </>
   );
 }

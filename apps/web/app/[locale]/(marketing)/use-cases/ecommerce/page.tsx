@@ -1,60 +1,81 @@
-import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
-import { FadeIn, StaggerContainer, StaggerItem } from '@/components/marketing/v3/animations';
-import { ShoppingCart, TrendingUp, Zap, Target } from 'lucide-react';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { UseCasePainGain, UseCaseTimeline } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
 
-export const metadata = {
-  title: 'Ecommerce',
-  description: 'AdNexus AI for ecommerce brands — optimize product campaigns, maximize ROAS, and scale profitably.',
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'E-commerce — AdNexus AI',
+    description: 'Scale your product ads across Meta, Google, TikTok, and Snap. AI detects creative fatigue and drafts new variants before performance drops.',
+    openGraph: { title: 'E-commerce — AdNexus AI', description: 'Scale your product ads across Meta, Google, TikTok, and Snap. AI detects creative fatigue and drafts new variants before performance drops.' },
+  };
+}
 
-export default function EcommercePage() {
+const ECOMMERCE_PAIN_GAIN = [
+  {
+    pain: 'Creative fatigue kills ROAS',
+    painDesc: 'Your best-performing ad creative stops working after 2 weeks. By the time you notice, ROAS has already dropped 30%.',
+    gain: 'Fatigue detection before it hurts',
+    gainDesc: 'AI monitors creative performance and flags fatigue early — then drafts new variants to test before the drop.',
+  },
+  {
+    pain: 'Product feed errors everywhere',
+    painDesc: 'Google Merchant Center rejects products, Meta catalog sync breaks, and you only find out when sales stop.',
+    gain: 'Feed health monitoring',
+    gainDesc: 'Real-time feed health checks across all platforms. Get alerted to errors before they impact sales.',
+  },
+  {
+    pain: 'Attribution is a black box',
+    painDesc: 'Meta says one thing, Google says another. You have no idea which channel actually drove the sale.',
+    gain: 'Unified cross-platform attribution',
+    gainDesc: 'See the true contribution of each channel with deduplicated, cross-platform attribution in one view.',
+  },
+];
+
+const ECOMMERCE_TIMELINE = [
+  { time: '6:00 AM', oldWay: 'Overnight sales dropped 20%. No idea why until you check manually.', newWay: 'AI detected the product feed error at 2 AM and drafted a fix. Approve and publish.' },
+  { time: '9:00 AM', oldWay: 'Check yesterday\'s ROAS across 4 platforms. Spreadsheets everywhere.', newWay: 'Morning Brief shows unified ROAS: 4.2x. 2 creative drafts flagged for fatigue.' },
+  { time: '11:00 AM', oldWay: 'Manually create new ad variants for the fatigued creative.', newWay: 'Review AI-generated creative variants. Approve the best one. Live in minutes.' },
+  { time: '3:00 PM', oldWay: 'Client asks which channel drove the $50K sale. Guess based on last-click.', newWay: 'Show unified attribution: Meta assisted, Google closed. Data-backed answer.' },
+];
+
+export default async function EcommercePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
-    <>
-      <PageHero
-        badge="Ecommerce"
-        title={<>Sell more, <span className="text-gradient">spend less</span></>}
-        subtitle="AI-powered optimization for product campaigns across Meta, Google, and TikTok. Maximize ROAS and scale profitably."
-      />
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-12 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Use Case</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">Built for e-commerce</h1>
+        <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Scale product ads across every platform. AI detects fatigue, monitors feeds, and attributes sales correctly.
+        </p>
+      </section>
 
-      <Section>
-        <StaggerContainer>
-          <FeatureGrid className="max-w-5xl mx-auto">
-            {[
-              {
-                icon: TrendingUp,
-                title: 'ROAS Optimization',
-                description: 'AI continuously adjusts bids and budgets to maximize return on ad spend across all platforms.',
-              },
-              {
-                icon: Zap,
-                title: 'Creative Fatigue Alerts',
-                description: 'Detect when product ads start losing effectiveness and get refresh recommendations before sales drop.',
-              },
-              {
-                icon: Target,
-                title: 'Audience Insights',
-                description: 'Understand which audiences drive the most revenue and where to allocate budget.',
-              },
-              {
-                icon: ShoppingCart,
-                title: 'Product Feed Sync',
-                description: 'Sync your product catalog and automatically generate dynamic ads for new and trending items.',
-              },
-            ].map((item) => (
-              <StaggerItem key={item.title}>
-                <FeatureCard icon={item.icon} title={item.title} description={item.description} />
-              </StaggerItem>
-            ))}
-          </FeatureGrid>
-        </StaggerContainer>
+      <Section title="The e-commerce problem" subtitle="Click any card to see how AdNexus solves it">
+        <UseCasePainGain items={ECOMMERCE_PAIN_GAIN} />
       </Section>
 
-      <CtaBand
-        title="Ready to scale your store?"
-        subtitle="Join thousands of ecommerce brands using AdNexus AI to drive profitable growth."
-        cta="Start Free Trial"
-        ctaHref="/auth/signup"
-      />
-    </>
+      <Section title="A day in the life" subtitle="Before vs. after AdNexus">
+        <UseCaseTimeline steps={ECOMMERCE_TIMELINE} />
+      </Section>
+
+      <Section title="Revenue protection" subtitle="Catch issues earlier and keep product ads performing across every platform">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          {[
+            { value: '2 AM', label: 'feed errors caught before the team wakes up' },
+            { value: '30%', label: 'fatigue drops flagged before they compound' },
+            { value: '4', label: 'platforms monitored in one brief' },
+          ].map((metric) => (
+            <div key={metric.label} className="card-surface p-5 text-center">
+              <div className="font-mono-data text-3xl font-bold text-white mb-2">{metric.value}</div>
+              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{metric.label}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+    </main>
   );
 }

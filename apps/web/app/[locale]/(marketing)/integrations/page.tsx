@@ -1,63 +1,46 @@
-import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
-import { FadeIn, StaggerContainer, StaggerItem } from '@/components/marketing/v3/animations';
-import { Globe, BarChart3, Layers, Link2 } from 'lucide-react';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { IntegrationStatusGrid, OAuthFlowDiagram, MCPShowcase } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
 
-export const metadata = {
-  title: 'Integrations',
-  description:
-    'Connect AdNexus AI to Meta Ads execution, read-only Google Ads coverage, coming-soon TikTok and Snap support, MCP clients, and your internal workflows.',
-  alternates: { canonical: '/integrations' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'metadata' });
+  return {
+    title: 'Integrations — AdNexus AI',
+    description: 'Connect Meta, Google, TikTok, and Snap Ads. OAuth-secured, draft-first, MCP-native.',
+    openGraph: { title: 'Integrations — AdNexus AI', description: 'Connect Meta, Google, TikTok, and Snap Ads. OAuth-secured, draft-first, MCP-native.' },
+  };
+}
 
-export default function IntegrationsPage() {
+export default async function IntegrationsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
-    <>
-      <PageHero
-        badge="Integrations"
-        title={<>Connect your <span className="text-gradient">entire stack</span></>}
-        subtitle="AdNexus AI connects launch-ready Meta execution with read-only and coming-soon platform coverage, MCP clients, and your internal workflows."
-      />
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-16 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Connections</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">One brain. Four platforms.</h1>
+        <p className="text-base max-w-xl mx-auto mb-2" style={{ color: 'var(--text-secondary)' }}>
+          Connect your ad accounts in under two minutes. OAuth-secured, no passwords stored.
+        </p>
+        <p className="text-[13px] max-w-xl mx-auto" style={{ color: 'var(--text-tertiary)' }}>
+          Meta, Google, TikTok, and Snap — all synced to a single AI that drafts optimizations across every channel.
+        </p>
+      </section>
 
-      <Section>
-        <StaggerContainer>
-          <FeatureGrid className="max-w-5xl mx-auto">
-            {[
-              {
-                icon: Globe,
-                title: 'Meta Ads',
-                description: 'Facebook and Instagram campaign execution is launch-ready for the managed v1 pilot.',
-              },
-              {
-                icon: BarChart3,
-                title: 'Google Ads',
-                description: 'Search, Display, YouTube, Shopping, and Performance Max are read-only in v1.',
-              },
-              {
-                icon: Layers,
-                title: 'TikTok Ads',
-                description: 'TikTok Ads support is coming soon for managed write access.',
-              },
-              {
-                icon: Link2,
-                title: 'Snapchat Ads',
-                description: 'Snap Ads support is coming soon for managed write access.',
-              },
-            ].map((item) => (
-              <StaggerItem key={item.title}>
-                <FeatureCard icon={item.icon} title={item.title} description={item.description} />
-              </StaggerItem>
-            ))}
-          </FeatureGrid>
-        </StaggerContainer>
+      <Section title="Connected platforms" subtitle="Real-time sync across all major ad platforms">
+        <IntegrationStatusGrid />
       </Section>
 
-      <CtaBand
-        title="Need a custom integration?"
-        subtitle="Talk to us about MCP clients, Slack alerts, API access, and internal workflow connections."
-        cta="Contact Sales"
-        ctaHref="/contact"
-        variant="dark"
-      />
-    </>
+      <Section title="Secure by design" subtitle="OAuth 2.0 with least-privilege scopes">
+        <OAuthFlowDiagram />
+      </Section>
+
+      <Section title="MCP-native" subtitle="Talk to your campaigns from Claude, ChatGPT, or Cursor">
+        <MCPShowcase />
+      </Section>
+    </main>
   );
 }

@@ -10,8 +10,13 @@ export function LegalPage({ title, updated, children }: { title: string; updated
           {title}
         </h1>
         {updated && (
-          <p className="text-sm text-muted-foreground mb-8">Last updated: {updated}</p>
+          <p className="text-sm text-muted-foreground mb-4">Last updated: {updated}</p>
         )}
+        <div className="mb-8 rounded-xl border border-[#c3f53b]/20 bg-[#c3f53b]/10 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          This page contains standard SaaS legal template language for AdNexus AI and is provided for
+          product-readiness purposes. It should be reviewed by qualified legal counsel before relying
+          on it as a final legal agreement.
+        </div>
         <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed">
           {children}
         </div>
