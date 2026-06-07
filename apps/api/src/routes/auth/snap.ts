@@ -13,7 +13,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
+import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ const REQUIRED_SCOPES = ['snapchat-marketing-api'];
  * GET /api/v1/auth/snap/connect
  * Query: workspace_id (required)
  */
-router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
       res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
@@ -40,7 +40,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     }
 
     const redirectUri = oauthCallbackUrl('snap');
-    const state = createOAuthState({ platform: 'snap', workspaceId, userId: req.user!.sub });
+    const state = await createOAuthState({ platform: 'snap', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       client_id: config.snap.clientId,
@@ -86,6 +86,11 @@ router.get('/callback', async (req: Request, res: Response) => {
       sendOAuthJsonError(req, res, 400, 'snap', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
+    if (!(await consumeOAuthStateNonce('snap', stateData.nonce))) {
+      sendOAuthJsonError(req, res, 400, 'snap', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
+      return;
+    }
+
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
       sendOAuthJsonError(req, res, 403, 'snap', 'error', 'workspace_access_denied', 'Workspace access denied');

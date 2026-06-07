@@ -15,7 +15,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
+import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ const TIKTOK_TOKEN_URL = 'https://business-api.tiktok.com/open_api/v1.3/oauth2/a
  * GET /api/v1/auth/tiktok/connect
  * Query: workspace_id (required)
  */
-router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
       res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
@@ -40,7 +40,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     }
 
     const redirectUri = oauthCallbackUrl('tiktok');
-    const state = createOAuthState({ platform: 'tiktok', workspaceId, userId: req.user!.sub });
+    const state = await createOAuthState({ platform: 'tiktok', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       app_id: config.tiktok.appId,
@@ -85,6 +85,11 @@ router.get('/callback', async (req: Request, res: Response) => {
       sendOAuthJsonError(req, res, 400, 'tiktok', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
+    if (!(await consumeOAuthStateNonce('tiktok', stateData.nonce))) {
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
+      return;
+    }
+
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
       sendOAuthJsonError(req, res, 403, 'tiktok', 'error', 'workspace_access_denied', 'Workspace access denied');
