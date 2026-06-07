@@ -49,6 +49,7 @@ import { NotificationService } from '../../infrastructure/notification/Notificat
 import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
 import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
+import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
@@ -127,6 +128,7 @@ export function buildContainer(): Container {
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
+    mockTrafficSeeder: new MockTrafficSeeder(),
     writeCampaignMetrics,
     stampAccountSynced,
     writeAdSets,
