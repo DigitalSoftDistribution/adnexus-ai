@@ -5,7 +5,7 @@
 import { useState, useCallback, useRef } from 'react';
 import * as Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import api from '@/lib/api';
+import { authFetchJson } from '../lib/authFetch';
 
 /** Supported export format types */
 export type ExportType = 'csv' | 'excel' | 'pdf';
@@ -44,6 +44,8 @@ export interface ExportResult {
   url?: string;
   /** Backend download URL */
   downloadUrl?: string;
+  /** Backend export job identifier */
+  exportId?: string;
   /** Filename used */
   filename: string;
   /** Size in bytes */
@@ -422,63 +424,31 @@ export function useExport(): UseExportReturn {
       abortRef.current = new AbortController();
 
       try {
-        // Backend expects 'csv', 'xlsx', or 'pdf'
         const backendFormat = format === 'excel' ? 'xlsx' : format;
-        const response = await api.post(
-          `/reports/${reportId}/export?format=${backendFormat}`,
-          {},
-          { signal: abortRef.current.signal }
-        );
+        const exportName = filename || `report-${reportId}${EXTENSIONS[format]}`;
+        const response = await authFetchJson<{
+          id?: string;
+          fileUrl?: string | null;
+          file_url?: string | null;
+        }>('/api/v2/exports', {
+          method: 'POST',
+          signal: abortRef.current.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: exportName,
+            entity: 'reports',
+            format: backendFormat,
+            filters: { reportId },
+          }),
+        });
 
-        const data = response.data?.data;
-
-        // If backend returns a direct download URL
-        if (data?.download_url) {
-          const fullUrl = data.download_url.startsWith('http')
-            ? data.download_url
-            : `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}${data.download_url}`;
-
-          // Trigger download
-          const link = document.createElement('a');
-          link.href = fullUrl;
-          link.setAttribute('download', '');
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(() => {
-            document.body.removeChild(link);
-          }, 100);
-
-          const result: ExportResult = {
-            success: true,
-            downloadUrl: fullUrl,
-            filename: filename || `report-${reportId}${EXTENSIONS[format]}`,
-          };
-          setLastResult(result);
-          return result;
-        }
-
-        // If backend returns file content directly
-        if (data?.content) {
-          const mimeType = MIME_TYPES[format];
-          const blob = new Blob([data.content], { type: mimeType });
-          const fullName = filename || `report-${reportId}${EXTENSIONS[format]}`;
-          const url = downloadBlob(blob, fullName);
-
-          const result: ExportResult = {
-            success: true,
-            url,
-            filename: fullName,
-            size: blob.size,
-          };
-          setLastResult(result);
-          return result;
-        }
-
+        const data = response.data;
+        const downloadUrl = data?.fileUrl ?? data?.file_url ?? undefined;
         const result: ExportResult = {
           success: true,
-          filename: filename || `report-${reportId}${EXTENSIONS[format]}`,
-          downloadUrl: data?.downloadUrl,
+          filename: exportName,
+          exportId: data?.id,
+          downloadUrl: downloadUrl ?? undefined,
         };
         setLastResult(result);
         return result;
