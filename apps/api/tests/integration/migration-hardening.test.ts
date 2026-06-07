@@ -20,6 +20,13 @@ describe('migration hardening', () => {
     expect(migration).toContain("ALTER COLUMN scopes SET DEFAULT '[\"read\"]'::jsonb");
   });
 
+  it('adds api_keys.platforms for scoped platform isolation', () => {
+    const migration = readFileSync(join(migrationsDir, '030_api_keys_platforms.sql'), 'utf8');
+
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS platforms JSONB NOT NULL');
+    expect(migration).toContain('["meta","google","tiktok","snap"]');
+  });
+
   it('synchronizes ad_accounts.is_active for every normalized status', () => {
     const migration = readFileSync(join(migrationsDir, '024_oauth_and_onboarding.sql'), 'utf8');
 
