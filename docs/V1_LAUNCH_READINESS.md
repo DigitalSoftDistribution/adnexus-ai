@@ -1,6 +1,6 @@
 # AdNexus AI v1 Launch Readiness
 
-> Linear: SB-3098, SB-3099
+> Linear: SB-3098, SB-3099, SB-3183
 > Scope: launch test matrix, go/no-go criteria, environment readiness, monitoring checks, and operator runbooks.
 > Status: safety net created; several launch blockers remain open below.
 
@@ -17,7 +17,7 @@ Run these from the repo root unless noted.
 | Web component tests | `pnpm --filter @adnexus/web test` | Yes | RTL/Vitest app component tests. |
 | Typecheck | `pnpm turbo typecheck` or `beast typecheck` | Yes | Agent-side quality gate; GitHub CI is not the source of truth here. |
 | Build | `pnpm build` or `beast build` | Yes | Turborepo production build. |
-| Lightweight launch smoke | `pnpm smoke:v1 -- --base-url <api-url> --web-url <web-url>` | Yes for deployed preview | Added in this workstream; verifies health, readiness, metrics, OpenAPI, and key public web pages. |
+| Lightweight launch smoke | `pnpm smoke:v1 -- --base-url <api-url> --web-url <web-url> --origin <web-origin>` | Yes for deployed preview | Verifies health, readiness, metrics, OpenAPI, preview CORS, unauthenticated `/api/v2` behavior, web routes, and web-to-API rewrites. Add `--token` or `SMOKE_AUTH_TOKEN` for authenticated probes. |
 | API image | `docker build -f apps/api/Dockerfile -t adnexus-api .` | Yes before API deploy | Confirms root-context API Docker build. |
 | Web image | `docker build -t adnexus-web .` | Yes before web deploy | Confirms Next standalone artifact. |
 
@@ -42,6 +42,13 @@ Run these from the repo root unless noted.
 | Integrations / Meta connect surface | `/en/dashboard/integrations` |
 | Audit log | `/en/dashboard/audit-log` |
 | Reports | `/en/dashboard/reports` |
+
+### Current preview deploys
+
+| Surface | Coolify app | URL | Notes |
+|---|---|---|---|
+| Web | `adnexus-ai` | `https://adnexus-ai.apps.softblaze.net` | Next standalone app. Uses `API_URL` for `/api/v1/*` and `/api/v2/*` rewrites. |
+| API | `adnexus-api` | `https://adnexus-api.apps.softblaze.net` | Express API built from `apps/api/Dockerfile`; liveness is `/health`, readiness is `/ready`, metrics are `/metrics`. |
 
 ### API routes and observability endpoints
 
