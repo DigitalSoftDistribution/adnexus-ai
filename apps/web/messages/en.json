@@ -670,10 +670,15 @@
     },
     "oauthIssueTitle": "Connection needs attention",
     "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "remainingWork": "Next: {items}",
     "availability": {
       "metaReady": "Launch-ready",
       "readOnly": "Read-only in v1",
-      "comingSoon": "Coming soon"
+      "comingSoon": "Coming soon",
+      "live": "Launch-ready",
+      "read_only": "Read-only in v1",
+      "mock_ready": "Mock-ready only",
+      "mockReady": "Mock-ready only"
     }
   },
   "webhooks": {
@@ -703,7 +708,7 @@
     "title": "Welcome to AdNexus AI",
     "description": "Let's get your workspace set up in a few steps.",
     "stepConnect": "Connect a platform",
-    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are mock-ready only until live OAuth and sync are completed.",
     "stepTeam": "Invite your team",
     "stepTeamDesc": "Add teammates to collaborate on campaigns.",
     "stepCampaign": "View first insight",

@@ -20,6 +20,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { formatDate } from "@/lib/utils";
 import { PLATFORMS, type PlatformId } from "@/lib/platforms";
 
+interface PlatformCapability {
+  status: "live" | "read_only" | "mock_ready" | "coming_soon";
+  canConnectOAuth: boolean;
+  canSyncCampaigns: boolean;
+  dashboardReady: boolean;
+  mcpReady: boolean;
+  mockSyncReady: boolean;
+  reason: string;
+  remainingWork: string[];
+}
+
 interface IntegrationView {
   platform: PlatformId;
   label: string;
@@ -31,6 +42,7 @@ interface IntegrationView {
   accountName: string | null;
   lastSyncedAt: string | null;
   connectUrl: string;
+  capability?: PlatformCapability;
 }
 
 interface SyncJob {
@@ -97,8 +109,8 @@ export function IntegrationsContent() {
   const v1Availability: Record<string, { label: string; disabled: boolean }> = {
     meta: { label: t("availability.metaReady"), disabled: false },
     google: { label: t("availability.readOnly"), disabled: true },
-    tiktok: { label: t("availability.comingSoon"), disabled: true },
-    snap: { label: t("availability.comingSoon"), disabled: true },
+    tiktok: { label: t("availability.mockReady"), disabled: true },
+    snap: { label: t("availability.mockReady"), disabled: true },
   };
 
   const disconnect = useMutation({
@@ -165,7 +177,13 @@ export function IntegrationsContent() {
         {items.map((integration) => {
           const meta = PLATFORMS[integration.platform];
           const color = meta ? `hsl(${meta.colorVar})` : "hsl(var(--primary))";
-          const availability = v1Availability[integration.platform] ?? { label: t("status.available"), disabled: false };
+          const capability = integration.capability;
+          const availability = capability
+            ? {
+                label: t(`availability.${capability.status}`),
+                disabled: !capability.canConnectOAuth,
+              }
+            : v1Availability[integration.platform] ?? { label: t("status.available"), disabled: false };
           return (
             <Card
               key={integration.platform}
@@ -202,6 +220,20 @@ export function IntegrationsContent() {
                     {integration.accountName}
                   </p>
                 )}
+
+                {capability && !capability.dashboardReady ? (
+                  <p className="text-xs text-muted-foreground">
+                    {capability.reason}
+                  </p>
+                ) : null}
+
+                {capability && capability.remainingWork.length > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("remainingWork", {
+                      items: capability.remainingWork.slice(0, 2).join(", "),
+                    })}
+                  </p>
+                ) : null}
 
                 {!integration.connected &&
                   integration.status !== "not_connected" &&

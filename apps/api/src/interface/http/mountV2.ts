@@ -50,12 +50,14 @@ import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
 import { CompositePlatformSyncService } from '../../infrastructure/platform/CompositePlatformSyncService';
 import { GooglePlatformSyncService } from '../../infrastructure/platform/GooglePlatformSyncService';
 import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
+import { MockSocialPlatformSyncService } from '../../infrastructure/platform/MockSocialPlatformSyncService';
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
 import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
 import { registerAllPlatformClients } from '../../platforms/register';
+import { config } from '../../config';
 
 // Application
 import { Container } from '../../application/services/Container';
@@ -99,6 +101,11 @@ export function buildContainer(): Container {
   const domainEventBus = new InMemoryEventBus();
   const auditLogger = new SupabaseAuditLogger();
   const notificationService = new NotificationService();
+  const platformSyncService = new CompositePlatformSyncService([
+    new MetaPlatformSyncService(),
+    new GooglePlatformSyncService(),
+    new MockSocialPlatformSyncService(config.socialSync.enableMockTikTokSnap),
+  ]);
 
   return new Container({
     campaignRepository: new CampaignRepository(),
@@ -127,10 +134,7 @@ export function buildContainer(): Container {
     auditLogger,
     notificationService,
     agentAdvisor: new AgentAdvisor(),
-    platformSyncService: new CompositePlatformSyncService([
-      new MetaPlatformSyncService(),
-      new GooglePlatformSyncService(),
-    ]),
+    platformSyncService,
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),

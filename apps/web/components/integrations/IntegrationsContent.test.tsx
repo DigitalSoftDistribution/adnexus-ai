@@ -42,6 +42,27 @@ const mockIntegrations = [
     lastSyncedAt: null,
     connectUrl: '/api/v2/auth/google',
   },
+  {
+    platform: 'tiktok',
+    label: 'TikTok Ads',
+    connected: false,
+    status: 'disconnected',
+    id: null,
+    accountId: null,
+    accountName: null,
+    lastSyncedAt: null,
+    connectUrl: '/api/v1/auth/tiktok/connect',
+    capability: {
+      status: 'mock_ready',
+      canConnectOAuth: false,
+      canSyncCampaigns: false,
+      dashboardReady: false,
+      mcpReady: false,
+      mockSyncReady: true,
+      reason: 'TikTok route/client stubs exist, but live sync is not complete.',
+      remainingWork: ['confirm OAuth scopes', 'wire live sync mappings'],
+    },
+  },
 ];
 
 describe('IntegrationsContent', () => {
@@ -62,6 +83,8 @@ describe('IntegrationsContent', () => {
     expect(await screen.findByText('Meta Ads')).toBeInTheDocument();
     expect(screen.getByText('Google Ads')).toBeInTheDocument();
     expect(screen.getByText('Test Account')).toBeInTheDocument();
+    expect(screen.getAllByText('Mock-ready only')).toHaveLength(2);
+    expect(screen.getByText('TikTok route/client stubs exist, but live sync is not complete.')).toBeInTheDocument();
     // The badge uses tc('active') which maps to "Active" in en.json
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
