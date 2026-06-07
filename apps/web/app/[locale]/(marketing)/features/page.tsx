@@ -1,12 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import {
-  Bot, CheckCircle2, Globe, FileText, Palette, Eye, Wallet, BarChart2,
-  Cable, BrainCircuit, Shield, Bell, ArrowRight,
-} from 'lucide-react';
+import { Bot, FileText, Palette, Eye, Wallet, BarChart2, Cable, BrainCircuit, Shield, Bell, ArrowRight, Play } from 'lucide-react';
 import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
 import { JsonLd, SOFTWARE_APPLICATION_JSONLD } from '@/components/marketing/JsonLd';
-import { ProductShowcase } from '@/components/marketing/ProductShowcase';
+import { FeatureMatrix } from '@/components/marketing/v4/FeatureMatrix';
 
 export const metadata: Metadata = {
   title: 'Features',
@@ -14,27 +10,6 @@ export const metadata: Metadata = {
     'Everything AdNexus AI does: an autonomous AI agent, draft-first approvals, cross-platform reporting, creative fatigue detection, budget pacing, and MCP-native integration.',
   alternates: { canonical: '/features' },
 };
-
-const PILLARS = [
-  {
-    href: '/features/ai-agent',
-    icon: <Bot size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />,
-    title: 'AI Agent',
-    desc: 'Autonomous 24/7 monitoring that proactively spots issues and drafts optimizations — it never auto-publishes.',
-  },
-  {
-    href: '/features/approvals',
-    icon: <CheckCircle2 size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />,
-    title: 'Draft-First Approvals',
-    desc: 'Every AI change is staged as a draft. Review, edit, approve, or reject — with a full audit trail.',
-  },
-  {
-    href: '/features/platforms',
-    icon: <Globe size={22} style={{ color: '#2563EB' }} aria-hidden="true" />,
-    title: 'Cross-Platform',
-    desc: 'Meta, Google, TikTok, and Snap in one unified dashboard — one brain, zero fragmentation.',
-  },
-];
 
 const FEATURES = [
   { icon: <FileText size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Morning Brief', desc: 'A daily summary of what changed, what needs attention, and what the AI recommends.' },
@@ -55,25 +30,40 @@ export default function FeaturesPage() {
       <PageHero
         eyebrow="Features"
         title={<>Everything you need to run <span style={{ color: '#c3f53b' }}>smarter campaigns</span></>}
-        subtitle="Open the dashboard, read the morning brief, approve a few drafts, and your day's optimization is done. Here's what's inside."
+        subtitle="Open the dashboard, read the morning brief, approve a few drafts, and your day's optimization is done."
       />
 
-      <Section eyebrow="The Pillars" title="Three foundations, deeply integrated">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PILLARS.map((p) => (
-            <Link key={p.href} href={p.href} className="card-surface p-6 hover-lift block">
-              <div className="mb-3">{p.icon}</div>
-              <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-1.5">
-                {p.title}
-                <ArrowRight size={14} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
-              </h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{p.desc}</p>
-            </Link>
-          ))}
+      {/* Interactive Demo Embed */}
+      <Section eyebrow="See it in action" title="Interactive product demo">
+        <div className="max-w-4xl mx-auto">
+          <div
+            className="relative rounded-xl overflow-hidden aspect-video flex items-center justify-center group cursor-pointer"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110" style={{ background: 'rgba(195,245,59,0.15)', border: '1px solid rgba(195,245,59,0.3)' }}>
+                  <Play size={28} style={{ color: '#c3f53b' }} />
+                </div>
+                <p className="text-sm font-medium text-white mb-1">Watch the 2-minute demo</p>
+                <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>See how AdNexus drafts, explains, and awaits your approval</p>
+              </div>
+            </div>
+            {/* Decorative grid lines */}
+            <div className="absolute inset-0 opacity-5" style={{
+              backgroundImage: 'linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }} />
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#c3f53b' }} /> Draft-first workflow</span>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#2563EB' }} /> Cross-platform</span>
+            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#A78BFA' }} /> MCP-native</span>
+          </div>
         </div>
       </Section>
 
-      <ProductShowcase />
+      <FeatureMatrix />
 
       <Section eyebrow="The Toolkit" title="Built for performance teams" alt>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,7 @@ function getFullFieldErrors(
 }
 
 export function SignInForm() {
-  const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -131,8 +131,7 @@ export function SignInForm() {
         return;
       }
       localStorage.setItem('adnexus_token', token);
-      router.push('/dashboard');
-      router.refresh();
+      window.location.assign(`/${locale}/dashboard`);
     } catch {
       setError(t('unexpectedError'));
     } finally {

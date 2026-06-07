@@ -8,6 +8,7 @@ import {
   Bell,
   Target,
   Plug,
+  ServerCog,
   Webhook,
   CreditCard,
   Settings,
@@ -38,12 +39,11 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ href: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard }],
   },
   {
-    titleKey: 'campaigns',
+    titleKey: 'campaignWorkspace',
     items: [
       { href: '/dashboard/campaigns', labelKey: 'campaigns', icon: Megaphone },
       { href: '/dashboard/drafts', labelKey: 'drafts', icon: FileEdit },
       { href: '/dashboard/audiences', labelKey: 'audiences', icon: Users },
-      { href: '/dashboard/reports', labelKey: 'reports', icon: BarChart3 },
     ],
   },
   {
@@ -55,14 +55,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    titleKey: 'connect',
+    titleKey: 'dataHub',
+    items: [{ href: '/dashboard/reports', labelKey: 'reports', icon: BarChart3 }],
+  },
+  {
+    titleKey: 'developerPlatform',
     items: [
       { href: '/dashboard/integrations', labelKey: 'integrations', icon: Plug },
+      { href: '/dashboard/mcp', labelKey: 'mcp', icon: ServerCog },
       { href: '/dashboard/webhooks', labelKey: 'webhooks', icon: Webhook },
     ],
   },
   {
-    titleKey: 'workspace',
+    titleKey: 'admin',
     items: [
       { href: '/dashboard/billing', labelKey: 'billing', icon: CreditCard },
       { href: '/dashboard/settings', labelKey: 'settings', icon: Settings },

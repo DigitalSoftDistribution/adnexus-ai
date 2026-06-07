@@ -14,18 +14,28 @@ interface StepperProps {
   /** Set of completed step ids. */
   completed: Set<string>;
   className?: string;
+  /** Callback when a step indicator is clicked. */
+  onStepClick?: (stepId: string, index: number) => void;
 }
 
 /** Horizontal progress stepper for multi-step flows (onboarding). */
-export function Stepper({ steps, current, completed, className }: StepperProps) {
+export function Stepper({ steps, current, completed, className, onStepClick }: StepperProps) {
   return (
     <ol className={cn('flex items-center gap-2', className)}>
       {steps.map((step, i) => {
         const isComplete = completed.has(step.id);
         const isActive = i === current;
+        const handleClick = onStepClick;
+        const isClickable = Boolean(handleClick);
         return (
           <React.Fragment key={step.id}>
-            <li className="flex items-center gap-2">
+            <li
+              className={cn('flex items-center gap-2', isClickable && 'cursor-pointer')}
+              onClick={handleClick ? () => handleClick(step.id, i) : undefined}
+              role={isClickable ? 'button' : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              onKeyDown={handleClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(step.id, i); } } : undefined}
+            >
               <span
                 className={cn(
                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-colors',

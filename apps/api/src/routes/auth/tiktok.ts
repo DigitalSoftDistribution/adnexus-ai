@@ -14,7 +14,8 @@ import axios from 'axios';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
-import { v4 as uuidv4 } from 'uuid';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
+import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -25,22 +26,21 @@ const TIKTOK_TOKEN_URL = 'https://business-api.tiktok.com/open_api/v1.3/oauth2/a
  * GET /api/v1/auth/tiktok/connect
  * Query: workspace_id (required)
  */
-router.get('/connect', (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const workspaceId =
-      (req.query.workspace_id as string) || (req.headers['x-workspace-id'] as string);
-    if (!workspaceId) {
-      res.status(400).json({ error: 'workspace_id is required', code: 'VALIDATION_ERROR' });
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
       return;
     }
+    const workspaceId = req.workspaceId!;
 
     if (!config.tiktok.appId) {
-      res.status(500).json({ error: 'TikTok app not configured', code: 'CONFIG_ERROR' });
+      sendOAuthJsonError(req, res, 500, 'tiktok', 'config_error', 'missing_tiktok_oauth_config', 'TikTok OAuth is not configured');
       return;
     }
 
-    const redirectUri = `${config.frontend.url}/auth/tiktok/callback`;
-    const state = Buffer.from(JSON.stringify({ workspaceId, nonce: uuidv4() })).toString('base64');
+    const redirectUri = oauthCallbackUrl('tiktok');
+    const state = await createOAuthState({ platform: 'tiktok', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       app_id: config.tiktok.appId,
@@ -49,7 +49,12 @@ router.get('/connect', (req: Request, res: Response) => {
     });
 
     logger.info({ workspaceId }, 'Redirecting to TikTok OAuth');
-    res.redirect(`${TIKTOK_OAUTH_URL}?${params.toString()}`);
+    const authUrl = `${TIKTOK_OAUTH_URL}?${params.toString()}`;
+    if (wantsJson(req)) {
+      res.json({ success: true, data: { redirectUrl: authUrl } });
+      return;
+    }
+    res.redirect(authUrl);
   } catch (err) {
     logger.error({ err }, 'TikTok OAuth connect error');
     res.status(500).json({ error: 'OAuth initiation failed', code: 'INTERNAL_ERROR' });
@@ -67,7 +72,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (oauthError) {
       logger.warn({ error: oauthError }, 'TikTok OAuth denied by user');
-      res.redirect(`${config.frontend.url}/settings?tiktok=denied`);
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'denied', 'oauth_denied', 'TikTok OAuth was denied');
       return;
     }
     if (!authCode || !stateB64) {
@@ -75,11 +80,19 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    let workspaceId: string;
-    try {
-      workspaceId = JSON.parse(Buffer.from(stateB64 as string, 'base64').toString()).workspaceId;
-    } catch {
-      res.status(400).json({ error: 'Invalid state parameter', code: 'VALIDATION_ERROR' });
+    const stateData = verifyOAuthState(stateB64, 'tiktok');
+    if (!stateData) {
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
+      return;
+    }
+    if (!(await consumeOAuthStateNonce('tiktok', stateData.nonce))) {
+      sendOAuthJsonError(req, res, 400, 'tiktok', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
+      return;
+    }
+
+    const { workspaceId, userId } = stateData;
+    if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
+      sendOAuthJsonError(req, res, 403, 'tiktok', 'error', 'workspace_access_denied', 'Workspace access denied');
       return;
     }
 
@@ -100,17 +113,21 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (!accessToken) {
       logger.error({ body: tokenRes.data }, 'TikTok token exchange failed');
-      res.redirect(`${config.frontend.url}/settings?tiktok=error&reason=oauth_failed`);
+      sendOAuthJsonError(req, res, 502, 'tiktok', 'error', 'oauth_failed', 'TikTok OAuth failed');
       return;
     }
 
-    const advertiserId = advertiserIds[0] ?? 'tiktok-ads';
+    const advertiserId = advertiserIds[0];
+    if (!advertiserId) {
+      logger.error({ body: tokenRes.data }, 'TikTok token exchange returned no advertiser id');
+      sendOAuthJsonError(req, res, 502, 'tiktok', 'error', 'no_advertiser', 'TikTok OAuth returned no advertiser');
+      return;
+    }
     const { error: dbError } = await supabase.from('ad_accounts').upsert(
       {
         workspace_id: workspaceId,
         platform: 'tiktok',
         platform_account_id: advertiserId,
-        account_id: advertiserId,
         name: 'TikTok Ads',
         oauth_token: accessToken,
         refresh_token: null,
@@ -119,20 +136,20 @@ router.get('/callback', async (req: Request, res: Response) => {
         is_active: true,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'workspace_id,platform,account_id' },
+      { onConflict: 'workspace_id,platform,platform_account_id' },
     );
 
     if (dbError) {
       logger.error({ err: dbError }, 'Failed to store TikTok tokens');
-      res.redirect(`${config.frontend.url}/settings?tiktok=error&reason=db`);
+      sendOAuthJsonError(req, res, 500, 'tiktok', 'error', 'db', 'Failed to store TikTok credentials');
       return;
     }
 
     logger.info({ workspaceId }, 'TikTok Ads account connected');
-    res.redirect(`${config.frontend.url}/settings?tiktok=connected`);
+    res.redirect(integrationsRedirect('tiktok', 'connected', 'connected'));
   } catch (err) {
     logger.error({ err }, 'TikTok OAuth callback error');
-    res.redirect(`${config.frontend.url}/settings?tiktok=error&reason=oauth_failed`);
+    res.redirect(integrationsRedirect('tiktok', 'error', 'oauth_failed'));
   }
 });
 
@@ -140,9 +157,14 @@ router.get('/callback', async (req: Request, res: Response) => {
  * POST /api/v1/auth/tiktok/disconnect
  * Body: { account_id: string, workspace_id: string }
  */
-router.post('/disconnect', async (req: Request, res: Response) => {
+router.post('/disconnect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { account_id, workspace_id } = req.body;
+    if (!requestWorkspaceMatchesAuthenticatedWorkspace(workspace_id, req.workspaceId)) {
+      res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
+      return;
+    }
+
     if (!account_id || !workspace_id) {
       res.status(400).json({ error: 'account_id and workspace_id required', code: 'VALIDATION_ERROR' });
       return;
@@ -150,7 +172,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
     await supabase
       .from('ad_accounts')
-      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null })
+      .update({ status: 'disconnected', is_active: false, oauth_token: null, refresh_token: null, token_expires_at: null, updated_at: new Date().toISOString() })
       .eq('platform_account_id', account_id)
       .eq('workspace_id', workspace_id)
       .eq('platform', 'tiktok');

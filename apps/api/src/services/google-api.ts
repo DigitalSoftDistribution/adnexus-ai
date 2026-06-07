@@ -4,10 +4,10 @@ import { PlatformError } from '../lib/errors';
 import { supabase } from '../lib/supabase';
 import type { Platform, UnifiedCampaign, UnifiedAdSet, UnifiedAd } from '../types';
 
-const GOOGLE_ADS_API = 'https://googleads.googleapis.com/v16';
-const GOOGLE_OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
+const GOOGLE_ADS_API = config.google.adsApiUrl;
+const GOOGLE_OAUTH_URL = config.google.oauthUrl;
+const GOOGLE_TOKEN_URL = config.google.tokenUrl;
+const GOOGLE_TOKEN_INFO_URL = config.google.tokenInfoUrl;
 
 // ─── Types ───────────────────────────────────────────────────
 

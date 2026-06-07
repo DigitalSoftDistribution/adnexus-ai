@@ -8,15 +8,8 @@ import {
   createCheckoutSession,
   createPortalSession,
   retrieveInvoices,
+  PLAN_LIMITS,
 } from '../../services/stripe';
-
-const PLAN_LIMITS: Record<string, { creatives: number; impressions: number; aiCredits: number }> = {
-  free: { creatives: 5, impressions: 1000, aiCredits: 50 },
-  starter: { creatives: 50, impressions: 50000, aiCredits: 500 },
-  growth: { creatives: 200, impressions: 500000, aiCredits: 5000 },
-  pro: { creatives: 1000, impressions: 2000000, aiCredits: 25000 },
-  enterprise: { creatives: -1, impressions: -1, aiCredits: -1 },
-};
 
 export class BillingRepository implements IBillingRepository {
   async getBillingInfo(workspaceId: string): Promise<BillingInfo | null> {

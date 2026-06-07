@@ -3,7 +3,7 @@ import { config } from '../config';
 import { PlatformError } from '../lib/errors';
 import type { AdAccount, Platform, UnifiedCampaign, UnifiedAdSet, UnifiedAd } from '../types';
 
-const TIKTOK_API = 'https://business-api.tiktok.com/open_api/v1.3';
+const TIKTOK_API = config.tiktok.apiUrl;
 
 // ─── Types ───────────────────────────────────────────────────
 

@@ -3,7 +3,8 @@ import { config } from '../config';
 import { PlatformError } from '../lib/errors';
 import type { Platform, UnifiedCampaign, UnifiedAdSet, UnifiedAd, AdAccount } from '../types';
 
-const SNAP_API_BASE = 'https://adsapi.snapchat.com/v1';
+const SNAP_API_BASE = config.snap.apiBaseUrl;
+const SNAP_OAUTH_BASE = config.snap.oauthBaseUrl;
 
 // ─── Snap-Specific Types ─────────────────────────────────────
 
@@ -162,7 +163,7 @@ function extractSnapData<T>(response: { data?: { [key: string]: T[] } }, key: st
 
 export async function getSnapAuthUrl(workspaceId: string): Promise<string> {
   const redirectUri = `${config.frontend.url}/auth/snap/callback`;
-  const url = new URL('https://accounts.snapchat.com/accounts/oauth2/auth');
+  const url = new URL(`${SNAP_OAUTH_BASE}/auth`);
   url.searchParams.set('client_id', config.snap.clientId);
   url.searchParams.set('redirect_uri', redirectUri);
   url.searchParams.set('response_type', 'code');
@@ -177,7 +178,7 @@ export async function handleSnapCallback(code: string, workspaceId: string): Pro
 
     // Step 1: Exchange code for access token
     const { data: tokenData } = await axios.post(
-      'https://accounts.snapchat.com/accounts/oauth2/token',
+      `${SNAP_OAUTH_BASE}/token`,
       {
         grant_type: 'authorization_code',
         code,
@@ -238,7 +239,7 @@ export async function handleSnapCallback(code: string, workspaceId: string): Pro
 export async function refreshSnapToken(refreshToken: string): Promise<{ accessToken: string; expiresAt: Date }> {
   try {
     const { data } = await axios.post(
-      'https://accounts.snapchat.com/accounts/oauth2/token',
+      `${SNAP_OAUTH_BASE}/token`,
       {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
