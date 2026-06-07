@@ -1,6 +1,7 @@
 import type { IBillingRepository } from '../../../domain/repositories/IBillingRepository';
 import type { CheckoutSession } from '../../../domain/repositories/IBillingRepository';
 import { Result, ok, err, ForbiddenError, ValidationError } from '../../../domain/value-objects/Result';
+import { getPlanForPrice, isBillingCheckoutConfigured } from '../../../services/stripe';
 
 export interface CreateCheckoutSessionInput {
   workspaceId: string;
@@ -22,6 +23,14 @@ export class CreateCheckoutSessionUseCase {
 
     if (!input.priceId) {
       return err(new ValidationError('Price ID is required'));
+    }
+
+    if (!isBillingCheckoutConfigured()) {
+      return err(new ValidationError('Billing checkout is not configured'));
+    }
+
+    if (!getPlanForPrice(input.priceId)) {
+      return err(new ValidationError('Unknown Stripe price ID'));
     }
 
     const successUrl = input.successUrl || `${process.env.FRONTEND_URL}/dashboard/billing?success=true`;

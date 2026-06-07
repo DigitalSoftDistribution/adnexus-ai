@@ -219,7 +219,7 @@ router.get(
 
     const { data: accounts, error } = await supabase
       .from('ad_accounts')
-      .select('id, platform, name, account_id, status, token_expires_at, metadata, created_at, updated_at')
+      .select('id, platform, name, platform_account_id, status, token_expires_at, metadata, created_at, updated_at, last_synced_at')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
 
@@ -231,9 +231,9 @@ router.get(
       id: a.id,
       platform: a.platform,
       accountName: a.name,
-      platformAccountId: a.account_id,
+      platformAccountId: a.platform_account_id,
       status: a.status,
-      lastSyncedAt: (a.metadata as Record<string, unknown> | null)?.last_synced_at ?? a.updated_at,
+      lastSyncedAt: a.last_synced_at,
     }));
 
     res.json({
@@ -278,7 +278,7 @@ router.post(
     await supabase
       .from('ad_accounts')
       .update({
-        status: 'refresh_needed',
+        status: 'expired',
         metadata: {
           ...metadata,
           reconnect_requested_at: new Date().toISOString(),
@@ -286,13 +286,10 @@ router.post(
       })
       .eq('id', accountId);
 
-    // Build OAuth reconnect URL (platform-specific)
-    const oauthUrls: Record<string, string> = {
-      meta: `/api/v1/auth/meta/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      google: `/api/v1/auth/google/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      tiktok: `/api/v1/auth/tiktok/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-      snap: `/api/v1/auth/snap/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`,
-    };
+    const reconnectUrl =
+      platform === 'meta'
+        ? `/api/v1/auth/meta/connect?workspace_id=${workspaceId}&account_id=${accountId}&reconnect=true`
+        : null;
 
     logger(req).info(
       { accountId, platform },
@@ -304,9 +301,12 @@ router.post(
       data: {
         accountId,
         platform,
-        status: 'refresh_needed',
-        reconnectUrl: oauthUrls[platform] ?? null,
-        message: `Please complete OAuth reconnection for ${platform}`,
+        status: 'expired',
+        reconnectUrl,
+        reconnectSupported: platform === 'meta',
+        message: platform === 'meta'
+          ? 'Please complete OAuth reconnection for Meta'
+          : `${platform} reconnect is not yet supported; disconnect and connect the account again.`,
       },
     });
   }),

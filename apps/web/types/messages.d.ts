@@ -220,6 +220,11 @@ export interface Messages {
       'rejected': string;
       'rolled_back': string;
     };
+    'executionNotice': string;
+    'markReviewed': string;
+    'approveAndExecute': string;
+    'executionUnavailable': string;
+    'executionDisabled': string;
   };
   'aiAgent': {
     'title': string;

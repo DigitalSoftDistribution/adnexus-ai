@@ -343,6 +343,8 @@ describe('POST /api/v1/auth/signin', () => {
     // Assert
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('UNAUTHORIZED');
+    expect(response.body.error.message).toBe('Invalid email or password');
   });
 
   it('should reject sign in for non-existent user', async () => {

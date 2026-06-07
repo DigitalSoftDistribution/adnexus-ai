@@ -1,64 +1,74 @@
-import type { Metadata } from 'next';
-import { PageHero, Section, CtaBand } from '@/components/marketing/sections';
+import { PageHero, Section } from '@/components/marketing/sections';
+import { FadeIn } from '@/components/marketing/v3/animations';
+import { Badge } from '@/components/ui/badge';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Changelog',
-  description: "What's new in AdNexus AI — product updates, new features, and improvements.",
-  alternates: { canonical: '/changelog' },
+  description: 'Latest updates, features, and improvements to AdNexus AI.',
 };
 
 const ENTRIES = [
   {
-    date: '2026-06',
-    tag: 'New',
-    title: 'Public marketing site & unified navigation',
-    body: 'A brand-new public site with features, use cases, comparisons, security, and pricing — all served from the production app.',
+    date: 'June 2026',
+    version: 'v2.0',
+    items: [
+      'Complete redesign with dark-first teal/violet theme',
+      'New AI Agent with autonomous anomaly detection',
+      'Cross-platform unified dashboard',
+      'Creative fatigue detection and alerts',
+    ],
   },
   {
-    date: '2026-05',
-    tag: 'Improved',
-    title: 'Cross-platform attribution',
-    body: 'Unified attribution now spans Meta, Google, TikTok, and Snap so you can see each channel\u2019s true contribution in one view.',
+    date: 'May 2026',
+    version: 'v1.5',
+    items: [
+      'Morning Brief daily digest',
+      'Budget pacing insights',
+      'Draft approvals workflow',
+      'Snapchat Ads integration',
+    ],
   },
   {
-    date: '2026-05',
-    tag: 'New',
-    title: 'Creative fatigue detection',
-    body: 'The AI now flags fatiguing creative early and suggests replacements before performance drops.',
-  },
-  {
-    date: '2026-04',
-    tag: 'New',
-    title: 'MCP-native agent',
-    body: 'Connect AdNexus to Claude, ChatGPT, and Cursor through the Model Context Protocol.',
+    date: 'April 2026',
+    version: 'v1.0',
+    items: [
+      'Initial release of AdNexus AI',
+      'Meta and Google Ads support',
+      'Basic anomaly detection',
+      'Performance analytics dashboard',
+    ],
   },
 ];
 
-const TAG_COLOR: Record<string, string> = {
-  New: '#c3f53b',
-  Improved: '#2563EB',
-  Fixed: '#A78BFA',
-};
-
-export default function Page() {
+export default function ChangelogPage() {
   return (
     <>
-      <PageHero eyebrow="Changelog" title={<>What&apos;s <span style={{ color: '#c3f53b' }}>new</span></>} subtitle="Product updates, new features, and improvements to AdNexus AI." />
+      <PageHero
+        badge="Changelog"
+        title={<>What is <span className="text-gradient">new</span></>}
+        subtitle="Latest updates, features, and improvements to the AdNexus AI platform."
+      />
+
       <Section>
-        <div className="max-w-3xl mx-auto space-y-4">
-          {ENTRIES.map((e) => (
-            <div key={e.title} className="card-surface p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: `${TAG_COLOR[e.tag] ?? '#888'}22`, color: TAG_COLOR[e.tag] ?? '#888' }}>{e.tag}</span>
-                <span className="font-mono-data text-xs" style={{ color: 'var(--text-tertiary)' }}>{e.date}</span>
+        <div className="max-w-2xl mx-auto space-y-12">
+          {ENTRIES.map((entry) => (
+            <FadeIn key={entry.version}>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="font-display text-xl font-semibold text-foreground">{entry.date}</h2>
+                <Badge variant="teal">{entry.version}</Badge>
               </div>
-              <h3 className="text-base font-semibold text-white mb-1.5">{e.title}</h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{e.body}</p>
-            </div>
+              <ul className="space-y-3">
+                {entry.items.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </FadeIn>
           ))}
         </div>
       </Section>
-      <CtaBand />
     </>
   );
 }

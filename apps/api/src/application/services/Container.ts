@@ -376,7 +376,7 @@ export class Container {
       config.auditLogger,
     );
     this.rejectDraft = new RejectDraftUseCase(config.draftRepository);
-    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository);
+    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository, config.auditLogger);
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);
 
@@ -531,7 +531,11 @@ export class Container {
       config.campaignRepository,
     );
     this.setOnboardingStep = new SetOnboardingStepUseCase(config.workspaceRepository);
-    this.completeOnboarding = new CompleteOnboardingUseCase(config.workspaceRepository);
+    this.completeOnboarding = new CompleteOnboardingUseCase(
+      config.workspaceRepository,
+      config.settingsRepository,
+      config.campaignRepository,
+    );
     this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
     this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
     this.createAutomationRule = new CreateAutomationRuleUseCase(

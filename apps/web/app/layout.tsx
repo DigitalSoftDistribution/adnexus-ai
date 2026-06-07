@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import { Inter, Geist, Geist_Mono } from 'next/font/google';
 import { getLocale } from 'next-intl/server';
 import { Providers } from '@/providers';
 import './globals.css';
@@ -10,13 +10,13 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
-const spaceGrotesk = Space_Grotesk({
+const geist = Geist({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-space',
+  variable: '--font-display',
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-mono',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0A0F' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -66,7 +66,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${geist.variable} ${geistMono.variable} dark`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans antialiased">

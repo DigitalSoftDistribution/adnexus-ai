@@ -34,14 +34,17 @@ export class DisconnectAdAccountUseCase {
       return err(new NotFoundError('Ad account'));
     }
 
-    if (adAccount.status === 'DISCONNECTED') {
+    if (adAccount.status === 'disconnected') {
       return err(new ValidationError('Ad account is already disconnected'));
     }
 
     const activeCampaigns = await this.campaignRepo.countByAdAccount(adAccount.id);
 
     await this.adAccountRepo.update(adAccount.id, {
-      status: 'DISCONNECTED',
+      status: 'disconnected',
+      oauthToken: null,
+      refreshToken: null,
+      isActive: false,
       disabledReason: input.reason ?? 'Manually disconnected',
     });
 

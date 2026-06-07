@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
-import { Sparkles, Plug, Users, Megaphone, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Sparkles, Plug, Users, BarChart3, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -24,11 +24,10 @@ interface OnboardingStatus {
 
 export function OnboardingContent() {
   const t = useTranslations('onboarding');
-  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState<number | null>(null);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ['onboarding', 'status'],
@@ -40,19 +39,29 @@ export function OnboardingContent() {
     },
   });
 
+  useEffect(() => {
+    if (status?.completed) {
+      router.replace('/dashboard');
+    }
+  }, [router, status?.completed]);
+
   const complete = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v2/onboarding/complete', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to complete onboarding');
-      return res.json();
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message = body?.error?.message ?? body?.message ?? t('completeBlocked');
+        throw new Error(message);
+      }
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding'] });
-      router.push('/dashboard');
+      router.replace('/dashboard');
     },
   });
 
-  if (isLoading) {
+  if (isLoading || status?.completed) {
     return (
       <div className="flex h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -88,16 +97,20 @@ export function OnboardingContent() {
     },
     {
       id: 'firstCampaign',
-      icon: Megaphone,
-      title: t('stepCampaign'),
-      description: t('stepCampaignDesc'),
-      href: '/dashboard/campaigns/new',
-      cta: t('stepCampaign'),
+      icon: BarChart3,
+      title: t('stepFirstValue'),
+      description: t('stepFirstValueDesc'),
+      href: '/dashboard',
+      cta: t('stepFirstValueCta'),
     },
   ];
 
   const stepperSteps: StepperStep[] = stepDefs.map((s) => ({ id: s.id, label: s.title }));
   const completedSet = new Set(stepDefs.filter((s) => steps[s.id]).map((s) => s.id));
+  const firstIncompleteIndex = stepDefs.findIndex((s) => !steps[s.id]);
+  const currentStepIndex = firstIncompleteIndex === -1 ? stepDefs.length - 1 : firstIncompleteIndex;
+  const highlightedStepIndex = active ?? currentStepIndex;
+  const canComplete = steps.connectPlatform && steps.firstCampaign;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -114,7 +127,7 @@ export function OnboardingContent() {
           </p>
         </div>
 
-        <Stepper steps={stepperSteps} current={active} completed={completedSet} className="mb-8" />
+        <Stepper steps={stepperSteps} current={highlightedStepIndex} completed={completedSet} className="mb-8" />
 
         <div className="space-y-3">
           {stepDefs.map((step, i) => {
@@ -122,7 +135,7 @@ export function OnboardingContent() {
             return (
               <Card
                 key={step.id}
-                className={done ? 'border-success/40' : i === active ? 'border-primary/40' : ''}
+                className={done ? 'border-success/40' : i === highlightedStepIndex ? 'border-primary/40' : ''}
                 onMouseEnter={() => setActive(i)}
               >
                 <CardContent className="flex items-center justify-between gap-4 p-5">
@@ -153,14 +166,23 @@ export function OnboardingContent() {
           })}
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => complete.mutate()} disabled={complete.isPending}>
-            {t('skip')}
+        {complete.isError ? (
+          <p className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {(complete.error as Error).message}
+          </p>
+        ) : null}
+
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <Button asChild variant="ghost">
+            <Link href="/dashboard/campaigns">{t('skip')}</Link>
           </Button>
-          <Button onClick={() => complete.mutate()} disabled={complete.isPending}>
-            {complete.isPending ? '...' : t('finish')}
+          <Button onClick={() => complete.mutate()} disabled={complete.isPending || !canComplete}>
+            {complete.isPending ? '...' : canComplete ? t('finish') : t('finishLocked')}
           </Button>
         </div>
+        {!canComplete ? (
+          <p className="mt-3 text-center text-sm text-muted-foreground">{t('finishLockedDescription')}</p>
+        ) : null}
       </div>
     </div>
   );

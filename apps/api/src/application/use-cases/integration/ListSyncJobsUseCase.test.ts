@@ -4,7 +4,25 @@ import type { IAdAccountRepository } from '../../../domain/repositories/IAdAccou
 import type { ISyncJobRepository } from '../../../domain/repositories/ISyncJobRepository';
 import type { AdAccount } from '../../../domain/entities/AdAccount';
 
-const account = { id: 'acc-1', workspaceId: 'ws-1', platform: 'meta' } as AdAccount;
+const account = {
+  id: 'acc-1',
+  workspaceId: 'ws-1',
+  platform: 'meta',
+  platformAccountId: 'act_123',
+  name: 'Acct',
+  status: 'active',
+  oauthToken: 'real-token',
+  refreshToken: 'refresh-token',
+  tokenExpiresAt: null,
+  isActive: true,
+  scopes: [],
+  lastSyncedAt: null,
+  spendCap: null,
+  disabledReason: null,
+  metadata: {},
+  createdAt: new Date(),
+  updatedAt: new Date(),
+} as AdAccount;
 
 const makeAccountRepo = (acc: AdAccount | null = account): IAdAccountRepository =>
   ({

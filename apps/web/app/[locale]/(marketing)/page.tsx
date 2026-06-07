@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   // name is not duplicated in the home page title.
   title: { absolute: 'AdNexus AI — The Intelligent Campaign Workspace' },
   description:
-    'AI-powered ad management across Meta, Google, TikTok, and Snap — where every AI-generated change is a draft awaiting your approval. One dashboard, flat pricing.',
+    'AI-powered ad management launching with Meta execution and read-only/coming-soon coverage for Google, TikTok, and Snap — where every AI-generated change is a reviewed draft before execution. One dashboard, flat pricing.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'AdNexus AI — The Intelligent Campaign Workspace',
     description:
-      'AI-powered ad management with draft-first approval across Meta, Google, TikTok, and Snap.',
+      'AI-powered ad management with reviewed drafts, Meta execution, and cross-platform reporting roadmap.',
     url: '/',
   },
 };

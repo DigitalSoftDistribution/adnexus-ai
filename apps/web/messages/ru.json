@@ -19,6 +19,7 @@
     "logo": "AdNexus AI",
     "goals": "Цели",
     "integrations": "Интеграции",
+    "mcp": "MCP-сервер",
     "webhooks": "Вебхуки",
     "auditLog": "Журнал аудита",
     "collapse": "Свернуть",
@@ -149,7 +150,42 @@
     "emptyTitle": "Пока нет данных по кампаниям",
     "emptyDescription": "Подключите рекламный аккаунт и синхронизируйте, чтобы увидеть здесь свои показатели.",
     "emptyConnect": "Подключить платформу",
-    "emptyCreate": "Создать кампанию"
+    "emptyCreate": "Создать кампанию",
+    "firstValueTitle": "Get to your first useful dashboard",
+    "firstValueDescription": "Connect Meta, sync campaigns, then review a real insight. We will not show pretend KPI data while your workspace is empty.",
+    "connectMetaTitle": "Connect Meta account",
+    "connectMetaDescription": "Start with Meta Ads so AdNexus can import live campaign performance through OAuth.",
+    "connectMetaCta": "Connect Meta account",
+    "connectedAccount": "Connected: {account}",
+    "syncFirstAccountTitle": "Sync first account",
+    "syncFirstAccountDescription": "After OAuth, import campaigns and today's metrics before looking at dashboard KPIs.",
+    "syncFirstAccountCta": "Sync campaigns",
+    "syncing": "Syncing campaigns...",
+    "connectRequired": "Connect an account first",
+    "lastSynced": "Last synced {date}",
+    "neverSynced": "Never synced",
+    "viewFirstInsightTitle": "View first insight",
+    "viewFirstInsightDescription": "Once synced, the dashboard will show real KPIs plus a recommended action.",
+    "viewFirstInsightCta": "View dashboard",
+    "syncNoConnectedAccount": "No connected ad account to sync",
+    "syncFailed": "Sync failed. Check OAuth scopes and platform configuration, then try again.",
+    "syncErrorTitle": "Sync failed",
+    "syncErrorDescription": "The latest sync could not import campaigns. Reconnect the account if OAuth expired, or verify API credentials and scopes.",
+    "partialSyncTitle": "Partial sync completed",
+    "partialSyncDescription": "Imported {count} campaigns, but some data failed. Review sync history in Integrations before trusting all KPIs.",
+    "integrationStatusUnavailable": "Integration status unavailable",
+    "firstInsightTitle": "First insight",
+    "dataFreshness": "Data freshness: last synced {date}",
+    "dataFreshnessUnknown": "Data freshness: no completed sync recorded",
+    "insightNoCampaigns": "No synced campaigns yet.",
+    "insightNoSpend": "Campaigns are synced, but spend is currently zero for the imported window.",
+    "insightRoas": "Average ROAS is {roas}x across synced campaigns.",
+    "insightCpa": "Average CPA is {cpa} across synced campaigns.",
+    "insightMonitor": "Campaigns are synced. Review spend, click, and conversion trends before making changes.",
+    "recommendedActionRoas": "Recommended action: inspect campaigns below 1.5x ROAS and draft budget reductions before scaling spend.",
+    "recommendedActionCtr": "Recommended action: refresh low-CTR creatives before increasing budget.",
+    "recommendedActionReview": "Recommended action: open campaigns to review top movers and create a draft optimization.",
+    "viewCampaignsCta": "View campaigns"
   },
   "campaigns": {
     "title": "Кампании",
@@ -253,7 +289,12 @@
       "failed": "Не удалось",
       "rejected": "Отклонено",
       "rolled_back": "Откачено"
-    }
+    },
+    "executionNotice": "Reviewing a draft only marks it approved. Platform execution is disabled for the v1 pilot, so no live campaign writes happen from this screen.",
+    "markReviewed": "Mark reviewed",
+    "approveAndExecute": "Approve & execute",
+    "executionUnavailable": "Execution disabled",
+    "executionDisabled": "Platform execution is disabled for the v1 pilot. Approval records review intent only; no ad platform changes are applied."
   },
   "aiAgent": {
     "title": "ИИ-агент",
@@ -414,6 +455,8 @@
     "failedToFetchBilling": "Не удалось загрузить платёжную информацию",
     "failedToFetchInvoices": "Не удалось загрузить счета",
     "failedToCreatePortal": "Не удалось создать сессию портала",
+    "checkoutUnavailable": "Plan changes are unavailable",
+    "checkoutUnavailableDescription": "Billing checkout has not been configured yet. Your current plan and usage are shown without fake upgrade options.",
     "manageSubscription": "Управлять подпиской",
     "plan": "Тариф",
     "currentPeriod": "Текущий период",
@@ -463,7 +506,12 @@
         "Гарантия SLA",
         "Индивидуальные договоры"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Не удалось начать оформление покупки",
+    "checkoutReadyTitle": "Обновить до {plan}",
+    "checkoutReadyDescription": "Оформление покупки настроено и безопасно откроет Stripe для выбранного платного плана.",
+    "startingCheckout": "Запуск оформления...",
+    "upgradePlan": "Обновить до {plan}"
   },
   "alerts": {
     "title": "Оповещения",
@@ -544,6 +592,13 @@
         "partial": "Частично",
         "failed": "Ошибка"
       }
+    },
+    "oauthIssueTitle": "Connection needs attention",
+    "oauthIssueDescription": "This account is marked {status}. Reconnect it to refresh OAuth permissions before syncing.",
+    "availability": {
+      "metaReady": "Launch-ready",
+      "readOnly": "Read-only in v1",
+      "comingSoon": "Coming soon"
     }
   },
   "webhooks": {
@@ -573,14 +628,20 @@
     "title": "Добро пожаловать в AdNexus AI",
     "description": "Настроим вашу рабочую область за несколько шагов.",
     "stepConnect": "Подключить платформу",
-    "stepConnectDesc": "Подключите Meta, Google, TikTok или Snap для импорта кампаний.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
     "stepTeam": "Пригласите команду",
     "stepTeamDesc": "Добавьте коллег для совместной работы.",
-    "stepCampaign": "Создайте первую кампанию",
-    "stepCampaignDesc": "Запустите или создайте черновик кампании.",
+    "stepCampaign": "View first insight",
+    "stepCampaignDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
     "skip": "Пропустить пока",
     "finish": "Перейти к панели",
-    "completed": "Завершено"
+    "finishLocked": "Complete after first sync",
+    "finishLockedDescription": "Connect an account and sync at least one campaign before marking onboarding complete. You can still skip for now and continue from the dashboard.",
+    "completeBlocked": "Complete onboarding after connecting an ad account and syncing at least one campaign.",
+    "completed": "Завершено",
+    "stepFirstValue": "View first insight",
+    "stepFirstValueDesc": "Open the dashboard after your first sync to review real KPIs and the recommended action.",
+    "stepFirstValueCta": "Open dashboard"
   },
   "goals": {
     "title": "Цели",

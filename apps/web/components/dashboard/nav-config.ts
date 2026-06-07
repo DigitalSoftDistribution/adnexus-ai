@@ -8,6 +8,7 @@ import {
   Bell,
   Target,
   Plug,
+  ServerCog,
   Webhook,
   CreditCard,
   Settings,
@@ -58,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
     titleKey: 'connect',
     items: [
       { href: '/dashboard/integrations', labelKey: 'integrations', icon: Plug },
+      { href: '/dashboard/mcp', labelKey: 'mcp', icon: ServerCog },
       { href: '/dashboard/webhooks', labelKey: 'webhooks', icon: Webhook },
     ],
   },
