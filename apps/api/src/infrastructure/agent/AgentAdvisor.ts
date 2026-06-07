@@ -20,6 +20,7 @@ import type {
 interface RecStateRow {
   recommendation_id: string;
   status: 'pending' | 'applied' | 'dismissed';
+  applied_draft_id: string | null;
 }
 
 export class AgentAdvisor implements IAgentAdvisor {
@@ -39,39 +40,43 @@ export class AgentAdvisor implements IAgentAdvisor {
     const recs = await this.generator.generateRecommendations(workspaceId);
 
     const { rows: states } = await query<RecStateRow>(
-      `SELECT recommendation_id, status FROM ai_recommendation_states WHERE workspace_id = $1`,
+      `SELECT recommendation_id, status, applied_draft_id FROM ai_recommendation_states WHERE workspace_id = $1`,
       [workspaceId],
     );
-    const stateMap = new Map(states.map((s) => [s.recommendation_id, s.status]));
+    const stateMap = new Map(states.map((s) => [s.recommendation_id, s]));
 
     return recs
-      .filter((rec) => stateMap.get(rec.id) !== 'dismissed')
-      .map((rec) => ({
-        id: rec.id,
-        type: rec.type,
-        title: rec.title,
-        description: rec.description,
-        campaignId: rec.campaignIds[0] ?? null,
-        targetEntity: rec.targetEntity,
-        explanation: rec.explanation,
-        evidenceMetrics: rec.evidenceMetrics,
-        platform: rec.platform,
-        estimatedImpact: rec.estimatedImpact
-          ? `${rec.estimatedImpact.direction === 'increase' ? '+' : '-'}${rec.estimatedImpact.magnitude}${rec.estimatedImpact.unit} ${rec.estimatedImpact.metric}`
-          : 'Unknown',
-        confidence: rec.confidence,
-        riskLevel: rec.riskLevel,
-        priority: rec.priority,
-        status: (stateMap.get(rec.id) ?? 'pending') as AgentRecommendation['status'],
-        proposedChanges: rec.proposedChanges,
-        rollbackCondition: rec.rollbackCondition,
-        model: rec.model,
-        modelVersion: rec.modelVersion,
-        source: rec.source,
-        reasoning: rec.reasoning,
-        createdAt: rec.createdAt,
-        expiresAt: rec.expiresAt ?? null,
-      }));
+      .filter((rec) => stateMap.get(rec.id)?.status !== 'dismissed')
+      .map((rec) => {
+        const state = stateMap.get(rec.id);
+        return {
+          id: rec.id,
+          type: rec.type,
+          title: rec.title,
+          description: rec.description,
+          campaignId: rec.campaignIds[0] ?? null,
+          targetEntity: rec.targetEntity,
+          explanation: rec.explanation,
+          evidenceMetrics: rec.evidenceMetrics,
+          platform: rec.platform,
+          estimatedImpact: rec.estimatedImpact
+            ? `${rec.estimatedImpact.direction === 'increase' ? '+' : '-'}${rec.estimatedImpact.magnitude}${rec.estimatedImpact.unit} ${rec.estimatedImpact.metric}`
+            : 'Unknown',
+          confidence: rec.confidence,
+          riskLevel: rec.riskLevel,
+          priority: rec.priority,
+          status: (state?.status ?? 'pending') as AgentRecommendation['status'],
+          proposedChanges: rec.proposedChanges,
+          rollbackCondition: rec.rollbackCondition,
+          model: rec.model,
+          modelVersion: rec.modelVersion,
+          source: rec.source,
+          reasoning: rec.reasoning,
+          createdAt: rec.createdAt,
+          expiresAt: rec.expiresAt ?? null,
+          appliedDraftId: state?.applied_draft_id ?? null,
+        };
+      });
   }
 
   async applyRecommendation(
