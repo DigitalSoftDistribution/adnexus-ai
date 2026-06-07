@@ -104,9 +104,13 @@ interface Draft {
 interface AlertRule {
   id: string;
   name: string;
-  condition: string;
-  severity: "critical" | "warning" | "info";
-  status: "active" | "paused";
+  enabled?: boolean;
+  metric?: string;
+  operator?: string;
+  threshold?: number;
+  condition?: string;
+  severity?: "critical" | "warning" | "info";
+  status?: "active" | "paused";
   lastTriggered: string | null;
 }
 
@@ -328,8 +332,12 @@ export function DashboardContent() {
 
   const connectedIntegrations = (integrations ?? []).filter((i) => i.connected);
   const pendingDrafts = (drafts.data ?? []).filter((d) => d.status === "pending");
-  const activeAlerts = (alerts.data ?? []).filter((a) => a.status === "active");
-  const criticalAlerts = activeAlerts.filter((a) => a.severity === "critical");
+  const activeAlerts = (alerts.data ?? []).filter((a) => a.enabled !== false);
+  const criticalAlerts = activeAlerts.filter((a) => alertTone(a) === "destructive");
+  const unreadNotifications = (notifications.data?.notifications ?? []).filter(
+    (n) => !n.read,
+  );
+  const alertsQueueCount = activeAlerts.length + unreadNotifications.length;
   const pendingRecs = (recommendations.data ?? []).filter(
     (r) => r.status === "pending",
   );
@@ -472,9 +480,9 @@ export function DashboardContent() {
           title={t("alertsSummaryTitle")}
           description={t("alertsSummaryDescription")}
           icon={<Bell className="h-5 w-5 text-warning" />}
-          count={activeAlerts.length}
+          count={alertsQueueCount}
           loading={alerts.isLoading || notifications.isLoading}
-          error={(alerts.error ?? notifications.error) as Error | null}
+          error={alerts.error as Error | null}
           emptyTitle={t("noActiveAlerts")}
           emptyDescription={t("noActiveAlertsDescription")}
           href="/dashboard/alerts"
@@ -484,13 +492,12 @@ export function DashboardContent() {
             <QueueItem
               key={alert.id}
               title={alert.name}
-              meta={alert.condition}
-              badge={alert.severity}
-              tone={alert.severity === "critical" ? "destructive" : "warning"}
+              meta={alertDescription(alert)}
+              badge={alertBadge(alert)}
+              tone={alertTone(alert)}
             />
           ))}
-          {(notifications.data?.notifications ?? [])
-            .filter((n) => !n.read)
+          {unreadNotifications
             .slice(0, Math.max(0, 3 - activeAlerts.slice(0, 2).length))
             .map((n) => (
               <QueueItem
@@ -809,6 +816,23 @@ function OperationalQueueCard({
       </CardContent>
     </Card>
   );
+}
+
+function alertDescription(alert: AlertRule): string {
+  if (alert.condition) return alert.condition;
+  const metric = alert.metric?.replace(/_/g, " ") ?? "metric";
+  const operator = alert.operator?.replace(/_/g, " ") ?? "changes";
+  return `${metric} ${operator} ${alert.threshold ?? "threshold"}`;
+}
+
+function alertBadge(alert: AlertRule): string {
+  return alert.severity ?? (alert.enabled === false ? "paused" : "active");
+}
+
+function alertTone(alert: AlertRule): "default" | "warning" | "destructive" {
+  if (alert.severity === "critical") return "destructive";
+  if (alert.severity === "warning" || alert.enabled !== false) return "warning";
+  return "default";
 }
 
 function QueueItem({
