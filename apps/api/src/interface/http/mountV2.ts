@@ -51,6 +51,7 @@ import { CompositePlatformSyncService } from '../../infrastructure/platform/Comp
 import { GooglePlatformSyncService } from '../../infrastructure/platform/GooglePlatformSyncService';
 import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
+import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
@@ -80,6 +81,7 @@ import { createExportRoutes } from './routes/exports';
 import { createAssetRoutes } from './routes/assets';
 import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
+import { createMcpRoutes } from './routes/mcp';
 import { createOnboardingRoutes } from './routes/onboarding';
 
 // OpenAPI
@@ -132,6 +134,7 @@ export function buildContainer(): Container {
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
+    mockTrafficSeeder: new MockTrafficSeeder(),
     writeCampaignMetrics,
     stampAccountSynced,
     writeAdSets,
@@ -176,6 +179,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/ads', authenticatedRateLimiter, createAdRoutes(container));
   v2.use('/settings', authenticatedRateLimiter, createSettingsRoutes(container));
   v2.use('/integrations', authenticatedRateLimiter, createIntegrationRoutes(container));
+  v2.use('/mcp', authenticatedRateLimiter, createMcpRoutes(container));
   v2.use('/onboarding', authenticatedRateLimiter, createOnboardingRoutes(container));
   v2.use('/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
   v2.use('/reports', authenticatedRateLimiter, createReportRoutes(container));

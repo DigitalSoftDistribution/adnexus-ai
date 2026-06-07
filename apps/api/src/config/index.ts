@@ -62,6 +62,11 @@ const envSchema = z.object({
   GOOGLE_OAUTH_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
   GOOGLE_OAUTH_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
 
+  // Preview/dev QA harness for fake Meta/Google traffic. Disabled by default.
+  MOCK_TRAFFIC_HARNESS_ENABLED: z.string().default('false'),
+  MOCK_TRAFFIC_HARNESS_CONTEXT: z.string().default(''),
+  MOCK_TRAFFIC_HARNESS_KEY: z.string().default(''),
+
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
 
@@ -203,6 +208,12 @@ export const config = {
     adsApiBaseUrl: env.GOOGLE_ADS_API_BASE_URL,
     oauthTokenUrl: env.GOOGLE_OAUTH_TOKEN_URL,
     oauthTokenInfoUrl: env.GOOGLE_OAUTH_TOKEN_INFO_URL,
+  },
+
+  mockTrafficHarness: {
+    enabled: env.MOCK_TRAFFIC_HARNESS_ENABLED === 'true',
+    context: env.MOCK_TRAFFIC_HARNESS_CONTEXT,
+    hasKey: env.MOCK_TRAFFIC_HARNESS_KEY.length > 0,
   },
 
   tiktok: {

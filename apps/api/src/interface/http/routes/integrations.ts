@@ -25,6 +25,13 @@ export function createIntegrationRoutes(container: Container): Router {
   );
   // Sync-job history for an ad account.
   router.get('/accounts/:accountId/sync-jobs', requireAuth, controller.syncJobs as any);
+  // Preview/dev-only QA harness: seeds fake Meta/Google accounts, campaigns, and metrics.
+  router.post(
+    '/mock-traffic/seed',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.seedMockTraffic as any,
+  );
 
   return router;
 }
