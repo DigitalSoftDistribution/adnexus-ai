@@ -142,12 +142,38 @@ export class SettingsRepository implements ISettingsRepository {
     return rows[0] ?? null;
   }
 
+  private async usersRequirePasswordHash(): Promise<boolean> {
+    const { rows } = await query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'users'
+           AND column_name = 'password_hash'
+       ) AS exists`,
+    );
+    return rows[0]?.exists ?? false;
+  }
+
   async createInvitedUser(email: string): Promise<{ id: string; email: string }> {
+    const name = email.split('@')[0];
+
+    if (await this.usersRequirePasswordHash()) {
+      const inviteOnlyPasswordHash = `invite:${randomBytes(32).toString('hex')}`;
+      const { rows } = await query<{ id: string; email: string }>(
+        `INSERT INTO users (email, name, password_hash)
+         VALUES ($1, $2, $3)
+         RETURNING id, email`,
+        [email, name, inviteOnlyPasswordHash],
+      );
+      return rows[0];
+    }
+
     const { rows } = await query<{ id: string; email: string }>(
       `INSERT INTO users (email, name)
        VALUES ($1, $2)
        RETURNING id, email`,
-      [email, email.split('@')[0]],
+      [email, name],
     );
     return rows[0];
   }
@@ -169,9 +195,9 @@ export class SettingsRepository implements ISettingsRepository {
       invited_at: string | null;
       joined_at: string;
     }>(
-      `INSERT INTO workspace_members (workspace_id, user_id, role, invited_by, joined_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       RETURNING id, user_id, role, invited_by, joined_at`,
+      `INSERT INTO workspace_members (workspace_id, user_id, role, invited_by, invited_at, joined_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id, user_id, role, invited_by, invited_at, joined_at`,
       [workspaceId, userId, role, invitedBy],
     );
     const member = rows[0];
@@ -181,7 +207,6 @@ export class SettingsRepository implements ISettingsRepository {
       [userId],
     );
     const user = userRows[0];
-    const joinedAt = member.joined_at;
 
     return {
       id: member.id,
@@ -191,8 +216,8 @@ export class SettingsRepository implements ISettingsRepository {
       avatarUrl: user?.avatar_url ?? null,
       role: member.role,
       invitedBy: member.invited_by,
-      invitedAt: joinedAt,
-      joinedAt,
+      invitedAt: member.invited_at,
+      joinedAt: member.joined_at,
     };
   }
 
