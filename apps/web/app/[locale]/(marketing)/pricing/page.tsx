@@ -36,7 +36,7 @@ const FAQ_JSONLD = {
       name: 'Which ad platforms are supported?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Growth covers Meta and Google. Scale adds TikTok read-only monitoring, while Agency includes the full roadmap with Snapchat support as it becomes available.',
+        text: 'Growth covers Meta and Google. Scale includes Meta execution with Google, TikTok, and Snap read-only or coming-soon coverage as noted in the feature matrix. Agency adds unlimited accounts, API access, SSO, and dedicated success support.',
       },
     },
     {
