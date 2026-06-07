@@ -11,12 +11,16 @@ export function err<E extends Error>(error: E): Result<never, E> {
 }
 
 export class DomainError extends Error {
+  readonly details?: unknown;
+
   constructor(
     message: string,
     readonly code: string,
     readonly statusCode: number = 400,
+    details?: unknown,
   ) {
     super(message);
+    this.details = details;
     this.name = 'DomainError';
     Object.setPrototypeOf(this, DomainError.prototype);
   }

@@ -220,6 +220,11 @@ export interface Messages {
       'rejected': string;
       'rolled_back': string;
     };
+    'executionNotice': string;
+    'markReviewed': string;
+    'approveAndExecute': string;
+    'executionUnavailable': string;
+    'executionDisabled': string;
   };
   'aiAgent': {
     'title': string;
@@ -314,6 +319,7 @@ export interface Messages {
     'failedToFetchWorkspace': string;
     'failedToUpdateWorkspace': string;
     'failedToFetchTeam': string;
+    'failedToInviteMember': string;
     'failedToUpdateRole': string;
     'failedToRemoveMember': string;
     'failedToFetchIntegrations': string;
@@ -337,6 +343,10 @@ export interface Messages {
     'teamMembers': string;
     'teamDescription': string;
     'inviteMember': string;
+    'inviteDescription': string;
+    'inviteEmail': string;
+    'inviteRole': string;
+    'inviteSuccess': string;
     'roles': {
       'viewer': string;
       'editor': string;

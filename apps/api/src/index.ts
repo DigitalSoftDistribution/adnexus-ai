@@ -17,7 +17,7 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config, isProduction } from './config';
+import { config, isDevelopment, isProduction, isAllowedCorsOrigin } from './config';
 import { logger, getModuleLogger } from './lib/logger';
 import { requestLogger } from './middleware/requestLogger';
 import {
@@ -114,11 +114,11 @@ const corsOptions = {
       return;
     }
     const allowedOrigins = config.cors.origin;
-    if (allowedOrigins.includes(origin) || !isProduction) {
+    if (isAllowedCorsOrigin(origin, allowedOrigins) || isDevelopment) {
       callback(null, true);
     } else {
       loggerApp.warn({ origin }, 'CORS blocked request from disallowed origin');
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: config.cors.credentials,
@@ -142,6 +142,21 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // ─── Body Parsing ────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+// WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
+// ═══════════════════════════════════════════════════════════════
+
+/** Stripe billing webhook — mounted before JSON parsing so signature verification receives the raw body. */
+app.post(
+  '/api/v1/billing/webhook',
+  unauthenticatedRateLimiter,
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    req.url = '/webhook';
+    billingRoutes(req, res, next);
+  },
+);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -212,38 +227,19 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 
 app.use('/api/v1/auth', unauthenticatedRateLimiter, authRoutes);
 
-// Meta OAuth routes — public, no auth required
+// OAuth routes: callbacks remain public; connect/disconnect handlers authenticate internally.
 app.use('/api/v1/auth/meta', unauthenticatedRateLimiter, metaOAuthRoutes);
 
-// Google OAuth routes — public, no auth required
 app.use('/api/v1/auth/google', unauthenticatedRateLimiter, googleOAuthRoutes);
 
-// TikTok OAuth routes — public, no auth required
 app.use('/api/v1/auth/tiktok', unauthenticatedRateLimiter, tiktokOAuthRoutes);
 
-// Snap OAuth routes — public, no auth required
 app.use('/api/v1/auth/snap', unauthenticatedRateLimiter, snapOAuthRoutes);
 
 // ─── Free Public Audit (no auth required — GTM wedge) ────────
 
 app.use('/api/v1/public', unauthenticatedRateLimiter, publicAuditRoutes);
 
-// ═══════════════════════════════════════════════════════════════
-// WEBHOOK ENDPOINTS — Separate rate limits, raw body where needed
-// ═══════════════════════════════════════════════════════════════
-
-/** Stripe billing webhook — dedicated handler for raw body */
-app.post(
-  '/api/v1/billing/webhook',
-  unauthenticatedRateLimiter,
-  express.raw({ type: 'application/json' }),
-  (req, res, next) => {
-    // Forward to billing route handler for webhook
-    // The billing router's POST /webhook will handle this
-    req.url = '/webhook';
-    billingRoutes(req, res, next);
-  },
-);
 
 /** External platform webhooks */
 app.use('/api/v1/webhooks', webhookRateLimiter, webhookRoutes);

@@ -111,7 +111,7 @@ export class GetIntegrationHealthUseCase {
   }): Promise<Result<{ platform: string; healthy: boolean; status: string }>> {
     if (!READ_ROLES.includes(input.userRole)) return err(new ForbiddenError('Insufficient permissions'));
     const row = await this.settingsRepo.getIntegration(input.workspaceId, input.platform);
-    const healthy = Boolean(row && row.status === 'connected');
+    const healthy = Boolean(row && (row.status === 'connected' || row.status === 'active'));
     return ok({ platform: input.platform, healthy, status: row?.status ?? 'not_connected' });
   }
 }

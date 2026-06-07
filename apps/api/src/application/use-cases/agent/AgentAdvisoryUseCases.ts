@@ -3,7 +3,7 @@
  * Thin RBAC-guarded wrappers around the IAgentAdvisor port.
  */
 
-import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError, NotFoundError } from '../../../domain/value-objects/Result';
 import type {
   IAgentAdvisor,
   AgentRecommendation,
@@ -39,9 +39,9 @@ export class ApplyRecommendationUseCase {
     recommendationId: string;
   }): Promise<Result<{ draftId: string | null }>> {
     if (!canWrite(input.userRole)) return err(new ForbiddenError('Insufficient permissions'));
-    return ok(
-      await this.advisor.applyRecommendation(input.workspaceId, input.recommendationId, input.userId),
-    );
+    const result = await this.advisor.applyRecommendation(input.workspaceId, input.recommendationId, input.userId);
+    if (!result.draftId) return err(new NotFoundError('Recommendation'));
+    return ok(result);
   }
 }
 

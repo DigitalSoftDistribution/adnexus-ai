@@ -47,6 +47,8 @@ import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
 import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
+import { CompositePlatformSyncService } from '../../infrastructure/platform/CompositePlatformSyncService';
+import { GooglePlatformSyncService } from '../../infrastructure/platform/GooglePlatformSyncService';
 import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
 import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
@@ -125,7 +127,10 @@ export function buildContainer(): Container {
     auditLogger,
     notificationService,
     agentAdvisor: new AgentAdvisor(),
-    platformSyncService: new MetaPlatformSyncService(),
+    platformSyncService: new CompositePlatformSyncService([
+      new MetaPlatformSyncService(),
+      new GooglePlatformSyncService(),
+    ]),
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),

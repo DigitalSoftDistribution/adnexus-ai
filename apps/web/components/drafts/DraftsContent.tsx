@@ -1,14 +1,14 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { formatDate } from '@/lib/utils';
-import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock, Play } from 'lucide-react';
+import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock } from 'lucide-react';
 
 interface Draft {
   id: string;
@@ -37,6 +37,7 @@ export function DraftsContent() {
   const drafts: Draft[] = data?.data?.drafts ?? [];
   const t = useTranslations('drafts');
   const tc = useTranslations('common');
+  const locale = useLocale();
 
   if (isLoading) {
     return (
@@ -52,6 +53,7 @@ export function DraftsContent() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('executionNotice')}</p>
         </div>
         <ErrorState
           title={tc('error')}
@@ -68,6 +70,7 @@ export function DraftsContent() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t('executionNotice')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -99,7 +102,7 @@ export function DraftsContent() {
               </div>
             ) : (
               drafts.map((draft) => (
-                <DraftCard key={draft.id} draft={draft} />
+                <DraftCard key={draft.id} draft={draft} locale={locale} />
               ))
             )}
           </div>
@@ -139,21 +142,10 @@ function useDraftActions() {
     },
   });
 
-  const execute = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/v2/drafts/${id}/execute`, { method: 'POST' });
-      if (!res.ok) throw new Error(t('failedToExecute'));
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts', 'list'] });
-    },
-  });
-
-  return { approve, reject, execute };
+  return { approve, reject };
 }
 
-function DraftCard({ draft }: { draft: Draft }) {
+function DraftCard({ draft, locale }: { draft: Draft; locale: string }) {
   const actions = useDraftActions();
   const t = useTranslations('drafts');
   const tc = useTranslations('common');
@@ -187,7 +179,7 @@ function DraftCard({ draft }: { draft: Draft }) {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {draft.campaignName && <span>{tc('campaign')}: {draft.campaignName}</span>}
           <span>{tc('by')}: {draft.actorName ?? draft.actorType}</span>
-          <span>{formatDate(draft.createdAt)}</span>
+          <span>{formatDate(draft.createdAt, locale)}</span>
         </div>
       </div>
       {draft.status === 'pending' && (
@@ -207,21 +199,22 @@ function DraftCard({ draft }: { draft: Draft }) {
             disabled={actions.approve.isPending}
           >
             <CheckCircle className="mr-1 h-3 w-3" />
-            {tc('approve')}
+            {t('markReviewed')}
           </Button>
         </div>
       )}
       {draft.status === 'approved' && (
-        <div className="flex gap-2 ml-4">
+        <div className="flex flex-col items-end gap-1 ml-4">
           <Button
             size="sm"
             variant="outline"
-            onClick={() => actions.execute.mutate(draft.id)}
-            disabled={actions.execute.isPending}
+            disabled
+            title={t('executionDisabled')}
           >
-            <Play className="mr-1 h-3 w-3" />
-            {actions.execute.isPending ? tc('executing') : tc('execute')}
+            <CheckCircle className="mr-1 h-3 w-3" />
+            {t('executionUnavailable')}
           </Button>
+          <p className="max-w-48 text-right text-xs text-muted-foreground">{t('executionDisabled')}</p>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ export function createSettingsRoutes(container: Container): Router {
 
   // Team
   router.get('/team', requireAuth, controller.getTeam as any);
+  router.post('/team', requireAuth, requireRole('owner', 'admin') as any, controller.inviteTeamMember as any);
   router.put('/team/:id', requireAuth, requireRole('owner', 'admin') as any, controller.updateTeamMember as any);
   router.delete('/team/:id', requireAuth, requireRole('owner', 'admin') as any, controller.removeTeamMember as any);
 
