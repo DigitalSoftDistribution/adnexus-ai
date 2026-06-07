@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Building2, Zap, ShieldCheck, FileText, Users, BarChart2 } from 'lucide-react';
+import { Building2, Zap, ShieldCheck, FileText, Users, ChartNoAxesColumn } from 'lucide-react';
 import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const POINTS = [
   { icon: <Zap size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Ship Daily', desc: 'The AI surfaces optimizations every morning so small wins compound instead of waiting for the monthly review.' },
   { icon: <ShieldCheck size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Guardrails by Default', desc: 'Draft-first approval means a lean team can move fast without risking a costly mistake.' },
-  { icon: <BarChart2 size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Exec-Ready Reporting', desc: 'Unified dashboards turn four platforms into one clear story for leadership.' },
+  { icon: <ChartNoAxesColumn size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Exec-Ready Reporting', desc: 'Unified dashboards turn four platforms into one clear story for leadership.' },
   { icon: <FileText size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Morning Brief', desc: 'Everyone starts the day aligned on what changed and what needs a decision.' },
   { icon: <Users size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Right-Sized Collaboration', desc: 'Roles and approvals scale from a team of one to a full department.' },
   { icon: <Building2 size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Predictable Cost', desc: 'Flat pricing keeps your tooling budget steady as spend grows.' },

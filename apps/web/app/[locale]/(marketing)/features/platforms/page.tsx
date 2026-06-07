@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Globe, BarChart2, Layers, GitMerge } from 'lucide-react';
+import { Globe, ChartNoAxesColumn, Layers, GitMerge } from 'lucide-react';
 import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ const PLATFORMS = [
 const BENEFITS = [
   { icon: <GitMerge size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Cross-Platform Attribution', desc: 'See the true contribution of each channel in one unified view instead of four siloed reports.' },
   { icon: <Layers size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'One Brain, Not Four Tools', desc: 'The AI reasons across platforms — shifting budget to wherever it performs best this week.' },
-  { icon: <BarChart2 size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Unified Reporting', desc: 'Executive-ready dashboards that aggregate spend, ROAS, and conversions across all channels.' },
+  { icon: <ChartNoAxesColumn size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Unified Reporting', desc: 'Executive-ready dashboards that aggregate spend, ROAS, and conversions across all channels.' },
 ];
 
 export default function Page() {
