@@ -174,7 +174,7 @@ export function OnboardingContent() {
 
         <div className="mt-8 flex items-center justify-between gap-3">
           <Button asChild variant="ghost">
-            <Link href="/dashboard">{t('skip')}</Link>
+            <Link href="/dashboard/campaigns">{t('skip')}</Link>
           </Button>
           <Button onClick={() => complete.mutate()} disabled={complete.isPending || !canComplete}>
             {complete.isPending ? '...' : canComplete ? t('finish') : t('finishLocked')}

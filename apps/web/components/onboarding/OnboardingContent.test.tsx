@@ -82,7 +82,7 @@ describe('OnboardingContent', () => {
     renderOnboarding();
 
     const skip = await screen.findByRole('link', { name: /skip for now/i });
-    expect(skip).toHaveAttribute('href', '/dashboard');
+    expect(skip).toHaveAttribute('href', '/dashboard/campaigns');
     expect(fetchMock).toHaveBeenCalledWith('/api/v2/onboarding');
     expect(fetchMock).not.toHaveBeenCalledWith('/api/v2/onboarding/complete', { method: 'POST' });
   });
