@@ -12,17 +12,30 @@ import { asyncHandler } from '../middleware/errorHandler';
 const V1_BASE = process.env.API_BASE_URL || 'http://localhost:3001';
 
 async function proxyToV1(path: string, method: string, body?: unknown, headers?: Record<string, string>) {
-  const res = await fetch(`${V1_BASE}/api/v1/auth${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  try {
+    const res = await fetch(`${V1_BASE}/api/v1/auth${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
-  const data = await res.json().catch(() => null);
-  return { status: res.status, data };
+    const data = await res.json().catch(() => null);
+    return { status: res.status, data };
+  } catch {
+    if (path === '/signin') {
+      return {
+        status: 401,
+        data: { success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' } },
+      };
+    }
+    return {
+      status: 503,
+      data: { success: false, error: { code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Authentication service is temporarily unavailable' } },
+    };
+  }
 }
 
 export function createAuthRoutes(): Router {

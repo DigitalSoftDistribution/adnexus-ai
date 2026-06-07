@@ -1,57 +1,81 @@
-import type { Metadata } from 'next';
-import { Building2, Zap, ShieldCheck, FileText, Users, ChartNoAxesColumn } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { UseCasePainGain, UseCaseTimeline } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
 
-export const metadata: Metadata = {
-  title: 'AdNexus for In-house Teams',
-  description:
-    'AdNexus AI for in-house marketing teams: move faster with AI-drafted optimizations and guardrails — ship daily improvements without losing oversight.',
-  alternates: { canonical: '/use-cases/in-house' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'In-House Teams — AdNexus AI',
+    description: 'One marketer managing $500K+ monthly spend. AI drafts optimizations, monitors budgets, and alerts you to anomalies — all awaiting your approval.',
+    openGraph: { title: 'In-House Teams — AdNexus AI', description: 'One marketer managing $500K+ monthly spend. AI drafts optimizations, monitors budgets, and alerts you to anomalies — all awaiting your approval.' },
+  };
+}
 
-const POINTS = [
-  { icon: <Zap size={22} style={{ color: '#c3f53b' }} aria-hidden="true" />, title: 'Ship Daily', desc: 'The AI surfaces optimizations every morning so small wins compound instead of waiting for the monthly review.' },
-  { icon: <ShieldCheck size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Guardrails by Default', desc: 'Draft-first approval means a lean team can move fast without risking a costly mistake.' },
-  { icon: <ChartNoAxesColumn size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Exec-Ready Reporting', desc: 'Unified dashboards turn four platforms into one clear story for leadership.' },
-  { icon: <FileText size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Morning Brief', desc: 'Everyone starts the day aligned on what changed and what needs a decision.' },
-  { icon: <Users size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Right-Sized Collaboration', desc: 'Roles and approvals scale from a team of one to a full department.' },
-  { icon: <Building2 size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Predictable Cost', desc: 'Flat pricing keeps your tooling budget steady as spend grows.' },
+const INHOUSE_PAIN_GAIN = [
+  {
+    pain: 'Too many campaigns, too little time',
+    painDesc: 'You manage 50+ campaigns across 4 platforms. Something breaks every day and you can\'t catch it all.',
+    gain: 'AI watches everything 24/7',
+    gainDesc: 'The AI agent monitors all campaigns continuously. It drafts fixes for issues and alerts you to anomalies before they cost money.',
+  },
+  {
+    pain: 'Budget overruns surprise you',
+    painDesc: 'You find out a campaign overspent by $10K when you check the dashboard — usually too late.',
+    gain: 'Proactive budget alerts',
+    gainDesc: 'AI predicts spend trajectory and alerts you before budgets are exceeded. Draft budget adjustments ready to approve.',
+  },
+  {
+    pain: 'No time for strategy',
+    painDesc: 'You spend 80% of your day on tactical execution. Strategy and testing never get attention.',
+    gain: 'Tactical execution automated',
+    gainDesc: 'AI handles bid adjustments, budget reallocation, and creative rotation. You focus on strategy, testing, and growth.',
+  },
 ];
 
-export default function Page() {
+const INHOUSE_TIMELINE = [
+  { time: '7:00 AM', oldWay: 'Check 4 dashboards for overnight performance. 30 minutes gone.', newWay: 'Morning Brief: 1 anomaly detected, 2 drafts ready. Review in 5 minutes.' },
+  { time: '9:00 AM', oldWay: 'Meeting with finance about last month\'s $15K budget overrun.', newWay: 'Finance sees live spend tracking. No surprises. No meetings needed.' },
+  { time: '11:00 AM', oldWay: 'Manually adjust bids on 20 ad sets based on weekend performance.', newWay: 'Review AI bid adjustment drafts. Approve all 20 in 2 minutes.' },
+  { time: '2:00 PM', oldWay: 'Finally have time to think about Q3 strategy. Brain is fried.', newWay: 'Spend the afternoon on A/B test planning and audience expansion strategy.' },
+];
+
+export default async function InHousePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
-    <>
-      <PageHero
-        eyebrow="For In-house Teams"
-        title={<>Move fast — <span style={{ color: '#c3f53b' }}>with a safety net</span></>}
-        subtitle="Give a small team the leverage of a full optimization desk, without the risk of autonomous changes."
-      />
-      <Section eyebrow="A day in the life" title="A team of two, the output of ten">
-        <ScenarioBlock
-          situation="You're a two-person growth team running the whole paid program. There's never enough time to check every campaign daily, so optimizations slip to the monthly review — and small problems compound for weeks before anyone catches them."
-          outcome="AdNexus closes that gap. The agent reviews everything overnight and hands you a short list each morning. You ship small wins daily instead of monthly, and because every change is a draft you approve, a lean team moves fast without fear of a costly mistake."
-        />
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-12 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Use Case</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">Built for in-house teams</h1>
+        <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          One marketer, $500K+ monthly spend. AI handles the tactical work — you focus on strategy.
+        </p>
+      </section>
+
+      <Section title="The in-house problem" subtitle="Click any card to see how AdNexus solves it">
+        <UseCasePainGain items={INHOUSE_PAIN_GAIN} />
       </Section>
 
-      <Section title="How it works for in-house teams" alt>
-        <WorkflowSteps
-          steps={[
-            { title: 'Connect and set guardrails', desc: 'Link your accounts and define who can approve what. Draft-first means nothing ships unreviewed.' },
-            { title: 'Read the morning brief', desc: 'Start aligned: one ranked list of what changed and what needs a decision today.' },
-            { title: 'Ship daily, not monthly', desc: 'Approve the clear wins in seconds so small improvements compound instead of waiting for the review cycle.' },
-            { title: 'Report up with confidence', desc: 'Unified dashboards turn four platforms into one clear story for leadership.' },
-          ]}
-        />
+      <Section title="A day in the life" subtitle="Before vs. after AdNexus">
+        <UseCaseTimeline steps={INHOUSE_TIMELINE} />
       </Section>
 
-      <Section title="How in-house teams win with AdNexus">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {POINTS.map((p) => (
-            <FeatureCard key={p.title} icon={p.icon} title={p.title} desc={p.desc} />
+      <Section title="Strategic time reclaimed" subtitle="Move tactical monitoring into AI drafts and keep humans on strategy">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          {[
+            { value: '24/7', label: 'campaign monitoring coverage' },
+            { value: '5 min', label: 'morning anomaly review' },
+            { value: '20', label: 'bid drafts reviewed in minutes' },
+          ].map((metric) => (
+            <div key={metric.label} className="card-surface p-5 text-center">
+              <div className="font-mono-data text-3xl font-bold text-white mb-2">{metric.value}</div>
+              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{metric.label}</div>
+            </div>
           ))}
         </div>
       </Section>
-      <CtaBand />
-    </>
+    </main>
   );
 }

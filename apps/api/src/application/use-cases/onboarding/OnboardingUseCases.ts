@@ -6,7 +6,7 @@
  * step persistence and explicit completion.
  */
 
-import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError, ValidationError } from '../../../domain/value-objects/Result';
 import type { IWorkspaceRepository } from '../../../domain/repositories/IWorkspaceRepository';
 import type { ISettingsRepository } from '../../../domain/repositories/ISettingsRepository';
 import type { ICampaignRepository } from '../../../domain/repositories/ICampaignRepository';
@@ -72,9 +72,30 @@ export class SetOnboardingStepUseCase {
 }
 
 export class CompleteOnboardingUseCase {
-  constructor(private workspaceRepo: IWorkspaceRepository) {}
+  constructor(
+    private workspaceRepo: IWorkspaceRepository,
+    private settingsRepo: ISettingsRepository,
+    private campaignRepo: ICampaignRepository,
+  ) {}
+
   async execute(input: { workspaceId: string; userRole: string }): Promise<Result<{ completed: true }>> {
     if (!WRITE_ROLES.includes(input.userRole)) return err(new ForbiddenError('Insufficient permissions'));
+
+    const [integrations, summary] = await Promise.all([
+      this.settingsRepo.getIntegrations(input.workspaceId),
+      this.campaignRepo.getSummary(input.workspaceId),
+    ]);
+    const hasConnectedPlatform = integrations.some((i) => i.status === 'connected' || i.status === 'active');
+    const hasFirstCampaign = summary.totalCampaigns > 0;
+
+    if (!hasConnectedPlatform || !hasFirstCampaign) {
+      return err(
+        new ValidationError(
+          'Complete onboarding after connecting an ad account and syncing at least one campaign.',
+        ),
+      );
+    }
+
     await this.workspaceRepo.completeOnboarding(input.workspaceId);
     return ok({ completed: true });
   }

@@ -25,10 +25,18 @@ process.env.SUPABASE_ANON_KEY = 'test-anon-key';
 process.env.META_APP_ID = 'test-meta-app-id';
 process.env.META_APP_SECRET = 'test-meta-app-secret';
 process.env.META_API_VERSION = 'v19.0';
+process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+process.env.GOOGLE_CLIENT_SECRET = 'test-google-client-secret';
+process.env.GOOGLE_ADS_DEVELOPER_TOKEN = 'test-google-developer-token';
+process.env.GOOGLE_ADS_API_BASE_URL = 'http://localhost:8080';
+process.env.GOOGLE_OAUTH_TOKEN_URL = 'http://localhost:8080/token';
+process.env.GOOGLE_OAUTH_TOKEN_INFO_URL = 'http://localhost:8080/tokeninfo';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.STRIPE_SECRET_KEY = 'sk_test_stripe';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+process.env.STRIPE_PRICE_GROWTH = 'price_123';
+process.env.STRIPE_PRICE_PRO = 'price_pro_test';
 
 // Effectively disable rate limiting under test. Supertest issues every request
 // from the same loopback IP, so the default per-IP limits (20/min) would

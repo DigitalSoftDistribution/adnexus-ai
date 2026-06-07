@@ -1,6 +1,12 @@
+import { z } from 'zod';
 import type { Container } from '../../../application/services/Container';
 import { asyncHandler } from '../middleware/errorHandler';
 import type { AuthenticatedRequest } from '../middleware/requireAuth';
+
+const inviteTeamMemberSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['admin', 'editor', 'viewer']),
+});
 
 export function createSettingsController(container: Container) {
   return {
@@ -32,6 +38,19 @@ export function createSettingsController(container: Container) {
       });
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
+    }),
+
+    inviteTeamMember: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const body = inviteTeamMemberSchema.parse(req.body);
+      const result = await container.inviteTeamMember.execute({
+        workspaceId: req.user!.workspaceId,
+        email: body.email,
+        role: body.role,
+        invitedBy: req.user!.id,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.status(201).json({ success: true, data: result.data });
     }),
 
     updateTeamMember: asyncHandler<AuthenticatedRequest>(async (req, res) => {

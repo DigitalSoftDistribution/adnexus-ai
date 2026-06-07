@@ -1,9 +1,13 @@
 /**
  * TikTok Ads API Client
  * ======================
- * Production-grade client for TikTok Marketing API v1.3.
+ * Typed client scaffold for TikTok Marketing API v1.3.
  *
- * Features:
+ * This client is not wired into production sync yet; it supports mock/readiness
+ * contract tests while OAuth approval, token persistence, account selection,
+ * and live sync mappings remain pending.
+ *
+ * Implemented client capabilities:
  * - OAuth 2.0 (authorization code + automatic refresh)
  * - 50 QPS token-bucket rate limiting
  * - Exponential backoff with full jitter, 3 retries

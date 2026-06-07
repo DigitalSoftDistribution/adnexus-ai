@@ -47,13 +47,17 @@ import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
 import { AgentAdvisor } from '../../infrastructure/agent/AgentAdvisor';
+import { CompositePlatformSyncService } from '../../infrastructure/platform/CompositePlatformSyncService';
+import { GooglePlatformSyncService } from '../../infrastructure/platform/GooglePlatformSyncService';
 import { MetaPlatformSyncService } from '../../infrastructure/platform/MetaPlatformSyncService';
+import { MockSocialPlatformSyncService } from '../../infrastructure/platform/MockSocialPlatformSyncService';
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
 import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
 import { registerAllPlatformClients } from '../../platforms/register';
+import { config } from '../../config';
 
 // Application
 import { Container } from '../../application/services/Container';
@@ -79,6 +83,7 @@ import { createExportRoutes } from './routes/exports';
 import { createAssetRoutes } from './routes/assets';
 import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
+import { createMcpRoutes } from './routes/mcp';
 import { createOnboardingRoutes } from './routes/onboarding';
 
 // OpenAPI
@@ -96,6 +101,11 @@ export function buildContainer(): Container {
   const domainEventBus = new InMemoryEventBus();
   const auditLogger = new SupabaseAuditLogger();
   const notificationService = new NotificationService();
+  const platformSyncService = new CompositePlatformSyncService([
+    new MetaPlatformSyncService(),
+    new GooglePlatformSyncService(),
+    new MockSocialPlatformSyncService(config.socialSync.enableMockTikTokSnap),
+  ]);
 
   return new Container({
     campaignRepository: new CampaignRepository(),
@@ -124,7 +134,7 @@ export function buildContainer(): Container {
     auditLogger,
     notificationService,
     agentAdvisor: new AgentAdvisor(),
-    platformSyncService: new MetaPlatformSyncService(),
+    platformSyncService,
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
@@ -173,6 +183,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/ads', authenticatedRateLimiter, createAdRoutes(container));
   v2.use('/settings', authenticatedRateLimiter, createSettingsRoutes(container));
   v2.use('/integrations', authenticatedRateLimiter, createIntegrationRoutes(container));
+  v2.use('/mcp', authenticatedRateLimiter, createMcpRoutes(container));
   v2.use('/onboarding', authenticatedRateLimiter, createOnboardingRoutes(container));
   v2.use('/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
   v2.use('/reports', authenticatedRateLimiter, createReportRoutes(container));
