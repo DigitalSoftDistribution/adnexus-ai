@@ -325,11 +325,13 @@ export async function exportReportToExcel(
     summaryRows.forEach((row) => summaryWs.addRow(row));
   }
 
+  const rowKeys = (rows: Array<Record<string, unknown>>): string[] => Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+
   // ── Sheet 2: Campaigns ──
   const campaigns = content.campaigns || content.data?.campaigns || [];
   if (campaigns.length > 0) {
     const campWs = wb.addWorksheet('Campaigns');
-    const keys = Object.keys(campaigns[0]);
+    const keys = rowKeys(campaigns);
     campWs.columns = keys.map((key) => ({
       header: key,
       key,
@@ -342,7 +344,7 @@ export async function exportReportToExcel(
   const creatives = content.creatives || content.data?.creatives || [];
   if (creatives.length > 0) {
     const creativeWs = wb.addWorksheet('Creatives');
-    const keys = Object.keys(creatives[0]);
+    const keys = rowKeys(creatives);
     creativeWs.columns = keys.map((key) => ({
       header: key,
       key,
@@ -355,7 +357,7 @@ export async function exportReportToExcel(
   const trend = content.dailyTrend || content.data?.dailyTrend || [];
   if (trend.length > 0) {
     const trendWs = wb.addWorksheet('Daily Trend');
-    const keys = Object.keys(trend[0]);
+    const keys = rowKeys(trend);
     trendWs.columns = keys.map((key) => ({
       header: key,
       key,
