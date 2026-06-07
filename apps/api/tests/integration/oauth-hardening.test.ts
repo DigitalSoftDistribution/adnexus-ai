@@ -12,13 +12,23 @@ const mockAxiosGet = jest.fn();
 const mockMemoryNonceStore = new Map<string, string>();
 
 jest.mock('../../src/lib/redis', () => {
-  const mockRedisClient = {
-    set: (key: string) => {
-      mockMemoryNonceStore.set(key, '1');
+  const mockRedisClient: Record<string, (...args: unknown[]) => unknown> = {
+    set: (key: unknown) => {
+      mockMemoryNonceStore.set(key as string, '1');
       return Promise.resolve('OK');
     },
-    get: (key: string) => Promise.resolve(mockMemoryNonceStore.get(key) ?? null),
-    del: (key: string) => Promise.resolve(mockMemoryNonceStore.delete(key) ? 1 : 0),
+    get: (key: unknown) => Promise.resolve(mockMemoryNonceStore.get(key as string) ?? null),
+    del: (key: unknown) => Promise.resolve(mockMemoryNonceStore.delete(key as string) ? 1 : 0),
+    // No-op surface so app modules (rate limiter, SSE) that share the client don't crash.
+    duplicate: () => mockRedisClient,
+    on: () => mockRedisClient,
+    incr: () => Promise.resolve(1),
+    expire: () => Promise.resolve(1),
+    eval: () => Promise.resolve(1),
+    quit: () => Promise.resolve('OK'),
+    setex: () => Promise.resolve('OK'),
+    publish: () => Promise.resolve(0),
+    subscribe: () => Promise.resolve(undefined),
   };
   return {
     getRedisClient: () => mockRedisClient,
