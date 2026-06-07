@@ -114,22 +114,20 @@ export function verifyOAuthState(state: unknown, platform: OAuthPlatform): OAuth
 
 export async function consumeOAuthStateNonce(platform: OAuthPlatform, nonce: string): Promise<boolean> {
   const key = nonceKey(platform, nonce);
-  let found = false;
 
   const redis = getRedisClient();
   if (redis) {
     try {
-      const value = await redis.get(key);
-      if (value) found = true;
-      await redis.del(key);
+      const deleted = await redis.del(key);
+      return deleted === 1;
     } catch {
-      // Fall back to the in-process nonce store if Redis is temporarily unavailable.
+      return false;
     }
   }
 
   purgeExpiredMemoryNonces();
   const memoryExpiresAt = memoryStateNonces.get(key);
-  if (memoryExpiresAt && memoryExpiresAt > Date.now()) found = true;
+  const found = Boolean(memoryExpiresAt && memoryExpiresAt > Date.now());
   memoryStateNonces.delete(key);
 
   return found;
