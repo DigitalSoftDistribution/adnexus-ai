@@ -27,6 +27,9 @@ for (let i = 0; i < args.length; i += 1) {
     i += 1;
   } else if (arg === '--web-url') {
     options.webUrl = readValue(args, i, arg);
+    if (!process.env.SMOKE_ORIGIN) {
+      options.origin = options.webUrl;
+    }
     i += 1;
   } else if (arg === '--timeout-ms') {
     options.timeoutMs = Number(readValue(args, i, arg));
@@ -191,7 +194,7 @@ if (options.token) {
       name: `api authed ${path}`,
       url: joinUrl(options.baseUrl, path),
       init: { headers: { Authorization: `Bearer ${options.token}` } },
-      expect: (response) => response.status >= 200 && response.status < 500 && response.status !== 401,
+      expect: (response) => response.status >= 200 && response.status < 300,
     });
   }
 }
