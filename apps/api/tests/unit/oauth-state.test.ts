@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import { createOAuthState, verifyOAuthState, requestWorkspaceMatchesAuthenticatedWorkspace } from '../../src/routes/auth/oauthState';
 
 describe('OAuth state security', () => {
-  it('round-trips signed provider state', () => {
-    const state = createOAuthState({
+  it('round-trips signed provider state', async () => {
+    const state = await createOAuthState({
       platform: 'meta',
       workspaceId: 'ws-1',
       userId: 'user-1',
@@ -13,25 +13,26 @@ describe('OAuth state security', () => {
 
     const parsed = verifyOAuthState(state, 'meta');
 
-    expect(parsed).toEqual({
+    expect(parsed).toMatchObject({
       platform: 'meta',
       workspaceId: 'ws-1',
       userId: 'user-1',
       accountId: 'account-1',
       reconnect: true,
     });
+    expect(parsed?.nonce).toEqual(expect.any(String));
   });
 
-  it('rejects legacy unsigned/base64 state and provider mismatches', () => {
+  it('rejects legacy unsigned/base64 state and provider mismatches', async () => {
     const legacyState = Buffer.from(JSON.stringify({ workspaceId: 'ws-1', userId: 'user-1' })).toString('base64');
-    const googleState = createOAuthState({ platform: 'google', workspaceId: 'ws-1', userId: 'user-1' });
+    const googleState = await createOAuthState({ platform: 'google', workspaceId: 'ws-1', userId: 'user-1' });
 
     expect(verifyOAuthState(legacyState, 'meta')).toBeNull();
     expect(verifyOAuthState(googleState, 'meta')).toBeNull();
   });
 
-  it('rejects tampered signed state', () => {
-    const token = createOAuthState({ platform: 'snap', workspaceId: 'ws-1', userId: 'user-1' });
+  it('rejects tampered signed state', async () => {
+    const token = await createOAuthState({ platform: 'snap', workspaceId: 'ws-1', userId: 'user-1' });
     const parts = token.split('.');
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
     payload.workspaceId = 'ws-2';
