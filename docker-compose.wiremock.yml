@@ -1,0 +1,17 @@
+services:
+  wiremock:
+    image: wiremock/wiremock:3.10.0
+    command:
+      - --global-response-templating
+      - --disable-gzip
+      - --verbose
+    ports:
+      - "${WIREMOCK_HOST_PORT:-9085}:8080"
+    volumes:
+      - ./apps/api/tests/wiremock:/home/wiremock:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped

@@ -59,8 +59,12 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
   GOOGLE_ADS_API_BASE_URL: z.string().url().default('https://googleads.googleapis.com'),
+  GOOGLE_ADS_API_URL: z.string().url().default('https://googleads.googleapis.com/v16'),
+  GOOGLE_OAUTH_URL: z.string().url().default('https://accounts.google.com/o/oauth2/v2/auth'),
   GOOGLE_OAUTH_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
+  GOOGLE_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
   GOOGLE_OAUTH_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
+  GOOGLE_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
 
   // Preview/dev QA harness for fake Meta/Google traffic. Disabled by default.
   MOCK_TRAFFIC_HARNESS_ENABLED: z.string().default('false'),
@@ -69,9 +73,12 @@ const envSchema = z.object({
 
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
+  TIKTOK_API_URL: z.string().url().default('https://business-api.tiktok.com/open_api/v1.3'),
 
   SNAP_CLIENT_ID: z.string().default(''),
   SNAP_CLIENT_SECRET: z.string().default(''),
+  SNAP_API_BASE_URL: z.string().url().default('https://adsapi.snapchat.com/v1'),
+  SNAP_OAUTH_BASE_URL: z.string().url().default('https://accounts.snapchat.com/accounts/oauth2'),
 
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
@@ -206,8 +213,12 @@ export const config = {
     clientSecret: env.GOOGLE_CLIENT_SECRET,
     developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
     adsApiBaseUrl: env.GOOGLE_ADS_API_BASE_URL,
+    adsApiUrl: env.GOOGLE_ADS_API_URL,
+    oauthUrl: env.GOOGLE_OAUTH_URL,
     oauthTokenUrl: env.GOOGLE_OAUTH_TOKEN_URL,
+    tokenUrl: env.GOOGLE_TOKEN_URL,
     oauthTokenInfoUrl: env.GOOGLE_OAUTH_TOKEN_INFO_URL,
+    tokenInfoUrl: env.GOOGLE_TOKEN_INFO_URL,
   },
 
   mockTrafficHarness: {
@@ -219,11 +230,14 @@ export const config = {
   tiktok: {
     appId: env.TIKTOK_APP_ID,
     appSecret: env.TIKTOK_APP_SECRET,
+    apiUrl: env.TIKTOK_API_URL,
   },
 
   snap: {
     clientId: env.SNAP_CLIENT_ID,
     clientSecret: env.SNAP_CLIENT_SECRET,
+    apiBaseUrl: env.SNAP_API_BASE_URL,
+    oauthBaseUrl: env.SNAP_OAUTH_BASE_URL,
   },
 
   stripe: {

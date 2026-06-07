@@ -1,9 +1,10 @@
 #!/bin/bash
 # AdNexus API Integration Tests — run against local server on port 3001
-# WireMock is at http://beast:9085 with ad platform stubs
+# WireMock defaults to http://localhost:9085; override with WIREMOCK_BASE_URL.
 
 set -e
 BASE="http://localhost:3001"
+WIREMOCK_BASE_URL="${WIREMOCK_BASE_URL:-http://localhost:9085}"
 PASS=0
 FAIL=0
 
@@ -148,18 +149,18 @@ fi
 # ─── 7. WireMock Integration ─────────────────────────────────────
 echo ""
 echo "--- WireMock Ad Platform APIs ---"
-MWM=$(curl -s -X POST http://beast:9085/v19.0/act_1234567890/insights \
+MWM=$(curl -s "$WIREMOCK_BASE_URL/v19.0/act_1234567890/insights" \
   -H "Authorization: Bearer test-token" 2>/dev/null | head -c 200)
 if echo "$MWM" | grep -q "impressions"; then pass "WireMock Meta Insights"; else fail "WireMock Meta" "$MWM"; fi
 
-MWM=$(curl -s -X POST http://beast:9085/v14/customers/1234567890/googleAds:search \
+MWM=$(curl -s -X POST "$WIREMOCK_BASE_URL/v16/customers/1234567890/googleAds:search" \
   -H "Content-Type: application/json" -d '{"query":"SELECT campaign.id FROM campaign"}' 2>/dev/null | head -c 200)
 if echo "$MWM" | grep -q "results"; then pass "WireMock Google Ads"; else fail "WireMock Google" "$MWM"; fi
 
-MWM=$(curl -s http://beast:9085/open_api/v1.3/campaign/get/ 2>/dev/null | head -c 200)
+MWM=$(curl -s "$WIREMOCK_BASE_URL/open_api/v1.3/campaign/get/" 2>/dev/null | head -c 200)
 if echo "$MWM" | grep -q "TikTok"; then pass "WireMock TikTok Ads"; else fail "WireMock TikTok" "$MWM"; fi
 
-MWM=$(curl -s http://beast:9085/v2/adaccounts/ad-12345/campaigns 2>/dev/null | head -c 200)
+MWM=$(curl -s "$WIREMOCK_BASE_URL/v1/adaccounts/ad-12345/campaigns" 2>/dev/null | head -c 200)
 if echo "$MWM" | grep -q "Snap"; then pass "WireMock Snapchat Ads"; else fail "WireMock Snapchat" "$MWM"; fi
 
 # ─── Summary ─────────────────────────────────────────────────────
