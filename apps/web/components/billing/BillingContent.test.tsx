@@ -106,7 +106,7 @@ describe('BillingContent checkout readiness', () => {
 
     renderBilling();
 
-    expect(await screen.findByText('Current Plan')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /billing/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /upgrade to/i })).not.toBeInTheDocument();
   });
 
