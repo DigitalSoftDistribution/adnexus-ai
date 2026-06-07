@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { motion } from 'framer-motion';
-import { BrainCircuit, Eye, Bell, FileText, Clock, Cable, Sparkles, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BrainCircuit, Eye, Bell, FileText, Clock, Cable, AlertTriangle } from 'lucide-react';
 import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
 
 export const metadata: Metadata = {
@@ -40,14 +39,7 @@ export default function Page() {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {AGENT_FLOW.map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="card-surface p-5 text-center relative"
-              >
+              <div key={item.step} className="card-surface p-5 text-center relative">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}>
                   {item.icon}
                 </div>
@@ -56,7 +48,7 @@ export default function Page() {
                 {i < AGENT_FLOW.length - 1 && (
                   <div className="hidden md:block absolute top-1/2 -right-2 w-4 h-px" style={{ background: 'var(--border-subtle)' }} />
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
