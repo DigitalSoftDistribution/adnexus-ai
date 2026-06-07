@@ -89,6 +89,27 @@ describe('BillingContent checkout readiness', () => {
     });
   });
 
+  it('does not crash while plans are still loading', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === '/api/v2/billing') {
+        return { ok: true, json: async () => ({ data: billingInfo }) } as Response;
+      }
+      if (url === '/api/v2/billing/invoices') {
+        return { ok: true, json: async () => ({ data: { invoices: [], hasMore: false } }) } as Response;
+      }
+      if (url === '/api/v2/billing/plans') {
+        return new Promise(() => undefined) as Promise<Response>;
+      }
+      return { ok: false, json: async () => ({}) } as Response;
+    }));
+
+    renderBilling();
+
+    expect(await screen.findByText('Current Plan')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /upgrade to/i })).not.toBeInTheDocument();
+  });
+
   it('does not render fake upgrade controls when checkout is disabled', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

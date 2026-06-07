@@ -190,7 +190,7 @@ export function BillingContent() {
   const features = t.raw(`planFeatures.${plan}`) as string[] || t.raw('planFeatures.free') as string[];
   const isActive = billing?.status === 'active' || billing?.status === 'trialing';
   const currentPlanRank = PLAN_RANK[plan] ?? PLAN_RANK.free;
-  const upgradePlan = billingPlans?.plans
+  const upgradePlan = (billingPlans?.plans ?? [])
     .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) > currentPlanRank)
     .sort((a, b) => (PLAN_RANK[a.plan] ?? 0) - (PLAN_RANK[b.plan] ?? 0))[0] ?? null;
   const canStartCheckout = Boolean(billingPlans?.billingEnabled && upgradePlan);
