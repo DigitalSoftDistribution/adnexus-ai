@@ -20,8 +20,10 @@ export function SecurityArchitecture() {
   return (
     <div ref={ref} className="max-w-3xl mx-auto">
       <div className="relative">
-        {/* Center line */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: 'var(--border-subtle)' }} />
+        {/* Center line - hidden on mobile */}
+        <div className="hidden sm:block absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: 'var(--border-subtle)' }} />
+        {/* Mobile line */}
+        <div className="sm:hidden absolute left-4 top-0 bottom-0 w-px" style={{ background: 'var(--border-subtle)' }} />
 
         {LAYERS.map((layer, i) => {
           const isLeft = i % 2 === 0;
@@ -31,21 +33,36 @@ export function SecurityArchitecture() {
               initial={{ opacity: 0, x: isLeft ? -30 : 30 }}
               animate={isVisible ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.1, ease: easeSmooth }}
-              className={`relative flex items-center gap-4 mb-4 ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}
+              className={`relative flex items-start gap-4 mb-4 ${isLeft ? 'sm:flex-row' : 'sm:flex-row-reverse'}`}
             >
-              <div className={`flex-1 ${isLeft ? 'text-right' : 'text-left'}`}>
+              {/* Mobile: full-width card with left dot */}
+              <div className="sm:hidden absolute left-4 top-3 w-8 h-8 rounded-full flex items-center justify-center -translate-x-1/2 z-10" style={{ background: `${layer.color}20`, border: `2px solid ${layer.color}`, color: layer.color }}>
+                {layer.level}
+              </div>
+              <div className="sm:hidden ml-10 flex-1">
+                <div className="card-surface p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{ color: layer.color }}>{layer.icon}</span>
+                    <span className="text-sm font-semibold text-white">{layer.title}</span>
+                  </div>
+                  <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{layer.desc}</p>
+                </div>
+              </div>
+
+              {/* Desktop: alternating layout */}
+              <div className={`hidden sm:block flex-1 ${isLeft ? 'text-right' : 'text-left'}`}>
                 <div className="inline-block card-surface p-4 max-w-xs">
                   <div className={`flex items-center gap-2 mb-1 ${isLeft ? 'justify-end' : ''}`}>
                     <span style={{ color: layer.color }}>{layer.icon}</span>
                     <span className="text-sm font-semibold text-white">{layer.title}</span>
                   </div>
-                  <p className={`text-[12px] ${isLeft ? '' : ''}`} style={{ color: 'var(--text-secondary)' }}>{layer.desc}</p>
+                  <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{layer.desc}</p>
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10" style={{ background: `${layer.color}20`, border: `2px solid ${layer.color}`, color: layer.color }}>
+              <div className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 z-10" style={{ background: `${layer.color}20`, border: `2px solid ${layer.color}`, color: layer.color }}>
                 {layer.level}
               </div>
-              <div className="flex-1" />
+              <div className="hidden sm:block flex-1" />
             </motion.div>
           );
         })}

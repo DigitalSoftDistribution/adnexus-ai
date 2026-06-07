@@ -44,7 +44,7 @@ export function ChangelogTimeline({ entries = DEFAULT_ENTRIES }: { entries?: Cha
         initial={{ opacity: 0, y: 12 }}
         animate={isVisible ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.4, ease: easeSmooth }}
-        className="flex items-center justify-center gap-2 mb-10"
+        className="flex flex-wrap items-center justify-center gap-2 mb-10"
       >
         {tags.map((tag) => (
           <button
@@ -65,7 +65,7 @@ export function ChangelogTimeline({ entries = DEFAULT_ENTRIES }: { entries?: Cha
       {/* Timeline */}
       <div className="relative max-w-3xl mx-auto">
         {/* Vertical line */}
-        <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: 'var(--border-subtle)' }} />
+        <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px sm:-translate-x-1/2" style={{ background: 'var(--border-subtle)' }} />
 
         {filtered.map((entry, i) => {
           const isLeft = i % 2 === 0;
@@ -76,7 +76,7 @@ export function ChangelogTimeline({ entries = DEFAULT_ENTRIES }: { entries?: Cha
               initial={{ opacity: 0, y: 20 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.08, ease: easeSmooth }}
-              className={`relative flex items-start gap-6 mb-8 ${isLeft ? 'sm:flex-row' : 'sm:flex-row-reverse'}`}
+              className={`relative flex items-start gap-4 sm:gap-6 mb-8 ${isLeft ? 'sm:flex-row' : 'sm:flex-row-reverse'}`}
             >
               {/* Dot */}
               <div className="absolute left-4 sm:left-1/2 w-3 h-3 rounded-full -translate-x-1/2 mt-2 z-10" style={{ background: style.color, boxShadow: `0 0 10px ${style.color}40` }} />
@@ -84,7 +84,7 @@ export function ChangelogTimeline({ entries = DEFAULT_ENTRIES }: { entries?: Cha
               {/* Content */}
               <div className={`ml-10 sm:ml-0 sm:w-[calc(50%-24px)] ${isLeft ? 'sm:pr-0 sm:text-right' : 'sm:pl-0 sm:text-left'}`}>
                 <div className="card-surface p-5">
-                  <div className={`flex items-center gap-2 mb-2 ${isLeft ? 'sm:justify-end' : ''}`}>
+                  <div className={`flex flex-wrap items-center gap-2 mb-2 ${isLeft ? 'sm:justify-end' : ''}`}>
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: style.bg, color: style.color }}>
                       {entry.tag}
                     </span>

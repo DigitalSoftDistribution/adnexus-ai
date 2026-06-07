@@ -75,13 +75,13 @@ export function FAQCategoryTabs({ items = DEFAULT_FAQS }: { items?: FaqEntry[] }
         initial={{ opacity: 0, y: 12 }}
         animate={isVisible ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.4, delay: 0.1, ease: easeSmooth }}
-        className="flex flex-wrap items-center justify-center gap-2 mb-8"
+        className="flex items-center justify-start sm:justify-center gap-2 mb-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide"
       >
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => { setActiveCategory(cat); setOpenIndex(0); }}
-            className="px-4 py-1.5 rounded-full text-[12px] font-medium transition-all"
+            className="px-4 py-1.5 rounded-full text-[12px] font-medium transition-all flex-shrink-0"
             style={{
               background: activeCategory === cat ? 'rgba(195,245,59,0.1)' : 'var(--bg-elevated)',
               color: activeCategory === cat ? '#c3f53b' : 'var(--text-secondary)',
