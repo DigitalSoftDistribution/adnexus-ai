@@ -35,6 +35,7 @@ import type { INotificationService } from '../ports/INotificationService';
 import type { IAgentAdvisor } from '../ports/IAgentAdvisor';
 import type { IPlatformSyncService } from '../ports/IPlatformSyncService';
 import type { IPlatformWriteService } from '../ports/IPlatformWriteService';
+import type { IMockTrafficSeeder } from '../ports/IMockTrafficSeeder';
 import type { Platform } from '../../domain/entities/Campaign';
 
 import { CreateCampaignUseCase } from '../use-cases/campaign/CreateCampaignUseCase';
@@ -110,6 +111,7 @@ import { GetCampaignHistoryUseCase } from '../use-cases/campaign/GetCampaignHist
 import { SyncCampaignUseCase } from '../use-cases/campaign/SyncCampaignUseCase';
 import { SyncAccountUseCase } from '../use-cases/integration/SyncAccountUseCase';
 import { ListSyncJobsUseCase } from '../use-cases/integration/ListSyncJobsUseCase';
+import { SeedMockTrafficUseCase } from '../use-cases/integration/SeedMockTrafficUseCase';
 import { ListAdSetsUseCase } from '../use-cases/ad-set/ListAdSetsUseCase';
 import { GetAdSetByIdUseCase } from '../use-cases/ad-set/GetAdSetByIdUseCase';
 import { CreateAdSetUseCase } from '../use-cases/ad-set/CreateAdSetUseCase';
@@ -196,6 +198,8 @@ export interface ContainerConfig {
   platformSyncService?: IPlatformSyncService;
   /** Optional ad-platform write service for pause/resume (e.g. Meta). */
   platformWriteService?: IPlatformWriteService;
+  /** Optional preview/dev-only mock traffic seeder. */
+  mockTrafficSeeder?: IMockTrafficSeeder;
   /** Optional account-sync deps; required to expose the account sync use-case. */
   adAccountRepository?: IAdAccountRepository;
   syncJobRepository?: ISyncJobRepository;
@@ -293,6 +297,8 @@ export class Container {
   readonly syncAccount?: SyncAccountUseCase;
   /** Present only when sync-job deps are configured. */
   readonly listSyncJobs?: ListSyncJobsUseCase;
+  /** Present only when the preview/dev-only mock traffic seeder is configured. */
+  readonly seedMockTraffic?: SeedMockTrafficUseCase;
   readonly listAdSets: ListAdSetsUseCase;
   readonly getAdSetById: GetAdSetByIdUseCase;
   readonly createAdSet: CreateAdSetUseCase;
@@ -493,6 +499,10 @@ export class Container {
         config.adAccountRepository,
         config.syncJobRepository,
       );
+    }
+
+    if (config.mockTrafficSeeder) {
+      this.seedMockTraffic = new SeedMockTrafficUseCase(config.mockTrafficSeeder);
     }
 
     this.listAdSets = new ListAdSetsUseCase(config.adSetRepository);

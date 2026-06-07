@@ -58,6 +58,11 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
 
+  // Preview/dev QA harness for fake Meta/Google traffic. Disabled by default.
+  MOCK_TRAFFIC_HARNESS_ENABLED: z.string().default('false'),
+  MOCK_TRAFFIC_HARNESS_CONTEXT: z.string().default(''),
+  MOCK_TRAFFIC_HARNESS_KEY: z.string().default(''),
+
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
 
@@ -196,6 +201,12 @@ export const config = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
     developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
+  },
+
+  mockTrafficHarness: {
+    enabled: env.MOCK_TRAFFIC_HARNESS_ENABLED === 'true',
+    context: env.MOCK_TRAFFIC_HARNESS_CONTEXT,
+    hasKey: env.MOCK_TRAFFIC_HARNESS_KEY.length > 0,
   },
 
   tiktok: {

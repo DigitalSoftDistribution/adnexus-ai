@@ -80,5 +80,31 @@ export function createIntegrationController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    seedMockTraffic: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.seedMockTraffic) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'MOCK_TRAFFIC_UNAVAILABLE', message: 'Mock traffic harness is not configured' },
+        });
+        return;
+      }
+
+      const body = (req.body ?? {}) as {
+        platforms?: string[];
+        variant?: string;
+        harnessKey?: string;
+      };
+      const result = await container.seedMockTraffic.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        platforms: body.platforms,
+        variant: body.variant,
+        harnessKey: body.harnessKey ?? (req.headers['x-mock-traffic-key'] as string | undefined),
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }
