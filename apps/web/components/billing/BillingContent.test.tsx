@@ -2,36 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
+import type { ReactNode } from 'react';
 import { BillingContent } from './BillingContent';
 import messages from '@/messages/en.json';
-
-function renderBilling() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <NextIntlClientProvider locale="en" messages={messages}>
-      <QueryClientProvider client={queryClient}>
-        <BillingContent />
-      </QueryClientProvider>
-    </NextIntlClientProvider>,
-  );
-}
 
 const billingInfo = {
   workspaceId: 'ws-1',
   name: 'Acme',
   plan: 'free',
-  status: 'inactive',
+  status: 'active',
   stripeCustomerId: null,
   stripeSubscriptionId: null,
   currentPeriodStart: null,
   currentPeriodEnd: null,
   cancelAtPeriodEnd: false,
   credits: {
-    creativesUsed: 0,
+    creativesUsed: 1,
     creativesTotal: 5,
-    impressionsUsed: 0,
+    impressionsUsed: 100,
     impressionsTotal: 1000,
-    aiCreditsUsed: 0,
+    aiCreditsUsed: 10,
     aiCreditsTotal: 50,
   },
 };
@@ -49,8 +39,80 @@ const billingPlans = {
   message: null,
 };
 
-describe('BillingContent checkout readiness', () => {
+function renderWithProviders(ui: ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
+  );
+}
+
+function renderBilling() {
+  return renderWithProviders(<BillingContent />);
+}
+
+describe('BillingContent', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/en/dashboard/billing', search: '', origin: 'https://app.test', href: '' },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('explains why the billing portal is unavailable for free workspaces', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/v2/billing') {
+          return { ok: true, json: async () => ({ data: billingInfo }) } as Response;
+        }
+        if (url === '/api/v2/billing/plans') {
+          return { ok: true, json: async () => ({ data: { ...billingPlans, billingEnabled: false, plans: [] } }) } as Response;
+        }
+        return { ok: true, json: async () => ({ data: { invoices: [], hasMore: false } }) } as Response;
+      }),
+    );
+
+    renderBilling();
+
+    expect(await screen.findByText('free Plan')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Manage Subscription' })).toBeDisabled();
+    expect(screen.getByText('Billing portal is unavailable until a Stripe customer is connected for this workspace.')).toBeInTheDocument();
+  });
+
+  it('shows a retryable invoice error without hiding billing details', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/v2/billing') {
+          return { ok: true, json: async () => ({ data: { ...billingInfo, stripeCustomerId: 'cus_123' } }) } as Response;
+        }
+        if (url === '/api/v2/billing/plans') {
+          return { ok: true, json: async () => ({ data: { ...billingPlans, billingEnabled: false, plans: [] } }) } as Response;
+        }
+        return { ok: false, json: async () => ({}) } as Response;
+      }),
+    );
+
+    renderBilling();
+
+    expect(await screen.findByText('free Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Failed to fetch invoices')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('renders an upgrade CTA and starts checkout with the configured price id', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === '/api/v2/billing') {
@@ -67,11 +129,7 @@ describe('BillingContent checkout readiness', () => {
       }
       return { ok: false, json: async () => ({}) } as Response;
     }));
-  });
 
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('renders an upgrade CTA and starts checkout with the configured price id', async () => {
     renderBilling();
 
     const upgradeButton = await screen.findByRole('button', { name: /upgrade to growth/i });

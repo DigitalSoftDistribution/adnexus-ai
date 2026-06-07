@@ -449,6 +449,13 @@
     "keyName": "Nome della chiave",
     "generate": "Genera",
     "newApiKey": "Nuova chiave API creata — copiala ora:",
+    "copyApiKeyWarning": "This is the only time the full key will be shown.",
+    "copy": "Copy key",
+    "copied": "Copied",
+    "copyFailed": "Copy failed. Select and copy the key manually.",
+    "revokeApiKey": "Revoke API key",
+    "lastUsed": "Last used",
+    "neverUsed": "Never used",
     "noApiKeys": "Nessuna chiave API ancora",
     "apiKeysPlaceholder": "Genera una chiave API per accedere all'API di AdNexus a livello di programmazione.",
     "created": "Creato"
@@ -475,6 +482,7 @@
     "unpaid": "Non pagata",
     "noInvoices": "Nessuna fattura ancora",
     "invoicesPlaceholder": "Le fatture appariranno qui una volta che avrai un abbonamento a pagamento",
+    "portalUnavailable": "Billing portal is unavailable until a Stripe customer is connected for this workspace.",
     "planFeatures": {
       "free": [
         "5 creatività",
@@ -662,7 +670,13 @@
     "action": "Azione",
     "category": "Categoria",
     "entity": "Entità",
+    "failedToLoad": "Failed to load audit log",
+    "categoryPlaceholder": "e.g. campaign_created",
+    "entityPlaceholder": "e.g. campaign",
+    "clearFilters": "Clear filters",
     "empty": "Nessuna attività",
-    "emptyDescription": "L'attività dell'area di lavoro apparirà qui."
+    "emptyDescription": "L'attività dell'area di lavoro apparirà qui.",
+    "emptyFiltered": "No matching activity",
+    "emptyFilteredDescription": "Try clearing or changing the audit log filters."
   }
 }

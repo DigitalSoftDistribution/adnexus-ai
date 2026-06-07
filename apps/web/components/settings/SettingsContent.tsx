@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Copy, Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
 
 interface Workspace {
   id: string;
@@ -233,25 +234,52 @@ export function SettingsContent() {
   const [workspaceName, setWorkspaceName] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [showNewKey, setShowNewKey] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<InvitableTeamRole>('viewer');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
+  const handleStartEditWorkspace = () => {
+    setWorkspaceName(workspace.data?.name ?? '');
+    setEditWorkspace(true);
+  };
+
   const handleSaveWorkspace = () => {
-    updateWorkspace.mutate({ name: workspaceName });
-    setEditWorkspace(false);
+    const nextName = workspaceName.trim();
+    if (!nextName) return;
+
+    updateWorkspace.mutate({ name: nextName }, {
+      onSuccess: () => setEditWorkspace(false),
+    });
   };
 
   const handleCreateKey = () => {
-    if (!newKeyName.trim()) return;
-    createApiKey.mutate(newKeyName, {
+    const name = newKeyName.trim();
+    if (!name) return;
+
+    createApiKey.mutate(name, {
       onSuccess: (data) => {
         setShowNewKey(data.data.fullKey);
         setNewKeyName('');
+        setCopyState('idle');
       },
     });
+  };
+
+  const handleCopyKey = async () => {
+    if (!showNewKey || !navigator.clipboard) {
+      setCopyState('failed');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(showNewKey);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
   };
 
   const handleInviteMember = () => {
@@ -367,12 +395,13 @@ export function SettingsContent() {
                     {editWorkspace ? (
                       <div className="flex gap-2">
                         <Input
-                          defaultValue={workspace.data?.name}
+                          value={workspaceName}
                           onChange={(e) => setWorkspaceName(e.target.value)}
+                          disabled={updateWorkspace.isPending}
                         />
-                        <Button onClick={handleSaveWorkspace} disabled={updateWorkspace.isPending}>
+                        <Button onClick={handleSaveWorkspace} disabled={updateWorkspace.isPending || !workspaceName.trim()}>
                           <Save className="mr-2 h-4 w-4" />
-                          {tc('save')}
+                          {updateWorkspace.isPending ? tc('saving') : tc('save')}
                         </Button>
                       </div>
                     ) : (
@@ -381,7 +410,7 @@ export function SettingsContent() {
                           <p className="font-medium">{workspace.data?.name}</p>
                           <p className="text-sm text-muted-foreground">{t('slug')}: {workspace.data?.slug}</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setEditWorkspace(true)}>{tc('edit')}</Button>
+                        <Button variant="outline" size="sm" onClick={handleStartEditWorkspace}>{tc('edit')}</Button>
                       </div>
                     )}
                   </div>
@@ -413,8 +442,18 @@ export function SettingsContent() {
             <CardContent>
               {team.isLoading ? (
                 <div className="flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
+              ) : team.isError ? (
+                <ErrorState
+                  title={tc('error')}
+                  description={(team.error as Error)?.message ?? t('failedToFetchTeam')}
+                  onRetry={() => team.refetch()}
+                  retryLabel={tc('retry')}
+                />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  {(updateMemberRole.isError || removeMember.isError) && (
+                    <InlineError message={(updateMemberRole.error as Error)?.message || (removeMember.error as Error)?.message || t('failedToUpdateRole')} />
+                  )}
                   {(team.data ?? []).map((member) => (
                     <div key={member.id} className="flex items-center justify-between rounded-lg border p-4">
                       <div className="flex items-center gap-3">
@@ -432,6 +471,7 @@ export function SettingsContent() {
                           className="h-8 rounded-md border px-2 text-sm"
                           value={member.role}
                           onChange={(e) => updateMemberRole.mutate({ userId: member.userId, role: e.target.value })}
+                          disabled={updateMemberRole.isPending || member.role === 'owner'}
                         >
                           <option value="viewer">{t('roles.viewer')}</option>
                           <option value="editor">{t('roles.editor')}</option>
@@ -441,7 +481,7 @@ export function SettingsContent() {
                           variant="ghost"
                           size="sm"
                           onClick={() => removeMember.mutate(member.userId)}
-                          disabled={member.role === 'owner'}
+                          disabled={removeMember.isPending || member.role === 'owner'}
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -564,12 +604,27 @@ export function SettingsContent() {
             </CardHeader>
             <CardContent>
               {showNewKey && (
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-medium text-emerald-800">{t('newApiKey')}</p>
-                  <code className="mt-2 block rounded bg-white p-2 text-sm font-mono">{showNewKey}</code>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowNewKey(null)}>{tc('dismiss')}</Button>
+                <div className="mb-4 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-start gap-2 text-emerald-900">
+                    <CheckCircle className="mt-0.5 h-4 w-4 flex-none" />
+                    <div>
+                      <p className="text-sm font-medium">{t('newApiKey')}</p>
+                      <p className="text-sm">{t('copyApiKeyWarning')}</p>
+                    </div>
+                  </div>
+                  <code className="block overflow-x-auto rounded bg-white p-2 font-mono text-sm">{showNewKey}</code>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleCopyKey}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      {copyState === 'copied' ? t('copied') : t('copy')}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowNewKey(null)}>{tc('dismiss')}</Button>
+                    {copyState === 'failed' && <p className="text-sm text-red-700">{t('copyFailed')}</p>}
+                  </div>
                 </div>
               )}
+              {createApiKey.isError && <InlineError message={(createApiKey.error as Error)?.message ?? t('failedToCreateApiKey')} />}
+              {revokeApiKey.isError && <InlineError message={(revokeApiKey.error as Error)?.message ?? t('failedToRevokeApiKey')} />}
               {apiKeys.isLoading ? (
                 <div className="flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
               ) : (apiKeys.data ?? []).length === 0 ? (
@@ -586,7 +641,13 @@ export function SettingsContent() {
                         <p className="font-medium">{key.name}</p>
                         <p className="text-sm text-muted-foreground">{key.keyPrefix}... {tc('created')} {new Date(key.createdAt).toLocaleDateString()}</p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => revokeApiKey.mutate(key.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => revokeApiKey.mutate(key.id)}
+                        disabled={revokeApiKey.isPending}
+                        aria-label={t('revokeApiKey')}
+                      >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -627,6 +688,15 @@ function NotificationToggle({
         />
         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
       </label>
+    </div>
+  );
+}
+
+function InlineError({ message }: { message: string }) {
+  return (
+    <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+      <span>{message}</span>
     </div>
   );
 }
