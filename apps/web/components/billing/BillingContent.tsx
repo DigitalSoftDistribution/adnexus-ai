@@ -93,7 +93,7 @@ function useCreatePortalSession() {
 
 export function BillingContent() {
   const { data: billing, isLoading: billingLoading, isError: billingError, refetch: refetchBilling } = useBillingInfo();
-  const { data: invoicesData, isLoading: invoicesLoading } = useInvoices();
+  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, error: invoicesErrorValue, refetch: refetchInvoices } = useInvoices();
   const portalMutation = useCreatePortalSession();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
@@ -126,6 +126,7 @@ export function BillingContent() {
   const plan = billing?.plan || 'free';
   const features = t.raw(`planFeatures.${plan}`) as string[] || t.raw('planFeatures.free') as string[];
   const isActive = billing?.status === 'active' || billing?.status === 'trialing';
+  const portalUnavailable = !billing?.stripeCustomerId;
 
   return (
     <div className="space-y-6">
@@ -134,13 +135,22 @@ export function BillingContent() {
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        {billing?.stripeCustomerId && (
-          <Button onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
+        <div className="flex flex-col items-end gap-2">
+          <Button onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending || portalUnavailable}>
             <CreditCard className="mr-2 h-4 w-4" />
             {portalMutation.isPending ? tc('opening') : t('manageSubscription')}
           </Button>
-        )}
+          {portalUnavailable && (
+            <p className="max-w-72 text-right text-xs text-muted-foreground">{t('portalUnavailable')}</p>
+          )}
+        </div>
       </div>
+
+      {portalMutation.isError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {(portalMutation.error as Error)?.message ?? t('failedToCreatePortal')}
+        </div>
+      )}
 
       {/* Plan Overview */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -208,6 +218,13 @@ export function BillingContent() {
             <div className="flex h-32 items-center justify-center">
               <LoadingSpinner size="md" />
             </div>
+          ) : invoicesError ? (
+            <ErrorState
+              title={tc('error')}
+              description={(invoicesErrorValue as Error)?.message ?? t('failedToFetchInvoices')}
+              onRetry={() => refetchInvoices()}
+              retryLabel={tc('retry')}
+            />
           ) : invoicesData?.invoices && invoicesData.invoices.length > 0 ? (
             <div className="space-y-2">
               {invoicesData.invoices.map((invoice) => (

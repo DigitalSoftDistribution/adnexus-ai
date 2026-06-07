@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Copy, Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
 
 interface Workspace {
   id: string;
@@ -58,6 +59,31 @@ interface ApiKey {
   createdAt: string;
 }
 
+const defaultEmailPrefs: NotificationPrefs['email'] = {
+  campaignAlerts: true,
+  budgetAlerts: true,
+  dailyDigest: false,
+  weeklyReport: true,
+  teamActivity: true,
+  productUpdates: true,
+};
+
+const defaultInAppPrefs: NotificationPrefs['inApp'] = {
+  campaignAlerts: true,
+  budgetAlerts: true,
+  aiRecommendations: true,
+  teamActivity: true,
+};
+
+async function parseErrorResponse(res: Response, fallback: string): Promise<Error> {
+  try {
+    const body = await res.json() as { error?: string; message?: string };
+    return new Error(body.error || body.message || fallback);
+  } catch {
+    return new Error(fallback);
+  }
+}
+
 function useSettings() {
   const queryClient = useQueryClient();
   const t = useTranslations('settings');
@@ -66,7 +92,7 @@ function useSettings() {
     queryKey: ['settings', 'workspace'],
     queryFn: async (): Promise<Workspace> => {
       const res = await fetch('/api/v2/settings/workspace');
-      if (!res.ok) throw new Error(t('failedToFetchWorkspace'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToFetchWorkspace'));
       const data = await res.json();
       return data.data;
     },
@@ -79,7 +105,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error(t('failedToUpdateWorkspace'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToUpdateWorkspace'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'workspace'] }),
@@ -89,7 +115,7 @@ function useSettings() {
     queryKey: ['settings', 'team'],
     queryFn: async (): Promise<TeamMember[]> => {
       const res = await fetch('/api/v2/settings/team');
-      if (!res.ok) throw new Error(t('failedToFetchTeam'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToFetchTeam'));
       const data = await res.json();
       return data.data;
     },
@@ -102,7 +128,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       });
-      if (!res.ok) throw new Error(t('failedToUpdateRole'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToUpdateRole'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'team'] }),
@@ -111,7 +137,7 @@ function useSettings() {
   const removeMember = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/v2/settings/team/${userId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(t('failedToRemoveMember'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToRemoveMember'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'team'] }),
@@ -121,7 +147,7 @@ function useSettings() {
     queryKey: ['settings', 'integrations'],
     queryFn: async (): Promise<Integration[]> => {
       const res = await fetch('/api/v2/settings/integrations');
-      if (!res.ok) throw new Error(t('failedToFetchIntegrations'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToFetchIntegrations'));
       const data = await res.json();
       return data.data;
     },
@@ -131,7 +157,7 @@ function useSettings() {
     queryKey: ['settings', 'notifications'],
     queryFn: async (): Promise<NotificationPrefs> => {
       const res = await fetch('/api/v2/settings/notifications');
-      if (!res.ok) throw new Error(t('failedToFetchNotifications'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToFetchNotifications'));
       const data = await res.json();
       return data.data;
     },
@@ -144,7 +170,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(prefs),
       });
-      if (!res.ok) throw new Error(t('failedToUpdateNotifications'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToUpdateNotifications'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'notifications'] }),
@@ -154,7 +180,7 @@ function useSettings() {
     queryKey: ['settings', 'api-keys'],
     queryFn: async (): Promise<ApiKey[]> => {
       const res = await fetch('/api/v2/settings/api-keys');
-      if (!res.ok) throw new Error(t('failedToFetchApiKeys'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToFetchApiKeys'));
       const data = await res.json();
       return data.data;
     },
@@ -167,7 +193,7 @@ function useSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
-      if (!res.ok) throw new Error(t('failedToCreateApiKey'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToCreateApiKey'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'api-keys'] }),
@@ -176,29 +202,41 @@ function useSettings() {
   const revokeApiKey = useMutation({
     mutationFn: async (keyId: string) => {
       const res = await fetch(`/api/v2/settings/api-keys/${keyId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(t('failedToRevokeApiKey'));
+      if (!res.ok) throw await parseErrorResponse(res, t('failedToRevokeApiKey'));
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'api-keys'] }),
   });
 
   return {
-    workspace, updateWorkspace,
-    team, updateMemberRole, removeMember,
+    workspace,
+    updateWorkspace,
+    team,
+    updateMemberRole,
+    removeMember,
     integrations,
-    notifications, updateNotifications,
-    apiKeys, createApiKey, revokeApiKey,
+    notifications,
+    updateNotifications,
+    apiKeys,
+    createApiKey,
+    revokeApiKey,
   };
 }
 
 export function SettingsContent() {
   const [activeTab, setActiveTab] = useState('workspace');
   const {
-    workspace, updateWorkspace,
-    team, updateMemberRole, removeMember,
+    workspace,
+    updateWorkspace,
+    team,
+    updateMemberRole,
+    removeMember,
     integrations,
-    notifications, updateNotifications,
-    apiKeys, createApiKey, revokeApiKey,
+    notifications,
+    updateNotifications,
+    apiKeys,
+    createApiKey,
+    revokeApiKey,
   } = useSettings();
   const t = useTranslations('settings');
   const tc = useTranslations('common');
@@ -207,20 +245,47 @@ export function SettingsContent() {
   const [workspaceName, setWorkspaceName] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [showNewKey, setShowNewKey] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  const handleStartEditWorkspace = () => {
+    setWorkspaceName(workspace.data?.name ?? '');
+    setEditWorkspace(true);
+  };
 
   const handleSaveWorkspace = () => {
-    updateWorkspace.mutate({ name: workspaceName });
-    setEditWorkspace(false);
+    const nextName = workspaceName.trim();
+    if (!nextName) return;
+
+    updateWorkspace.mutate({ name: nextName }, {
+      onSuccess: () => setEditWorkspace(false),
+    });
   };
 
   const handleCreateKey = () => {
-    if (!newKeyName.trim()) return;
-    createApiKey.mutate(newKeyName, {
+    const name = newKeyName.trim();
+    if (!name) return;
+
+    createApiKey.mutate(name, {
       onSuccess: (data) => {
         setShowNewKey(data.data.fullKey);
         setNewKeyName('');
+        setCopyState('idle');
       },
     });
+  };
+
+  const handleCopyKey = async () => {
+    if (!showNewKey || !navigator.clipboard) {
+      setCopyState('failed');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(showNewKey);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
   };
 
   return (
@@ -248,20 +313,36 @@ export function SettingsContent() {
             <CardContent className="space-y-4">
               {workspace.isLoading ? (
                 <LoadingSpinner size="md" />
+              ) : workspace.isError ? (
+                <ErrorState
+                  title={tc('error')}
+                  description={(workspace.error as Error)?.message ?? t('failedToFetchWorkspace')}
+                  onRetry={() => workspace.refetch()}
+                  retryLabel={tc('retry')}
+                />
               ) : (
                 <>
+                  {updateWorkspace.isError && (
+                    <InlineError message={(updateWorkspace.error as Error)?.message ?? t('failedToUpdateWorkspace')} />
+                  )}
                   <div className="space-y-2">
-                    <Label>{t('workspaceName')}</Label>
+                    <Label htmlFor="workspace-name">{t('workspaceName')}</Label>
                     {editWorkspace ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <Input
-                          defaultValue={workspace.data?.name}
+                          id="workspace-name"
+                          value={workspaceName}
                           onChange={(e) => setWorkspaceName(e.target.value)}
                         />
-                        <Button onClick={handleSaveWorkspace} disabled={updateWorkspace.isPending}>
-                          <Save className="mr-2 h-4 w-4" />
-                          {tc('save')}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button onClick={handleSaveWorkspace} disabled={updateWorkspace.isPending || !workspaceName.trim()}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {updateWorkspace.isPending ? tc('saving') : tc('save')}
+                          </Button>
+                          <Button variant="outline" onClick={() => setEditWorkspace(false)} disabled={updateWorkspace.isPending}>
+                            {tc('cancel')}
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between rounded-lg border p-4">
@@ -269,7 +350,7 @@ export function SettingsContent() {
                           <p className="font-medium">{workspace.data?.name}</p>
                           <p className="text-sm text-muted-foreground">{t('slug')}: {workspace.data?.slug}</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setEditWorkspace(true)}>{tc('edit')}</Button>
+                        <Button variant="outline" size="sm" onClick={handleStartEditWorkspace}>{tc('edit')}</Button>
                       </div>
                     )}
                   </div>
@@ -293,7 +374,7 @@ export function SettingsContent() {
                 <CardTitle>{t('teamMembers')}</CardTitle>
                 <CardDescription>{t('teamDescription')}</CardDescription>
               </div>
-              <Button size="sm">
+              <Button size="sm" variant="outline" disabled title={t('inviteUnavailable')}>
                 <Users className="mr-2 h-4 w-4" />
                 {t('inviteMember')}
               </Button>
@@ -301,41 +382,61 @@ export function SettingsContent() {
             <CardContent>
               {team.isLoading ? (
                 <div className="flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
+              ) : team.isError ? (
+                <ErrorState
+                  title={tc('error')}
+                  description={(team.error as Error)?.message ?? t('failedToFetchTeam')}
+                  onRetry={() => team.refetch()}
+                  retryLabel={tc('retry')}
+                />
               ) : (
-                <div className="space-y-2">
-                  {(team.data ?? []).map((member) => (
-                    <div key={member.id} className="flex items-center justify-between rounded-lg border p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          {member.name?.charAt(0) ?? member.email.charAt(0)}
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-dashed bg-muted/30 p-3 text-sm text-muted-foreground">
+                    {t('inviteUnavailable')}
+                  </div>
+                  {(updateMemberRole.isError || removeMember.isError) && (
+                    <InlineError message={(updateMemberRole.error as Error)?.message || (removeMember.error as Error)?.message || t('failedToUpdateRole')} />
+                  )}
+                  {(team.data ?? []).map((member) => {
+                    const memberMutationPending = updateMemberRole.isPending || removeMember.isPending;
+                    return (
+                      <div key={member.id} className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+                            {member.name?.charAt(0) ?? member.email.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.name ?? member.email}</p>
+                            <p className="text-sm text-muted-foreground">{member.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{member.name ?? member.email}</p>
-                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="capitalize">{member.role}</Badge>
+                          <select
+                            className="h-8 rounded-md border px-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                            value={member.role}
+                            disabled={member.role === 'owner' || memberMutationPending}
+                            onChange={(e) => updateMemberRole.mutate({ userId: member.userId, role: e.target.value })}
+                            aria-label={`${t('roles.admin')} role for ${member.email}`}
+                          >
+                            {member.role === 'owner' && <option value="owner">{t('roles.owner')}</option>}
+                            <option value="viewer">{t('roles.viewer')}</option>
+                            <option value="editor">{t('roles.editor')}</option>
+                            <option value="admin">{t('roles.admin')}</option>
+                          </select>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMember.mutate(member.userId)}
+                            disabled={member.role === 'owner' || memberMutationPending}
+                            aria-label={`${tc('delete')} ${member.email}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="capitalize">{member.role}</Badge>
-                        <select
-                          className="h-8 rounded-md border px-2 text-sm"
-                          value={member.role}
-                          onChange={(e) => updateMemberRole.mutate({ userId: member.userId, role: e.target.value })}
-                        >
-                          <option value="viewer">{t('roles.viewer')}</option>
-                          <option value="editor">{t('roles.editor')}</option>
-                          <option value="admin">{t('roles.admin')}</option>
-                        </select>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMember.mutate(member.userId)}
-                          disabled={member.role === 'owner'}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -343,38 +444,47 @@ export function SettingsContent() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {integrations.isLoading ? (
-              <div className="col-span-2 flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
-            ) : (integrations.data ?? []).length === 0 ? (
-              <div className="col-span-2 text-center py-12 text-muted-foreground">
-                {t('noIntegrations')}
-              </div>
-            ) : (
-              (integrations.data ?? []).map((integration) => (
-                <Card key={integration.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary uppercase">
-                          {integration.platform.charAt(0)}
+          {integrations.isLoading ? (
+            <div className="flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
+          ) : integrations.isError ? (
+            <ErrorState
+              title={tc('error')}
+              description={(integrations.error as Error)?.message ?? t('failedToFetchIntegrations')}
+              onRetry={() => integrations.refetch()}
+              retryLabel={tc('retry')}
+            />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {(integrations.data ?? []).length === 0 ? (
+                <div className="col-span-2 text-center py-12 text-muted-foreground">
+                  {t('noIntegrations')}
+                </div>
+              ) : (
+                (integrations.data ?? []).map((integration) => (
+                  <Card key={integration.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 font-bold uppercase text-primary">
+                            {integration.platform.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{integration.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {integration.status === 'connected' ? `${t('account')}: ${integration.accountName ?? integration.accountId ?? t('connected')}` : t('notConnected')}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{integration.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {integration.status === 'connected' ? `${t('account')}: ${integration.accountName ?? integration.accountId ?? t('connected')}` : t('notConnected')}
-                          </p>
-                        </div>
+                        <Badge variant={integration.status === 'connected' ? 'default' : 'secondary'} className="capitalize">
+                          {integration.status}
+                        </Badge>
                       </div>
-                      <Badge variant={integration.status === 'connected' ? 'default' : 'secondary'} className="capitalize">
-                        {integration.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">
@@ -386,14 +496,25 @@ export function SettingsContent() {
             <CardContent className="space-y-4">
               {notifications.isLoading ? (
                 <LoadingSpinner size="md" />
+              ) : notifications.isError ? (
+                <ErrorState
+                  title={tc('error')}
+                  description={(notifications.error as Error)?.message ?? t('failedToFetchNotifications')}
+                  onRetry={() => notifications.refetch()}
+                  retryLabel={tc('retry')}
+                />
               ) : (
                 <>
+                  {updateNotifications.isError && (
+                    <InlineError message={(updateNotifications.error as Error)?.message ?? t('failedToUpdateNotifications')} />
+                  )}
                   <NotificationToggle
                     title={t('campaignAlerts')}
                     description={t('campaignAlertsDesc')}
                     checked={notifications.data?.email.campaignAlerts ?? true}
+                    disabled={updateNotifications.isPending}
                     onChange={(v) => {
-                      const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
+                      const email = notifications.data?.email ?? defaultEmailPrefs;
                       updateNotifications.mutate({ email: { ...email, campaignAlerts: v } });
                     }}
                   />
@@ -401,8 +522,9 @@ export function SettingsContent() {
                     title={t('aiRecommendations')}
                     description={t('aiRecommendationsDesc')}
                     checked={notifications.data?.inApp.aiRecommendations ?? true}
+                    disabled={updateNotifications.isPending}
                     onChange={(v) => {
-                      const inApp = notifications.data?.inApp ?? { campaignAlerts: true, budgetAlerts: true, aiRecommendations: true, teamActivity: true };
+                      const inApp = notifications.data?.inApp ?? defaultInAppPrefs;
                       updateNotifications.mutate({ inApp: { ...inApp, aiRecommendations: v } });
                     }}
                   />
@@ -410,8 +532,9 @@ export function SettingsContent() {
                     title={t('weeklySummary')}
                     description={t('weeklySummaryDesc')}
                     checked={notifications.data?.email.weeklyReport ?? true}
+                    disabled={updateNotifications.isPending}
                     onChange={(v) => {
-                      const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
+                      const email = notifications.data?.email ?? defaultEmailPrefs;
                       updateNotifications.mutate({ email: { ...email, weeklyReport: v } });
                     }}
                   />
@@ -419,8 +542,9 @@ export function SettingsContent() {
                     title={t('teamActivity')}
                     description={t('teamActivityDesc')}
                     checked={notifications.data?.email.teamActivity ?? true}
+                    disabled={updateNotifications.isPending}
                     onChange={(v) => {
-                      const email = notifications.data?.email ?? { campaignAlerts: true, budgetAlerts: true, dailyDigest: false, weeklyReport: true, teamActivity: true, productUpdates: true };
+                      const email = notifications.data?.email ?? defaultEmailPrefs;
                       updateNotifications.mutate({ email: { ...email, teamActivity: v } });
                     }}
                   />
@@ -432,34 +556,61 @@ export function SettingsContent() {
 
         <TabsContent value="api" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle>{t('apiKeys')}</CardTitle>
                 <CardDescription>{t('apiKeysDescription')}</CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   placeholder={t('keyName')}
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
-                  className="w-48"
+                  className="w-full sm:w-48"
+                  aria-label={t('keyName')}
                 />
                 <Button size="sm" onClick={handleCreateKey} disabled={createApiKey.isPending || !newKeyName.trim()}>
                   <Plus className="mr-2 h-4 w-4" />
-                  {tc('generate')}
+                  {createApiKey.isPending ? tc('creating') : tc('generate')}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {showNewKey && (
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-medium text-emerald-800">{t('newApiKey')}</p>
-                  <code className="mt-2 block rounded bg-white p-2 text-sm font-mono">{showNewKey}</code>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowNewKey(null)}>{tc('dismiss')}</Button>
+                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    <div>
+                      <p className="text-sm font-medium">{t('newApiKey')}</p>
+                      <p className="text-xs text-emerald-800">{t('copyApiKeyWarning')}</p>
+                    </div>
+                  </div>
+                  <code className="mt-3 block overflow-x-auto rounded bg-white p-2 font-mono text-sm">{showNewKey}</code>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={handleCopyKey}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      {copyState === 'copied' ? t('copied') : t('copy')}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowNewKey(null)}>{tc('dismiss')}</Button>
+                    {copyState === 'failed' && <span className="self-center text-xs text-red-700">{t('copyFailed')}</span>}
+                  </div>
                 </div>
+              )}
+              {createApiKey.isError && (
+                <InlineError message={(createApiKey.error as Error)?.message ?? t('failedToCreateApiKey')} />
+              )}
+              {revokeApiKey.isError && (
+                <InlineError message={(revokeApiKey.error as Error)?.message ?? t('failedToRevokeApiKey')} />
               )}
               {apiKeys.isLoading ? (
                 <div className="flex h-32 items-center justify-center"><LoadingSpinner size="md" /></div>
+              ) : apiKeys.isError ? (
+                <ErrorState
+                  title={tc('error')}
+                  description={(apiKeys.error as Error)?.message ?? t('failedToFetchApiKeys')}
+                  onRetry={() => apiKeys.refetch()}
+                  retryLabel={tc('retry')}
+                />
               ) : (apiKeys.data ?? []).length === 0 ? (
                 <EmptyState
                   icon={Key}
@@ -473,8 +624,17 @@ export function SettingsContent() {
                       <div>
                         <p className="font-medium">{key.name}</p>
                         <p className="text-sm text-muted-foreground">{key.keyPrefix}... {tc('created')} {new Date(key.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {key.lastUsedAt ? `${t('lastUsed')}: ${new Date(key.lastUsedAt).toLocaleDateString()}` : t('neverUsed')}
+                        </p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => revokeApiKey.mutate(key.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => revokeApiKey.mutate(key.id)}
+                        disabled={revokeApiKey.isPending}
+                        aria-label={`${t('revokeApiKey')} ${key.name}`}
+                      >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -493,11 +653,13 @@ function NotificationToggle({
   title,
   description,
   checked,
+  disabled,
   onChange,
 }: {
   title: string;
   description: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (v: boolean) => void;
 }) {
   return (
@@ -506,14 +668,16 @@ function NotificationToggle({
         <p className="font-medium">{title}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <label className="relative inline-flex items-center cursor-pointer">
+      <label className="relative inline-flex cursor-pointer items-center has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
         <input
           type="checkbox"
           checked={checked}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
-          className="sr-only peer"
+          className="peer sr-only"
+          aria-label={title}
         />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+        <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
       </label>
     </div>
   );
@@ -522,9 +686,18 @@ function NotificationToggle({
 function EmptyState({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-      <Icon className="h-12 w-12 mb-4 opacity-50" />
+      <Icon className="mb-4 h-12 w-12 opacity-50" />
       <p className="font-medium">{title}</p>
       <p className="text-sm">{description}</p>
+    </div>
+  );
+}
+
+function InlineError({ message }: { message: string }) {
+  return (
+    <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
     </div>
   );
 }

@@ -399,6 +399,14 @@
     "keyName": "キー名",
     "generate": "生成",
     "newApiKey": "新しいAPIキーが作成されました — 今すぐコピーしてください:",
+    "copyApiKeyWarning": "This is the only time the full key will be shown.",
+    "copy": "Copy key",
+    "copied": "Copied",
+    "copyFailed": "Copy failed. Select and copy the key manually.",
+    "revokeApiKey": "Revoke API key",
+    "lastUsed": "Last used",
+    "neverUsed": "Never used",
+    "inviteUnavailable": "Team invites are temporarily disabled while the invite flow is being finalized.",
     "noApiKeys": "APIキーはまだありません",
     "apiKeysPlaceholder": "APIキーを生成して、AdNexus APIにプログラムからアクセスします。",
     "created": "作成日"
@@ -423,6 +431,7 @@
     "unpaid": "未払い",
     "noInvoices": "請求書はまだありません",
     "invoicesPlaceholder": "有料サブスクリプションを契約すると、請求書がここに表示されます",
+    "portalUnavailable": "Billing portal is unavailable until a Stripe customer is connected for this workspace.",
     "planFeatures": {
       "free": [
         "クリエイティブ5件",
@@ -592,7 +601,13 @@
     "action": "アクション",
     "category": "カテゴリ",
     "entity": "エンティティ",
+    "failedToLoad": "Failed to load audit log",
+    "categoryPlaceholder": "e.g. campaign_created",
+    "entityPlaceholder": "e.g. campaign",
+    "clearFilters": "Clear filters",
     "empty": "アクティビティがまだありません",
-    "emptyDescription": "ワークスペースのアクティビティがここに表示されます。"
+    "emptyDescription": "ワークスペースのアクティビティがここに表示されます。",
+    "emptyFiltered": "No matching activity",
+    "emptyFilteredDescription": "Try clearing or changing the audit log filters."
   }
 }

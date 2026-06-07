@@ -399,6 +399,14 @@
     "keyName": "Nazwa klucza",
     "generate": "Generuj",
     "newApiKey": "Utworzono nowy klucz API — skopiuj go teraz:",
+    "copyApiKeyWarning": "This is the only time the full key will be shown.",
+    "copy": "Copy key",
+    "copied": "Copied",
+    "copyFailed": "Copy failed. Select and copy the key manually.",
+    "revokeApiKey": "Revoke API key",
+    "lastUsed": "Last used",
+    "neverUsed": "Never used",
+    "inviteUnavailable": "Team invites are temporarily disabled while the invite flow is being finalized.",
     "noApiKeys": "Brak kluczy API",
     "apiKeysPlaceholder": "Wygeneruj klucz API, aby programowo uzyskać dostęp do API AdNexus.",
     "created": "Utworzono"
@@ -423,6 +431,7 @@
     "unpaid": "Nieopłacona",
     "noInvoices": "Brak faktur",
     "invoicesPlaceholder": "Faktury pojawią się tutaj, gdy będziesz mieć płatną subskrypcję",
+    "portalUnavailable": "Billing portal is unavailable until a Stripe customer is connected for this workspace.",
     "planFeatures": {
       "free": [
         "5 kreacji",
@@ -592,7 +601,13 @@
     "action": "Akcja",
     "category": "Kategoria",
     "entity": "Encja",
+    "failedToLoad": "Failed to load audit log",
+    "categoryPlaceholder": "e.g. campaign_created",
+    "entityPlaceholder": "e.g. campaign",
+    "clearFilters": "Clear filters",
     "empty": "Brak aktywności",
-    "emptyDescription": "Aktywność obszaru roboczego pojawi się tutaj."
+    "emptyDescription": "Aktywność obszaru roboczego pojawi się tutaj.",
+    "emptyFiltered": "No matching activity",
+    "emptyFilteredDescription": "Try clearing or changing the audit log filters."
   }
 }
