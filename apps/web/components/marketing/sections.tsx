@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Check, X, ArrowRight } from 'lucide-react';
