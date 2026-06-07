@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-export function GradientText({
+export function GlowCard({
   children,
   className,
 }: {
@@ -11,13 +11,13 @@ export function GradientText({
   className?: string;
 }) {
   return (
-    <span
+    <div
       className={cn(
-        'bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent',
+        'group relative rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary/30 hover:shadow-glow',
         className
       )}
     >
       {children}
-    </span>
+    </div>
   );
 }

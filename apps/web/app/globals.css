@@ -3,110 +3,107 @@
 @tailwind utilities;
 
 /*
- * AdNexus AI — Design tokens
- * --------------------------
- * Modern analytics aesthetic: deep neutral canvas, a single vivid violet
- * accent, semantic success/warning/danger, and per-platform brand tokens for
- * data-viz. Dark mode is the default (applied on <html> in the root layout);
- * the .light class opts back into the bright theme.
+ * AdNexus AI — Linear × Vercel Design Tokens
+ * ------------------------------------------
+ * Dark-first with teal-cyan + violet accent.
+ * Geometric precision, glassmorphism, generous whitespace.
+ * Dark mode is the default. The .light class opts into light theme.
  */
 
 @layer base {
   :root {
     /* Light theme (opt-in via .light) */
-    --background: 0 0% 100%;
-    --foreground: 240 14% 9%;
+    --background: 0 0% 98%;
+    --foreground: 240 10% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 240 14% 9%;
+    --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 14% 9%;
-    --primary: 256 90% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 14% 12%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 256 90% 96%;
-    --accent-foreground: 256 70% 36%;
-    --success: 152 62% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 96% 12%;
-    --destructive: 0 78% 56%;
+    --popover-foreground: 240 10% 4%;
+    --primary: 165 100% 42%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 5% 95%;
+    --secondary-foreground: 240 10% 4%;
+    --muted: 240 5% 95%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 255 100% 68%;
+    --accent-foreground: 0 0% 100%;
+    --success: 165 100% 42%;
+    --success-foreground: 240 10% 4%;
+    --warning: 45 100% 55%;
+    --warning-foreground: 240 10% 4%;
+    --destructive: 355 80% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 256 90% 60%;
-    --radius: 0.75rem;
+    --border: 240 5% 90%;
+    --input: 240 5% 90%;
+    --ring: 165 100% 42%;
+    --radius: 0.5rem;
 
-    /* Data-viz palette */
-    --chart-1: 256 90% 62%;
-    --chart-2: 173 70% 42%;
-    --chart-3: 32 95% 56%;
-    --chart-4: 200 90% 52%;
-    --chart-5: 330 80% 58%;
+    --chart-1: 165 100% 42%;
+    --chart-2: 255 100% 68%;
+    --chart-3: 45 100% 55%;
+    --chart-4: 200 80% 55%;
+    --chart-5: 330 80% 55%;
 
-    /* Platform brand tokens */
     --platform-meta: 214 89% 52%;
     --platform-google: 4 81% 56%;
     --platform-tiktok: 348 92% 56%;
     --platform-snap: 51 100% 50%;
 
-    --sidebar-background: 240 8% 98%;
-    --sidebar-foreground: 240 5% 30%;
-    --sidebar-primary: 256 90% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5% 35%;
+    --sidebar-primary: 165 100% 42%;
+    --sidebar-primary-foreground: 240 10% 4%;
     --sidebar-accent: 240 5% 95%;
-    --sidebar-accent-foreground: 240 14% 12%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 256 90% 60%;
+    --sidebar-accent-foreground: 240 10% 4%;
+    --sidebar-border: 240 5% 90%;
+    --sidebar-ring: 165 100% 42%;
   }
 
   .dark {
-    /* Dark theme (default) */
-    --background: 240 14% 6%;
-    --foreground: 240 12% 96%;
-    --card: 240 13% 9%;
-    --card-foreground: 240 12% 96%;
-    --popover: 240 13% 9%;
-    --popover-foreground: 240 12% 96%;
-    --primary: 256 95% 68%;
-    --primary-foreground: 240 14% 6%;
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 240 12% 96%;
-    --muted: 240 8% 15%;
-    --muted-foreground: 240 6% 60%;
-    --accent: 256 40% 20%;
-    --accent-foreground: 256 90% 86%;
-    --success: 152 58% 48%;
-    --success-foreground: 152 70% 10%;
-    --warning: 38 92% 56%;
-    --warning-foreground: 38 96% 10%;
-    --destructive: 0 72% 58%;
+    /* Dark theme (default) — Linear × Vercel aesthetic */
+    --background: 240 15% 4%;
+    --foreground: 240 10% 96%;
+    --card: 240 12% 8%;
+    --card-foreground: 240 10% 96%;
+    --popover: 240 12% 10%;
+    --popover-foreground: 240 10% 96%;
+    --primary: 165 100% 42%;
+    --primary-foreground: 240 15% 4%;
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 240 10% 96%;
+    --muted: 240 8% 14%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 255 100% 68%;
+    --accent-foreground: 0 0% 100%;
+    --success: 165 100% 42%;
+    --success-foreground: 240 15% 4%;
+    --warning: 45 100% 55%;
+    --warning-foreground: 240 15% 4%;
+    --destructive: 355 80% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 18%;
-    --input: 240 8% 18%;
-    --ring: 256 95% 68%;
+    --border: 240 8% 16%;
+    --input: 240 8% 14%;
+    --ring: 165 100% 42%;
 
-    --chart-1: 256 95% 72%;
-    --chart-2: 173 70% 52%;
-    --chart-3: 32 95% 62%;
-    --chart-4: 200 90% 62%;
-    --chart-5: 330 82% 66%;
+    --chart-1: 165 100% 42%;
+    --chart-2: 255 100% 68%;
+    --chart-3: 45 100% 55%;
+    --chart-4: 200 80% 55%;
+    --chart-5: 330 80% 55%;
 
-    --platform-meta: 214 89% 60%;
-    --platform-google: 4 86% 62%;
-    --platform-tiktok: 348 92% 62%;
+    --platform-meta: 214 89% 58%;
+    --platform-google: 4 86% 60%;
+    --platform-tiktok: 348 92% 60%;
     --platform-snap: 51 100% 56%;
 
-    --sidebar-background: 240 14% 7%;
-    --sidebar-foreground: 240 8% 80%;
-    --sidebar-primary: 256 95% 68%;
-    --sidebar-primary-foreground: 240 14% 6%;
-    --sidebar-accent: 240 9% 14%;
-    --sidebar-accent-foreground: 240 12% 96%;
+    --sidebar-background: 240 12% 5%;
+    --sidebar-foreground: 240 5% 70%;
+    --sidebar-primary: 165 100% 42%;
+    --sidebar-primary-foreground: 240 15% 4%;
+    --sidebar-accent: 240 8% 14%;
+    --sidebar-accent-foreground: 240 10% 96%;
     --sidebar-border: 240 8% 14%;
-    --sidebar-ring: 256 95% 68%;
+    --sidebar-ring: 165 100% 42%;
   }
 }
 
@@ -116,19 +113,37 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer utilities {
-  /* Subtle ambient gradient used behind hero/shell surfaces */
   .bg-grid {
     background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+      radial-gradient(circle, hsl(var(--border) / 0.3) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .bg-grid-lines {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15), 0 0 40px hsl(var(--primary) / 0.08);
+  }
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.15), 0 0 40px hsl(var(--accent) / 0.08);
   }
   .scrollbar-thin {
     scrollbar-width: thin;

@@ -1,7 +1,7 @@
 # AdNexus AI v1 Launch Readiness
 
-> Linear: SB-3098, SB-3099  
-> Scope: launch test matrix, go/no-go criteria, environment readiness, monitoring checks, and operator runbooks.  
+> Linear: SB-3098, SB-3099
+> Scope: launch test matrix, go/no-go criteria, environment readiness, monitoring checks, and operator runbooks.
 > Status: safety net created; several launch blockers remain open below.
 
 ## Repository-grounded commands
