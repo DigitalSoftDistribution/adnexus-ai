@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ROICalculator } from '@/components/marketing/v4/ROICalculator';
 import { JsonLd } from '@/components/marketing/JsonLd';
 import { PricingComparisonTable } from '@/components/marketing/v4/PricingComparisonTable';
+import { PricingPreview } from '@/components/marketing/v4/PricingPreview';
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -35,7 +36,7 @@ const FAQ_JSONLD = {
       name: 'Which ad platforms are supported?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one dashboard.',
+        text: 'Growth covers Meta and Google. Scale adds TikTok read-only monitoring, while Agency includes the full roadmap with Snapchat support as it becomes available.',
       },
     },
     {
@@ -61,6 +62,11 @@ export default function PricingPage() {
   return (
     <>
       <JsonLd data={FAQ_JSONLD} />
+      <PricingPreview
+        headline="Transparent plans for every stage"
+        subtitle="Compare Free, Growth, and Scale with flat monthly pricing before you dive into the full feature matrix."
+        differentiator="Agency plans are custom for teams that need advanced onboarding, SLAs, and platform roadmap access."
+      />
       <PricingComparisonTable />
       <ROICalculator />
     </>
