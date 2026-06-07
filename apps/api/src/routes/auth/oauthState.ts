@@ -112,25 +112,34 @@ export function verifyOAuthState(state: unknown, platform: OAuthPlatform): OAuth
   }
 }
 
+function consumeMemoryNonce(key: string): boolean {
+  purgeExpiredMemoryNonces();
+  const memoryExpiresAt = memoryStateNonces.get(key);
+  const found = Boolean(memoryExpiresAt && memoryExpiresAt > Date.now());
+  memoryStateNonces.delete(key);
+  return found;
+}
+
 export async function consumeOAuthStateNonce(platform: OAuthPlatform, nonce: string): Promise<boolean> {
   const key = nonceKey(platform, nonce);
 
   const redis = getRedisClient();
   if (redis) {
     try {
+      // Atomic single-step consumption: DEL returns the number of keys removed,
+      // so only the first concurrent caller observes 1 and may proceed.
       const deleted = await redis.del(key);
+      // Clear any local fallback copy so a later Redis outage can't replay it.
+      memoryStateNonces.delete(key);
       return deleted === 1;
     } catch {
-      return false;
+      // Redis is unavailable for this call — fall back to the in-process nonce
+      // store that createOAuthState also populated, instead of failing closed.
+      return consumeMemoryNonce(key);
     }
   }
 
-  purgeExpiredMemoryNonces();
-  const memoryExpiresAt = memoryStateNonces.get(key);
-  const found = Boolean(memoryExpiresAt && memoryExpiresAt > Date.now());
-  memoryStateNonces.delete(key);
-
-  return found;
+  return consumeMemoryNonce(key);
 }
 
 export async function userCanManageOAuthWorkspace(userId: string, workspaceId: string): Promise<boolean> {
