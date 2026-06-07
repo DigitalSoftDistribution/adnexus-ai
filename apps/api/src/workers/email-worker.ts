@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import nodemailer, { Transporter } from 'nodemailer';
 import { logger } from '../utils/logger';
@@ -243,8 +243,7 @@ export function createEmailWorker(): Worker {
           maxAttempts,
         }, 'Email job exhausted all retry attempts - moving to dead letter');
 
-        // TODO: Move to dead letter queue or notify admin
-        moveToDeadLetterQueue(job.data, err).catch((dlqError) => {
+        moveToDeadLetterQueue(redis, job.data, err).catch((dlqError) => {
           logger.error({ dlqError }, 'Failed to move job to dead letter queue');
         });
       } else {
@@ -282,16 +281,14 @@ export function createEmailWorker(): Worker {
 }
 
 /**
- * Move failed email job to dead letter queue for manual inspection
+ * Move failed email job to dead letter queue for manual inspection.
+ * Reuses the existing worker Redis connection instead of creating a new one.
  */
 async function moveToDeadLetterQueue(
+  redis: Redis,
   data: EmailJobData,
   error: Error,
 ): Promise<void> {
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-  });
-
   const deadLetterEntry = {
     data,
     error: {
@@ -308,9 +305,41 @@ async function moveToDeadLetterQueue(
 
   // Keep only last 1000 dead letter entries
   await redis.ltrim('emails:dead_letter', 0, 999);
-  await redis.quit();
 
   logger.info({ to: data.to, subject: data.subject }, 'Moved failed email to dead letter queue');
+}
+
+/**
+ * Inspect the dead letter queue and return entries for manual review.
+ */
+export async function inspectDeadLetterQueue(
+  redis: Redis,
+  limit = 100
+): Promise<Array<{ data: EmailJobData; error: unknown; failedAt: string }>> {
+  const entries = await redis.lrange('emails:dead_letter', 0, limit - 1);
+  return entries.map((e: string) => JSON.parse(e));
+}
+
+/**
+ * Retry a specific dead letter entry by re-enqueuing it.
+ */
+export async function retryDeadLetter(
+  redis: Redis,
+  queue: Queue,
+  dlqIndex: number
+): Promise<void> {
+  const entry = await redis.lindex('emails:dead_letter', dlqIndex);
+  if (!entry) throw new Error(`No dead letter entry at index ${dlqIndex}`);
+
+  const dlEntry = JSON.parse(entry);
+  await queue.add('send-email', dlEntry.data, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
+
+  // Remove from DLQ
+  await redis.lrem('emails:dead_letter', 1, entry);
+  logger.info({ to: dlEntry.data?.to, subject: dlEntry.data?.subject }, 'Retried email from dead letter queue');
 }
 
 /**

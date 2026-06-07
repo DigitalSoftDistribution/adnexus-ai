@@ -18,6 +18,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { EventEmitter } from 'events';
+import { supabase } from '../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & INTERFACES
@@ -982,7 +983,11 @@ export function createSyncWorker(config: SyncQueueConfig): Worker {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Schedule recurring sync jobs for all workspaces.
+ * Schedule recurring sync jobs for all workspaces with connected ad accounts.
+ * Queries the Supabase workspaces table to discover active workspaces, then
+ * schedules a per-workspace recurring job. Falls back to a single global sync
+ * job if the Supabase query fails.
+ *
  * Call this at application startup.
  */
 export async function scheduleRecurringSyncs(
@@ -996,17 +1001,65 @@ export async function scheduleRecurringSyncs(
     await queue.removeRepeatableByKey(job.key);
   }
 
-  // Get all workspaces with connected accounts and schedule each
-  // NOTE: In production, you'd query your workspaces table
-  // This is a placeholder that schedules a global sync job
-  await queue.add(
-    SYNC_JOB_NAME,
-    { workspaceId: 'ALL_WORKSPACES', priority: false },
-    {
-      repeat: { pattern: cron },
-      jobId: 'recurring:all-workspaces',
+  let workspaceIds: string[] = [];
+
+  try {
+    // Query workspaces that have at least one connected ad account
+    const { data: accounts, error } = await supabase
+      .from('connected_accounts')
+      .select('workspace_id')
+      .eq('is_active', true)
+      .not('workspace_id', 'is', null);
+
+    if (error) {
+      console.error('[SyncScheduler] Failed to query connected accounts:', error.message);
+    } else if (accounts && accounts.length > 0) {
+      // Deduplicate workspace IDs
+      workspaceIds = [...new Set(accounts.map((a: { workspace_id: string }) => a.workspace_id))];
+      console.log(`[SyncScheduler] Found ${workspaceIds.length} workspace(s) with connected accounts`);
     }
-  );
+  } catch (err) {
+    console.error('[SyncScheduler] Unexpected error querying workspaces:', err);
+  }
+
+  if (workspaceIds.length === 0) {
+    // Fallback: schedule a single global sync job that processes ALL_WORKSPACES
+    console.log('[SyncScheduler] No connected accounts found, scheduling global sync fallback');
+    await queue.add(
+      SYNC_JOB_NAME,
+      { workspaceId: 'ALL_WORKSPACES', priority: false },
+      {
+        repeat: { pattern: cron },
+        jobId: 'recurring:all-workspaces',
+      }
+    );
+    return;
+  }
+
+  // Schedule a recurring sync job per workspace
+  for (const workspaceId of workspaceIds) {
+    try {
+      const { data: accts } = await supabase
+        .from('connected_accounts')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .eq('is_active', true);
+
+      if (!accts || accts.length === 0) continue;
+
+      await queue.add(
+        SYNC_JOB_NAME,
+        { workspaceId, priority: false },
+        {
+          repeat: { pattern: cron },
+          jobId: `recurring:workspace:${workspaceId}`,
+        }
+      );
+      console.log(`[SyncScheduler] Scheduled recurring sync for workspace ${workspaceId} (${accts.length} connected account(s))`);
+    } catch (err) {
+      console.error(`[SyncScheduler] Failed to schedule sync for workspace ${workspaceId}:`, err);
+    }
+  }
 }
 
 /**

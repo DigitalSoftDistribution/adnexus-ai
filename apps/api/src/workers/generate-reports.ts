@@ -48,6 +48,7 @@ import { PdfService } from '../services/pdf-service';
 import { ExportService } from '../services/export-service';
 import { EmailService, EmailConfig } from '../services/email-service';
 import { DataAggregationService } from '../services/data-aggregation-service';
+import { supabase } from '../lib/supabase';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -453,8 +454,20 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       console.log(`[ReportGenerationWorker] [${reportId}] Stage 2: Computing summary statistics`);
 
-      // TODO: Fetch previous period metrics for period-over-period comparison
-      const summary = this.dataAggregation.computeReportSummary(platformMetrics);
+      // Fetch previous period metrics for period-over-period comparison.
+      // Derive the previous period by subtracting the timeRange duration from both start and end dates.
+      const previousPeriodMetrics = await this.dataAggregation.fetchAllPlatformMetrics(
+        params.platforms,
+        this.getPreviousTimeRange(params.timeRange),
+        (platformId, status, error) => {
+          console.log(`[ReportGenerationWorker] [${reportId}] Previous period ${platformId}: ${status}${error ? ` (${error})` : ''}`);
+        }
+      );
+
+      const summary = this.dataAggregation.computeReportSummary(
+        platformMetrics,
+        previousPeriodMetrics.filter(pm => pm.metrics.length > 0)
+      );
 
       await job?.updateProgress(35);
 
@@ -833,6 +846,21 @@ export class ReportGenerationWorker {
   }
 
   /**
+   * Derive the previous time range for period-over-period comparison.
+   * Subtracts the duration of the current time range from both start and end dates.
+   */
+  private getPreviousTimeRange(
+    timeRange: import('../types/report').TimeRange
+  ): import('../types/report').TimeRange {
+    const durationMs = timeRange.end.getTime() - timeRange.start.getTime();
+    return {
+      start: new Date(timeRange.start.getTime() - durationMs),
+      end: new Date(timeRange.start.getTime() - 1),
+      granularity: timeRange.granularity,
+    };
+  }
+
+  /**
    * Infer the metric name from chart title and type
    */
   private inferMetricName(title: string, type: string): string {
@@ -900,49 +928,130 @@ export class ReportGenerationWorker {
   }
 
   // =========================================================================
-  // Data Access (placeholder implementations - replace with actual DB calls)
+  // Data Access — Supabase-backed with Redis fallback
   // =========================================================================
 
   /**
-   * Load a schedule configuration by ID
+   * Load a schedule configuration by ID.
+   * Tries Supabase first, falls back to Redis cache.
    */
   private async loadSchedule(scheduleId: string): Promise<ReportSchedule | null> {
-    // TODO: Implement with actual database/repository call
-    // const schedule = await scheduleRepository.findById(scheduleId);
-    // return schedule;
+    try {
+      const { data, error } = await supabase
+        .from('report_schedules')
+        .select('*')
+        .eq('id', scheduleId)
+        .single();
 
-    // Placeholder: try loading from Redis
-    const data = await this.redis.get(`schedule:${scheduleId}`);
-    if (data) {
-      return JSON.parse(data) as ReportSchedule;
+      if (error) {
+        if (error.code === 'PGRST116') return null; // not found
+        console.error(`[ReportGenerationWorker] DB error loading schedule ${scheduleId}:`, error.message);
+        // Fall back to Redis cache on DB error
+        const cached = await this.redis.get(`schedule:${scheduleId}`);
+        if (cached) return JSON.parse(cached) as ReportSchedule;
+        return null;
+      }
+
+      if (!data) return null;
+
+      const schedule: ReportSchedule = {
+        scheduleId: data.id,
+        name: data.name,
+        frequency: data.frequency,
+        dayOfWeek: data.day_of_week,
+        dayOfMonth: data.day_of_month,
+        hour: data.hour,
+        minute: data.minute,
+        timezone: data.timezone,
+        reportParams: data.report_params,
+        emailRecipients: data.email_recipients ?? [],
+        isActive: data.is_active,
+        lastRunAt: data.last_run_at ? new Date(data.last_run_at) : undefined,
+        nextRunAt: data.next_run_at ? new Date(data.next_run_at) : undefined,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+      };
+
+      // Cache in Redis for faster subsequent lookups
+      await this.redis.setex(`schedule:${scheduleId}`, 30 * 24 * 3600, JSON.stringify(schedule));
+
+      return schedule;
+    } catch (err) {
+      console.error(`[ReportGenerationWorker] Unexpected error loading schedule ${scheduleId}:`, err);
+      return null;
     }
-    return null;
   }
 
   /**
-   * Load a generated report by ID
+   * Load a generated report by ID.
+   * Tries Supabase first, falls back to Redis cache.
    */
   private async loadReport(reportId: string): Promise<ReportResult | null> {
-    // TODO: Implement with actual database/repository call
-    // const report = await reportRepository.findById(reportId);
-    // return report;
+    try {
+      const { data, error } = await supabase
+        .from('generated_reports')
+        .select('*')
+        .eq('id', reportId)
+        .single();
 
-    // Placeholder: try loading from Redis
-    const data = await this.redis.get(`report:${reportId}`);
-    if (data) {
-      return JSON.parse(data) as ReportResult;
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        console.error(`[ReportGenerationWorker] DB error loading report ${reportId}:`, error.message);
+        // Fall back to Redis cache
+        const cached = await this.redis.get(`report:${reportId}`);
+        if (cached) return JSON.parse(cached) as ReportResult;
+        return null;
+      }
+
+      if (!data) return null;
+
+      const report: ReportResult = {
+        reportId: data.id,
+        name: data.name,
+        status: data.status,
+        generatedAt: new Date(data.generated_at),
+        timeRange: data.time_range,
+        platforms: data.platforms ?? [],
+        charts: data.charts ?? [],
+        summary: data.summary,
+        dataFilePath: data.data_file_path,
+        errors: data.errors,
+      };
+
+      return report;
+    } catch (err) {
+      console.error(`[ReportGenerationWorker] Unexpected error loading report ${reportId}:`, err);
+      return null;
     }
-    return null;
   }
 
   /**
-   * Persist a generated report
+   * Persist a generated report to Supabase with Redis caching.
    */
   private async persistReport(report: ReportResult): Promise<void> {
-    // TODO: Implement with actual database/repository call
-    // await reportRepository.save(report);
+    try {
+      const { error } = await supabase.from('generated_reports').upsert({
+        id: report.reportId,
+        name: report.name,
+        status: report.status,
+        generated_at: report.generatedAt.toISOString(),
+        time_range: report.timeRange,
+        platforms: report.platforms,
+        charts: report.charts,
+        summary: report.summary,
+        data_file_path: report.dataFilePath,
+        errors: report.errors,
+        updated_at: new Date().toISOString(),
+      });
 
-    // Placeholder: store in Redis with TTL of 7 days
+      if (error) {
+        console.error(`[ReportGenerationWorker] DB error persisting report ${report.reportId}:`, error.message);
+      }
+    } catch (err) {
+      console.error(`[ReportGenerationWorker] Unexpected error persisting report ${report.reportId}:`, err);
+    }
+
+    // Always cache in Redis for fast subsequent lookups
     await this.redis.setex(
       `report:${report.reportId}`,
       7 * 24 * 3600,
@@ -953,22 +1062,30 @@ export class ReportGenerationWorker {
   }
 
   /**
-   * Update schedule's last run timestamp
+   * Update schedule's last run timestamp in Supabase.
    */
   private async updateScheduleLastRun(scheduleId: string): Promise<void> {
-    // TODO: Implement with actual database/repository call
-    // await scheduleRepository.updateLastRun(scheduleId, new Date());
+    const now = new Date();
 
-    // Placeholder: update in Redis
-    const data = await this.redis.get(`schedule:${scheduleId}`);
-    if (data) {
-      const schedule = JSON.parse(data) as ReportSchedule;
-      schedule.lastRunAt = new Date();
-      await this.redis.setex(
-        `schedule:${scheduleId}`,
-        30 * 24 * 3600,
-        JSON.stringify(schedule)
-      );
+    try {
+      const { error } = await supabase
+        .from('report_schedules')
+        .update({ last_run_at: now.toISOString(), updated_at: now.toISOString() })
+        .eq('id', scheduleId);
+
+      if (error) {
+        console.error(`[ReportGenerationWorker] DB error updating schedule ${scheduleId}:`, error.message);
+      }
+    } catch (err) {
+      console.error(`[ReportGenerationWorker] Unexpected error updating schedule ${scheduleId}:`, err);
+    }
+
+    // Also update the Redis cache
+    const cached = await this.redis.get(`schedule:${scheduleId}`);
+    if (cached) {
+      const schedule = JSON.parse(cached) as ReportSchedule;
+      schedule.lastRunAt = now;
+      await this.redis.setex(`schedule:${scheduleId}`, 30 * 24 * 3600, JSON.stringify(schedule));
     }
   }
 }
