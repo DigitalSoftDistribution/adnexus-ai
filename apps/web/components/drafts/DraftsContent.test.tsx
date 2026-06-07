@@ -34,9 +34,10 @@ describe('DraftsContent', () => {
     renderWithQuery(<DraftsContent />);
 
     expect(await screen.findByText('Raise Meta budget by 10%')).toBeInTheDocument();
-    expect(screen.getByText(/Reviewing a draft only marks it approved/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Platform execution is disabled for the v1 pilot/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('button', { name: /mark reviewed/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /approve & execute/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve & execute/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /execution disabled/i })).toBeDisabled();
     expect(screen.getByText('1. Juni 2026')).toBeInTheDocument();
   });
 });

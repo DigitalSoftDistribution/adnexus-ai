@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { formatDate } from '@/lib/utils';
-import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock, Play } from 'lucide-react';
+import { FileEdit, CheckCircle, XCircle, RotateCcw, Clock } from 'lucide-react';
 
 interface Draft {
   id: string;
@@ -142,18 +142,7 @@ function useDraftActions() {
     },
   });
 
-  const execute = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/v2/drafts/${id}/execute`, { method: 'POST' });
-      if (!res.ok) throw new Error(t('failedToExecute'));
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts', 'list'] });
-    },
-  });
-
-  return { approve, reject, execute };
+  return { approve, reject };
 }
 
 function DraftCard({ draft, locale }: { draft: Draft; locale: string }) {
@@ -219,14 +208,13 @@ function DraftCard({ draft, locale }: { draft: Draft; locale: string }) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => actions.execute.mutate(draft.id)}
-            disabled={actions.execute.isPending}
-            title={t('failedToExecute')}
+            disabled
+            title={t('executionDisabled')}
           >
-            <Play className="mr-1 h-3 w-3" />
-            {actions.execute.isPending ? tc('executing') : t('approveAndExecute')}
+            <CheckCircle className="mr-1 h-3 w-3" />
+            {t('executionUnavailable')}
           </Button>
-          <p className="max-w-48 text-right text-xs text-muted-foreground">{t('failedToExecute')}</p>
+          <p className="max-w-48 text-right text-xs text-muted-foreground">{t('executionDisabled')}</p>
         </div>
       )}
     </div>

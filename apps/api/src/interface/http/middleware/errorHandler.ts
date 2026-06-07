@@ -23,6 +23,7 @@ export function expressErrorHandler(
       error: {
         code: err.code,
         message: err.message,
+        ...(err.details === undefined ? {} : { details: err.details }),
       },
     };
     res.status(err.statusCode).json(response);

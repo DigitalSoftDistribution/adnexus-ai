@@ -16,6 +16,11 @@ export class DraftExecutionDisabledError extends DomainError {
       'Platform execution is disabled for the v1 pilot. Approval records review intent only; no ad platform changes were applied.',
       'DRAFT_EXECUTION_DISABLED',
       403,
+      {
+        executionMode: 'review_only',
+        platformApplied: false,
+        limitation: 'v1_pilot_platform_execution_disabled',
+      },
     );
     this.name = 'DraftExecutionDisabledError';
     Object.setPrototypeOf(this, DraftExecutionDisabledError.prototype);

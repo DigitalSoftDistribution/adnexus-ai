@@ -289,9 +289,11 @@
       "rejected": "Rifiutata",
       "rolled_back": "Annullata"
     },
-    "executionNotice": "Reviewing a draft only marks it approved. Live campaign writes happen only when an approved draft is explicitly executed.",
+    "executionNotice": "Reviewing a draft only marks it approved. Platform execution is disabled for the v1 pilot, so no live campaign writes happen from this screen.",
     "markReviewed": "Mark reviewed",
-    "approveAndExecute": "Approve & execute"
+    "approveAndExecute": "Approve & execute",
+    "executionUnavailable": "Execution disabled",
+    "executionDisabled": "Platform execution is disabled for the v1 pilot. Approval records review intent only; no ad platform changes are applied."
   },
   "aiAgent": {
     "title": "Agente IA",
