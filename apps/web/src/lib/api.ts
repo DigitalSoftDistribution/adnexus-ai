@@ -2021,9 +2021,17 @@ export const settingsApi = {
     return data;
   },
   async connectAccount(platform: string, workspaceId: string): Promise<{ redirectUrl: string } | ConnectedAccount> {
-    // For OAuth platforms, returns the OAuth URL. For others, returns the created account.
-    if (platform === 'Meta') {
-      return { redirectUrl: `${BASE_URL}/auth/meta/connect?workspace_id=${workspaceId}` };
+    const oauthPlatform = platform.toLowerCase();
+    if (['meta', 'google', 'tiktok', 'snap'].includes(oauthPlatform)) {
+      const { data } = await api.get(`/auth/${oauthPlatform}/connect`, {
+        params: { workspace_id: workspaceId },
+        headers: { Accept: 'application/json' },
+      });
+      const redirectUrl = data?.data?.redirectUrl;
+      if (typeof redirectUrl !== 'string' || !redirectUrl) {
+        throw new Error('OAuth provider URL was not returned');
+      }
+      return { redirectUrl };
     }
     const { data } = await api.post('/settings/accounts', { platform, workspace_id: workspaceId });
     return data;

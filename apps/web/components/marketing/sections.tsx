@@ -1,32 +1,51 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowRight, Quote } from 'lucide-react';
+import { ArrowRight, Check, Quote } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { CountUp, HoverScale } from './v3/animations';
 
 /** Page hero used across the new marketing pages. */
 export function PageHero({
   eyebrow,
+  badge,
   title,
   subtitle,
+  cta,
+  ctaHref,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
+  badge?: string;
   title: ReactNode;
   subtitle?: string;
+  cta?: string;
+  ctaHref?: string;
   children?: ReactNode;
 }) {
+  const label = eyebrow ?? badge;
+
   return (
     <section className="relative overflow-hidden px-6 pt-24 sm:pt-32 pb-12" style={{ background: 'var(--bg-primary)' }}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none" style={{ background: 'rgba(195,245,59,0.04)', filter: 'blur(120px)' }} />
       <div className="max-w-4xl mx-auto text-center relative z-10">
-        <span className="inline-flex items-center gap-2 text-[11px] font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(195,245,59,0.1)', border: '1px solid rgba(195,245,59,0.2)', color: '#c3f53b' }}>
-          {eyebrow}
-        </span>
+        {label && (
+          <span className="inline-flex items-center gap-2 text-[11px] font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider mb-6" style={{ background: 'rgba(195,245,59,0.1)', border: '1px solid rgba(195,245,59,0.2)', color: '#c3f53b' }}>
+            {label}
+          </span>
+        )}
         <h1 className="font-space text-4xl sm:text-5xl font-bold tracking-tight text-white mb-5">{title}</h1>
         {subtitle && (
           <p className="text-base sm:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {subtitle}
           </p>
+        )}
+        {cta && ctaHref && (
+          <div className="mt-8">
+            <Link href={ctaHref} className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
+              {cta}
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
         )}
         {children}
       </div>
@@ -39,32 +58,51 @@ export function FeatureCard({
   icon,
   title,
   desc,
+  description,
+  href,
 }: {
-  icon: ReactNode;
+  icon: ReactNode | ComponentType<{ className?: string }>;
   title: string;
-  desc: string;
+  desc?: string;
+  description?: string;
+  href?: string;
 }) {
-  return (
+  const iconNode = typeof icon === 'function'
+    ? (() => {
+        const Icon = icon;
+        return <Icon className="w-5 h-5" />;
+      })()
+    : icon;
+
+  const content = (
     <HoverScale>
       <div className="card-surface p-6 hover-lift h-full">
-        <div className="mb-3">{icon}</div>
+        <div className="mb-3">{iconNode}</div>
         <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
         <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {desc}
+          {description ?? desc}
         </p>
       </div>
     </HoverScale>
   );
+
+  return href ? <Link href={href} className="block h-full">{content}</Link> : content;
+}
+
+export function FeatureGrid({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4', className)}>{children}</div>;
 }
 
 /** Closing call-to-action band reused on most pages. */
 export function CtaBand({
   title = 'Ready to transform your ad workflow?',
   subtitle = 'Start managing campaigns smarter — with full control over every AI-generated change.',
-  primaryLabel = 'Start Free Trial',
-  primaryHref = '/auth/signup',
+  primaryLabel,
+  primaryHref,
   secondaryLabel = 'View pricing',
   secondaryHref = '/pricing',
+  cta,
+  ctaHref,
 }: {
   title?: string;
   subtitle?: string;
@@ -72,22 +110,29 @@ export function CtaBand({
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
+  cta?: string;
+  ctaHref?: string;
+  variant?: 'gradient' | 'dark' | string;
 }) {
+  const mainLabel = primaryLabel ?? cta ?? 'Start Free Trial';
+  const mainHref = primaryHref ?? ctaHref ?? '/auth/signup';
+
   return (
     <section className="w-full py-24 px-6 relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
-      {/* Single-color ambient glow instead of rainbow gradient */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(195,245,59,0.06) 0%, transparent 60%)' }} />
       <div className="max-w-[640px] mx-auto text-center relative z-10">
         <h2 className="font-space text-3xl sm:text-4xl font-bold text-white mb-5">{title}</h2>
         <p className="text-base mb-8 max-w-[460px] mx-auto" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link href={primaryHref} className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
-            {primaryLabel}
+          <Link href={mainHref} className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]" style={{ background: '#c3f53b', color: '#0a0a0a' }}>
+            {mainLabel}
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
-          <Link href={secondaryHref} className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium rounded-lg border transition-colors hover:text-white" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
-            {secondaryLabel}
-          </Link>
+          {secondaryLabel && secondaryHref && (
+            <Link href={secondaryHref} className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium rounded-lg border transition-colors hover:text-white" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
+              {secondaryLabel}
+            </Link>
+          )}
         </div>
       </div>
     </section>
@@ -100,17 +145,19 @@ export function Section({
   title,
   subtitle,
   alt = false,
+  className,
   children,
 }: {
   eyebrow?: string;
   title?: string;
   subtitle?: string;
   alt?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
     <section
-      className="w-full py-20 px-6"
+      className={cn('w-full py-20 px-6', className)}
       style={{
         background: alt ? 'var(--bg-secondary)' : 'var(--bg-primary)',
         borderTop: alt ? '1px solid var(--border-subtle)' : undefined,
@@ -136,6 +183,58 @@ export function Section({
         {children}
       </div>
     </section>
+  );
+}
+
+export function PricingCard({
+  name,
+  price,
+  period,
+  description,
+  features,
+  highlighted = false,
+  cta,
+  ctaHref,
+}: {
+  name: string;
+  price: string;
+  period?: string;
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+  cta: string;
+  ctaHref: string;
+}) {
+  return (
+    <HoverScale className="h-full">
+      <div
+        className="card-surface p-6 h-full flex flex-col"
+        style={{ borderColor: highlighted ? 'rgba(195,245,59,0.45)' : 'var(--border-subtle)' }}
+      >
+        {highlighted && (
+          <span className="self-start text-[10px] font-semibold uppercase tracking-[0.1em] px-2 py-1 rounded-full mb-4" style={{ background: 'rgba(195,245,59,0.1)', color: '#c3f53b' }}>
+            Most popular
+          </span>
+        )}
+        <h3 className="font-space text-xl font-semibold text-white mb-2">{name}</h3>
+        <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+        <div className="mb-6">
+          <span className="font-mono-data text-3xl font-bold text-white">{price}</span>
+          {period && <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{period}</span>}
+        </div>
+        <ul className="space-y-3 flex-1 mb-6">
+          {features.map((feature) => (
+            <li key={feature} className="flex gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+              <Check size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#c3f53b' }} aria-hidden="true" />
+              {feature}
+            </li>
+          ))}
+        </ul>
+        <Link href={ctaHref} className="inline-flex justify-center items-center gap-2 px-5 py-3 text-sm font-bold rounded-lg transition-transform hover:scale-[1.02]" style={{ background: highlighted ? '#c3f53b' : 'transparent', color: highlighted ? '#0a0a0a' : 'var(--text-primary)', border: highlighted ? undefined : '1px solid var(--border-subtle)' }}>
+          {cta}
+        </Link>
+      </div>
+    </HoverScale>
   );
 }
 
@@ -273,21 +372,16 @@ export function StepTimeline({
 }) {
   return (
     <div className="relative max-w-4xl mx-auto">
-      {/* Connecting line */}
       <div className="absolute left-6 top-8 bottom-8 w-px hidden md:block" style={{ background: 'var(--border-subtle)' }} />
-      
       <div className="space-y-8">
         {steps.map((step, i) => (
           <div key={step.title} className="relative flex gap-6 items-start">
-            {/* Numbered circle */}
             <div 
               className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-mono-data text-sm font-bold"
               style={{ background: 'rgba(195,245,59,0.1)', border: '2px solid rgba(195,245,59,0.3)', color: '#c3f53b' }}
             >
               {i + 1}
             </div>
-            
-            {/* Content */}
             <div className="flex-1 pt-2">
               <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
               <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{step.desc}</p>

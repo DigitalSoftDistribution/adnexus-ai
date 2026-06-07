@@ -4,6 +4,15 @@ import type { AuthenticatedRequest } from '../middleware/requireAuth';
 
 export function createReportController(container: Container) {
   return {
+    dashboard: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getCampaignSummary.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
     list: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.listReports.execute({
         workspaceId: req.user!.workspaceId,

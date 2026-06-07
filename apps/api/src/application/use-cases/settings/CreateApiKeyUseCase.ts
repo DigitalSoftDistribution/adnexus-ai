@@ -1,6 +1,6 @@
 import type { ISettingsRepository } from '../../../domain/repositories/ISettingsRepository';
 import type { ApiKey } from '../../../domain/entities/ApiKey';
-import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError, ValidationError } from '../../../domain/value-objects/Result';
 
 export interface CreateApiKeyInput {
   workspaceId: string;
@@ -16,7 +16,11 @@ export class CreateApiKeyUseCase {
       return err(new ForbiddenError('Only owners and admins can create API keys'));
     }
 
-    const key = await this.settingsRepo.createApiKey(input.workspaceId, input.name);
+    if (!input.name?.trim()) {
+      return err(new ValidationError('API key name is required'));
+    }
+
+    const key = await this.settingsRepo.createApiKey(input.workspaceId, input.name.trim());
     return ok(key);
   }
 }

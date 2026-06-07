@@ -67,6 +67,7 @@ import { GetAdCreativePerformanceUseCase } from '../use-cases/ad/GetAdCreativePe
 import { GetWorkspaceSettingsUseCase } from '../use-cases/settings/GetWorkspaceSettingsUseCase';
 import { UpdateWorkspaceSettingsUseCase } from '../use-cases/settings/UpdateWorkspaceSettingsUseCase';
 import { GetTeamMembersUseCase } from '../use-cases/settings/GetTeamMembersUseCase';
+import { InviteTeamMemberUseCase } from '../use-cases/settings/InviteTeamMemberUseCase';
 import { UpdateTeamMemberRoleUseCase } from '../use-cases/settings/UpdateTeamMemberRoleUseCase';
 import { RemoveTeamMemberUseCase } from '../use-cases/settings/RemoveTeamMemberUseCase';
 import { GetIntegrationsUseCase } from '../use-cases/settings/GetIntegrationsUseCase';
@@ -247,6 +248,7 @@ export class Container {
   readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
   readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
   readonly getTeamMembers: GetTeamMembersUseCase;
+  readonly inviteTeamMember: InviteTeamMemberUseCase;
   readonly updateTeamMemberRole: UpdateTeamMemberRoleUseCase;
   readonly removeTeamMember: RemoveTeamMemberUseCase;
   readonly getIntegrations: GetIntegrationsUseCase;
@@ -374,7 +376,7 @@ export class Container {
       config.auditLogger,
     );
     this.rejectDraft = new RejectDraftUseCase(config.draftRepository);
-    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository);
+    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository, config.auditLogger);
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);
 
@@ -399,6 +401,7 @@ export class Container {
     this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
     this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);
     this.getTeamMembers = new GetTeamMembersUseCase(config.settingsRepository);
+    this.inviteTeamMember = new InviteTeamMemberUseCase(config.settingsRepository);
     this.updateTeamMemberRole = new UpdateTeamMemberRoleUseCase(config.settingsRepository);
     this.removeTeamMember = new RemoveTeamMemberUseCase(config.settingsRepository);
     this.getIntegrations = new GetIntegrationsUseCase(config.settingsRepository);
@@ -528,7 +531,11 @@ export class Container {
       config.campaignRepository,
     );
     this.setOnboardingStep = new SetOnboardingStepUseCase(config.workspaceRepository);
-    this.completeOnboarding = new CompleteOnboardingUseCase(config.workspaceRepository);
+    this.completeOnboarding = new CompleteOnboardingUseCase(
+      config.workspaceRepository,
+      config.settingsRepository,
+      config.campaignRepository,
+    );
     this.listAutomationRules = new ListAutomationRulesUseCase(config.automationRuleRepository);
     this.getAutomationRuleById = new GetAutomationRuleByIdUseCase(config.automationRuleRepository);
     this.createAutomationRule = new CreateAutomationRuleUseCase(

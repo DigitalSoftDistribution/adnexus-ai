@@ -10,6 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
 
 interface Workspace {
@@ -32,6 +40,8 @@ interface TeamMember {
   invitedAt: string | null;
   joinedAt: string;
 }
+
+type InvitableTeamRole = 'admin' | 'editor' | 'viewer';
 
 interface Integration {
   id: string;
@@ -93,6 +103,22 @@ function useSettings() {
       const data = await res.json();
       return data.data;
     },
+  });
+
+  const inviteMember = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: InvitableTeamRole }) => {
+      const res = await fetch('/api/v2/settings/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: { message?: string } } | null;
+        throw new Error(data?.error?.message ?? t('failedToInviteMember'));
+      }
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'team'] }),
   });
 
   const updateMemberRole = useMutation({
@@ -184,7 +210,7 @@ function useSettings() {
 
   return {
     workspace, updateWorkspace,
-    team, updateMemberRole, removeMember,
+    team, inviteMember, updateMemberRole, removeMember,
     integrations,
     notifications, updateNotifications,
     apiKeys, createApiKey, revokeApiKey,
@@ -195,7 +221,7 @@ export function SettingsContent() {
   const [activeTab, setActiveTab] = useState('workspace');
   const {
     workspace, updateWorkspace,
-    team, updateMemberRole, removeMember,
+    team, inviteMember, updateMemberRole, removeMember,
     integrations,
     notifications, updateNotifications,
     apiKeys, createApiKey, revokeApiKey,
@@ -207,6 +233,11 @@ export function SettingsContent() {
   const [workspaceName, setWorkspaceName] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [showNewKey, setShowNewKey] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<InvitableTeamRole>('viewer');
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
   const handleSaveWorkspace = () => {
     updateWorkspace.mutate({ name: workspaceName });
@@ -223,8 +254,89 @@ export function SettingsContent() {
     });
   };
 
+  const handleInviteMember = () => {
+    const email = inviteEmail.trim();
+    if (!email) return;
+
+    setInviteError(null);
+    setInviteSuccess(null);
+    inviteMember.mutate(
+      { email, role: inviteRole },
+      {
+        onSuccess: () => {
+          setInviteSuccess(t('inviteSuccess'));
+          setInviteEmail('');
+          setInviteRole('viewer');
+        },
+        onError: (error) => {
+          setInviteError(error instanceof Error ? error.message : t('failedToInviteMember'));
+        },
+      },
+    );
+  };
+
   return (
     <div className="space-y-6">
+      <Dialog open={inviteOpen} onOpenChange={(open) => {
+        setInviteOpen(open);
+        if (!open) {
+          setInviteError(null);
+          setInviteSuccess(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('inviteMember')}</DialogTitle>
+            <DialogDescription>{t('inviteDescription')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="team-invite-email">{t('inviteEmail')}</Label>
+              <Input
+                id="team-invite-email"
+                type="email"
+                placeholder="teammate@example.com"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                disabled={inviteMember.isPending}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="team-invite-role">{t('inviteRole')}</Label>
+              <select
+                id="team-invite-role"
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={inviteRole}
+                onChange={(event) => setInviteRole(event.target.value as InvitableTeamRole)}
+                disabled={inviteMember.isPending}
+              >
+                <option value="viewer">{t('roles.viewer')}</option>
+                <option value="editor">{t('roles.editor')}</option>
+                <option value="admin">{t('roles.admin')}</option>
+              </select>
+            </div>
+            {inviteError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {inviteError}
+              </div>
+            ) : null}
+            {inviteSuccess ? (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                {inviteSuccess}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviteMember.isPending}>
+              {tc('cancel')}
+            </Button>
+            <Button onClick={handleInviteMember} disabled={inviteMember.isPending || !inviteEmail.trim()}>
+              {inviteMember.isPending ? tc('processing') : tc('invite')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
@@ -293,7 +405,7 @@ export function SettingsContent() {
                 <CardTitle>{t('teamMembers')}</CardTitle>
                 <CardDescription>{t('teamDescription')}</CardDescription>
               </div>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setInviteOpen(true)}>
                 <Users className="mr-2 h-4 w-4" />
                 {t('inviteMember')}
               </Button>

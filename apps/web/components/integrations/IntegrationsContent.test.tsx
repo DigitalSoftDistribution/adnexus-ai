@@ -1,0 +1,94 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactNode } from 'react';
+import { IntegrationsContent } from './IntegrationsContent';
+import messages from '@/messages/en.json';
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+function renderWithQuery(ui: ReactNode) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
+  );
+}
+
+const mockIntegrations = [
+  {
+    platform: 'meta',
+    label: 'Meta Ads',
+    connected: true,
+    status: 'ACTIVE',
+    id: 'acc-1',
+    accountId: 'act_123',
+    accountName: 'Test Account',
+    lastSyncedAt: '2026-06-01T12:00:00Z',
+    connectUrl: '/api/v2/auth/meta',
+  },
+  {
+    platform: 'google',
+    label: 'Google Ads',
+    connected: false,
+    status: 'DISCONNECTED',
+    id: null,
+    accountId: null,
+    accountName: null,
+    lastSyncedAt: null,
+    connectUrl: '/api/v2/auth/google',
+  },
+];
+
+describe('IntegrationsContent', () => {
+  beforeEach(() => vi.restoreAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('renders connected and disconnected integrations', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockIntegrations }),
+      }),
+    );
+
+    renderWithQuery(<IntegrationsContent />);
+
+    expect(await screen.findByText('Meta Ads')).toBeInTheDocument();
+    expect(screen.getByText('Google Ads')).toBeInTheDocument();
+    expect(screen.getByText('Test Account')).toBeInTheDocument();
+    // The badge uses tc('active') which maps to "Active" in en.json
+    expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+
+  it('shows error state when the request fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
+    );
+
+    renderWithQuery(<IntegrationsContent />);
+
+    // The error state shows tc('error') = "Something went wrong" + error message
+    expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText('Failed to load integrations')).toBeInTheDocument();
+  });
+
+  it('calls the integrations v2 endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: mockIntegrations }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQuery(<IntegrationsContent />);
+    await screen.findByText('Meta Ads');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v2/integrations');
+  });
+});

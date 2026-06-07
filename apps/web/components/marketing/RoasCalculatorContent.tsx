@@ -293,10 +293,10 @@ export function RoasCalculatorContent() {
               Connect your ad account and AdNexus AI will track ROAS, CPA, and all metrics automatically with AI-powered recommendations to improve them.
             </p>
             <Link
-              href="/auth/signup"
+              href="/contact"
               className="mt-8 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-8 py-3 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-400"
             >
-              Start Free Trial <ArrowRight size={16} />
+              Request Pilot Access <ArrowRight size={16} />
             </Link>
           </motion.div>
         </div>
