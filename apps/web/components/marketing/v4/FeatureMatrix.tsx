@@ -87,8 +87,8 @@ const TAB_CONTENT: Record<string, {
         {[
           { name: 'Meta', color: '#1877F2', status: 'Connected' },
           { name: 'Google', color: '#DB4437', status: 'Connected' },
-          { name: 'TikTok', color: '#00F2EA', status: 'Connected' },
-          { name: 'Snap', color: '#FFFC00', status: 'Connected' },
+          { name: 'TikTok', color: '#00F2EA', status: 'Read-only' },
+          { name: 'Snap', color: '#FFFC00', status: 'Coming soon' },
         ].map((p) => (
           <div key={p.name} className="rounded-lg p-2.5 flex items-center gap-2" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
             <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
