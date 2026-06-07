@@ -10,6 +10,8 @@ import {
   createMetaCampaign,
   updateMetaCampaign,
   getMetaInsights,
+  getMetaAdSets,
+  getMetaAds,
   normalizeMetaCampaign,
 } from '../../src/services/meta-api';
 import { PlatformError } from '../../src/lib/errors';
@@ -210,6 +212,70 @@ describe('getMetaInsights', () => {
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
     const callArgs = mockedAxios.get.mock.calls[0];
     expect(callArgs[1]?.params).toBeDefined();
+  });
+
+  it('should support adset and ad insight levels with explicit fields', async () => {
+    // Arrange
+    mockedAxios.get.mockResolvedValueOnce({ data: mockMetaInsightsResponse });
+
+    // Act
+    await getMetaInsights(
+      '23800000000000001',
+      'mock-token',
+      '2024-06-01',
+      '2024-06-30',
+      undefined,
+      'adset',
+      ['spend', 'impressions'],
+    );
+
+    // Assert
+    const callArgs = mockedAxios.get.mock.calls[0];
+    const params = callArgs[1]?.params as Record<string, unknown>;
+    expect(params.level).toBe('adset');
+    expect(params.fields).toBe('spend,impressions');
+  });
+});
+
+// ─── Suite: Ad Sets and Ads ───────────────────────────────────────
+
+describe('Meta ad set and ad listing', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return ad sets for a campaign', async () => {
+    // Arrange
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        data: [{ id: 'as_1', name: 'Ad Set 1', status: 'ACTIVE', campaign_id: 'camp_1' }],
+      },
+    });
+
+    // Act
+    const result = await getMetaAdSets('camp_1', 'mock-token');
+
+    // Assert
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('as_1');
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return ads for an ad set', async () => {
+    // Arrange
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        data: [{ id: 'ad_1', name: 'Ad 1', status: 'ACTIVE', adset_id: 'as_1' }],
+      },
+    });
+
+    // Act
+    const result = await getMetaAds('as_1', 'mock-token');
+
+    // Assert
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('ad_1');
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
   });
 });
 

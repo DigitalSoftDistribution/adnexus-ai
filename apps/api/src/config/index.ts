@@ -53,6 +53,7 @@ const envSchema = z.object({
   META_APP_ID: z.string().default(''),
   META_APP_SECRET: z.string().default(''),
   META_API_VERSION: z.string().default('v19.0'),
+  META_GRAPH_URL: z.string().url().default('https://graph.facebook.com'),
 
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
@@ -189,7 +190,7 @@ export const config = {
     appId: env.META_APP_ID,
     appSecret: env.META_APP_SECRET,
     apiVersion: env.META_API_VERSION,
-    graphUrl: 'https://graph.facebook.com',
+    graphUrl: env.META_GRAPH_URL,
   },
 
   google: {
