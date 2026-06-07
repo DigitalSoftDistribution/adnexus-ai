@@ -14,6 +14,7 @@
 
 import { MetaApiClient, MetaMarketingError } from './client';
 import type { MetaCampaign, MetaAd, MetaAdCreative, MetaAdStatus, MetaInsight, CreateCampaignData, UpdateCampaignData, CreateAdData, MetaClientConfig } from './types';
+import type { PlatformErrorCode } from '../errors';
 import { PlatformAPIError, wrapError } from '../errors';
 import type {
   Platform,
@@ -137,17 +138,18 @@ function mapInsight(i: MetaInsight): UnifiedInsight {
     impressions: parseInt(i.impressions ?? '0', 10),
     clicks: parseInt(i.clicks ?? '0', 10),
     spend: parseFloat(i.spend ?? '0'),
-    conversions: parseInt(i.actions ?? '0', 10),
-    conversionValue: parseFloat(i.action_values ?? '0'),
+    conversions: i.actions ? i.actions.reduce((sum, a) => sum + parseInt(a.value, 10), 0) : 0,
+    conversionValue: i.action_values ? i.action_values.reduce((sum, av) => sum + parseFloat(av.value), 0) : 0,
     ctr: parseFloat(i.ctr ?? '0'),
     cpc: parseFloat(i.cpc ?? '0'),
     cpm: parseFloat(i.cpm ?? '0'),
-    cpa: parseFloat(i.cpa ?? '0'),
-    roas: parseFloat(i.roas ?? '0'),
+    cpa: 0,
+    roas: 0,
     reach: i.reach ? parseInt(i.reach, 10) : undefined,
     frequency: i.frequency ? parseFloat(i.frequency) : undefined,
     platformRaw: i as unknown as Record<string, unknown>,
   };
+  // NB: cpa / roas are computed downstream from spend + conversions / conversionValue
 }
 
 function parseMetaObjectiveForCreate(input: UnifiedCampaign['objective']): string {
@@ -198,7 +200,13 @@ export class MetaPlatformClient implements PlatformClient {
         this.client.setAccessToken(this.account.accessToken);
       }
       if (this.account.refreshToken) {
-        this.client.setRefreshToken(this.account.refreshToken);
+        // MetaApiClient accepts an optional refreshToken in setAccessToken
+        // (setAccessToken(token, expiresAt, refreshToken?))
+        this.client.setAccessToken(
+          this.account.accessToken,
+          this.account.tokenExpiresAt ? new Date(this.account.tokenExpiresAt).getTime() : undefined,
+          this.account.refreshToken,
+        );
       }
     }
     return this.client;
@@ -208,7 +216,7 @@ export class MetaPlatformClient implements PlatformClient {
     if (error instanceof MetaMarketingError) {
       throw new PlatformAPIError(
         'meta',
-        mapMetaErrorCode(error.errorType),
+        mapMetaErrorCode(error.errorType) as PlatformErrorCode,
         `Meta ${context}: ${error.message}`,
         error.retryable,
       );
@@ -260,9 +268,9 @@ export class MetaPlatformClient implements PlatformClient {
       };
 
       if (data.budgetType === 'daily') {
-        metaData.daily_budget = Math.round(data.budget * 100).toString();
+        metaData.daily_budget = Math.round(data.budget * 100);
       } else {
-        metaData.lifetime_budget = Math.round(data.budget * 100).toString();
+        metaData.lifetime_budget = Math.round(data.budget * 100);
       }
 
       const result = await client.createCampaign(this.account.platformAccountId, metaData);
@@ -282,9 +290,9 @@ export class MetaPlatformClient implements PlatformClient {
         metaData.status = data.status === 'paused' ? 'PAUSED' : 'ACTIVE';
       }
       if (data.budgetType === 'daily' && data.budget !== undefined) {
-        metaData.daily_budget = Math.round(data.budget * 100).toString();
+        metaData.daily_budget = Math.round(data.budget * 100);
       } else if (data.budget !== undefined) {
-        metaData.lifetime_budget = Math.round(data.budget * 100).toString();
+        metaData.lifetime_budget = Math.round(data.budget * 100);
       }
 
       await client.updateCampaign(campaignId, metaData);
@@ -330,12 +338,12 @@ export class MetaPlatformClient implements PlatformClient {
           title: data.headline,
           body: data.body,
           image_url: data.creativeUrl ?? '',
-        },
+          } as MetaAdCreative,
         status: (data.status === 'paused' ? 'PAUSED' : 'ACTIVE') as MetaAdStatus,
       };
 
       const result = await client.createAd(this.account.platformAccountId, metaData);
-      return mapAd(result as unknown as MetaAd, data.campaignId, this.account.platformAccountId, data.creativeUrl);
+      return mapAd(result as unknown as MetaAd, data.campaignId, this.account.platformAccountId, data.creativeUrl ?? '');
     } catch (error) {
       this.handleMetaError(error, 'createAd');
       throw error;
@@ -567,11 +575,7 @@ export async function connectMetaAccount(
 
   try {
     // Use the raw axios to query /me/adaccounts to discover the first active account
-    const accountsResult = await (tempClient as unknown as Record<string, unknown>).request?.(
-      'GET', '/me/adaccounts', undefined,
-      { params: { fields: 'id,name,account_id,account_status,currency,timezone_name', limit: 1 } }
-    ) as { data?: Array<Record<string, unknown>> };
-
+    const accountsResult = await (tempClient as unknown as { request: (method: string, path: string, body?: unknown, opts?: Record<string, unknown>) => Promise<unknown> }).request('GET', '/me/adaccounts', undefined, { params: { fields: 'id,name,account_id,account_status,currency,timezone_name', limit: 1 } }) as { data?: Array<Record<string, unknown>> };
     const accountsData = (accountsResult as { data?: Array<Record<string, unknown>> })?.data;
     if (accountsData && accountsData.length > 0) {
       const first = accountsData[0];
