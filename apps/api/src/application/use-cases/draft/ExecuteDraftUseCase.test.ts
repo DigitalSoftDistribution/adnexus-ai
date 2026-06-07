@@ -74,6 +74,11 @@ describe('ExecuteDraftUseCase', () => {
       expect(result.error).toBeInstanceOf(DraftExecutionDisabledError);
       expect((result.error as unknown as { statusCode: number }).statusCode).toBe(403);
       expect(result.error.message).toContain('Platform execution is disabled');
+      expect((result.error as DraftExecutionDisabledError).details).toEqual({
+        executionMode: 'review_only',
+        platformApplied: false,
+        limitation: 'v1_pilot_platform_execution_disabled',
+      });
     }
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
