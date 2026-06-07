@@ -12,7 +12,7 @@ import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
-import { createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
+import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
 const router = Router();
 
@@ -31,7 +31,7 @@ const REQUIRED_SCOPES = [
  *
  * Redirects the user to Google's OAuth consent page.
  */
-router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
       res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });
@@ -45,7 +45,7 @@ router.get('/connect', requireAuth, requireAdmin, (req: Request, res: Response) 
     }
 
     const redirectUri = oauthCallbackUrl('google');
-    const stateB64 = createOAuthState({ platform: 'google', workspaceId, userId: req.user!.sub });
+    const stateB64 = await createOAuthState({ platform: 'google', workspaceId, userId: req.user!.sub });
 
     const params = new URLSearchParams({
       client_id: config.google.clientId,
@@ -96,6 +96,11 @@ router.get('/callback', async (req: Request, res: Response) => {
       sendOAuthJsonError(req, res, 400, 'google', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
       return;
     }
+    if (!(await consumeOAuthStateNonce('google', stateData.nonce))) {
+      sendOAuthJsonError(req, res, 400, 'google', 'error', 'invalid_oauth_state', 'Invalid OAuth state');
+      return;
+    }
+
     const { workspaceId, userId } = stateData;
     if (!(await userCanManageOAuthWorkspace(userId, workspaceId))) {
       sendOAuthJsonError(req, res, 403, 'google', 'error', 'workspace_access_denied', 'Workspace access denied');

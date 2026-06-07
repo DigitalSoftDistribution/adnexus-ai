@@ -13,7 +13,7 @@ import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
 import axios from "axios";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
-import { createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
+import { consumeOAuthStateNonce, createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
 
 const router = Router();
 const META_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth";
@@ -32,7 +32,7 @@ const REQUIRED_SCOPES = ["ads_read", "ads_management", "business_management"];
  *
  * Redirects the user to Meta's OAuth consent page.
  */
-router.get("/connect", requireAuth, requireAdmin, (req: Request, res: Response) => {
+router.get("/connect", requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
       res.status(403).json({ error: "Workspace mismatch", code: "FORBIDDEN" });
@@ -46,7 +46,7 @@ router.get("/connect", requireAuth, requireAdmin, (req: Request, res: Response) 
     }
 
     const redirectUri = oauthCallbackUrl('meta');
-    const stateB64 = createOAuthState({
+    const stateB64 = await createOAuthState({
       platform: "meta",
       workspaceId,
       userId: req.user!.sub,
@@ -106,6 +106,11 @@ router.get("/callback", async (req: Request, res: Response) => {
 
     const stateData = verifyOAuthState(stateB64, "meta");
     if (!stateData) {
+      sendOAuthJsonError(req, res, 400, "meta", "error", "invalid_oauth_state", "Invalid OAuth state");
+      return;
+    }
+
+    if (!(await consumeOAuthStateNonce('meta', stateData.nonce))) {
       sendOAuthJsonError(req, res, 400, "meta", "error", "invalid_oauth_state", "Invalid OAuth state");
       return;
     }
