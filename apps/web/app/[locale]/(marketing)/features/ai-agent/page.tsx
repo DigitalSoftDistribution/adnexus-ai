@@ -1,39 +1,73 @@
-import type { Metadata } from 'next';
-import { BrainCircuit, Eye, Bell, FileText, Clock, Cable } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand } from '@/components/marketing/sections';
+import { PageHero, Section, FeatureCard, FeatureGrid, CtaBand } from '@/components/marketing/sections';
+import { FadeIn, StaggerContainer, StaggerItem, LivingMockup } from '@/components/marketing/v3/animations';
+import { Brain, Eye, Sparkles, Activity } from 'lucide-react';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'AI Agent',
-  description:
-    'The AdNexus AI Agent monitors your campaigns 24/7, predicts problems before they happen, and drafts optimizations for your approval — it never publishes on its own.',
-  alternates: { canonical: '/features/ai-agent' },
+  description: 'Autonomous AI agent that monitors your campaigns 24/7, detects anomalies, and suggests optimizations.',
 };
 
-const CAPABILITIES = [
-  { icon: <Clock size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: '24/7 Monitoring', desc: 'The agent watches every connected account around the clock, so issues surface in minutes, not at month-end.' },
-  { icon: <BrainCircuit size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Predictive, Not Reactive', desc: 'Forecasts spend, ROAS, and creative fatigue before they hit — and proposes action while it still matters.' },
-  { icon: <Eye size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'Explains Its Reasoning', desc: 'Every draft comes with the why: the metric that triggered it and the expected impact of the change.' },
-  { icon: <FileText size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Draft Generation', desc: 'Budget shifts, pauses, audience tweaks, and creative swaps arrive as ready-to-review drafts.' },
-  { icon: <Bell size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Smart Alerts', desc: 'Anomaly detection flags pacing problems and performance drops the moment they appear.' },
-  { icon: <Cable size={22} style={{ color: '#8B5CF6' }} aria-hidden="true" />, title: 'MCP-Native', desc: 'Query and direct the agent from Claude, ChatGPT, or Cursor through the Model Context Protocol.' },
-];
-
-export default function Page() {
+export default function AiAgentPage() {
   return (
     <>
       <PageHero
-        eyebrow="AI Agent"
-        title={<>An analyst that never sleeps — and never goes <span style={{ color: '#c3f53b' }}>rogue</span></>}
-        subtitle="Autonomous monitoring with human-in-the-loop control. The agent does the analysis; you make the call."
-      />
-      <Section title="What the agent does for you">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {CAPABILITIES.map((c) => (
-            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} />
-          ))}
+        badge="AI Agent"
+        title={<>Your 24/7 <span className="text-gradient">campaign analyst</span></>}
+        subtitle="An autonomous AI agent that never sleeps. It monitors every metric, detects anomalies in real time, and delivers actionable insights directly to your inbox."
+        cta="Start Free Trial"
+        ctaHref="/auth/signup"
+      >
+        <FadeIn className="mt-12">
+          <LivingMockup className="max-w-4xl mx-auto" />
+        </FadeIn>
+      </PageHero>
+
+      <Section>
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <FadeIn>
+            <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+              What the AI Agent does
+            </h2>
+          </FadeIn>
         </div>
+        <StaggerContainer>
+          <FeatureGrid className="max-w-5xl mx-auto">
+            {[
+              {
+                icon: Eye,
+                title: 'Continuous Monitoring',
+                description: 'Watches CTR, CPC, ROAS, and custom KPIs across all connected platforms every minute.',
+              },
+              {
+                icon: Activity,
+                title: 'Anomaly Detection',
+                description: 'Identifies unusual patterns — sudden spend spikes, performance drops, or audience shifts.',
+              },
+              {
+                icon: Sparkles,
+                title: 'Smart Suggestions',
+                description: 'Generates optimization drafts with predicted impact scores before you approve.',
+              },
+              {
+                icon: Brain,
+                title: 'Learning Engine',
+                description: 'Adapts to your brand voice, budget rules, and performance goals over time.',
+              },
+            ].map((item) => (
+              <StaggerItem key={item.title}>
+                <FeatureCard icon={item.icon} title={item.title} description={item.description} />
+              </StaggerItem>
+            ))}
+          </FeatureGrid>
+        </StaggerContainer>
       </Section>
-      <CtaBand title="Put an AI analyst on every account" subtitle="Connect in two minutes and let the agent draft its first optimizations today." />
+
+      <CtaBand
+        title="Let AI handle the heavy lifting"
+        subtitle="Focus on strategy while your AI agent monitors and optimizes around the clock."
+        cta="Start Free Trial"
+        ctaHref="/auth/signup"
+      />
     </>
   );
 }

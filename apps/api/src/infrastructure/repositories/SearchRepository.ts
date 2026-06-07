@@ -62,9 +62,35 @@ export class SearchRepository implements ISearchRepository {
     return results.slice(0, limit);
   }
 
-  async getSuggestions(_workspaceId: string, prefix: string): Promise<string[]> {
-    // Placeholder — would query search suggestions index
-    return prefix ? [`${prefix} campaigns`, `${prefix} audiences`, `${prefix} reports`] : [];
+  async getSuggestions(workspaceId: string, prefix: string): Promise<string[]> {
+    const term = prefix.trim().slice(0, 100);
+    if (!term) return [];
+
+    const pattern = `${term.replace(/[%_\\]/g, '')}%`;
+    const suggestions = new Set<string>();
+
+    const { rows: campaigns } = await query<{ name: string }>(
+      `SELECT c.name
+         FROM campaigns c
+         JOIN ad_accounts a ON a.id = c.ad_account_id
+        WHERE a.workspace_id = $1 AND c.name ILIKE $2
+        ORDER BY c.name ASC
+        LIMIT 5`,
+      [workspaceId, pattern],
+    );
+    for (const row of campaigns) suggestions.add(row.name);
+
+    const { rows: reports } = await query<{ name: string }>(
+      `SELECT name
+         FROM reports
+        WHERE workspace_id = $1 AND name ILIKE $2
+        ORDER BY name ASC
+        LIMIT 5`,
+      [workspaceId, pattern],
+    );
+    for (const row of reports) suggestions.add(row.name);
+
+    return Array.from(suggestions).slice(0, 10);
   }
 
   async getRecentSearches(_workspaceId: string, _userId: string): Promise<string[]> {

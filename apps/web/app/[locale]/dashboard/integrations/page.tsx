@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { IntegrationsContent } from '@/components/integrations/IntegrationsContent';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export async function generateMetadata({
   params,
@@ -14,5 +16,15 @@ export async function generateMetadata({
 }
 
 export default function IntegrationsPage() {
-  return <IntegrationsContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-96 items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
+      <IntegrationsContent />
+    </Suspense>
+  );
 }

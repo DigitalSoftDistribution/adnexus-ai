@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ScrollText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ const defaultFilters: AuditFilters = {
 export function AuditLogContent() {
   const t = useTranslations('auditLog');
   const tc = useTranslations('common');
+  const locale = useLocale();
   const [draftFilters, setDraftFilters] = useState<AuditFilters>(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState<AuditFilters>(defaultFilters);
 
@@ -89,7 +90,7 @@ export function AuditLogContent() {
       id: 'date',
       header: tc('created'),
       align: 'right',
-      accessor: (e) => formatDate(e.created_at ?? e.createdAt ?? ''),
+      accessor: (e) => formatDate(e.created_at ?? e.createdAt ?? '', locale),
       sortValue: (e) => e.created_at ?? e.createdAt ?? '',
     },
   ];

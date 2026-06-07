@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { createObjectCsvWriter } from 'csv-writer';
-import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -260,9 +260,10 @@ export async function exportAuditLogToCSV(
 /** Export campaigns to Excel buffer */
 export async function exportCampaignsToExcel(
   campaigns: any[],
-  options: ExcelExportOptions = {}
+  _options: ExcelExportOptions = {}
 ): Promise<{ buffer: Buffer; filename: string }> {
-  const wb = xlsx.utils.book_new();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Campaigns');
 
   // Main campaigns sheet
   const campaignData = campaigns.map((c) => ({
@@ -282,19 +283,20 @@ export async function exportCampaignsToExcel(
     'Created At': c.created_at,
   }));
 
-  const ws = xlsx.utils.json_to_sheet(campaignData);
   if (campaignData.length > 0) {
-    ws['!cols'] = Object.keys(campaignData[0]).map((key) => {
-      const maxW = Math.max(
-        key.length,
-        ...campaignData.map((r) => String(r[key as keyof typeof r] ?? '').length)
-      );
-      return { wch: Math.min(maxW + 3, 50) };
-    });
+    const keys = Object.keys(campaignData[0]);
+    ws.columns = keys.map((key) => ({
+      header: key,
+      key,
+      width: Math.min(
+        Math.max(key.length, ...campaignData.map((r) => String(r[key as keyof typeof r] ?? '').length)) + 3,
+        50
+      ),
+    }));
+    campaignData.forEach((row) => ws.addRow(row));
   }
-  xlsx.utils.book_append_sheet(wb, ws, 'Campaigns');
 
-  const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+  const buffer = await wb.xlsx.writeBuffer();
   const filename = `campaigns-${new Date().toISOString().slice(0, 10)}.xlsx`;
   return { buffer: Buffer.from(buffer), filename };
 }
@@ -302,9 +304,9 @@ export async function exportCampaignsToExcel(
 /** Export report data to Excel buffer with multiple sheets */
 export async function exportReportToExcel(
   reportData: any,
-  options: ExcelExportOptions = {}
+  _options: ExcelExportOptions = {}
 ): Promise<{ buffer: Buffer; filename: string }> {
-  const wb = xlsx.utils.book_new();
+  const wb = new ExcelJS.Workbook();
   const content = reportData.content || reportData;
 
   // ── Sheet 1: Summary ──
@@ -315,54 +317,53 @@ export async function exportReportToExcel(
     });
   }
   if (summaryRows.length > 0) {
-    const summaryWs = xlsx.utils.json_to_sheet(summaryRows);
-    summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
-    xlsx.utils.book_append_sheet(wb, summaryWs, 'Summary');
+    const summaryWs = wb.addWorksheet('Summary');
+    summaryWs.columns = [
+      { header: 'Metric', key: 'Metric', width: 25 },
+      { header: 'Value', key: 'Value', width: 30 },
+    ];
+    summaryRows.forEach((row) => summaryWs.addRow(row));
   }
+
+  const rowKeys = (rows: Array<Record<string, unknown>>): string[] => Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
 
   // ── Sheet 2: Campaigns ──
   const campaigns = content.campaigns || content.data?.campaigns || [];
   if (campaigns.length > 0) {
-    const campWs = xlsx.utils.json_to_sheet(campaigns);
-    if (campaigns.length > 0) {
-      campWs['!cols'] = Object.keys(campaigns[0]).map((key) => ({
-        wch: Math.min(
-          Math.max(key.length, ...campaigns.map((r: any) => String(r[key] ?? '').length)) + 2,
-          50
-        ),
-      }));
-    }
-    xlsx.utils.book_append_sheet(wb, campWs, 'Campaigns');
+    const campWs = wb.addWorksheet('Campaigns');
+    const keys = rowKeys(campaigns);
+    campWs.columns = keys.map((key) => ({
+      header: key,
+      key,
+      width: Math.min(Math.max(key.length, ...campaigns.map((r: any) => String(r[key] ?? '').length)) + 2, 50),
+    }));
+    campaigns.forEach((row: any) => campWs.addRow(row));
   }
 
   // ── Sheet 3: Creatives ──
   const creatives = content.creatives || content.data?.creatives || [];
   if (creatives.length > 0) {
-    const creativeWs = xlsx.utils.json_to_sheet(creatives);
-    if (creatives.length > 0) {
-      creativeWs['!cols'] = Object.keys(creatives[0]).map((key) => ({
-        wch: Math.min(
-          Math.max(key.length, ...creatives.map((r: any) => String(r[key] ?? '').length)) + 2,
-          50
-        ),
-      }));
-    }
-    xlsx.utils.book_append_sheet(wb, creativeWs, 'Creatives');
+    const creativeWs = wb.addWorksheet('Creatives');
+    const keys = rowKeys(creatives);
+    creativeWs.columns = keys.map((key) => ({
+      header: key,
+      key,
+      width: Math.min(Math.max(key.length, ...creatives.map((r: any) => String(r[key] ?? '').length)) + 2, 50),
+    }));
+    creatives.forEach((row: any) => creativeWs.addRow(row));
   }
 
   // ── Sheet 4: Daily Trend ──
   const trend = content.dailyTrend || content.data?.dailyTrend || [];
   if (trend.length > 0) {
-    const trendWs = xlsx.utils.json_to_sheet(trend);
-    if (trend.length > 0) {
-      trendWs['!cols'] = Object.keys(trend[0]).map((key) => ({
-        wch: Math.min(
-          Math.max(key.length, ...trend.map((r: any) => String(r[key] ?? '').length)) + 2,
-          40
-        ),
-      }));
-    }
-    xlsx.utils.book_append_sheet(wb, trendWs, 'Daily Trend');
+    const trendWs = wb.addWorksheet('Daily Trend');
+    const keys = rowKeys(trend);
+    trendWs.columns = keys.map((key) => ({
+      header: key,
+      key,
+      width: Math.min(Math.max(key.length, ...trend.map((r: any) => String(r[key] ?? '').length)) + 2, 40),
+    }));
+    trend.forEach((row: any) => trendWs.addRow(row));
   }
 
   // ── Sheet 5: Metadata ──
@@ -375,11 +376,14 @@ export async function exportReportToExcel(
     { Field: 'Platforms', Value: content.platforms?.join?.(', ') || '' },
     { Field: 'Date Range', Value: content.date_range ? `${content.date_range.start} to ${content.date_range.end}` : '' },
   ];
-  const metaWs = xlsx.utils.json_to_sheet(metaRows);
-  metaWs['!cols'] = [{ wch: 20 }, { wch: 50 }];
-  xlsx.utils.book_append_sheet(wb, metaWs, 'Metadata');
+  const metaWs = wb.addWorksheet('Metadata');
+  metaWs.columns = [
+    { header: 'Field', key: 'Field', width: 20 },
+    { header: 'Value', key: 'Value', width: 50 },
+  ];
+  metaRows.forEach((row) => metaWs.addRow(row));
 
-  const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+  const buffer = await wb.xlsx.writeBuffer();
   const filename = `report-${reportData.id || 'export'}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   return { buffer: Buffer.from(buffer), filename };
 }
@@ -631,20 +635,20 @@ async function processExportJob(jobId: string): Promise<void> {
   job.updatedAt = new Date();
 
   try {
-    let result: { csv?: string; buffer?: Buffer } = {};
+    let _result: { csv?: string; buffer?: Buffer } = {};
 
     if (job.type === 'campaigns') {
       if (job.format === 'csv' || job.format === 'excel') {
         const campaigns = await fetchCampaignsForExport(job.workspaceId, job.filter);
         if (job.format === 'csv') {
-          result = await exportCampaignsToCSV(campaigns);
+          _result = await exportCampaignsToCSV(campaigns);
         } else {
-          result = await exportCampaignsToExcel(campaigns);
+          _result = await exportCampaignsToExcel(campaigns);
         }
       }
     } else if (job.type === 'insights') {
       const insights = await fetchInsightsForExport(job.workspaceId, job.filter);
-      result = await exportInsightsToCSV(insights);
+      _result = await exportInsightsToCSV(insights);
     }
 
     job.status = 'completed';
@@ -733,10 +737,11 @@ export class ExportService {
     const filePath = this.tempManager.createTempPath(`report-${report.reportId}.xlsx`);
 
     // Create workbook
-    const workbook = xlsx.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
 
     // --- Sheet 1: Summary ---
-    const summaryData = [
+    const summaryWs = workbook.addWorksheet('Summary');
+    summaryWs.addRows([
       ['AdNexus Report', report.name],
       ['Generated', report.generatedAt.toISOString()],
       ['Period Start', report.timeRange.start.toISOString()],
@@ -752,13 +757,11 @@ export class ExportService {
       ['CPC', report.summary.cpc.toFixed(2)],
       ['CPM', report.summary.cpm.toFixed(2)],
       ...(report.summary.roas !== undefined ? [['ROAS', report.summary.roas.toFixed(2)]] : []),
-    ];
-
-    const summarySheet = xlsx.utils.aoa_to_sheet(summaryData);
-    xlsx.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+    ]);
 
     // --- Sheet 2: Platform Breakdown ---
-    const breakdownHeaders = [
+    const breakdownWs = workbook.addWorksheet('Platform Breakdown');
+    breakdownWs.addRow([
       'Platform',
       'Impressions',
       'Clicks',
@@ -766,11 +769,9 @@ export class ExportService {
       'Spend ($)',
       'CPC ($)',
       'Conversions',
-    ];
-
-    const breakdownData = [
-      breakdownHeaders,
-      ...report.summary.platformBreakdown.map((row) => [
+    ]);
+    report.summary.platformBreakdown.forEach((row) => {
+      breakdownWs.addRow([
         row.platformName,
         row.impressions,
         row.clicks,
@@ -778,28 +779,25 @@ export class ExportService {
         row.spend.toFixed(2),
         row.cpc.toFixed(2),
         row.conversions,
-      ]),
-    ];
-
-    const breakdownSheet = xlsx.utils.aoa_to_sheet(breakdownData);
-    xlsx.utils.book_append_sheet(workbook, breakdownSheet, 'Platform Breakdown');
+      ]);
+    });
 
     // --- Sheet 3: Period-over-Period (if available) ---
     if (report.summary.periodOverPeriod) {
       const pop = report.summary.periodOverPeriod;
-      const popData = [
+      const popWs = workbook.addWorksheet('Period Comparison');
+      popWs.addRows([
         ['Metric', 'Change (%)'],
         ['Impressions', pop.impressionsChange.toFixed(2)],
         ['Clicks', pop.clicksChange.toFixed(2)],
         ['Spend', pop.spendChange.toFixed(2)],
         ['Conversions', pop.conversionsChange.toFixed(2)],
-      ];
-      const popSheet = xlsx.utils.aoa_to_sheet(popData);
-      xlsx.utils.book_append_sheet(workbook, popSheet, 'Period Comparison');
+      ]);
     }
 
     // --- Sheet 4: Metadata ---
-    const metaData = [
+    const metaWs = workbook.addWorksheet('Metadata');
+    metaWs.addRows([
       ['Field', 'Value'],
       ['Report ID', report.reportId],
       ['Name', report.name],
@@ -809,12 +807,10 @@ export class ExportService {
       ['Granularity', report.timeRange.granularity],
       ['Platforms', report.platforms.join(', ')],
       ['Errors', report.errors?.join('; ') || 'None'],
-    ];
-    const metaSheet = xlsx.utils.aoa_to_sheet(metaData);
-    xlsx.utils.book_append_sheet(workbook, metaSheet, 'Metadata');
+    ]);
 
     // Write workbook to file
-    xlsx.writeFile(workbook, filePath);
+    await workbook.xlsx.writeFile(filePath);
     this.tempManager.trackFile(filePath);
 
     const fileSize = await this.tempManager.getFileSize(filePath);

@@ -11,7 +11,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config, isProduction, corsOrigins } from '../../config';
+import { config, isDevelopment, isProduction, isAllowedCorsOrigin } from '../../config';
 import { requestLogger } from '../../middleware/requestLogger';
 import { unauthenticatedRateLimiter } from '../../middleware/rateLimiter';
 
@@ -45,7 +45,19 @@ export function createServer() {
   }));
 
   app.use(cors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (isAllowedCorsOrigin(origin, config.cors.origin) || isDevelopment) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
     credentials: true,
   }));
 

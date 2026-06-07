@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { GetWorkspaceSettingsUseCase } from './GetWorkspaceSettingsUseCase';
 import { UpdateWorkspaceSettingsUseCase } from './UpdateWorkspaceSettingsUseCase';
 import { GetTeamMembersUseCase } from './GetTeamMembersUseCase';
+import { InviteTeamMemberUseCase } from './InviteTeamMemberUseCase';
 import { RemoveTeamMemberUseCase } from './RemoveTeamMemberUseCase';
 import { GetIntegrationsUseCase } from './GetIntegrationsUseCase';
 import { GetNotificationPreferencesUseCase } from './GetNotificationPreferencesUseCase';
@@ -76,6 +77,9 @@ const makeRepo = (overrides: Partial<ISettingsRepository> = {}): ISettingsReposi
     getProfile: vi.fn().mockResolvedValue(null),
     updateProfile: vi.fn().mockResolvedValue(true),
     getTeamMembers: vi.fn().mockResolvedValue([member]),
+    findUserByEmail: vi.fn().mockResolvedValue({ id: 'u-2', email: 'new@example.com' }),
+    findTeamMember: vi.fn().mockResolvedValue(null),
+    canAddTeamMember: vi.fn().mockResolvedValue(true),
     addTeamMember: vi.fn().mockResolvedValue(member),
     updateTeamMemberRole: vi.fn().mockResolvedValue(true),
     removeTeamMember: vi.fn().mockResolvedValue(true),
@@ -141,6 +145,92 @@ describe('team settings use-cases', () => {
     expect(res.success).toBe(false);
     if (!res.success) expect(status(res)).toBe(403);
     expect(repo.getTeamMembers).not.toHaveBeenCalled();
+  });
+
+  it('invites an existing user as a team member', async () => {
+    const repo = makeRepo();
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'New@Example.com',
+      role: 'viewer',
+      invitedBy: 'u-1',
+      userRole: 'owner',
+    });
+    expect(res.success).toBe(true);
+    expect(repo.findUserByEmail).toHaveBeenCalledWith('new@example.com');
+    expect(repo.canAddTeamMember).toHaveBeenCalledWith('ws-1');
+    expect(repo.addTeamMember).toHaveBeenCalledWith('ws-1', 'u-2', 'viewer', 'u-1');
+  });
+
+  it('returns validation when inviting an unknown email', async () => {
+    const repo = makeRepo({ findUserByEmail: vi.fn().mockResolvedValue(null) });
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'invitee@example.com',
+      role: 'editor',
+      invitedBy: 'u-1',
+      userRole: 'admin',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
+    expect(repo.addTeamMember).not.toHaveBeenCalled();
+  });
+
+  it('prevents invites when the workspace member limit is reached', async () => {
+    const repo = makeRepo({ canAddTeamMember: vi.fn().mockResolvedValue(false) });
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'new@example.com',
+      role: 'viewer',
+      invitedBy: 'u-1',
+      userRole: 'owner',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
+    expect(repo.findUserByEmail).not.toHaveBeenCalled();
+    expect(repo.addTeamMember).not.toHaveBeenCalled();
+  });
+
+  it('prevents duplicate team invites', async () => {
+    const repo = makeRepo({ findTeamMember: vi.fn().mockResolvedValue(member) });
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'ada@example.com',
+      role: 'viewer',
+      invitedBy: 'u-1',
+      userRole: 'owner',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(409);
+    expect(repo.addTeamMember).not.toHaveBeenCalled();
+  });
+
+  it('denies editors from inviting team members', async () => {
+    const repo = makeRepo();
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'new@example.com',
+      role: 'viewer',
+      invitedBy: 'u-1',
+      userRole: 'editor',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.addTeamMember).not.toHaveBeenCalled();
+  });
+
+  it('prevents admins from inviting other admins', async () => {
+    const repo = makeRepo();
+    const res = await new InviteTeamMemberUseCase(repo).execute({
+      workspaceId: 'ws-1',
+      email: 'new@example.com',
+      role: 'admin',
+      invitedBy: 'u-1',
+      userRole: 'admin',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+    expect(repo.addTeamMember).not.toHaveBeenCalled();
   });
 
   it('removes a team member for owners/admins', async () => {

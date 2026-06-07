@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
@@ -35,17 +35,21 @@ function renderWithProviders(ui: ReactNode) {
 }
 
 function mockSettingsFetch(overrides: Record<string, unknown> = {}) {
-  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url === '/api/v2/settings/workspace') return { ok: true, json: async () => ({ data: workspace }) };
-    if (url === '/api/v2/settings/team') return { ok: true, json: async () => ({ data: [] }) };
-    if (url === '/api/v2/settings/integrations') return { ok: true, json: async () => ({ data: [] }) };
-    if (url === '/api/v2/settings/notifications') return { ok: true, json: async () => ({ data: notifications }) };
-    if (url === '/api/v2/settings/api-keys' && !init) return { ok: true, json: async () => ({ data: [] }) };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url === '/api/v2/settings/workspace') return { ok: true, json: async () => ({ data: workspace }) } as Response;
+    if (url === '/api/v2/settings/team' && !init) return { ok: true, json: async () => ({ data: [] }) } as Response;
+    if (url === '/api/v2/settings/team' && init?.method === 'POST') {
+      return { ok: true, json: async () => ({ data: { id: 'invite-1', email: 'teammate@example.com', role: 'viewer' } }) } as Response;
+    }
+    if (url === '/api/v2/settings/integrations') return { ok: true, json: async () => ({ data: [] }) } as Response;
+    if (url === '/api/v2/settings/notifications') return { ok: true, json: async () => ({ data: notifications }) } as Response;
+    if (url === '/api/v2/settings/api-keys' && !init) return { ok: true, json: async () => ({ data: [] }) } as Response;
     if (url === '/api/v2/settings/api-keys' && init?.method === 'POST') {
-      return { ok: true, json: async () => ({ data: { fullKey: 'adnx_live_secret' } }) };
+      return { ok: true, json: async () => ({ data: { fullKey: 'adnx_live_secret' } }) } as Response;
     }
 
-    return { ok: true, json: async () => ({ data: overrides[url] ?? [] }) };
+    return { ok: true, json: async () => ({ data: overrides[url] ?? [] }) } as Response;
   });
 
   vi.stubGlobal('fetch', fetchMock);
@@ -61,15 +65,27 @@ describe('SettingsContent', () => {
     vi.unstubAllGlobals();
   });
 
-  it('marks invite as temporarily unavailable instead of leaving an inert action', async () => {
-    mockSettingsFetch();
+  it('opens the team invite modal and submits to the invite API', async () => {
+    const fetchMock = mockSettingsFetch();
     const user = userEvent.setup();
     renderWithProviders(<SettingsContent />);
 
     await user.click(await screen.findByRole('tab', { name: 'Team' }));
+    await user.click(screen.getByRole('button', { name: 'Invite Member' }));
+    await user.type(screen.getByLabelText('Email address'), 'teammate@example.com');
+    await user.click(screen.getByRole('button', { name: 'Invite' }));
 
-    expect(screen.getByRole('button', { name: 'Invite Member' })).toBeDisabled();
-    expect(screen.getByText('Team invites are temporarily disabled while the invite flow is being finalized.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v2/settings/team',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'teammate@example.com', role: 'viewer' }),
+        }),
+      );
+    });
+    expect(await screen.findByText('Invitation created and the team list has been refreshed.')).toBeInTheDocument();
   });
 
   it('shows the one-time API key with a clear copy warning after generation', async () => {
@@ -79,7 +95,7 @@ describe('SettingsContent', () => {
     renderWithProviders(<SettingsContent />);
 
     await user.click(await screen.findByRole('tab', { name: 'API Keys' }));
-    await user.type(screen.getByLabelText('Key name'), 'Reporting');
+    await user.type(screen.getByPlaceholderText('Key name'), 'Reporting');
     await user.click(screen.getByRole('button', { name: 'Generate' }));
 
     expect(await screen.findByText('adnx_live_secret')).toBeInTheDocument();
