@@ -20,6 +20,7 @@ export interface AgentRecommendation {
   reasoning: string;
   createdAt: string;
   expiresAt: string | null;
+  appliedDraftId: string | null;
 }
 
 export interface AgentInsight {
