@@ -10,7 +10,12 @@ export type McpToolCategory =
   | 'recommendations'
   | 'drafts_approvals'
   | 'audit'
-  | 'sync';
+  | 'sync'
+  | 'alerts'
+  | 'goals'
+  | 'audiences'
+  | 'billing'
+  | 'notifications';
 
 export interface McpToolCatalogEntry {
   name: string;
@@ -46,6 +51,11 @@ export const MCP_V2_REQUIRED_CATEGORIES: McpToolCategory[] = [
   'drafts_approvals',
   'audit',
   'sync',
+  'alerts',
+  'goals',
+  'audiences',
+  'billing',
+  'notifications',
 ];
 
 export const MCP_V2_REQUIRED_SCOPES = [
@@ -68,6 +78,15 @@ export const MCP_V2_REQUIRED_SCOPES = [
   'exports:write',
   'sync:read',
   'sync:write',
+  'alerts:read',
+  'alerts:write',
+  'goals:read',
+  'goals:write',
+  'audiences:read',
+  'audiences:write',
+  'billing:read',
+  'notifications:read',
+  'notifications:write',
 ];
 
 export const MCP_V2_SAFETY_MODEL = {
@@ -415,6 +434,171 @@ export const MCP_V2_TOOL_CATALOG: McpToolCatalogEntry[] = [
     requiredScopes: ['mcp:read'],
     backendRoute: 'GET /api/v2/mcp/tools',
     description: 'Return this read-first, draft-first MCP V2 tool catalog for dashboard and docs surfaces.',
+  },
+  // ── Alerts ────────────────────────────────────────────────────────────
+  {
+    name: 'alert_list',
+    title: 'List alerts',
+    category: 'alerts',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['alerts:read'],
+    backendRoute: 'GET /api/v2/alerts',
+    description: 'List configured performance alerts, budget alerts, and anomaly warnings for the workspace.',
+  },
+  {
+    name: 'alert_get',
+    title: 'Get alert details',
+    category: 'alerts',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['alerts:read'],
+    backendRoute: 'GET /api/v2/alerts/:id',
+    description: 'Return alert configuration, trigger history, current status, and linked entity context.',
+  },
+  {
+    name: 'alert_create_draft',
+    title: 'Draft alert creation',
+    category: 'alerts',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['alerts:write', 'drafts:write'],
+    backendRoute: 'POST /api/v2/alerts',
+    description: 'Stage a new alert configuration (metric threshold, campaign scope, notification channel) for approval before activation.',
+  },
+  {
+    name: 'alert_update_draft',
+    title: 'Draft alert update',
+    category: 'alerts',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['alerts:write', 'drafts:write'],
+    backendRoute: 'PUT /api/v2/alerts/:id',
+    description: 'Stage threshold, scope, or channel changes to an existing alert for approval.',
+  },
+  {
+    name: 'alert_dismiss_draft',
+    title: 'Draft alert dismiss',
+    category: 'alerts',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['alerts:write', 'drafts:write'],
+    backendRoute: 'DELETE /api/v2/alerts/:id',
+    description: 'Stage dismissal of a triggered or stale alert so it is removed from the active dashboard view after approval.',
+  },
+  // ── Goals ─────────────────────────────────────────────────────────────
+  {
+    name: 'goal_list',
+    title: 'List goals',
+    category: 'goals',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['goals:read'],
+    backendRoute: 'GET /api/v2/goals',
+    description: 'List campaign performance goals (CPA, ROAS, spend, conversions) with current vs. target values.',
+  },
+  {
+    name: 'goal_get',
+    title: 'Get goal details',
+    category: 'goals',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['goals:read'],
+    backendRoute: 'GET /api/v2/goals/:id',
+    description: 'Return goal configuration, progress history, linked campaigns, and attainment trend.',
+  },
+  {
+    name: 'goal_create_draft',
+    title: 'Draft goal creation',
+    category: 'goals',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['goals:write', 'drafts:write'],
+    backendRoute: 'POST /api/v2/goals',
+    description: 'Stage a new campaign goal (metric, target value, period) for approval before tracking begins.',
+  },
+  {
+    name: 'goal_update_draft',
+    title: 'Draft goal update',
+    category: 'goals',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['goals:write', 'drafts:write'],
+    backendRoute: 'PUT /api/v2/goals/:id',
+    description: 'Stage target, metric, period, or scope changes to an existing goal for approval.',
+  },
+  // ── Audiences ─────────────────────────────────────────────────────────
+  {
+    name: 'audience_list',
+    title: 'List audiences',
+    category: 'audiences',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['audiences:read'],
+    backendRoute: 'GET /api/v2/audiences',
+    description: 'List saved and platform-synced audiences (custom, lookalike, remarketing) with size estimates and sync status.',
+  },
+  {
+    name: 'audience_get',
+    title: 'Get audience details',
+    category: 'audiences',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['audiences:read'],
+    backendRoute: 'GET /api/v2/audiences/:id',
+    description: 'Return audience definition, platform mappings, size data, and linked campaign usage.',
+  },
+  {
+    name: 'audience_create_draft',
+    title: 'Draft audience creation',
+    category: 'audiences',
+    mode: 'draft',
+    status: 'implemented',
+    requiredScopes: ['audiences:write', 'drafts:write'],
+    backendRoute: 'POST /api/v2/audiences',
+    description: 'Stage a new audience definition (rules, seed source, platform targets) for approval before syncing to ad platforms.',
+  },
+  // ── Billing ───────────────────────────────────────────────────────────
+  {
+    name: 'billing_get_status',
+    title: 'Get billing status',
+    category: 'billing',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['billing:read'],
+    backendRoute: 'GET /api/v2/billing',
+    description: 'Return workspace subscription plan, usage, limits, and current billing period summary.',
+  },
+  {
+    name: 'billing_list_invoices',
+    title: 'List invoices',
+    category: 'billing',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['billing:read'],
+    backendRoute: 'GET /api/v2/billing/invoices',
+    description: 'List Stripe-backed invoices for the workspace with amounts, status, and payment links.',
+  },
+  // ── Notifications ─────────────────────────────────────────────────────
+  {
+    name: 'notification_get_preferences',
+    title: 'Get notification preferences',
+    category: 'notifications',
+    mode: 'read',
+    status: 'implemented',
+    requiredScopes: ['notifications:read'],
+    backendRoute: 'GET /api/v2/notifications',
+    description: 'Return workspace notification preferences including channels, digest frequency, and per-alert-type settings.',
+  },
+  {
+    name: 'notification_update_preferences_draft',
+    title: 'Draft notification preferences update',
+    category: 'notifications',
+    mode: 'draft',
+    status: 'planned',
+    requiredScopes: ['notifications:write', 'drafts:write'],
+    backendRoute: null,
+    description: 'Stage changes to notification channels, frequency, or alert-type subscriptions for approval.',
   },
 ];
 
