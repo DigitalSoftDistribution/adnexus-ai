@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { CreditCard, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { CreditCard, Download, CheckCircle, AlertCircle, Info, Sparkles } from 'lucide-react';
 
 interface BillingInfo {
   workspaceId: string;
@@ -58,6 +58,14 @@ interface BillingPlansResponse {
   }>;
   message: string | null;
 }
+
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  growth: 2,
+  pro: 3,
+  enterprise: 4,
+};
 
 function useBillingInfo() {
   const t = useTranslations('billing');
@@ -111,7 +119,31 @@ function useCreatePortalSession() {
       const res = await fetch('/api/v2/billing/portal', { method: 'POST' });
       if (!res.ok) throw new Error(t('failedToCreatePortal'));
       const data = await res.json();
-      return data.data as { url: string };
+      return (data.data ?? data) as { url: string };
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
+}
+
+function useCreateCheckoutSession() {
+  const t = useTranslations('billing');
+  return useMutation({
+    mutationFn: async (priceId: string) => {
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      const res = await fetch('/api/v2/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId,
+          successUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}success=true`,
+          cancelUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}canceled=true`,
+        }),
+      });
+      if (!res.ok) throw new Error(t('failedToCreateCheckout'));
+      const data = await res.json();
+      return (data.data ?? data) as { url: string };
     },
     onSuccess: (data) => {
       if (data.url) window.location.href = data.url;
@@ -124,6 +156,7 @@ export function BillingContent() {
   const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, refetch: refetchInvoices } = useInvoices();
   const { data: billingPlans } = useBillingPlans();
   const portalMutation = useCreatePortalSession();
+  const checkoutMutation = useCreateCheckoutSession();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -156,6 +189,11 @@ export function BillingContent() {
   const plan = billing?.plan || 'free';
   const features = t.raw(`planFeatures.${plan}`) as string[] || t.raw('planFeatures.free') as string[];
   const isActive = billing?.status === 'active' || billing?.status === 'trialing';
+  const currentPlanRank = PLAN_RANK[plan] ?? PLAN_RANK.free;
+  const upgradePlan = billingPlans?.plans
+    .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) > currentPlanRank)
+    .sort((a, b) => (PLAN_RANK[a.plan] ?? 0) - (PLAN_RANK[b.plan] ?? 0))[0] ?? null;
+  const canStartCheckout = Boolean(billingPlans?.billingEnabled && upgradePlan);
 
   return (
     <div className="space-y-6">
@@ -169,6 +207,46 @@ export function BillingContent() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {canStartCheckout && upgradePlan && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="flex flex-col gap-4 pt-6 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <Sparkles className="mt-0.5 h-4 w-4 flex-none" />
+              <div>
+                <p className="font-medium">{t('checkoutReadyTitle', { plan: upgradePlan.plan })}</p>
+                <p>{t('checkoutReadyDescription')}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => checkoutMutation.mutate(upgradePlan.priceId)}
+              disabled={checkoutMutation.isPending}
+              className="shrink-0"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {checkoutMutation.isPending ? t('startingCheckout') : t('upgradePlan', { plan: upgradePlan.plan })}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {checkoutMutation.isError && (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToCreateCheckout')}
+          retryLabel={tc('retry')}
+          onRetry={() => upgradePlan && checkoutMutation.mutate(upgradePlan.priceId)}
+        />
+      )}
+
+      {portalMutation.isError && (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToCreatePortal')}
+          retryLabel={tc('retry')}
+          onRetry={() => portalMutation.mutate()}
+        />
       )}
 
       <div className="flex items-center justify-between">

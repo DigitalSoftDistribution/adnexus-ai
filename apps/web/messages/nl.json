@@ -498,7 +498,12 @@
         "SLA-garantie",
         "Aangepaste contracten"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Kon de checkout niet starten",
+    "checkoutReadyTitle": "Upgrade naar {plan}",
+    "checkoutReadyDescription": "De checkout is geconfigureerd en opent Stripe veilig voor het geselecteerde betaalplan.",
+    "startingCheckout": "Checkout starten...",
+    "upgradePlan": "Upgrade naar {plan}"
   },
   "alerts": {
     "title": "Meldingen",

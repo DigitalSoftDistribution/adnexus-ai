@@ -498,7 +498,12 @@
         "Gwarancja SLA",
         "Niestandardowe umowy"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Nie udało się rozpocząć płatności",
+    "checkoutReadyTitle": "Uaktualnij do {plan}",
+    "checkoutReadyDescription": "Płatność jest skonfigurowana i otworzy Stripe w bezpieczny sposób dla wybranego planu płatnego.",
+    "startingCheckout": "Rozpoczynanie płatności...",
+    "upgradePlan": "Uaktualnij do {plan}"
   },
   "alerts": {
     "title": "Alerty",

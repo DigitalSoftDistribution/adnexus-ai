@@ -498,7 +498,12 @@
         "Garantía de SLA",
         "Contratos personalizados"
       ]
-    }
+    },
+    "failedToCreateCheckout": "No se pudo iniciar el pago",
+    "checkoutReadyTitle": "Actualizar a {plan}",
+    "checkoutReadyDescription": "El pago está configurado y abrirá Stripe de forma segura para el plan de pago seleccionado.",
+    "startingCheckout": "Iniciando pago...",
+    "upgradePlan": "Actualizar a {plan}"
   },
   "alerts": {
     "title": "Alertas",

@@ -498,7 +498,12 @@
         "Garantie SLA",
         "Contrats personnalisés"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Échec du démarrage du paiement",
+    "checkoutReadyTitle": "Passer à {plan}",
+    "checkoutReadyDescription": "Le paiement est configuré et ouvrira Stripe de manière sécurisée pour le forfait payant sélectionné.",
+    "startingCheckout": "Démarrage du paiement...",
+    "upgradePlan": "Passer à {plan}"
   },
   "alerts": {
     "title": "Alertes",
