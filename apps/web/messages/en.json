@@ -351,6 +351,7 @@
     "failedToFetchWorkspace": "Failed to fetch workspace",
     "failedToUpdateWorkspace": "Failed to update workspace",
     "failedToFetchTeam": "Failed to fetch team",
+    "failedToInviteMember": "Failed to invite member",
     "failedToUpdateRole": "Failed to update role",
     "failedToRemoveMember": "Failed to remove member",
     "failedToFetchIntegrations": "Failed to fetch integrations",
@@ -374,6 +375,10 @@
     "teamMembers": "Team Members",
     "teamDescription": "Manage access and permissions",
     "inviteMember": "Invite Member",
+    "inviteDescription": "Send a workspace invitation with the right access level.",
+    "inviteEmail": "Email address",
+    "inviteRole": "Role",
+    "inviteSuccess": "Invitation created and the team list has been refreshed.",
     "roles": {
       "viewer": "Viewer",
       "editor": "Editor",

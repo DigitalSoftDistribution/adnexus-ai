@@ -351,6 +351,7 @@
     "failedToFetchWorkspace": "Arbeitsbereich konnte nicht abgerufen werden",
     "failedToUpdateWorkspace": "Arbeitsbereich konnte nicht aktualisiert werden",
     "failedToFetchTeam": "Team konnte nicht abgerufen werden",
+    "failedToInviteMember": "Mitglied konnte nicht eingeladen werden",
     "failedToUpdateRole": "Rolle konnte nicht aktualisiert werden",
     "failedToRemoveMember": "Mitglied konnte nicht entfernt werden",
     "failedToFetchIntegrations": "Integrationen konnten nicht abgerufen werden",
@@ -374,6 +375,10 @@
     "teamMembers": "Teammitglieder",
     "teamDescription": "Zugriff und Berechtigungen verwalten",
     "inviteMember": "Mitglied einladen",
+    "inviteDescription": "Senden Sie eine Arbeitsbereichseinladung mit der passenden Zugriffsstufe.",
+    "inviteEmail": "E-Mail-Adresse",
+    "inviteRole": "Rolle",
+    "inviteSuccess": "Einladung erstellt und die Teamliste wurde aktualisiert.",
     "roles": {
       "viewer": "Betrachter",
       "editor": "Bearbeiter",

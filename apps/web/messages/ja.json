@@ -351,6 +351,7 @@
     "failedToFetchWorkspace": "ワークスペースの取得に失敗しました",
     "failedToUpdateWorkspace": "ワークスペースの更新に失敗しました",
     "failedToFetchTeam": "チームの取得に失敗しました",
+    "failedToInviteMember": "メンバーの招待に失敗しました",
     "failedToUpdateRole": "ロールの更新に失敗しました",
     "failedToRemoveMember": "メンバーの削除に失敗しました",
     "failedToFetchIntegrations": "連携の取得に失敗しました",
@@ -374,6 +375,10 @@
     "teamMembers": "チームメンバー",
     "teamDescription": "アクセス権と権限を管理します",
     "inviteMember": "メンバーを招待",
+    "inviteDescription": "適切なアクセスレベルでワークスペース招待を送信します。",
+    "inviteEmail": "メールアドレス",
+    "inviteRole": "ロール",
+    "inviteSuccess": "招待が作成され、チーム一覧が更新されました。",
     "roles": {
       "viewer": "閲覧者",
       "editor": "編集者",

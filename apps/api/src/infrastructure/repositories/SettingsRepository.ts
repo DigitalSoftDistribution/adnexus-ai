@@ -134,6 +134,29 @@ export class SettingsRepository implements ISettingsRepository {
     }));
   }
 
+  async findUserByEmail(email: string): Promise<{ id: string; email: string } | null> {
+    const { rows } = await query<{ id: string; email: string }>(
+      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email],
+    );
+    return rows[0] ?? null;
+  }
+
+  async createInvitedUser(email: string): Promise<{ id: string; email: string }> {
+    const { rows } = await query<{ id: string; email: string }>(
+      `INSERT INTO users (email, name)
+       VALUES ($1, $2)
+       RETURNING id, email`,
+      [email, email.split('@')[0]],
+    );
+    return rows[0];
+  }
+
+  async findTeamMember(workspaceId: string, userId: string): Promise<TeamMember | null> {
+    const members = await this.getTeamMembers(workspaceId);
+    return members.find((member) => member.userId === userId) ?? null;
+  }
+
   async addTeamMember(workspaceId: string, userId: string, role: WorkspaceRole, invitedBy: string): Promise<TeamMember> {
     const { rows } = await query<{
       id: string;
@@ -146,19 +169,19 @@ export class SettingsRepository implements ISettingsRepository {
       invited_at: string | null;
       joined_at: string;
     }>(
-      `INSERT INTO workspace_members (workspace_id, user_id, role, invited_by, invited_at, joined_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       RETURNING id, user_id, role, invited_by, invited_at, joined_at`,
+      `INSERT INTO workspace_members (workspace_id, user_id, role, invited_by, joined_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id, user_id, role, invited_by, joined_at`,
       [workspaceId, userId, role, invitedBy],
     );
     const member = rows[0];
 
-    // Fetch user details
     const { rows: userRows } = await query<{ name: string | null; email: string; avatar_url: string | null }>(
       `SELECT name, email, avatar_url FROM users WHERE id = $1`,
       [userId],
     );
     const user = userRows[0];
+    const joinedAt = member.joined_at;
 
     return {
       id: member.id,
@@ -168,8 +191,8 @@ export class SettingsRepository implements ISettingsRepository {
       avatarUrl: user?.avatar_url ?? null,
       role: member.role,
       invitedBy: member.invited_by,
-      invitedAt: member.invited_at,
-      joinedAt: member.joined_at,
+      invitedAt: joinedAt,
+      joinedAt,
     };
   }
 

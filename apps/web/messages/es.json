@@ -351,6 +351,7 @@
     "failedToFetchWorkspace": "Error al obtener el espacio de trabajo",
     "failedToUpdateWorkspace": "Error al actualizar el espacio de trabajo",
     "failedToFetchTeam": "Error al obtener el equipo",
+    "failedToInviteMember": "Error al invitar al miembro",
     "failedToUpdateRole": "Error al actualizar el rol",
     "failedToRemoveMember": "Error al eliminar al miembro",
     "failedToFetchIntegrations": "Error al obtener las integraciones",
@@ -374,6 +375,10 @@
     "teamMembers": "Miembros del equipo",
     "teamDescription": "Gestiona el acceso y los permisos",
     "inviteMember": "Invitar a un miembro",
+    "inviteDescription": "Envía una invitación al espacio de trabajo con el nivel de acceso adecuado.",
+    "inviteEmail": "Dirección de email",
+    "inviteRole": "Rol",
+    "inviteSuccess": "Invitación creada y la lista del equipo se ha actualizado.",
     "roles": {
       "viewer": "Lector",
       "editor": "Editor",
