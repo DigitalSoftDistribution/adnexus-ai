@@ -80,7 +80,7 @@ function metricsFromInsight(insight?: GoogleInsight, status?: string): SyncedCam
     spend,
     impressions,
     clicks,
-    ctr: num(insight?.metrics_ctr) || (impressions > 0 ? (clicks / impressions) * 100 : 0),
+    ctr: num(insight?.metrics_ctr) ?? (impressions > 0 ? (clicks / impressions) * 100 : 0),
     conversions,
     cpa: conversions > 0 ? spend / conversions : 0,
     roas: spend > 0 ? conversionValue / spend : 0,
@@ -140,12 +140,12 @@ export class GooglePlatformSyncService implements IPlatformSyncService {
       return { campaigns: [], errors };
     }
 
-    const resourceNames = googleCampaigns.map((campaign) => campaignResourceName(ctx.platformAccountId, campaign));
+        const campaignIds = googleCampaigns.map((campaign) => campaign.id);
     const insightMap = new Map<string, GoogleInsight>();
 
-    if (resourceNames.length > 0) {
+    if (campaignIds.length > 0) {
       try {
-        const insights = await fetchGoogleInsights(resourceNames, token, { start: since, end: until });
+        const insights = await fetchGoogleInsights(campaignIds, token, { start: since, end: until });
         for (const insight of insights) insightMap.set(String(insight.campaign_id), insight);
       } catch (e) {
         errors.push({ scope: 'account', scopeId: ctx.platformAccountId, message: (e as Error).message });
@@ -163,9 +163,9 @@ export class GooglePlatformSyncService implements IPlatformSyncService {
         name: campaign.name,
         status: mapGoogleStatus(campaign.status) ?? 'paused',
         objective: mapGoogleObjective(campaign.advertising_channel_type),
-        dailyBudget: campaign.campaign_budget ? microsToCurrency(campaign.campaign_budget) : null,
+        dailyBudget: null,
         lifetimeBudget: null,
-        budgetType: campaign.campaign_budget ? 'daily' : null,
+        budgetType: null,
         startDate: normalizeDate(campaign.start_date),
         endDate: normalizeDate(campaign.end_date),
         metrics: metricsFromInsight(insight, campaign.status),

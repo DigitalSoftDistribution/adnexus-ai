@@ -115,7 +115,7 @@ describe('GooglePlatformSyncService', () => {
       name: 'Search Growth',
       status: 'active',
       objective: 'sales',
-      dailyBudget: 25,
+      dailyBudget: null,
       metrics: {
         spend: 20,
         impressions: 1000,

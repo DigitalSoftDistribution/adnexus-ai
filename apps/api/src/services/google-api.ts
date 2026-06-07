@@ -192,17 +192,33 @@ async function searchGoogleAds<T>(
   accessToken: string,
   query: string,
 ): Promise<T[]> {
+  const results: T[] = [];
+  let pageToken: string | undefined;
+
   try {
-    const { data } = await axios.post<{
-      results?: T[];
-      total_results_count?: string;
-      field_mask?: string;
-    }>(
-      `${GOOGLE_ADS_API}/customers/${customerId}/googleAds:search`,
-      { query, page_size: 1000 },
-      { headers: googleHeaders(accessToken) },
-    );
-    return data.results ?? [];
+    do {
+      const requestBody: Record<string, unknown> = { query, page_size: 1000 };
+      if (pageToken) requestBody.page_token = pageToken;
+
+      const { data } = await axios.post<{
+        results?: T[];
+        total_results_count?: string;
+        next_page_token?: string;
+        field_mask?: string;
+      }>(
+        `${GOOGLE_ADS_API}/customers/${customerId}/googleAds:search`,
+        requestBody,
+        { headers: googleHeaders(accessToken) },
+      );
+
+      if (data.results) {
+        results.push(...data.results);
+      }
+
+      pageToken = data.next_page_token;
+    } while (pageToken);
+
+    return results;
   } catch (err) {
     const e = err as AxiosError<{ error?: { message?: string; details?: Array<{ errors?: Array<{ message: string }> }> } }>;
     const details = e.response?.data?.error?.details;
@@ -364,7 +380,7 @@ export async function handleGoogleCallback(code: string, workspaceId: string): P
         time_zone: customer.time_zone,
         auto_tagging_enabled: customer.auto_tagging_enabled,
       },
-      created_at: new Date().toISOString(),
+      created_at: '' as unknown as string,
     };
   } catch (err) {
     if (err instanceof PlatformError) throw err;
@@ -965,7 +981,7 @@ export async function normalizeGoogleCampaign(
     start_date: parseDate(campaign.start_date),
     end_date: parseDate(campaign.end_date),
     platform_data: campaign as unknown as Record<string, unknown>,
-    created_at: parseDate(campaign.start_date) ?? new Date().toISOString(),
+    created_at: parseDate(campaign.start_date) ?? '',
   };
 }
 
@@ -983,7 +999,7 @@ export async function normalizeGoogleAdGroup(adGroup: GoogleAdGroup): Promise<Un
     bid_strategy: undefined,
     bid_amount: adGroup.cpc_bid_micros ? microsToCurrency(adGroup.cpc_bid_micros) : undefined,
     targeting: {}, // Would require fetching criteria separately
-    created_at: new Date().toISOString(),
+    created_at: '' as unknown as string,
   };
 }
 
@@ -1022,7 +1038,7 @@ export async function normalizeGoogleAd(ad: GoogleAd): Promise<UnifiedAd> {
     frequency: 0,
     fatigue_score: 0,
     fatigue_status: 'healthy',
-    created_at: new Date().toISOString(),
+    created_at: '' as unknown as string,
   };
 }
 

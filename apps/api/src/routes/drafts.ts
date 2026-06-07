@@ -63,9 +63,11 @@ import {
   type TargetingConfig,
   type Creative,
 } from '../draft-engine/types';
+
 import type { Platform, DraftType, Draft as AppDraft } from '../types';
 import { config } from '../config';
 import { MetaApiClient } from '../platforms/meta/client';
+import { GoogleAdsClient } from '../platforms/google/client';
 
 const router = Router();
 const logger = getModuleLogger('drafts-route');
@@ -276,7 +278,7 @@ function createSupabaseLogStore(): LogStore {
 async function getPlatformClient(platform: AdPlatform, workspaceId: string): Promise<PlatformApiClient> {
   const { data: account } = await supabase
     .from('ad_accounts')
-    .select('oauth_token, platform_account_id')
+    .select('oauth_token, platform_account_id, refresh_token')
     .eq('workspace_id', workspaceId)
     .eq('platform', platform)
     .limit(1)
@@ -287,7 +289,12 @@ async function getPlatformClient(platform: AdPlatform, workspaceId: string): Pro
     throw new PlatformAPIError(platform, `No connected ${platform} account with valid token found`);
   }
 
-  // Create MetaApiClient instance with minimal config (token auth only)
+  // ── Google Ads ──
+  if (platform === AdPlatform.GOOGLE) {
+    return createGooglePlatformClient(account.platform_account_id, token, account.refresh_token);
+  }
+
+  // ── Meta (default) ──
   const metaClient = new MetaApiClient({
     oauth: {
       clientId: config.meta.appId || 'dummy',
@@ -300,6 +307,79 @@ async function getPlatformClient(platform: AdPlatform, workspaceId: string): Pro
   });
   metaClient.setAccessToken(token);
 
+  return makeMetaPlatformClient(metaClient, platform);
+}
+
+function createGooglePlatformClient(
+  platformAccountId: string,
+  accessToken: string,
+  refreshToken?: string | null,
+): PlatformApiClient {
+  const googleClient = new GoogleAdsClient({
+    auth: {
+      clientId: config.google.clientId || 'dummy',
+      clientSecret: config.google.clientSecret || 'dummy',
+      redirectUri: `${config.frontend.url}/auth/google/callback`,
+    },
+    api: {
+      developerToken: config.google.developerToken || 'dummy',
+      baseUrl: config.google.adsApiUrl,
+    },
+    customerId: platformAccountId,
+  });
+
+  // Set tokens directly on the client
+  googleClient.setTokens({
+    access_token: accessToken,
+    refresh_token: refreshToken ?? '',
+    expiry_date: Date.now() + 3600_000,
+    token_type: 'Bearer',
+  });
+
+  return {
+    async getCampaign(externalId: string): Promise<Campaign | null> {
+      try {
+        const campaign = await googleClient.getCampaign(platformAccountId, externalId);
+        if (!campaign) return null;
+        return mapGoogleCampaignToEngineCampaign(campaign, AdPlatform.GOOGLE, externalId);
+      } catch (err) {
+        logger.warn({ err, externalId, platform: AdPlatform.GOOGLE }, 'Failed to fetch campaign from Google');
+        return null;
+      }
+    },
+
+    async updateBudget(externalId: string, budget: CampaignBudget): Promise<void> {
+      const updateData: Record<string, unknown> = {};
+      if (budget.dailyBudget !== undefined) {
+        updateData.dailyBudgetMicros = Math.round(budget.dailyBudget * 1_000_000);
+      }
+      await googleClient.updateCampaign(platformAccountId, externalId, updateData as Record<string, unknown>);
+    },
+
+    async updateStatus(externalId: string, status: EngineCampaignStatus): Promise<void> {
+      const googleStatus = status === 'active' ? 'ENABLED' : 'PAUSED';
+      await googleClient.updateCampaign(platformAccountId, externalId, { status: googleStatus } as Record<string, unknown>);
+    },
+
+    async updateBid(externalId: string, bid: BidStrategy): Promise<void> {
+      if (bid.type && bid.amount) {
+        await googleClient.updateCampaign(platformAccountId, externalId, {
+          cpcBidMicros: Math.round(bid.amount * 1_000_000),
+        } as Record<string, unknown>);
+      }
+    },
+
+    async updateTargeting(_externalId: string, _targeting: TargetingConfig): Promise<void> {
+      throw new Error('Targeting update via campaign-level not supported on Google. Use ad group or campaign-level targeting via dedicated endpoints.');
+    },
+
+    async updateCreatives(_externalId: string, _creatives: Creative[]): Promise<void> {
+      throw new Error('Creative update via campaign-level not supported on Google. Use ad-level draft.');
+    },
+  };
+}
+
+function makeMetaPlatformClient(metaClient: MetaApiClient, platform: AdPlatform): PlatformApiClient {
   return {
     async getCampaign(externalId: string): Promise<Campaign | null> {
       try {
@@ -600,7 +680,38 @@ function mapDbCampaignToEngineCampaign(db: Record<string, unknown>): Campaign {
     updatedAt: new Date(db.updated_at as string ?? db.created_at as string),
   };
 }
-
+function mapGoogleCampaignToEngineCampaign(
+  campaign: unknown,
+  _platform: AdPlatform,
+  externalId: string,
+): Campaign {
+  const c = campaign as Record<string, unknown>;
+  const status = (c.status === "ENABLED" ? "active" : "paused") as Campaign["status"];
+  return {
+    id: (c.id as string) ?? externalId,
+    externalId,
+    platform: _platform,
+    name: (c.name as string) ?? "",
+    status,
+    budget: {
+      dailyBudget: 0,
+      lifetimeBudget: 0,
+      budgetType: "daily" as const,
+      currency: "USD",
+    },
+    bidStrategy: {
+      type: "cpc" as const,
+    },
+    targeting: {
+      audiences: [],
+    },
+    creatives: [],
+    accountId: "",
+    organizationId: "",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 function mapPlatformCampaignToEngineCampaign(
   platformCampaign: Record<string, unknown>,
   platform: AdPlatform,

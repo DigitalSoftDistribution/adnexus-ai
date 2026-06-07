@@ -96,15 +96,36 @@ class PlatformClientAdapter implements PlatformClient {
   // ── Auth / health (real) ─────────────────────────────────────────────────
 
   async refreshToken(): Promise<TokenRefreshResult> {
-    // Without a live OAuth refresh round-trip we keep the stored token; the
-    // OAuth callbacks own re-issuance. Report the current token + expiry.
+    // For Google, use the actual OAuth refresh path (googleToken module).
+    // Other platforms fall back to the stored-token snapshot.
+    if (this.platform === 'google' && this.account.refreshToken) {
+      try {
+        // Dynamic import avoids a hard dependency at module-init time
+        const { refreshGoogleToken, validateGoogleToken } = await import('../services/google-api');
+        const valid = await validateGoogleToken(this.account.accessToken);
+        if (!valid) {
+          const refreshed = await refreshGoogleToken(this.account.refreshToken);
+          return {
+            accountId: this.account.id,
+            platform: this.platform,
+            accessToken: refreshed.accessToken,
+            expiresAt: refreshed.expiresAt.toISOString(),
+            refreshed: true,
+          };
+        }
+      } catch (e) {
+        // Token refresh failed — fall through to the stored-token path below
+        console.warn('[PlatformClientAdapter] Google token refresh failed:', (e as Error).message);
+      }
+    }
+    // Stored-token snapshot fallback for all platforms
     return {
       accountId: this.account.id,
       platform: this.platform,
       accessToken: this.account.accessToken,
       expiresAt:
         this.account.tokenExpiresAt ?? new Date(Date.now() + 3600_000).toISOString(),
-      refreshed: Boolean(this.account.accessToken),
+      refreshed: false,
     };
   }
 
