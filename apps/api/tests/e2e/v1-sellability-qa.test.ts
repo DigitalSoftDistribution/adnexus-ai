@@ -171,15 +171,14 @@ describe('E2E: V1 sellability QA smoke matrix (SB-3099)', () => {
   });
 
   it('pins draft approval truth separate from live execution', async () => {
-    const campaign = await createTestCampaign({ workspaceId: workspace.id, ownerId: owner.id, name: 'Sellability Prospecting' });
-    const draft = await createTestDraft({
-      workspaceId: workspace.id,
+    const campaign = await createTestCampaign(workspace.id, { name: 'Sellability Prospecting' });
+    const draft = await createTestDraft(workspace.id, {
       campaignId: campaign.id,
       status: 'pending',
       draftType: 'budget_change',
       changeSummary: 'Increase daily budget by 10%',
-      before: { budget: 100 },
-      after: { budget: 110 },
+      changeDetail: { field: 'daily_budget', old_value: 100, new_value: 110 },
+      actorId: owner.id,
     });
     mockFrom.mockImplementation(buildE2EMockFrom());
 
