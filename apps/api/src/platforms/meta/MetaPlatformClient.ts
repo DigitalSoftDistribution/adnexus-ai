@@ -13,7 +13,7 @@
  */
 
 import { MetaApiClient, MetaMarketingError } from './client';
-import type { MetaCampaign, MetaAd, MetaAdCreative, MetaInsight, CreateCampaignData, UpdateCampaignData, CreateAdData, MetaClientConfig } from './types';
+import type { MetaCampaign, MetaAd, MetaAdCreative, MetaAdStatus, MetaInsight, CreateCampaignData, UpdateCampaignData, CreateAdData, MetaClientConfig } from './types';
 import { PlatformAPIError, wrapError } from '../errors';
 import type {
   Platform,
