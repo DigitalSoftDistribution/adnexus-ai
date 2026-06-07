@@ -1,20 +1,28 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
+  Activity,
   AlertCircle,
   ArrowRight,
   BarChart3,
+  Bell,
   CheckCircle2,
+  Clock,
   DollarSign,
+  FileEdit,
   Lightbulb,
   MousePointer,
   Radio,
   RefreshCw,
+  ShieldCheck,
+  Sparkles,
   Target,
   Users,
+  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -24,11 +32,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/charts/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { formatCurrency, formatCompact } from "@/lib/utils";
@@ -78,6 +88,58 @@ interface SyncJob {
   errorCount: number;
   startedAt: string;
   finishedAt: string | null;
+}
+
+interface Draft {
+  id: string;
+  changeSummary: string;
+  draftType: string;
+  status: string;
+  actorType: string;
+  actorName: string | null;
+  campaignName: string | null;
+  createdAt: string;
+}
+
+interface AlertRule {
+  id: string;
+  name: string;
+  condition: string;
+  severity: "critical" | "warning" | "info";
+  status: "active" | "paused";
+  lastTriggered: string | null;
+}
+
+interface Recommendation {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  campaignId: string | null;
+  platform: string;
+  estimatedImpact: string;
+  confidence: "high" | "medium" | "low" | string;
+  priority: number;
+  status: "pending" | "applied" | "dismissed";
+  reasoning: string;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  priority: "low" | "medium" | "high" | "critical";
+  read: boolean;
+  createdAt: string;
+}
+
+interface NotificationList {
+  notifications: NotificationItem[];
+  total: number;
+  unreadCount: number;
 }
 
 function apiErrorMessage(body: unknown, fallback: string): string {
@@ -133,6 +195,57 @@ function useSyncJobs(accountId: string | null | undefined) {
   });
 }
 
+function useDrafts() {
+  return useQuery({
+    queryKey: ["drafts", "list"],
+    queryFn: async (): Promise<Draft[]> => {
+      const res = await fetch("/api/v2/drafts");
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(apiErrorMessage(body, "Failed to fetch drafts"));
+      return body.data?.drafts ?? [];
+    },
+  });
+}
+
+function useAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "list"],
+    queryFn: async (): Promise<AlertRule[]> => {
+      const res = await fetch("/api/v2/alerts");
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(apiErrorMessage(body, "Failed to fetch alerts"));
+      return body.data?.alerts ?? [];
+    },
+  });
+}
+
+function useRecommendations() {
+  return useQuery({
+    queryKey: ["agent", "recommendations"],
+    queryFn: async (): Promise<Recommendation[]> => {
+      const res = await fetch("/api/v2/agent/recommendations");
+      const body = await res.json().catch(() => null);
+      if (!res.ok)
+        throw new Error(apiErrorMessage(body, "Failed to fetch recommendations"));
+      return body.data ?? [];
+    },
+  });
+}
+
+function useNotifications() {
+  return useQuery({
+    queryKey: ["notifications", "dashboard"],
+    queryFn: async (): Promise<NotificationList> => {
+      const res = await fetch("/api/v2/notifications?limit=5");
+      const body = await res.json().catch(() => null);
+      if (!res.ok)
+        throw new Error(apiErrorMessage(body, "Failed to load notifications"));
+      return body.data;
+    },
+    refetchInterval: 60_000,
+  });
+}
+
 export function DashboardContent() {
   const { data: summary, isLoading, error } = useCampaignSummary();
   const {
@@ -140,16 +253,16 @@ export function DashboardContent() {
     isLoading: integrationsLoading,
     error: integrationsError,
   } = useIntegrations();
+  const drafts = useDrafts();
+  const alerts = useAlerts();
+  const recommendations = useRecommendations();
+  const notifications = useNotifications();
   const { isConnected } = useSSE();
   const t = useTranslations("dashboard");
   const tc = useTranslations("common");
 
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <DashboardLoadingState />;
   }
 
   if (error) {
@@ -178,8 +291,6 @@ export function DashboardContent() {
     </div>
   );
 
-  // New-workspace zero state: a loaded summary with no campaigns means there is
-  // nothing connected/synced yet. Guide the user instead of showing zero KPIs.
   if (summary && summary.totalCampaigns === 0) {
     return (
       <DashboardFirstValueState
@@ -198,8 +309,6 @@ export function DashboardContent() {
     clicks: p.clicks,
   }));
 
-  // Honest period-over-period delta: latest 7 days vs the prior 7 days. Returns
-  // undefined when there isn't enough data, so StatCard hides the badge.
   function deltaFor(
     key: "spend" | "impressions" | "clicks" | "conversions",
   ): number | undefined {
@@ -217,13 +326,88 @@ export function DashboardContent() {
     }),
   );
 
+  const connectedIntegrations = (integrations ?? []).filter((i) => i.connected);
+  const pendingDrafts = (drafts.data ?? []).filter((d) => d.status === "pending");
+  const activeAlerts = (alerts.data ?? []).filter((a) => a.status === "active");
+  const criticalAlerts = activeAlerts.filter((a) => a.severity === "critical");
+  const pendingRecs = (recommendations.data ?? []).filter(
+    (r) => r.status === "pending",
+  );
+  const lastSynced = connectedIntegrations
+    .filter((i) => i.lastSyncedAt)
+    .sort(
+      (a, b) =>
+        new Date(b.lastSyncedAt ?? 0).getTime() -
+        new Date(a.lastSyncedAt ?? 0).getTime(),
+    )[0]?.lastSyncedAt;
+  const staleAccounts = connectedIntegrations.filter((i) => isStale(i.lastSyncedAt));
+  const hasAttention =
+    pendingDrafts.length > 0 || criticalAlerts.length > 0 || pendingRecs.length > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("title")}
-        description={t("description")}
+        title={t("commandCenterTitle")}
+        description={t("commandCenterDescription")}
         actions={connectionBadge}
       />
+
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.95fr]">
+        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                  {t("accountHealthTitle")}
+                </CardTitle>
+                <CardDescription>{t("accountHealthDescription")}</CardDescription>
+              </div>
+              <HealthBadge
+                connected={connectedIntegrations.length}
+                stale={staleAccounts.length}
+                alerts={criticalAlerts.length}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <CommandMetric
+              icon={<BarChart3 className="h-4 w-4" />}
+              label={t("campaignCoverage")}
+              value={`${summary?.activeCount ?? 0}/${summary?.totalCampaigns ?? 0}`}
+              detail={t("activePaused", { count: summary?.pausedCount ?? 0 })}
+            />
+            <CommandMetric
+              icon={<Activity className="h-4 w-4" />}
+              label={t("connectedAccounts")}
+              value={String(connectedIntegrations.length)}
+              detail={
+                connectedIntegrations.length > 0
+                  ? connectedIntegrations.map((i) => i.label).join(", ")
+                  : t("noConnectedAccounts")
+              }
+            />
+            <CommandMetric
+              icon={<Clock className="h-4 w-4" />}
+              label={t("dataFreshnessShort")}
+              value={lastSynced ? relativeSyncLabel(lastSynced) : t("unknownFreshness")}
+              detail={
+                staleAccounts.length > 0
+                  ? t("staleAccounts", { count: staleAccounts.length })
+                  : t("freshnessLooksGood")
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <NextBestActionCard
+          hasAttention={hasAttention}
+          pendingDrafts={pendingDrafts.length}
+          criticalAlerts={criticalAlerts.length}
+          pendingRecs={pendingRecs.length}
+          staleAccounts={staleAccounts.length}
+        />
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -262,6 +446,92 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
+        <OperationalQueueCard
+          title={t("pendingApprovalsTitle")}
+          description={t("pendingApprovalsDescription")}
+          icon={<FileEdit className="h-5 w-5 text-primary" />}
+          count={pendingDrafts.length}
+          loading={drafts.isLoading}
+          error={drafts.error as Error | null}
+          emptyTitle={t("noPendingApprovals")}
+          emptyDescription={t("noPendingApprovalsDescription")}
+          href="/dashboard/drafts"
+          cta={t("reviewDrafts")}
+        >
+          {pendingDrafts.slice(0, 3).map((draft) => (
+            <QueueItem
+              key={draft.id}
+              title={draft.changeSummary}
+              meta={draft.campaignName ?? draft.draftType.replace(/_/g, " ")}
+              badge={draft.actorType === "ai" ? "AI" : draft.status}
+            />
+          ))}
+        </OperationalQueueCard>
+
+        <OperationalQueueCard
+          title={t("alertsSummaryTitle")}
+          description={t("alertsSummaryDescription")}
+          icon={<Bell className="h-5 w-5 text-warning" />}
+          count={activeAlerts.length}
+          loading={alerts.isLoading || notifications.isLoading}
+          error={(alerts.error ?? notifications.error) as Error | null}
+          emptyTitle={t("noActiveAlerts")}
+          emptyDescription={t("noActiveAlertsDescription")}
+          href="/dashboard/alerts"
+          cta={t("manageAlerts")}
+        >
+          {activeAlerts.slice(0, 2).map((alert) => (
+            <QueueItem
+              key={alert.id}
+              title={alert.name}
+              meta={alert.condition}
+              badge={alert.severity}
+              tone={alert.severity === "critical" ? "destructive" : "warning"}
+            />
+          ))}
+          {(notifications.data?.notifications ?? [])
+            .filter((n) => !n.read)
+            .slice(0, Math.max(0, 3 - activeAlerts.slice(0, 2).length))
+            .map((n) => (
+              <QueueItem
+                key={n.id}
+                title={n.title}
+                meta={n.message}
+                badge={n.priority}
+                tone={n.priority === "critical" ? "destructive" : "default"}
+              />
+            ))}
+        </OperationalQueueCard>
+
+        <OperationalQueueCard
+          title={t("recommendationsTitle")}
+          description={t("recommendationsDescription")}
+          icon={<Sparkles className="h-5 w-5 text-primary" />}
+          count={pendingRecs.length}
+          loading={recommendations.isLoading}
+          error={recommendations.error as Error | null}
+          emptyTitle={t("noRecommendations")}
+          emptyDescription={t("noRecommendationsDescription")}
+          href="/dashboard/ai-agent"
+          cta={t("openAgent")}
+        >
+          {pendingRecs.slice(0, 3).map((rec) => (
+            <QueueItem
+              key={rec.id}
+              title={rec.title}
+              meta={rec.estimatedImpact || rec.description}
+              badge={rec.confidence}
+            />
+          ))}
+        </OperationalQueueCard>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <DataFreshnessCard
+          integrations={integrations ?? []}
+          loading={integrationsLoading}
+          error={integrationsError as Error | null}
+        />
         {chartData.length > 0 ? (
           <ChartCard
             className="lg:col-span-2"
@@ -291,7 +561,9 @@ export function DashboardContent() {
             </CardContent>
           </Card>
         )}
+      </div>
 
+      <div className="grid gap-4 lg:grid-cols-3">
         {platformData.length > 0 ? (
           <ChartCard
             title={t("platformBreakdown")}
@@ -313,27 +585,326 @@ export function DashboardContent() {
             </CardContent>
           </Card>
         )}
+        <StatCard title={t("avgCtr")} value={`${((summary?.avgCtr ?? 0) * 100).toFixed(2)}%`} />
+        <StatCard title={t("avgRoas")} value={`${(summary?.avgRoas ?? 0).toFixed(2)}x`} />
       </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          title={t("avgCtr")}
-          value={`${((summary?.avgCtr ?? 0) * 100).toFixed(2)}%`}
-        />
-        <StatCard
-          title={t("avgCpa")}
-          value={formatCurrency(summary?.avgCpa ?? 0)}
-        />
-        <StatCard
-          title={t("avgRoas")}
-          value={`${(summary?.avgRoas ?? 0).toFixed(2)}x`}
-        />
-      </div>
-
-      {summary ? (
-        <FirstInsightCard summary={summary} integrations={integrations ?? []} />
-      ) : null}
     </div>
+  );
+}
+
+function DashboardLoadingState() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1.45fr_0.95fr]">
+        <Skeleton className="h-48" />
+        <Skeleton className="h-48" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-32" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HealthBadge({
+  connected,
+  stale,
+  alerts,
+}: {
+  connected: number;
+  stale: number;
+  alerts: number;
+}) {
+  const t = useTranslations("dashboard");
+  if (alerts > 0) return <Badge variant="destructive">{t("needsAttention")}</Badge>;
+  if (connected === 0 || stale > 0) return <Badge variant="warning">{t("reviewData")}</Badge>;
+  return <Badge variant="success">{t("healthy")}</Badge>;
+}
+
+function CommandMetric({
+  icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-background/70 p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <span className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</span>
+        {label}
+      </div>
+      <div className="text-2xl font-semibold tracking-tight">{value}</div>
+      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
+function NextBestActionCard({
+  hasAttention,
+  pendingDrafts,
+  criticalAlerts,
+  pendingRecs,
+  staleAccounts,
+}: {
+  hasAttention: boolean;
+  pendingDrafts: number;
+  criticalAlerts: number;
+  pendingRecs: number;
+  staleAccounts: number;
+}) {
+  const t = useTranslations("dashboard");
+  const action = useMemo(() => {
+    if (criticalAlerts > 0) {
+      return {
+        title: t("nbaCriticalAlertsTitle"),
+        description: t("nbaCriticalAlertsDescription", { count: criticalAlerts }),
+        href: "/dashboard/alerts" as const,
+        cta: t("manageAlerts"),
+        icon: <AlertCircle className="h-5 w-5 text-destructive" />,
+      };
+    }
+    if (pendingDrafts > 0) {
+      return {
+        title: t("nbaDraftsTitle"),
+        description: t("nbaDraftsDescription", { count: pendingDrafts }),
+        href: "/dashboard/drafts" as const,
+        cta: t("reviewDrafts"),
+        icon: <FileEdit className="h-5 w-5 text-primary" />,
+      };
+    }
+    if (pendingRecs > 0) {
+      return {
+        title: t("nbaRecommendationsTitle"),
+        description: t("nbaRecommendationsDescription", { count: pendingRecs }),
+        href: "/dashboard/ai-agent" as const,
+        cta: t("openAgent"),
+        icon: <Sparkles className="h-5 w-5 text-primary" />,
+      };
+    }
+    if (staleAccounts > 0) {
+      return {
+        title: t("nbaSyncTitle"),
+        description: t("nbaSyncDescription", { count: staleAccounts }),
+        href: "/dashboard/integrations" as const,
+        cta: t("reviewIntegrations"),
+        icon: <RefreshCw className="h-5 w-5 text-warning" />,
+      };
+    }
+    return {
+      title: t("nbaEmptyTitle"),
+      description: t("nbaEmptyDescription"),
+      href: "/dashboard/campaigns" as const,
+      cta: t("viewCampaignsCta"),
+      icon: <Zap className="h-5 w-5 text-success" />,
+    };
+  }, [criticalAlerts, pendingDrafts, pendingRecs, staleAccounts, t]);
+
+  return (
+    <Card className={hasAttention ? "border-primary/20" : "border-success/20"}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {action.icon}
+          {t("nextBestAction")}
+        </CardTitle>
+        <CardDescription>{t("nextBestActionDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-xl border bg-muted/30 p-4">
+          <p className="font-medium">{action.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{action.description}</p>
+        </div>
+        <Button asChild className="w-full sm:w-auto">
+          <Link href={action.href}>
+            {action.cta}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function OperationalQueueCard({
+  title,
+  description,
+  icon,
+  count,
+  loading,
+  error,
+  emptyTitle,
+  emptyDescription,
+  href,
+  cta,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  count: number;
+  loading: boolean;
+  error: Error | null;
+  emptyTitle: string;
+  emptyDescription: string;
+  href: "/dashboard/drafts" | "/dashboard/alerts" | "/dashboard/ai-agent";
+  cta: string;
+  children: ReactNode;
+}) {
+  const tc = useTranslations("common");
+  return (
+    <Card className="min-h-[300px]">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              {icon}
+              {title}
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Badge variant={count > 0 ? "default" : "secondary"}>{count}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        ) : error ? (
+          <ErrorState
+            title={tc("error")}
+            description={error.message}
+            retryLabel={tc("retry")}
+          />
+        ) : count > 0 ? (
+          <>
+            <div className="space-y-2">{children}</div>
+            <Button asChild size="sm" variant="outline" className="mt-2">
+              <Link href={href}>{cta}</Link>
+            </Button>
+          </>
+        ) : (
+          <div className="rounded-xl border border-dashed p-4 text-center">
+            <p className="font-medium">{emptyTitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{emptyDescription}</p>
+            <Button asChild size="sm" variant="outline" className="mt-4">
+              <Link href={href}>{cta}</Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function QueueItem({
+  title,
+  meta,
+  badge,
+  tone = "default",
+}: {
+  title: string;
+  meta: string;
+  badge: string;
+  tone?: "default" | "warning" | "destructive";
+}) {
+  return (
+    <div className="rounded-lg border bg-background/70 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="line-clamp-2 text-sm font-medium">{title}</p>
+        <Badge
+          variant={
+            tone === "destructive"
+              ? "destructive"
+              : tone === "warning"
+                ? "warning"
+                : "secondary"
+          }
+          className="shrink-0 capitalize"
+        >
+          {badge}
+        </Badge>
+      </div>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{meta}</p>
+    </div>
+  );
+}
+
+function DataFreshnessCard({
+  integrations,
+  loading,
+  error,
+}: {
+  integrations: IntegrationView[];
+  loading: boolean;
+  error: Error | null;
+}) {
+  const t = useTranslations("dashboard");
+  const tc = useTranslations("common");
+  const connected = integrations.filter((i) => i.connected);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <RefreshCw className="h-5 w-5 text-primary" />
+          {t("dataFreshnessTitle")}
+        </CardTitle>
+        <CardDescription>{t("dataFreshnessDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <>
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+          </>
+        ) : error ? (
+          <ErrorState title={tc("error")} description={error.message} />
+        ) : connected.length > 0 ? (
+          connected.slice(0, 4).map((integration) => (
+            <div
+              key={integration.id ?? integration.platform}
+              className="flex items-center justify-between gap-3 rounded-lg border p-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {integration.accountName ?? integration.label}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {integration.lastSyncedAt
+                    ? t("lastSynced", { date: formatShortDate(integration.lastSyncedAt) })
+                    : t("neverSynced")}
+                </p>
+              </div>
+              <Badge variant={isStale(integration.lastSyncedAt) ? "warning" : "success"}>
+                {isStale(integration.lastSyncedAt) ? t("stale") : t("fresh")}
+              </Badge>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed p-4 text-center">
+            <p className="font-medium">{t("noConnectedAccounts")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("connectForFreshness")}</p>
+            <Button asChild size="sm" variant="outline" className="mt-4">
+              <Link href="/dashboard/integrations">{t("reviewIntegrations")}</Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -386,20 +957,14 @@ function DashboardFirstValueState({
     current = "done";
 
   const lastSyncLabel = firstConnected?.lastSyncedAt
-    ? t("lastSynced", {
-        date: new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }).format(new Date(firstConnected.lastSyncedAt)),
-      })
+    ? t("lastSynced", { date: formatShortDate(firstConnected.lastSyncedAt) })
     : t("neverSynced");
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("title")}
-        description={t("description")}
+        title={t("commandCenterTitle")}
+        description={t("commandCenterDescription")}
         actions={connectionBadge}
       />
 
@@ -443,9 +1008,7 @@ function DashboardFirstValueState({
                 </span>
               ) : (
                 <Button asChild size="sm">
-                  <a href="/dashboard/integrations">
-                    {t("connectMetaCta")}
-                  </a>
+                  <a href="/dashboard/integrations">{t("connectMetaCta")}</a>
                 </Button>
               )
             }
@@ -453,7 +1016,7 @@ function DashboardFirstValueState({
           <FirstValueStep
             done={Boolean(
               latestJob?.status === "completed" &&
-              latestJob.campaignsSynced > 0,
+                latestJob.campaignsSynced > 0,
             )}
             active={current === "sync"}
             icon={<RefreshCw className="h-4 w-4" />}
@@ -576,70 +1139,26 @@ function FirstValueStep({
   );
 }
 
-function FirstInsightCard({
-  summary,
-  integrations,
-}: {
-  summary: CampaignSummary;
-  integrations: IntegrationView[];
-}) {
-  const t = useTranslations("dashboard");
-  const lastSynced = integrations
-    .filter((i) => i.lastSyncedAt)
-    .sort(
-      (a, b) =>
-        new Date(b.lastSyncedAt ?? 0).getTime() -
-        new Date(a.lastSyncedAt ?? 0).getTime(),
-    )[0]?.lastSyncedAt;
+function isStale(date: string | null): boolean {
+  if (!date) return true;
+  const ageMs = Date.now() - new Date(date).getTime();
+  return ageMs > 36 * 60 * 60 * 1000;
+}
 
-  const insight = (() => {
-    if (summary.totalCampaigns === 0) return t("insightNoCampaigns");
-    if (summary.totalSpend === 0) return t("insightNoSpend");
-    if (summary.avgRoas > 0)
-      return t("insightRoas", { roas: summary.avgRoas.toFixed(2) });
-    if (summary.avgCpa > 0)
-      return t("insightCpa", { cpa: formatCurrency(summary.avgCpa) });
-    return t("insightMonitor");
-  })();
-
-  const action =
-    summary.avgRoas > 0 && summary.avgRoas < 1.5
-      ? t("recommendedActionRoas")
-      : summary.avgCtr > 0 && summary.avgCtr < 0.01
-        ? t("recommendedActionCtr")
-        : t("recommendedActionReview");
-
-  return (
-    <Card className="border-primary/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
-          {t("firstInsightTitle")}
-        </CardTitle>
-        <CardDescription>
-          {lastSynced
-            ? t("dataFreshness", {
-                date: new Intl.DateTimeFormat("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }).format(new Date(lastSynced)),
-              })
-            : t("dataFreshnessUnknown")}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="space-y-2">
-          <p className="text-sm font-medium">{insight}</p>
-          <p className="text-sm text-muted-foreground">{action}</p>
-        </div>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/dashboard/campaigns">
-            {t("viewCampaignsCta")}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+function relativeSyncLabel(date: string): string {
+  const diffHours = Math.max(
+    0,
+    Math.round((Date.now() - new Date(date).getTime()) / (60 * 60 * 1000)),
   );
+  if (diffHours < 1) return "<1h";
+  if (diffHours < 24) return `${diffHours}h`;
+  return `${Math.round(diffHours / 24)}d`;
+}
+
+function formatShortDate(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
 }
