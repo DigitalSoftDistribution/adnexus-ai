@@ -31,6 +31,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { supabase } from './lib/supabase';
 import { isRedisAvailable, closeRedis } from './lib/redis';
 import { register, getMetrics } from './lib/monitoring';
+import { getRecentSyncHistory, getSchedulerStatus, startBackgroundSchedulers, stopBackgroundSchedulers } from './workers/scheduler';
 
 // ─── Route imports ───────────────────────────────────────────
 
@@ -208,6 +209,16 @@ app.get('/metrics', async (_req: Request, res: Response) => {
   }
 });
 
+app.get('/scheduler/status', (_req: Request, res: Response) => {
+  res.status(200).json(getSchedulerStatus());
+});
+
+app.get('/sync/history', async (req: Request, res: Response) => {
+  const limit = Number.parseInt(String(req.query.limit ?? '10'), 10);
+  const items = await getRecentSyncHistory(Number.isFinite(limit) ? limit : 10);
+  res.status(200).json({ items });
+});
+
 // ─── Public Routes (unauthenticated rate limiting) ───────────
 
 app.use('/api/v1/auth', unauthenticatedRateLimiter, authRoutes);
@@ -352,17 +363,11 @@ const server = isTestEnv
         'AdNexus API server started',
       );
 
-      // Start background workers when Redis is available
-      if (isRedisAvailable()) {
-        try {
-          const { startMorningBriefScheduler } = await import('./workers/morning-brief');
-          await startMorningBriefScheduler();
-          loggerApp.info('Morning brief scheduler started');
-        } catch (err) {
-          loggerApp.error({ err }, 'Failed to start morning brief scheduler');
-        }
-      } else {
-        loggerApp.info('Redis not available, skipping background workers');
+      try {
+        const status = await startBackgroundSchedulers();
+        loggerApp.info({ scheduler: status }, 'Background scheduler startup evaluated');
+      } catch (err) {
+        loggerApp.error({ err }, 'Failed to evaluate background scheduler startup');
       }
     });
 
@@ -391,6 +396,13 @@ function gracefulShutdown(signal: string): void {
   // Stop accepting new HTTP connections
   const onClosed = async () => {
     loggerApp.info('HTTP server closed, cleaning up resources...');
+
+    try {
+      await stopBackgroundSchedulers();
+      loggerApp.info('Background schedulers stopped');
+    } catch (err) {
+      loggerApp.error({ err }, 'Error stopping background schedulers');
+    }
 
     try {
       await closeRedis();

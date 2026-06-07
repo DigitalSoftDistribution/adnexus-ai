@@ -37,6 +37,13 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string().url().optional(),
 
+  // Background jobs are opt-in in production to avoid accidental broad cron enablement.
+  BACKGROUND_JOBS_ENABLED: z.string().default('false'),
+  BACKGROUND_MORNING_BRIEF_ENABLED: z.string().default('true'),
+  BACKGROUND_SCHEDULED_REPORTS_ENABLED: z.string().default('true'),
+  BACKGROUND_AI_ANALYSIS_ENABLED: z.string().default('false'),
+  BACKGROUND_SCHEDULED_REPORTS_CRON: z.string().default('*/15 * * * *'),
+
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
 
@@ -135,6 +142,14 @@ export const config = {
 
   redis: {
     url: env.REDIS_URL,
+  },
+
+  backgroundJobs: {
+    enabled: env.BACKGROUND_JOBS_ENABLED === 'true',
+    morningBriefEnabled: env.BACKGROUND_MORNING_BRIEF_ENABLED === 'true',
+    scheduledReportsEnabled: env.BACKGROUND_SCHEDULED_REPORTS_ENABLED === 'true',
+    aiAnalysisEnabled: env.BACKGROUND_AI_ANALYSIS_ENABLED === 'true',
+    scheduledReportsCron: env.BACKGROUND_SCHEDULED_REPORTS_CRON,
   },
 
   cors: {

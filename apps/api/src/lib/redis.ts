@@ -25,5 +25,6 @@ export async function closeRedis(): Promise<void> {
 }
 
 export function isRedisAvailable(): boolean {
-  return redisClient?.status === 'ready';
+  const client = getRedisClient();
+  return client?.status === 'ready';
 }
