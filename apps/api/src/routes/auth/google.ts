@@ -17,11 +17,107 @@ import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCa
 const router = Router();
 
 const GOOGLE_OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+function googleTokenUrl(): string {
+  return config.google.oauthTokenUrl;
+}
+
+function googleAdsApiBaseUrl(): string {
+  return `${config.google.adsApiBaseUrl.replace(/\/$/, '')}/v16`;
+}
 
 const REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/adwords',
 ];
+
+interface GoogleTokenPayload {
+  access_token: string;
+  refresh_token?: string;
+  expires_in: number;
+  token_type: string;
+  scope?: string;
+}
+
+interface GoogleAccessibleCustomerDetails {
+  id: string;
+  descriptiveName?: string;
+  currencyCode?: string;
+  timeZone?: string;
+}
+
+function extractGoogleCustomerId(resourceName: string): string {
+  const match = resourceName.match(/customers\/(\d+)/);
+  return match?.[1] ?? resourceName;
+}
+
+function googleHeaders(accessToken: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    'developer-token': config.google.developerToken,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function listAccessibleGoogleCustomers(accessToken: string): Promise<string[]> {
+  const response = await fetch(`${googleAdsApiBaseUrl()}/customers:listAccessibleCustomers`, {
+    headers: googleHeaders(accessToken),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    logger.warn({ status: response.status, body }, 'Google accessible customers fetch failed');
+    return [];
+  }
+
+  const data = await response.json() as { resourceNames?: string[]; resource_names?: string[] };
+  return data.resourceNames ?? data.resource_names ?? [];
+}
+
+async function getGoogleCustomerDetails(accessToken: string, customerId: string): Promise<GoogleAccessibleCustomerDetails> {
+  const response = await fetch(`${googleAdsApiBaseUrl()}/customers/${customerId}/googleAds:search`, {
+    method: 'POST',
+    headers: googleHeaders(accessToken),
+    body: JSON.stringify({
+      query: 'SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone FROM customer',
+      page_size: 1,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    logger.warn({ status: response.status, body, customerId }, 'Google customer details fetch failed');
+    return { id: customerId };
+  }
+
+  const data = await response.json() as {
+    results?: Array<{
+      customer?: {
+        id?: string;
+        descriptiveName?: string;
+        descriptive_name?: string;
+        currencyCode?: string;
+        currency_code?: string;
+        timeZone?: string;
+        time_zone?: string;
+      };
+    }>;
+  };
+  const customer = data.results?.[0]?.customer;
+  return {
+    id: customer?.id ?? customerId,
+    descriptiveName: customer?.descriptiveName ?? customer?.descriptive_name,
+    currencyCode: customer?.currencyCode ?? customer?.currency_code,
+    timeZone: customer?.timeZone ?? customer?.time_zone,
+  };
+}
+
+async function resolveGoogleAccessibleAccounts(accessToken: string): Promise<GoogleAccessibleCustomerDetails[]> {
+  const resources = await listAccessibleGoogleCustomers(accessToken);
+  const customerIds = resources.map(extractGoogleCustomerId).filter(Boolean);
+  if (customerIds.length === 0) return [{ id: 'google-ads' }];
+
+  const details = await Promise.all(customerIds.map((id) => getGoogleCustomerDetails(accessToken, id)));
+  return details.length > 0 ? details : [{ id: customerIds[0] ?? 'google-ads' }];
+}
 
 /**
  * GET /api/v1/auth/google/connect
@@ -115,7 +211,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     const redirectUri = oauthCallbackUrl('google');
 
     // Exchange code for tokens
-    const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+    const tokenResponse = await fetch(googleTokenUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -134,13 +230,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    const tokens = await tokenResponse.json() as {
-      access_token: string;
-      refresh_token?: string;
-      expires_in: number;
-      token_type: string;
-      scope: string;
-    };
+    const tokens = await tokenResponse.json() as GoogleTokenPayload;
 
     if (!tokens.access_token) {
       logger.error({ body: tokens }, 'Google token exchange returned no access token');
@@ -148,32 +238,44 @@ router.get('/callback', async (req: Request, res: Response) => {
       return;
     }
 
-    // Store the Google ad account in the database. The Google Ads customer ID
-    // is resolved out-of-band; until then use a stable per-workspace key so
-    // reconnects upsert cleanly against the canonical unique constraint.
-    const { error: dbError } = await supabase
-      .from('ad_accounts')
-      .upsert({
-        workspace_id: workspaceId,
-        platform: 'google',
-        platform_account_id: 'google-ads',
-        name: 'Google Ads',
-        oauth_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || null,
-        token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-        scopes: tokens.scope?.split(' ') || REQUIRED_SCOPES,
-        status: 'active',
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id,platform,platform_account_id' });
+    const accounts = await resolveGoogleAccessibleAccounts(tokens.access_token);
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    const scopes = tokens.scope?.split(' ').filter(Boolean) || REQUIRED_SCOPES;
+    const connectedAccounts: string[] = [];
 
-    if (dbError) {
-      logger.error({ err: dbError }, 'Failed to store Google tokens');
-      res.status(500).json({ error: 'Failed to store credentials', code: 'DB_ERROR' });
-      return;
+    for (const account of accounts) {
+      const { error: dbError } = await supabase
+        .from('ad_accounts')
+        .upsert({
+          workspace_id: workspaceId,
+          platform: 'google',
+          platform_account_id: account.id,
+          name: account.descriptiveName || `Google Ads ${account.id}`,
+          oauth_token: tokens.access_token,
+          refresh_token: tokens.refresh_token || null,
+          token_expires_at: expiresAt,
+          scopes,
+          status: 'active',
+          is_active: true,
+          metadata: {
+            accountName: account.descriptiveName || `Google Ads ${account.id}`,
+            currency: account.currencyCode,
+            timezone: account.timeZone,
+            customer_id: account.id,
+          },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'workspace_id,platform,platform_account_id' });
+
+      if (dbError) {
+        logger.error({ err: dbError, customerId: account.id }, 'Failed to store Google tokens');
+        res.status(500).json({ error: 'Failed to store credentials', code: 'DB_ERROR' });
+        return;
+      }
+
+      connectedAccounts.push(account.id);
     }
 
-    logger.info({ workspaceId }, 'Google Ads account connected successfully');
+    logger.info({ workspaceId, accounts: connectedAccounts.length }, 'Google Ads account(s) connected successfully');
 
     // Redirect back to the frontend settings page
     res.redirect(integrationsRedirect('google', 'connected', 'connected'));
