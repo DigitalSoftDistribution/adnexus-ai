@@ -1,20 +1,19 @@
 /**
  * Platform client registration.
  *
- * Registers a PlatformClient factory for all four supported platforms so the
+ * Registers PlatformClient factories for all four supported platforms so the
  * PlatformManager can resolve a client for any connected `ad_accounts` row.
  *
- * The adapter implements the auth/health surface (validate / test / refresh)
- * against the stored credentials — which is what the Integrations health check
- * and onboarding connection test rely on. Mutating campaign/ad operations are
- * delegated through the v2 application layer today, so they raise a clear
- * NOT_IMPLEMENTED error here rather than silently no-op'ing.
+ * Meta → MetaPlatformClient (real SDK via MetaApiClient)
+ * Google / TikTok / Snap → PlatformClientAdapter (auth/health only; mutating
+ *   ops are delegated through the v2 application layer and throw NOT_IMPLEMENTED).
  */
 
 import {
   registerPlatformClient,
   isPlatformRegistered,
 } from './index';
+import { MetaPlatformClient } from './meta/MetaPlatformClient';
 import { PlatformAPIError } from './errors';
 import type {
   AdAccount,
@@ -37,9 +36,9 @@ import type {
 const PLATFORMS: Platform[] = ['meta', 'google', 'tiktok', 'snap'];
 
 /**
- * Uniform adapter satisfying PlatformClient. Auth/health methods are real;
- * mutating ops throw NOT_IMPLEMENTED until the per-platform SDK write path is
- * wired into the manager.
+ * Uniform adapter satisfying PlatformClient for platforms not yet wired to
+ * their native SDK. Auth/health methods are real (against stored credentials);
+ * mutating ops throw NOT_IMPLEMENTED.
  */
 class PlatformClientAdapter implements PlatformClient {
   readonly platform: Platform;
@@ -96,8 +95,6 @@ class PlatformClientAdapter implements PlatformClient {
   // ── Auth / health (real) ─────────────────────────────────────────────────
 
   async refreshToken(): Promise<TokenRefreshResult> {
-    // Without a live OAuth refresh round-trip we keep the stored token; the
-    // OAuth callbacks own re-issuance. Report the current token + expiry.
     return {
       accountId: this.account.id,
       platform: this.platform,
@@ -130,13 +127,22 @@ class PlatformClientAdapter implements PlatformClient {
   }
 }
 
-/** Register the adapter for all four platforms (idempotent). */
+/** Register platform clients (idempotent). Meta gets the real SDK; others use adapter. */
 export function registerAllPlatformClients(): void {
   for (const platform of PLATFORMS) {
     if (isPlatformRegistered(platform)) continue;
-    registerPlatformClient(
-      platform,
-      (account, config) => new PlatformClientAdapter(account, config),
-    );
+
+    if (platform === 'meta') {
+      // Wire the real MetaAdsClient via MetaPlatformClient
+      registerPlatformClient(
+        'meta',
+        (account, _config) => new MetaPlatformClient(account),
+      );
+    } else {
+      registerPlatformClient(
+        platform,
+        (account, config) => new PlatformClientAdapter(account, config),
+      );
+    }
   }
 }
