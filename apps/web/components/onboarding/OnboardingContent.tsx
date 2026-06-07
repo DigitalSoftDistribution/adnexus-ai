@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
@@ -28,6 +28,7 @@ export function OnboardingContent() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [active, setActive] = useState<number | null>(null);
+  const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const { data: status, isLoading } = useQuery({
     queryKey: ['onboarding', 'status'],
@@ -60,6 +61,16 @@ export function OnboardingContent() {
       router.replace('/dashboard');
     },
   });
+
+  const scrollToStep = useCallback(
+    (stepId: string) => {
+      const el = stepRefs.current[stepId];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    },
+    [],
+  );
 
   if (isLoading || status?.completed) {
     return (
@@ -127,7 +138,13 @@ export function OnboardingContent() {
           </p>
         </div>
 
-        <Stepper steps={stepperSteps} current={highlightedStepIndex} completed={completedSet} className="mb-8" />
+        <Stepper
+          steps={stepperSteps}
+          current={highlightedStepIndex}
+          completed={completedSet}
+          onStepClick={(stepId) => scrollToStep(stepId)}
+          className="mb-8"
+        />
 
         <div className="space-y-3">
           {stepDefs.map((step, i) => {
@@ -135,6 +152,7 @@ export function OnboardingContent() {
             return (
               <Card
                 key={step.id}
+                ref={(el) => { stepRefs.current[step.id] = el; }}
                 className={done ? 'border-success/40' : i === highlightedStepIndex ? 'border-primary/40' : ''}
                 onMouseEnter={() => setActive(i)}
               >
