@@ -501,7 +501,12 @@
         "Garanzia SLA",
         "Contratti personalizzati"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Impossibile avviare il pagamento",
+    "checkoutReadyTitle": "Passa a {plan}",
+    "checkoutReadyDescription": "Il pagamento è configurato e aprirà Stripe in modo sicuro per il piano a pagamento selezionato.",
+    "startingCheckout": "Avvio del pagamento...",
+    "upgradePlan": "Passa a {plan}"
   },
   "alerts": {
     "title": "Avvisi",

@@ -501,7 +501,12 @@
         "Гарантия SLA",
         "Индивидуальные договоры"
       ]
-    }
+    },
+    "failedToCreateCheckout": "Не удалось начать оформление покупки",
+    "checkoutReadyTitle": "Обновить до {plan}",
+    "checkoutReadyDescription": "Оформление покупки настроено и безопасно откроет Stripe для выбранного платного плана.",
+    "startingCheckout": "Запуск оформления...",
+    "upgradePlan": "Обновить до {plan}"
   },
   "alerts": {
     "title": "Оповещения",

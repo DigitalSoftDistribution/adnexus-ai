@@ -501,7 +501,12 @@
         "SLA保証",
         "カスタム契約"
       ]
-    }
+    },
+    "failedToCreateCheckout": "チェックアウトの開始に失敗しました",
+    "checkoutReadyTitle": "{plan} にアップグレード",
+    "checkoutReadyDescription": "チェックアウトが設定されており、選択した有料プランの支払いは安全にStripeで行われます。",
+    "startingCheckout": "チェックアウトを開始しています...",
+    "upgradePlan": "{plan} にアップグレード"
   },
   "alerts": {
     "title": "アラート",
