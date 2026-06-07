@@ -157,7 +157,7 @@ router.post(
     const supabaseUser = authData.user;
 
     // ── 3. Create user profile in public.users ──
-    const { data: userRecord, error: userError } = await supabase
+    let { data: userRecord, error: userError } = await supabase
       .from('users')
       .insert({
         id: supabaseUser.id,
@@ -167,10 +167,30 @@ router.post(
       .select()
       .single();
 
+    if (userError && userError.code === '23502' && userError.message.includes('password_hash')) {
+      const retry = await supabase
+        .from('users')
+        .insert({
+          id: supabaseUser.id,
+          email: body.email.toLowerCase(),
+          name: body.name,
+          password_hash: '',
+        })
+        .select()
+        .single();
+
+      userRecord = retry.data;
+      userError = retry.error;
+    }
+
     if (userError || !userRecord) {
       // Rollback: delete the auth user
       await supabase.auth.admin.deleteUser(supabaseUser.id);
-      throw new AppError('USER_CREATE_FAILED', 'Failed to create user profile', 500);
+      throw new AppError('USER_CREATE_FAILED', 'Failed to create user profile', 500, {
+        dbCode: userError?.code,
+        dbMessage: userError?.message,
+        dbDetails: userError?.details,
+      });
     }
 
     // ── 4. Create workspace ──
