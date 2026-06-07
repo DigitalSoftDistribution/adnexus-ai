@@ -257,6 +257,37 @@ describe('E2E: Authentication Flow', () => {
       expect(response.body.success).toBe(false);
     });
 
+    it('should allow branch preview origins for invalid credential responses', async () => {
+      const previewOrigin = 'https://pr-39-adnexus-ai.apps.softblaze.net';
+
+      const response = await request(app)
+        .post('/api/v1/auth/signin')
+        .set('Origin', previewOrigin)
+        .send({
+          email: 'signin-test@example.com',
+          password: 'WrongPassword456!',
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.headers['access-control-allow-origin']).toBe(previewOrigin);
+      expect(response.headers['access-control-allow-credentials']).toBe('true');
+    });
+
+    it('should reject malformed preview-like origins without returning 500', async () => {
+      const response = await request(app)
+        .post('/api/v1/auth/signin')
+        .set('Origin', 'https://pr-39-adnexus-ai.apps.softblaze.net.evil.test')
+        .send({
+          email: 'signin-test@example.com',
+          password: 'WrongPassword456!',
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    });
+
     it('should return 401 when user does not exist', async () => {
       // Act
       const response = await request(app)

@@ -276,7 +276,7 @@ function createSupabaseLogStore(): LogStore {
 async function getPlatformClient(platform: AdPlatform, workspaceId: string): Promise<PlatformApiClient> {
   const { data: account } = await supabase
     .from('ad_accounts')
-    .select('oauth_token, account_id')
+    .select('oauth_token, platform_account_id')
     .eq('workspace_id', workspaceId)
     .eq('platform', platform)
     .limit(1)

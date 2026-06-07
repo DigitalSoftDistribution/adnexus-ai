@@ -1,57 +1,81 @@
-import type { Metadata } from 'next';
-import { ShoppingCart, Palette, Wallet, GitMerge, TrendingUp, Eye } from 'lucide-react';
-import { PageHero, Section, FeatureCard, CtaBand, ScenarioBlock, WorkflowSteps } from '@/components/marketing/sections';
+import { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { UseCasePainGain, UseCaseTimeline } from '@/components/marketing/v4';
+import { Section } from '@/components/marketing/sections';
 
-export const metadata: Metadata = {
-  title: 'AdNexus for E-commerce',
-  description:
-    'AdNexus AI for e-commerce: protect ROAS with creative-fatigue detection, budget pacing, and cross-platform attribution across Meta, Google, TikTok, and Snap.',
-  alternates: { canonical: '/use-cases/ecommerce' },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'E-commerce — AdNexus AI',
+    description: 'Scale your product ads across Meta, Google, TikTok, and Snap. AI detects creative fatigue and drafts new variants before performance drops.',
+    openGraph: { title: 'E-commerce — AdNexus AI', description: 'Scale your product ads across Meta, Google, TikTok, and Snap. AI detects creative fatigue and drafts new variants before performance drops.' },
+  };
+}
 
-const POINTS = [
-  { icon: <Palette size={22} style={{ color: '#EF4444' }} aria-hidden="true" />, title: 'Stop Creative Fatigue', desc: 'Meta creative fatigues in 3–5 days. The AI flags it early and suggests fresh variants before ROAS dips.' },
-  { icon: <Wallet size={22} style={{ color: '#10B981' }} aria-hidden="true" />, title: 'Protect Your ROAS', desc: 'Budget pacing shifts spend toward winners automatically — pending your approval.' },
-  { icon: <GitMerge size={22} style={{ color: '#2563EB' }} aria-hidden="true" />, title: 'True Attribution', desc: 'Understand which platform actually drove the sale with unified cross-platform attribution.' },
-  { icon: <Eye size={22} style={{ color: '#A78BFA' }} aria-hidden="true" />, title: 'Audience Saturation Alerts', desc: 'Get warned when an audience is tapped out — saving the 15–25% of spend usually wasted on it.' },
-  { icon: <TrendingUp size={22} style={{ color: '#34D399' }} aria-hidden="true" />, title: 'Seasonal Forecasting', desc: 'Plan budgets around predicted demand instead of reacting after the peak has passed.' },
-  { icon: <ShoppingCart size={22} style={{ color: '#F59E0B' }} aria-hidden="true" />, title: 'Built for D2C', desc: 'Purpose-built for high-velocity catalogs and the four platforms that drive e-commerce growth.' },
+const ECOMMERCE_PAIN_GAIN = [
+  {
+    pain: 'Creative fatigue kills ROAS',
+    painDesc: 'Your best-performing ad creative stops working after 2 weeks. By the time you notice, ROAS has already dropped 30%.',
+    gain: 'Fatigue detection before it hurts',
+    gainDesc: 'AI monitors creative performance and flags fatigue early — then drafts new variants to test before the drop.',
+  },
+  {
+    pain: 'Product feed errors everywhere',
+    painDesc: 'Google Merchant Center rejects products, Meta catalog sync breaks, and you only find out when sales stop.',
+    gain: 'Feed health monitoring',
+    gainDesc: 'Real-time feed health checks across all platforms. Get alerted to errors before they impact sales.',
+  },
+  {
+    pain: 'Attribution is a black box',
+    painDesc: 'Meta says one thing, Google says another. You have no idea which channel actually drove the sale.',
+    gain: 'Unified cross-platform attribution',
+    gainDesc: 'See the true contribution of each channel with deduplicated, cross-platform attribution in one view.',
+  },
 ];
 
-export default function Page() {
+const ECOMMERCE_TIMELINE = [
+  { time: '6:00 AM', oldWay: 'Overnight sales dropped 20%. No idea why until you check manually.', newWay: 'AI detected the product feed error at 2 AM and drafted a fix. Approve and publish.' },
+  { time: '9:00 AM', oldWay: 'Check yesterday\'s ROAS across 4 platforms. Spreadsheets everywhere.', newWay: 'Morning Brief shows unified ROAS: 4.2x. 2 creative drafts flagged for fatigue.' },
+  { time: '11:00 AM', oldWay: 'Manually create new ad variants for the fatigued creative.', newWay: 'Review AI-generated creative variants. Approve the best one. Live in minutes.' },
+  { time: '3:00 PM', oldWay: 'Client asks which channel drove the $50K sale. Guess based on last-click.', newWay: 'Show unified attribution: Meta assisted, Google closed. Data-backed answer.' },
+];
+
+export default async function EcommercePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
-    <>
-      <PageHero
-        eyebrow="For E-commerce"
-        title={<>Defend every dollar of <span style={{ color: '#c3f53b' }}>ad spend</span></>}
-        subtitle="Catch fatigue, saturation, and pacing problems before they quietly drain your ROAS."
-      />
-      <Section eyebrow="A day in the life" title="The slow leak you don't see coming">
-        <ScenarioBlock
-          situation="Your winning Meta creative has been running for a week. It's still profitable on paper, so you leave it alone. But frequency is climbing, CTR is sliding, and CPMs are creeping up — the ad is quietly fatiguing, and the budget keeps flowing into it."
-          outcome="AdNexus baselines each creative's first days and watches the slope. The moment fatigue crosses the line, it drafts an alert and a suggested refresh — before the dip shows up in your ROAS. You approve the swap and the leak is sealed."
-        />
+    <main className="min-h-screen bg-[var(--bg-primary)]">
+      <section className="pt-28 pb-12 px-4 text-center">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: '#c3f53b' }}>Use Case</span>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">Built for e-commerce</h1>
+        <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Scale product ads across every platform. AI detects fatigue, monitors feeds, and attributes sales correctly.
+        </p>
+      </section>
+
+      <Section title="The e-commerce problem" subtitle="Click any card to see how AdNexus solves it">
+        <UseCasePainGain items={ECOMMERCE_PAIN_GAIN} />
       </Section>
 
-      <Section title="How it works for e-commerce" alt>
-        <WorkflowSteps
-          steps={[
-            { title: 'Connect every channel', desc: 'Meta, Google, TikTok, and Snap in one place, so the AI sees the whole funnel — not one platform in isolation.' },
-            { title: 'The agent watches the leading indicators', desc: 'Frequency, CTR decay, CPM creep, and audience saturation — the early signals of waste, monitored around the clock.' },
-            { title: 'Get drafts before the dip', desc: 'Creative refreshes, budget pacing, and saturation alerts arrive as drafts with the reasoning attached.' },
-            { title: 'Approve and protect margin', desc: 'You decide what ships. Cross-platform attribution keeps you honest about which channel actually drove the sale.' },
-          ]}
-        />
+      <Section title="A day in the life" subtitle="Before vs. after AdNexus">
+        <UseCaseTimeline steps={ECOMMERCE_TIMELINE} />
       </Section>
 
-      <Section title="Where AdNexus protects your margins">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {POINTS.map((p) => (
-            <FeatureCard key={p.title} icon={p.icon} title={p.title} desc={p.desc} />
+      <Section title="Revenue protection" subtitle="Catch issues earlier and keep product ads performing across every platform">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          {[
+            { value: '2 AM', label: 'feed errors caught before the team wakes up' },
+            { value: '30%', label: 'fatigue drops flagged before they compound' },
+            { value: '4', label: 'platforms monitored in one brief' },
+          ].map((metric) => (
+            <div key={metric.label} className="card-surface p-5 text-center">
+              <div className="font-mono-data text-3xl font-bold text-white mb-2">{metric.value}</div>
+              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{metric.label}</div>
+            </div>
           ))}
         </div>
       </Section>
-      <CtaBand title="Protect your ROAS today" subtitle="Connect your store's ad accounts and get a free AI audit in two minutes." primaryLabel="Start Free Audit" />
-    </>
+    </main>
   );
 }

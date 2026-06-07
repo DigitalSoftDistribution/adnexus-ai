@@ -16,7 +16,12 @@ function mapRow(r: Record<string, unknown>): AdAccount {
     platformAccountId: r.platform_account_id as string,
     name: (r.name ?? '') as string,
     status: r.status as AdAccount['status'],
+    oauthToken: (r.oauth_token ?? null) as string | null,
+    refreshToken: (r.refresh_token ?? null) as string | null,
     tokenExpiresAt: r.token_expires_at ? new Date(r.token_expires_at as string) : null,
+    isActive: r.is_active === undefined || r.is_active === null ? r.status === 'active' : Boolean(r.is_active),
+    scopes: Array.isArray(r.scopes) ? (r.scopes as string[]) : [],
+    lastSyncedAt: r.last_synced_at ? new Date(r.last_synced_at as string) : null,
     spendCap: r.spend_cap === null || r.spend_cap === undefined ? null : Number(r.spend_cap),
     disabledReason: (r.disabled_reason ?? null) as string | null,
     metadata: (r.metadata ?? {}) as Record<string, unknown>,
@@ -101,11 +106,12 @@ export class AdAccountRepository implements IAdAccountRepository {
 
   async create(adAccount: Omit<AdAccount, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdAccount> {
     const { rows } = await query<Record<string, unknown>>(
-      `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, name, status, token_expires_at, spend_cap, disabled_reason, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, name, status, oauth_token, refresh_token, token_expires_at, is_active, scopes, spend_cap, disabled_reason, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
       [
         adAccount.workspaceId, adAccount.platform, adAccount.platformAccountId,
-        adAccount.name, adAccount.status, adAccount.tokenExpiresAt,
+        adAccount.name, adAccount.status, adAccount.oauthToken, adAccount.refreshToken,
+        adAccount.tokenExpiresAt, adAccount.isActive, adAccount.scopes,
         adAccount.spendCap, adAccount.disabledReason, adAccount.metadata,
       ],
     );

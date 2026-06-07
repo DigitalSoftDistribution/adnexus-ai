@@ -251,7 +251,7 @@ export function ComparePipeboardContent() {
             transition={{ duration: 0.5, delay: 0.3, ease: easeSmooth }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/auth/signup"
+            <Link href="/contact"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]"
               style={{
                 background: 'var(--accent)',
@@ -672,14 +672,14 @@ export function ComparePipeboardContent() {
                 handles the rest.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/auth/signup"
+                <Link href="/contact"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-[1.02]"
                   style={{
                     background: 'var(--accent)',
                     color: '#0a0a0a',
                     boxShadow: '0 0 30px rgba(37,99,235,0.2)',
                   }}
-                >Start Free Trial
+                >Request Pilot Access
                   <ArrowRight size={16} />
                 </Link>
                 <Link href="/contact"

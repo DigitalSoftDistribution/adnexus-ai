@@ -254,13 +254,34 @@ export async function getMetaInsights(
   dateStart: string,
   dateEnd: string,
   breakdown?: string,
+  level: 'campaign' | 'adset' | 'ad' = 'campaign',
+  fields?: string[],
 ): Promise<Record<string, unknown>> {
   try {
     const params: Record<string, unknown> = {
       access_token: accessToken,
       time_range: JSON.stringify({ since: dateStart, until: dateEnd }),
-      fields: 'spend,impressions,clicks,ctr,conversions,cost_per_conversion,action_values,purchase_roas,frequency,reach,cpm,cpc,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions',
-      level: 'campaign',
+      fields: (fields && fields.length > 0
+        ? fields
+        : [
+            'spend',
+            'impressions',
+            'clicks',
+            'ctr',
+            'conversions',
+            'cost_per_conversion',
+            'action_values',
+            'purchase_roas',
+            'frequency',
+            'reach',
+            'cpm',
+            'cpc',
+            'video_p25_watched_actions',
+            'video_p50_watched_actions',
+            'video_p75_watched_actions',
+            'video_p100_watched_actions',
+          ]).join(','),
+      level,
     };
     if (breakdown) params.breakdowns = breakdown;
 

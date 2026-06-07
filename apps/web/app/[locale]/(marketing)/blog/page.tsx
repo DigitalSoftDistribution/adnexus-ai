@@ -1,13 +1,10 @@
-import type { Metadata } from 'next';
 import { BlogContent } from '@/components/marketing/BlogContent';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Blog',
-  description:
-    'Insights on AI advertising, draft-first campaign management, cross-platform optimization, creative fatigue, and product updates from AdNexus AI.',
-  alternates: { canonical: '/blog' },
+  description: 'Insights, strategies, and product updates from the AdNexus AI team.',
 };
 
-export default function Page() {
+export default function BlogPage() {
   return <BlogContent />;
 }

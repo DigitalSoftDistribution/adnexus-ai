@@ -360,6 +360,122 @@ export const AuditLogEntrySchema = z.object({
   description: 'Audit log entry',
 });
 
+
+// ─── Live v2 Pilot Surface Schemas ───────────────────────────
+
+export const AuthTokenResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    user: z.object({ id: z.string(), email: z.string().email().optional(), name: z.string().nullable().optional() }).passthrough(),
+    session: z.object({ accessToken: z.string(), refreshToken: z.string().optional(), expiresAt: z.string().optional() }).partial().passthrough(),
+  }).optional(),
+  error: z.object({ code: z.string(), message: z.string() }).optional(),
+}).passthrough().openapi({
+  ref: 'AuthTokenResponse',
+  description: 'Authentication response envelope proxied through the stable v1 auth service',
+});
+
+export const BillingInfoSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    plan: z.string().nullable().optional(),
+    status: z.string().nullable().optional(),
+    currentPeriodEnd: z.string().nullable().optional(),
+    usage: z.record(z.unknown()).optional(),
+    limits: z.record(z.unknown()).optional(),
+  }).passthrough(),
+}).openapi({
+  ref: 'BillingInfoResponse',
+  description: 'Workspace billing state, subscription summary, usage, and limits',
+});
+
+export const InvoiceListSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    invoices: z.array(z.object({
+      id: z.string(),
+      amount: z.number().optional(),
+      currency: z.string().optional(),
+      status: z.string().optional(),
+      hostedInvoiceUrl: z.string().url().nullable().optional(),
+      createdAt: z.string().optional(),
+    }).passthrough()),
+    total: z.number().int().optional(),
+  }).passthrough(),
+}).openapi({
+  ref: 'InvoiceListResponse',
+  description: 'Billing invoice list response',
+});
+
+export const UrlResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({ url: z.string().url() }).passthrough(),
+}).openapi({
+  ref: 'UrlResponse',
+  description: 'Hosted checkout or customer portal URL response',
+});
+
+export const SettingsWorkspaceSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    timezone: z.string().optional(),
+    currency: z.string().optional(),
+    plan: z.string().optional(),
+  }).passthrough(),
+}).openapi({
+  ref: 'SettingsWorkspaceResponse',
+  description: 'Workspace settings response',
+});
+
+export const ApiKeyListSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    apiKeys: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      prefix: z.string().optional(),
+      scopes: z.array(z.string()).optional(),
+      lastUsedAt: z.string().nullable().optional(),
+      createdAt: z.string().optional(),
+      revokedAt: z.string().nullable().optional(),
+    }).passthrough()),
+    total: z.number().int().optional(),
+  }).passthrough(),
+}).openapi({
+  ref: 'ApiKeyListResponse',
+  description: 'Settings API key list response',
+});
+
+export const IntegrationListSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    integrations: z.array(z.object({
+      platform: PlatformSchema,
+      connected: z.boolean(),
+      status: z.string().optional(),
+      accountCount: z.number().int().optional(),
+      lastSyncedAt: z.string().nullable().optional(),
+    }).passthrough()),
+  }).passthrough(),
+}).openapi({
+  ref: 'IntegrationListResponse',
+  description: 'Connected platform integration states for Meta, Google, TikTok, and Snap',
+});
+
+export const OnboardingStatusSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    completed: z.boolean(),
+    currentStep: z.string().nullable().optional(),
+    steps: z.array(z.object({ key: z.string(), completed: z.boolean() }).passthrough()).optional(),
+  }).passthrough(),
+}).openapi({
+  ref: 'OnboardingStatusResponse',
+  description: 'Workspace onboarding progress response',
+});
+
 // ─── OpenAPI Document ────────────────────────────────────────
 
 export function generateOpenAPIDocument(): any {
@@ -384,9 +500,13 @@ export function generateOpenAPIDocument(): any {
       { url: 'http://localhost:3001', description: 'Local Development' },
     ],
     tags: [
+      { name: 'Auth', description: 'Authentication and authorization' },
       { name: 'Campaigns', description: 'Campaign CRUD and analytics' },
       { name: 'Drafts', description: 'Optimization drafts and approvals' },
-      { name: 'Auth', description: 'Authentication and authorization' },
+      { name: 'Billing', description: 'Subscription, invoices, checkout, and billing portal' },
+      { name: 'Settings', description: 'Workspace settings, team, notifications, integrations, and API keys' },
+      { name: 'Integrations', description: 'Platform connection states, health, disconnect, and sync jobs' },
+      { name: 'Onboarding', description: 'Pilot onboarding progress and setup completion' },
       { name: 'Workspaces', description: 'Workspace and team management' },
       { name: 'Reports', description: 'Reporting and analytics' },
       { name: 'Webhooks', description: 'Webhook configuration and delivery' },
@@ -399,6 +519,211 @@ export function generateOpenAPIDocument(): any {
       { name: 'Admin', description: 'Admin operations' },
     ],
     paths: {
+
+      '/api/v2/auth/signup': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Sign up',
+          description: 'Create a pilot user account through the stable v1 auth service and return the auth envelope used by the web app.',
+          requestBody: { required: true, content: { 'application/json': { schema: z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() }) } } },
+          responses: {
+            '201': { description: 'Account created', content: { 'application/json': { schema: AuthTokenResponseSchema } } },
+            '400': { description: 'Validation error', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '409': { description: 'Account already exists', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/auth/signin': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Sign in',
+          description: 'Authenticate with email and password through the stable v1 auth service.',
+          requestBody: { required: true, content: { 'application/json': { schema: z.object({ email: z.string().email(), password: z.string().min(1) }) } } },
+          responses: {
+            '200': { description: 'Authenticated', content: { 'application/json': { schema: AuthTokenResponseSchema } } },
+            '400': { description: 'Validation error', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '401': { description: 'Invalid credentials', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/auth/me': {
+        get: {
+          tags: ['Auth'],
+          summary: 'Current user',
+          description: 'Return the current authenticated user envelope from v1 auth.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Current user', content: { 'application/json': { schema: AuthTokenResponseSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/billing': {
+        get: {
+          tags: ['Billing'],
+          summary: 'Billing overview',
+          description: 'Get workspace subscription, plan, usage, and limit summary.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Billing overview', content: { 'application/json': { schema: BillingInfoSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/billing/invoices': {
+        get: {
+          tags: ['Billing'],
+          summary: 'List invoices',
+          description: 'List Stripe-backed invoices for the authenticated workspace.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Invoice list', content: { 'application/json': { schema: InvoiceListSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/billing/checkout': {
+        post: {
+          tags: ['Billing'],
+          summary: 'Create checkout session',
+          description: 'Create a hosted checkout URL. Requires owner or admin role.',
+          security: [{ bearerAuth: [] }],
+          requestBody: { required: false, content: { 'application/json': { schema: z.object({ planId: z.string().optional(), successUrl: z.string().url().optional(), cancelUrl: z.string().url().optional() }) } } },
+          responses: {
+            '200': { description: 'Checkout URL', content: { 'application/json': { schema: UrlResponseSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/billing/portal': {
+        post: {
+          tags: ['Billing'],
+          summary: 'Create billing portal session',
+          description: 'Create a hosted billing portal URL. Requires owner or admin role.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Billing portal URL', content: { 'application/json': { schema: UrlResponseSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/settings/workspace': {
+        get: {
+          tags: ['Settings'],
+          summary: 'Workspace settings',
+          description: 'Get workspace-level settings used by the settings page.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Workspace settings', content: { 'application/json': { schema: SettingsWorkspaceSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+        put: {
+          tags: ['Settings'],
+          summary: 'Update workspace settings',
+          description: 'Update workspace settings. Requires owner or admin role.',
+          security: [{ bearerAuth: [] }],
+          requestBody: { required: true, content: { 'application/json': { schema: z.object({ name: z.string().min(1).optional(), timezone: z.string().optional(), currency: z.string().optional() }) } } },
+          responses: {
+            '200': { description: 'Workspace settings updated', content: { 'application/json': { schema: SettingsWorkspaceSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/settings/api-keys': {
+        get: {
+          tags: ['Settings'],
+          summary: 'List API keys',
+          description: 'List workspace API keys. Requires owner or admin role.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'API key list', content: { 'application/json': { schema: ApiKeyListSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+        post: {
+          tags: ['Settings'],
+          summary: 'Create API key',
+          description: 'Create a workspace API key. Requires owner or admin role; returned secret is only shown once.',
+          security: [{ bearerAuth: [] }],
+          requestBody: { required: true, content: { 'application/json': { schema: z.object({ name: z.string().min(1), scopes: z.array(z.string()).optional() }) } } },
+          responses: {
+            '201': { description: 'API key created', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ id: z.string(), key: z.string(), name: z.string() }).passthrough() }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/integrations': {
+        get: {
+          tags: ['Integrations'],
+          summary: 'List integrations',
+          description: 'List platform integration connection states shown in the web app.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Integration list', content: { 'application/json': { schema: IntegrationListSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/integrations/{platform}': {
+        get: {
+          tags: ['Integrations'],
+          summary: 'Get integration',
+          description: 'Get one platform integration state.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'platform', in: 'path', required: true, schema: { type: 'string', enum: ['meta', 'google', 'tiktok', 'snap'] } }],
+          responses: {
+            '200': { description: 'Integration detail', content: { 'application/json': { schema: IntegrationListSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '404': { description: 'Integration not found', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/integrations/accounts/{accountId}/sync': {
+        post: {
+          tags: ['Integrations'],
+          summary: 'Sync ad account',
+          description: 'Start live account sync for a connected ad account. Requires owner, admin, or editor role.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'accountId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            '202': { description: 'Sync accepted', content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.object({ syncJobId: z.string().optional(), status: z.string() }).passthrough() }) } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Insufficient role', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/onboarding': {
+        get: {
+          tags: ['Onboarding'],
+          summary: 'Onboarding status',
+          description: 'Get workspace onboarding progress for the pilot dashboard.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': { description: 'Onboarding status', content: { 'application/json': { schema: OnboardingStatusSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
+      '/api/v2/onboarding/step': {
+        post: {
+          tags: ['Onboarding'],
+          summary: 'Update onboarding step',
+          description: 'Mark or change the active onboarding step. Requires owner or admin role.',
+          security: [{ bearerAuth: [] }],
+          requestBody: { required: true, content: { 'application/json': { schema: z.object({ step: z.string(), completed: z.boolean().optional() }) } } },
+          responses: {
+            '200': { description: 'Onboarding step updated', content: { 'application/json': { schema: OnboardingStatusSchema } } },
+            '401': { description: 'Unauthorized', content: { 'application/json': { schema: ApiErrorSchema } } },
+            '403': { description: 'Owner or admin role required', content: { 'application/json': { schema: ApiErrorSchema } } },
+          },
+        },
+      },
       '/api/v2/campaigns': {
         get: {
           tags: ['Campaigns'],

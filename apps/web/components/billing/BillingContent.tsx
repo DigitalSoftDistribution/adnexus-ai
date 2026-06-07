@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { CreditCard, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, Download, CheckCircle, AlertCircle, Info, Sparkles } from 'lucide-react';
 
 interface BillingInfo {
   workspaceId: string;
@@ -49,6 +48,25 @@ interface Invoice {
   paid: boolean;
 }
 
+interface BillingPlansResponse {
+  billingEnabled: boolean;
+  stripeConfigured: boolean;
+  plans: Array<{
+    plan: string;
+    priceId: string;
+    credits: { creatives: number; impressions: number; aiCredits: number };
+  }>;
+  message: string | null;
+}
+
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  growth: 2,
+  pro: 3,
+  enterprise: 4,
+};
+
 function useBillingInfo() {
   const t = useTranslations('billing');
   return useQuery({
@@ -57,7 +75,7 @@ function useBillingInfo() {
       const res = await fetch('/api/v2/billing');
       if (!res.ok) throw new Error(t('failedToFetchBilling'));
       const data = await res.json();
-      return data.data;
+      return data.data ?? data;
     },
   });
 }
@@ -70,20 +88,62 @@ function useInvoices() {
       const res = await fetch('/api/v2/billing/invoices');
       if (!res.ok) throw new Error(t('failedToFetchInvoices'));
       const data = await res.json();
-      return data.data;
+      return data.data ?? data;
+    },
+  });
+}
+
+function useBillingPlans() {
+  return useQuery({
+    queryKey: ['billing', 'plans'],
+    queryFn: async (): Promise<BillingPlansResponse> => {
+      const res = await fetch('/api/v2/billing/plans');
+      if (!res.ok) {
+        return {
+          billingEnabled: false,
+          stripeConfigured: false,
+          plans: [],
+          message: 'Billing checkout is temporarily unavailable.',
+        };
+      }
+      const data = await res.json();
+      return data.data ?? data;
     },
   });
 }
 
 function useCreatePortalSession() {
-  const queryClient = useQueryClient();
   const t = useTranslations('billing');
   return useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v2/billing/portal', { method: 'POST' });
       if (!res.ok) throw new Error(t('failedToCreatePortal'));
       const data = await res.json();
-      return data.data as { url: string };
+      return (data.data ?? data) as { url: string };
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
+}
+
+function useCreateCheckoutSession() {
+  const t = useTranslations('billing');
+  return useMutation({
+    mutationFn: async (priceId: string) => {
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      const res = await fetch('/api/v2/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId,
+          successUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}success=true`,
+          cancelUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}canceled=true`,
+        }),
+      });
+      if (!res.ok) throw new Error(t('failedToCreateCheckout'));
+      const data = await res.json();
+      return (data.data ?? data) as { url: string };
     },
     onSuccess: (data) => {
       if (data.url) window.location.href = data.url;
@@ -93,10 +153,13 @@ function useCreatePortalSession() {
 
 export function BillingContent() {
   const { data: billing, isLoading: billingLoading, isError: billingError, refetch: refetchBilling } = useBillingInfo();
-  const { data: invoicesData, isLoading: invoicesLoading } = useInvoices();
+  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, error: invoicesErrorValue, refetch: refetchInvoices } = useInvoices();
+  const { data: billingPlans } = useBillingPlans();
   const portalMutation = useCreatePortalSession();
+  const checkoutMutation = useCreateCheckoutSession();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
+  const locale = useLocale();
 
   if (billingLoading) {
     return (
@@ -126,21 +189,88 @@ export function BillingContent() {
   const plan = billing?.plan || 'free';
   const features = t.raw(`planFeatures.${plan}`) as string[] || t.raw('planFeatures.free') as string[];
   const isActive = billing?.status === 'active' || billing?.status === 'trialing';
+  const portalUnavailable = !billing?.stripeCustomerId;
+  const currentPlanRank = PLAN_RANK[plan] ?? PLAN_RANK.free;
+  const upgradePlan = (billingPlans?.plans ?? [])
+    .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) > currentPlanRank)
+    .sort((a, b) => (PLAN_RANK[a.plan] ?? 0) - (PLAN_RANK[b.plan] ?? 0))[0] ?? null;
+  const canStartCheckout = Boolean(billingPlans?.billingEnabled && upgradePlan);
 
   return (
     <div className="space-y-6">
+      {billingPlans && !billingPlans.billingEnabled && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="flex gap-3 pt-6 text-sm text-amber-900">
+            <Info className="mt-0.5 h-4 w-4 flex-none" />
+            <div>
+              <p className="font-medium">{t('checkoutUnavailable')}</p>
+              <p>{billingPlans.message ?? t('checkoutUnavailableDescription')}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {canStartCheckout && upgradePlan && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="flex flex-col gap-4 pt-6 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <Sparkles className="mt-0.5 h-4 w-4 flex-none" />
+              <div>
+                <p className="font-medium">{t('checkoutReadyTitle', { plan: upgradePlan.plan })}</p>
+                <p>{t('checkoutReadyDescription')}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => checkoutMutation.mutate(upgradePlan.priceId)}
+              disabled={checkoutMutation.isPending}
+              className="shrink-0"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {checkoutMutation.isPending ? t('startingCheckout') : t('upgradePlan', { plan: upgradePlan.plan })}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {checkoutMutation.isError && (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToCreateCheckout')}
+          retryLabel={tc('retry')}
+          onRetry={() => upgradePlan && checkoutMutation.mutate(upgradePlan.priceId)}
+        />
+      )}
+
+      {portalMutation.isError && (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToCreatePortal')}
+          retryLabel={tc('retry')}
+          onRetry={() => portalMutation.mutate()}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        {billing?.stripeCustomerId && (
-          <Button onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
+        <div className="flex flex-col items-end gap-2">
+          <Button onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending || portalUnavailable}>
             <CreditCard className="mr-2 h-4 w-4" />
             {portalMutation.isPending ? tc('opening') : t('manageSubscription')}
           </Button>
-        )}
+          {portalUnavailable && (
+            <p className="max-w-72 text-right text-xs text-muted-foreground">{t('portalUnavailable')}</p>
+          )}
+        </div>
       </div>
+
+      {portalMutation.isError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {(portalMutation.error as Error)?.message ?? t('failedToCreatePortal')}
+        </div>
+      )}
 
       {/* Plan Overview */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -155,7 +285,7 @@ export function BillingContent() {
             </div>
             <CardDescription>
               {billing?.currentPeriodStart && billing?.currentPeriodEnd
-                ? `${t('currentPeriod')}: ${new Date(billing.currentPeriodStart).toLocaleDateString()} - ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
+                ? `${t('currentPeriod')}: ${new Date(billing.currentPeriodStart).toLocaleDateString(locale)} - ${new Date(billing.currentPeriodEnd).toLocaleDateString(locale)}`
                 : t('noActiveSubscription')}
             </CardDescription>
           </CardHeader>
@@ -208,6 +338,13 @@ export function BillingContent() {
             <div className="flex h-32 items-center justify-center">
               <LoadingSpinner size="md" />
             </div>
+          ) : invoicesError ? (
+            <ErrorState
+              title={tc('error')}
+              description={(invoicesErrorValue as Error)?.message ?? t('failedToFetchInvoices')}
+              onRetry={() => refetchInvoices()}
+              retryLabel={tc('retry')}
+            />
           ) : invoicesData?.invoices && invoicesData.invoices.length > 0 ? (
             <div className="space-y-2">
               {invoicesData.invoices.map((invoice) => (
@@ -268,7 +405,7 @@ function UsageBar({ label, used, total }: { label: string; used: number; total: 
         </span>
       </div>
       {!unlimited && (
-        <Progress value={used} max={total} />
+        <Progress value={percentage} max={100} />
       )}
     </div>
   );
