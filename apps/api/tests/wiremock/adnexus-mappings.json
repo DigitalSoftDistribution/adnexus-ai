@@ -231,6 +231,49 @@
     },
 
     {
+      "name": "TikTok Ads API — OAuth token exchange",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/open_api/v[0-9.]+/oauth2/access_token/"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "data": {
+            "access_token": "tt_mock_access_token",
+            "refresh_token": "tt_mock_refresh_token",
+            "advertiser_ids": ["tt_adv_12345"],
+            "expires_in": 86400
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok Ads API — Advertiser accounts",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/open_api/v[0-9.]+/oauth2/advertiser/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "data": {
+            "list": [
+              { "advertiser_id": "tt_adv_12345", "advertiser_name": "WireMock TikTok Advertiser", "status": "STATUS_ENABLE" }
+            ]
+          }
+        }
+      }
+    },
+    {
       "name": "TikTok Ads API — Get campaigns",
       "priority": 10,
       "request": {
@@ -258,7 +301,101 @@
         }
       }
     },
+    {
+      "name": "TikTok Ads API — Integrated report",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/open_api/v[0-9.]+/report/integrated/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "data": {
+            "list": [
+              {
+                "dimensions": { "campaign_id": "1700000000000001" },
+                "metrics": { "spend": "42.50", "impressions": "12000", "clicks": "480", "conversions": "24", "ctr": "4.0", "cpc": "0.09", "cpm": "3.54" }
+              }
+            ]
+          }
+        }
+      }
+    },
 
+    {
+      "name": "Snapchat Ads API — OAuth token exchange",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/accounts/oauth2/token"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "access_token": "snap_mock_access_token",
+          "refresh_token": "snap_mock_refresh_token",
+          "expires_in": 3600,
+          "token_type": "Bearer"
+        }
+      }
+    },
+    {
+      "name": "Snapchat Ads API — Organizations",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/organizations"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "organizations": [
+            {
+              "organization": {
+                "id": "snap_org_12345",
+                "name": "WireMock Snap Organization",
+                "type": "ENTERPRISE",
+                "status": "ACTIVE"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snapchat Ads API — Ad accounts",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/organizations/[^/]+/adaccounts"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "adaccounts": [
+            {
+              "adaccount": {
+                "id": "snap_ad_account_12345",
+                "name": "WireMock Snap Ad Account",
+                "status": "ACTIVE",
+                "organization_id": "snap_org_12345",
+                "currency": "USD",
+                "timezone": "America/Los_Angeles",
+                "created_at": "2026-06-01T00:00:00Z",
+                "updated_at": "2026-06-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
     {
       "name": "Snapchat Ads API — Get campaigns",
       "priority": 10,
@@ -276,8 +413,103 @@
                 "id": "snap-test-campaign-1",
                 "name": "Snap Test Campaign 1",
                 "status": "ACTIVE",
+                "objective": "AWARENESS",
                 "daily_budget_micro": 100000000,
-                "start_time": "2025-01-15T00:00:00Z"
+                "start_time": "2026-06-01T00:00:00Z",
+                "created_at": "2026-06-01T00:00:00Z",
+                "updated_at": "2026-06-01T00:00:00Z",
+                "ad_account_id": "snap_ad_account_12345",
+                "buying_model": "AUCTION"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snapchat Ads API — Get ad squads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/campaigns/[^/]+/adsquads"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "adsquads": [
+            {
+              "adsquad": {
+                "id": "snap-ad-squad-1",
+                "name": "Snap Test Ad Squad 1",
+                "status": "ACTIVE",
+                "campaign_id": "snap-test-campaign-1",
+                "daily_budget_micro": 100000000,
+                "start_time": "2026-06-01T00:00:00Z",
+                "placement": "SNAP_ADS",
+                "optimization_goal": "IMPRESSIONS",
+                "created_at": "2026-06-01T00:00:00Z",
+                "updated_at": "2026-06-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snapchat Ads API — Get ads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/adsquads/[^/]+/ads"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "ads": [
+            {
+              "ad": {
+                "id": "snap-ad-1",
+                "name": "Snap Test Story Ad 1",
+                "status": "ACTIVE",
+                "ad_squad_id": "snap-ad-squad-1",
+                "creative_id": "snap-creative-1",
+                "type": "SNAP_AD",
+                "created_at": "2026-06-01T00:00:00Z",
+                "updated_at": "2026-06-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snapchat Ads API — Campaign stats",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9]+/campaigns/[^/]+/stats"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "timeseries_stats": [
+            {
+              "id": "snap-test-campaign-1",
+              "type": "campaign",
+              "total": {
+                "stats": {
+                  "impressions": 9000,
+                  "swipes": 315,
+                  "spend": 37250000,
+                  "conversions": 9,
+                  "frequency": 1.3,
+                  "swipe_up_rate": 0.035,
+                  "cost_per_swipe": 118253,
+                  "cost_per_thousand_impressions": 4138889
+                }
               }
             }
           ]

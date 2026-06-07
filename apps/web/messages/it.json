@@ -688,7 +688,7 @@
     "title": "Benvenuto in AdNexus AI",
     "description": "Configuriamo la tua area di lavoro in pochi passaggi.",
     "stepConnect": "Connetti una piattaforma",
-    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are coming soon.",
+    "stepConnectDesc": "Connect Meta for launch-ready execution. Google is read-only in v1; TikTok and Snap are mock-ready only until live OAuth and sync are completed.",
     "stepTeam": "Invita il tuo team",
     "stepTeamDesc": "Aggiungi colleghi per collaborare.",
     "stepCampaign": "View first insight",

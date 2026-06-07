@@ -79,6 +79,7 @@ const envSchema = z.object({
   SNAP_CLIENT_SECRET: z.string().default(''),
   SNAP_API_BASE_URL: z.string().url().default('https://adsapi.snapchat.com/v1'),
   SNAP_OAUTH_BASE_URL: z.string().url().default('https://accounts.snapchat.com/accounts/oauth2'),
+  ENABLE_MOCK_SOCIAL_SYNC: z.string().default('false'),
 
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
@@ -238,6 +239,10 @@ export const config = {
     clientSecret: env.SNAP_CLIENT_SECRET,
     apiBaseUrl: env.SNAP_API_BASE_URL,
     oauthBaseUrl: env.SNAP_OAUTH_BASE_URL,
+  },
+
+  socialSync: {
+    enableMockTikTokSnap: env.ENABLE_MOCK_SOCIAL_SYNC === 'true',
   },
 
   stripe: {
