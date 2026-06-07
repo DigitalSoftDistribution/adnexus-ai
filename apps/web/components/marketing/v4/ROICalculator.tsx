@@ -14,8 +14,10 @@ export function ROICalculator() {
 
   const adnexusCost = 149; // Scale plan
   const competitorCost = Math.round(monthlySpend * (toolFeePercent / 100));
-  const annualSavings = (competitorCost - adnexusCost) * 12;
-  const savingsPercent = competitorCost > 0 ? Math.round(((competitorCost - adnexusCost) / competitorCost) * 100) : 0;
+  const monthlyDelta = competitorCost - adnexusCost;
+  const annualSavings = Math.max(0, monthlyDelta * 12);
+  const savingsPercent = competitorCost > adnexusCost ? Math.round((monthlyDelta / competitorCost) * 100) : 0;
+  const isSavingsPositive = monthlyDelta > 0;
 
   return (
     <section ref={ref} className="w-full py-24 px-6" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
@@ -111,14 +113,16 @@ export function ROICalculator() {
             </div>
 
             <div className="rounded-lg p-4 mb-6" style={{ background: 'rgba(195,245,59,0.08)', border: '1px solid rgba(195,245,59,0.2)' }}>
-              <div className="text-[11px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Annual savings</div>
-              <div className="font-mono-data text-3xl font-bold text-white">${annualSavings.toLocaleString()}</div>
-              <div className="text-[11px]" style={{ color: '#c3f53b' }}>{savingsPercent}% less than percentage-based pricing</div>
+              <div className="text-[11px] mb-1" style={{ color: 'var(--text-tertiary)' }}>{isSavingsPositive ? 'Annual savings' : 'Break-even threshold'}</div>
+              <div className="font-mono-data text-3xl font-bold text-white">{isSavingsPositive ? `$${annualSavings.toLocaleString()}` : 'No savings yet'}</div>
+              <div className="text-[11px]" style={{ color: '#c3f53b' }}>{isSavingsPositive ? `${savingsPercent}% less than percentage-based pricing` : 'Flat pricing wins once percentage fees exceed $149/mo'}</div>
             </div>
 
             <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              At ${(monthlySpend / 1000).toFixed(0)}K/month spend, a {toolFeePercent}% tool costs ${competitorCost.toLocaleString()}/mo. 
-              AdNexus is flat ${adnexusCost}/mo — saving you ${annualSavings.toLocaleString()} per year.
+              At ${(monthlySpend / 1000).toFixed(0)}K/month spend, a {toolFeePercent}% tool costs ${competitorCost.toLocaleString()}/mo.{' '}
+              {isSavingsPositive
+                ? <>AdNexus is flat ${adnexusCost}/mo — saving you ${annualSavings.toLocaleString()} per year.</>
+                : <>AdNexus is flat ${adnexusCost}/mo, so this calculator will show savings once your current percentage-based fee is above that monthly cost.</>}
             </p>
           </div>
         </motion.div>

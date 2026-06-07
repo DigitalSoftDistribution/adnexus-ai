@@ -10,8 +10,8 @@ const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number];
 const PLATFORMS = [
   { name: 'Meta Ads', color: '#1877F2', detail: 'Facebook & Instagram', status: 'Connected', features: ['Campaigns', 'Ad Sets', 'Ads', 'Creative'] },
   { name: 'Google Ads', color: '#DB4437', detail: 'Search, Display, PMax', status: 'Connected', features: ['Search', 'Display', 'PMax', 'Demand Gen'] },
-  { name: 'TikTok Ads', color: '#00F2EA', detail: 'Video-first ads', status: 'Connected', features: ['Campaigns', 'Creative', 'CBO', 'Spark'] },
-  { name: 'Snap Ads', color: '#FFFC00', detail: 'Snap, Story, Collection', status: 'Connected', features: ['Snap Ads', 'Story', 'Collection', 'Pixel'] },
+  { name: 'TikTok Ads', color: '#00F2EA', detail: 'Video-first ads', status: 'Read-only beta', features: ['Campaigns', 'Creative', 'CBO', 'Spark'] },
+  { name: 'Snap Ads', color: '#FFFC00', detail: 'Snap, Story, Collection', status: 'Coming soon', features: ['Snap Ads', 'Story', 'Collection', 'Pixel'] },
 ];
 
 export function IntegrationStatusGrid() {

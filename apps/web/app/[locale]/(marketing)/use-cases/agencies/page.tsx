@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { UseCasePainGain, UseCaseTimeline, ROICalculator } from '@/components/marketing/v4';
+import { UseCasePainGain, UseCaseTimeline } from '@/components/marketing/v4';
 import { Section } from '@/components/marketing/sections';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -62,8 +62,19 @@ export default async function AgenciesPage({ params }: { params: Promise<{ local
         <UseCaseTimeline steps={AGENCY_TIMELINE} />
       </Section>
 
-      <Section title="ROI calculator" subtitle="See how much time and money you could save">
-        <ROICalculator />
+      <Section title="Agency impact" subtitle="The measurable gains agencies can expect from a draft-first AI workflow">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          {[
+            { value: '3+ hrs', label: 'saved on weekly reporting' },
+            { value: '20+', label: 'client accounts in one workspace' },
+            { value: '100%', label: 'draft-first client control' },
+          ].map((metric) => (
+            <div key={metric.label} className="card-surface p-5 text-center">
+              <div className="font-mono-data text-3xl font-bold text-white mb-2">{metric.value}</div>
+              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{metric.label}</div>
+            </div>
+          ))}
+        </div>
       </Section>
     </main>
   );

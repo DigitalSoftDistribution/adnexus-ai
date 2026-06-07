@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ContactPaths } from '@/components/marketing/v4';
+import { ContactForm } from '@/components/marketing/ContactForm';
 import { Section } from '@/components/marketing/sections';
 import { Mail, MapPin, Clock } from 'lucide-react';
 
@@ -29,6 +30,12 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
 
       <Section>
         <ContactPaths />
+      </Section>
+
+      <Section id="contact-form" title="Send us a message" subtitle="Sales, support, partnerships, and press inquiries all land with the right team.">
+        <div className="max-w-2xl mx-auto">
+          <ContactForm />
+        </div>
       </Section>
 
       <section className="pb-20 px-4">

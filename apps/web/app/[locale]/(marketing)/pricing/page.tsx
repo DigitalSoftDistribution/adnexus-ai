@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { PricingContent } from '@/components/marketing/PricingContent';
 import { ROICalculator } from '@/components/marketing/v4/ROICalculator';
 import { JsonLd } from '@/components/marketing/JsonLd';
 import { PricingComparisonTable } from '@/components/marketing/v4/PricingComparisonTable';
@@ -62,7 +61,6 @@ export default function PricingPage() {
   return (
     <>
       <JsonLd data={FAQ_JSONLD} />
-      <PricingContent />
       <PricingComparisonTable />
       <ROICalculator />
     </>

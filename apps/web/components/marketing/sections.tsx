@@ -146,6 +146,7 @@ export function Section({
   subtitle,
   alt = false,
   className,
+  id,
   children,
 }: {
   eyebrow?: string;
@@ -153,10 +154,12 @@ export function Section({
   subtitle?: string;
   alt?: boolean;
   className?: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
     <section
+      id={id}
       className={cn('w-full py-20 px-6', className)}
       style={{
         background: alt ? 'var(--bg-secondary)' : 'var(--bg-primary)',
