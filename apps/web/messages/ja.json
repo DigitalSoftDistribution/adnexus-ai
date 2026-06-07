@@ -137,7 +137,15 @@
     "emailPlaceholder": "you@company.com",
     "namePlaceholder": "山田 太郎",
     "signInSubtitle": "AdNexus AI アカウントにサインイン",
-    "signUpSubtitle": "AdNexus AI を始める"
+    "signUpSubtitle": "AdNexus AI を始める",
+    "forgotPassword": "Forgot your password?",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMinLength": "Password must be at least {min} characters",
+    "nameRequired": "Please enter your full name",
+    "emailRequired": "Please enter your email address",
+    "passwordRequired": "Please enter your password",
+    "invalidCredentials": "Invalid email or password"
   },
   "dashboard": {
     "title": "ダッシュボード",
