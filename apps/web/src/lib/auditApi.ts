@@ -78,17 +78,27 @@ interface AuditListEnvelope {
   totalPages?: number;
 }
 
+interface AuditStatsEnvelope {
+  total?: number;
+  today?: number;
+  totalEntries?: number;
+  entriesToday?: number;
+  categoryBreakdown?: Array<{ category: string; count: number }>;
+  actionBreakdown?: Array<{ action: string; count: number }>;
+  actorBreakdown?: Array<{ actorType: string; count: number }>;
+}
+
 function auditParams(filters: Partial<AuditFilters>): Record<string, string | number | undefined> {
   return {
     page: filters.page ?? 1,
     limit: filters.limit ?? 25,
-    actorType: filters.actorType && filters.actorType !== 'all' ? filters.actorType : undefined,
-    actionCategory:
+    actor_type: filters.actorType && filters.actorType !== 'all' ? filters.actorType : undefined,
+    action_category:
       filters.actionCategory && filters.actionCategory !== 'all' ? filters.actionCategory : undefined,
-    entityType: filters.entityType && filters.entityType !== 'all' ? filters.entityType : undefined,
+    entity_type: filters.entityType && filters.entityType !== 'all' ? filters.entityType : undefined,
     search: filters.search || undefined,
-    dateFrom: filters.startDate,
-    dateTo: filters.endDate,
+    start_date: filters.startDate,
+    end_date: filters.endDate,
   };
 }
 
@@ -115,7 +125,10 @@ export const auditApi = {
 
   /** GET /api/v2/audit-log — Export filtered results to CSV client-side */
   async export(filters: Partial<AuditFilters>): Promise<string> {
-    const result = await this.list({ ...filters, page: 1, limit: 1000 });
+    const firstPage = await this.list({ ...filters, page: 1, limit: 100 });
+    const remainingPages = Array.from({ length: Math.max(firstPage.totalPages - 1, 0) }, (_, index) => index + 2);
+    const remaining = await Promise.all(remainingPages.map((page) => this.list({ ...filters, page, limit: 100 })));
+    const entries = [firstPage.entries, ...remaining.map((page) => page.entries)].flat();
     const headers = [
       'id',
       'created_at',
@@ -130,7 +143,7 @@ export const auditApi = {
       'ip_address',
     ];
     const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const rows = result.entries.map((entry) =>
+    const rows = entries.map((entry) =>
       headers.map((key) => escape(entry[key as keyof AuditLogEntry])).join(','),
     );
 
@@ -144,18 +157,14 @@ export const auditApi = {
     categoryBreakdown: Array<{ category: string; count: number }>;
     actorBreakdown: Array<{ actorType: string; count: number }>;
   }> {
-    const response = await authFetchJson<{
-      total?: number;
-      today?: number;
-      categoryBreakdown?: Array<{ category: string; count: number }>;
-      actorBreakdown?: Array<{ actorType: string; count: number }>;
-    }>('/api/v2/audit-log/summary');
+    const response = await authFetchJson<AuditStatsEnvelope>('/api/v2/audit-log/summary');
     const data = response.data ?? {};
 
     return {
-      total: data.total ?? 0,
-      today: data.today ?? 0,
-      categoryBreakdown: data.categoryBreakdown ?? [],
+      total: data.total ?? data.totalEntries ?? 0,
+      today: data.today ?? data.entriesToday ?? 0,
+      categoryBreakdown:
+        data.categoryBreakdown ?? data.actionBreakdown?.map(({ action, count }) => ({ category: action, count })) ?? [],
       actorBreakdown: data.actorBreakdown ?? [],
     };
   },

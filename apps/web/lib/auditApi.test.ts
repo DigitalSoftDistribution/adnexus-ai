@@ -30,7 +30,7 @@ describe('auditApi', () => {
     const result = await auditApi.list({ page: 2, limit: 10, actorType: 'user', actionCategory: 'login' });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v2/audit-log?page=2&limit=10&actorType=user&actionCategory=login',
+      '/api/v2/audit-log?page=2&limit=10&actor_type=user&action_category=login',
       expect.objectContaining({ headers: expect.any(Headers) }),
     );
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers;

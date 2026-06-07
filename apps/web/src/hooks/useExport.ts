@@ -89,17 +89,20 @@ const EXTENSIONS: Record<ExportType, string> = {
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /** Trigger a browser download for a Blob */
-function downloadBlob(blob: Blob, filename: string): string {
-  const url = window.URL.createObjectURL(blob);
+function triggerDownload(url: string, filename: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
   link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
-  // Cleanup
+  document.body.removeChild(link);
+}
+
+function downloadBlob(blob: Blob, filename: string): string {
+  const url = window.URL.createObjectURL(blob);
+  triggerDownload(url, filename);
   setTimeout(() => {
-    document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   }, 100);
   return url;
@@ -444,6 +447,9 @@ export function useExport(): UseExportReturn {
 
         const data = response.data;
         const downloadUrl = data?.fileUrl ?? data?.file_url ?? undefined;
+        if (downloadUrl) {
+          triggerDownload(downloadUrl, exportName);
+        }
         const result: ExportResult = {
           success: true,
           filename: exportName,
