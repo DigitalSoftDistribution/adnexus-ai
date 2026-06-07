@@ -79,8 +79,8 @@ export interface ISettingsRepository {
   // Team
   getTeamMembers(workspaceId: string): Promise<TeamMember[]>;
   findUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
-  createInvitedUser(email: string): Promise<{ id: string; email: string }>;
   findTeamMember(workspaceId: string, userId: string): Promise<TeamMember | null>;
+  canAddTeamMember(workspaceId: string): Promise<boolean>;
   addTeamMember(workspaceId: string, userId: string, role: WorkspaceRole, invitedBy: string): Promise<TeamMember>;
   updateTeamMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean>;
   removeTeamMember(workspaceId: string, userId: string): Promise<boolean>;

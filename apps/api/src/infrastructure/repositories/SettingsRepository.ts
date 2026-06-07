@@ -1,8 +1,8 @@
 import type { ISettingsRepository, TeamMember, Integration, NotificationPreferences } from '../../domain/repositories/ISettingsRepository';
 import type { ApiKey } from '../../domain/entities/ApiKey';
 import type { WorkspaceRole } from '../../domain/entities/User';
+import { PLAN_LIMITS, type WorkspaceLimits, type PlanTier } from '../../domain/entities/Workspace';
 import { query } from '../database/connection';
-import { randomBytes } from 'crypto';
 
 export class SettingsRepository implements ISettingsRepository {
   // Workspace
@@ -142,45 +142,26 @@ export class SettingsRepository implements ISettingsRepository {
     return rows[0] ?? null;
   }
 
-  private async usersRequirePasswordHash(): Promise<boolean> {
-    const { rows } = await query<{ exists: boolean }>(
-      `SELECT EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema = 'public'
-           AND table_name = 'users'
-           AND column_name = 'password_hash'
-       ) AS exists`,
-    );
-    return rows[0]?.exists ?? false;
-  }
-
-  async createInvitedUser(email: string): Promise<{ id: string; email: string }> {
-    const name = email.split('@')[0];
-
-    if (await this.usersRequirePasswordHash()) {
-      const inviteOnlyPasswordHash = `invite:${randomBytes(32).toString('hex')}`;
-      const { rows } = await query<{ id: string; email: string }>(
-        `INSERT INTO users (email, name, password_hash)
-         VALUES ($1, $2, $3)
-         RETURNING id, email`,
-        [email, name, inviteOnlyPasswordHash],
-      );
-      return rows[0];
-    }
-
-    const { rows } = await query<{ id: string; email: string }>(
-      `INSERT INTO users (email, name)
-       VALUES ($1, $2)
-       RETURNING id, email`,
-      [email, name],
-    );
-    return rows[0];
-  }
-
   async findTeamMember(workspaceId: string, userId: string): Promise<TeamMember | null> {
     const members = await this.getTeamMembers(workspaceId);
     return members.find((member) => member.userId === userId) ?? null;
+  }
+
+  async canAddTeamMember(workspaceId: string): Promise<boolean> {
+    const { rows } = await query<{ plan: PlanTier }>(
+      `SELECT plan FROM workspaces WHERE id = $1`,
+      [workspaceId],
+    );
+    const plan = rows[0]?.plan ?? 'free';
+    const maxUsers = (PLAN_LIMITS[plan] as WorkspaceLimits).maxUsers;
+
+    const { rows: countRows } = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM workspace_members WHERE workspace_id = $1`,
+      [workspaceId],
+    );
+    const current = parseInt(countRows[0]?.count ?? '0', 10);
+
+    return current < maxUsers;
   }
 
   async addTeamMember(workspaceId: string, userId: string, role: WorkspaceRole, invitedBy: string): Promise<TeamMember> {

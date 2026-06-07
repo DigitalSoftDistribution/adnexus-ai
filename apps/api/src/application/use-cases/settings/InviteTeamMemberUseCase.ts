@@ -28,9 +28,16 @@ export class InviteTeamMemberUseCase {
       return err(new ForbiddenError('Admins cannot invite other admins'));
     }
 
+    const canAddMember = await this.settingsRepo.canAddTeamMember(input.workspaceId);
+    if (!canAddMember) {
+      return err(new ValidationError('Workspace member limit reached'));
+    }
+
     const email = input.email.trim().toLowerCase();
-    const user = await this.settingsRepo.findUserByEmail(email)
-      ?? await this.settingsRepo.createInvitedUser(email);
+    const user = await this.settingsRepo.findUserByEmail(email);
+    if (!user) {
+      return err(new ValidationError('Invitee must sign up before they can be added to this workspace'));
+    }
 
     const existingMember = await this.settingsRepo.findTeamMember(input.workspaceId, user.id);
     if (existingMember) {
