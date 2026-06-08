@@ -1,15 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { platformLabel } from '@/lib/platforms';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Users, Plus, Target, Globe, Smartphone, Heart, ShoppingCart } from 'lucide-react';
 
 interface Audience {
@@ -46,6 +55,37 @@ export function AudiencesContent() {
   const { audiences, isLoading, isError, refetch, filter, setFilter, total } = useAudiences();
   const t = useTranslations('audiences');
   const tc = useTranslations('common');
+  const queryClient = useQueryClient();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [audienceType, setAudienceType] = useState('');
+
+  const createAudience = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/v2/audiences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform,
+          name,
+          type: audienceType,
+          size: 0,
+          targeting: {},
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create audience');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      setDialogOpen(false);
+      setName('');
+      setPlatform('');
+      setAudienceType('');
+    },
+  });
 
   const platforms = ['all', 'meta', 'google', 'tiktok', 'snap'] as const;
 
@@ -65,12 +105,42 @@ export function AudiencesContent() {
 
   return (
     <div className="space-y-6">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('newAudience')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="audience-name">{tc('name')}</Label>
+              <Input id="audience-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('audienceNamePlaceholder')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="audience-platform">{tc('platform')}</Label>
+              <Input id="audience-platform" value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder="meta" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="audience-type">{tc('type')}</Label>
+              <Input id="audience-type" value={audienceType} onChange={(e) => setAudienceType(e.target.value)} placeholder="lookalike" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => createAudience.mutate()}
+              disabled={createAudience.isPending || !name || !platform || !audienceType}
+            >
+              {createAudience.isPending ? tc('creating') : tc('create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <Button>
+        <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t('newAudience')}
         </Button>

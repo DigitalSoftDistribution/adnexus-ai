@@ -1,15 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { formatCompact } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { BarChart3, Plus, FileText, Calendar, Download, TrendingUp, Users, DollarSign } from 'lucide-react';
 
 interface SummarySeriesPoint {
@@ -69,6 +78,36 @@ export function ReportsContent() {
   const series = useSummarySeries();
   const t = useTranslations('reports');
   const tc = useTranslations('common');
+  const queryClient = useQueryClient();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState('');
+  const [scheduleCron, setScheduleCron] = useState('');
+
+  const createReport = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/v2/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          type,
+          config: {},
+          schedule: scheduleCron || null,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create report');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      setDialogOpen(false);
+      setName('');
+      setType('');
+      setScheduleCron('');
+    },
+  });
 
   const previewData = series.map((p) => ({
     name: p.date.slice(5),
@@ -115,12 +154,42 @@ export function ReportsContent() {
 
   return (
     <div className="space-y-6">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('newReport')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="report-name">{tc('name')}</Label>
+              <Input id="report-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('newReportPlaceholder')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="report-type">{t('type')}</Label>
+              <Input id="report-type" value={type} onChange={(e) => setType(e.target.value)} placeholder="performance" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="report-schedule">{t('scheduleCron')}</Label>
+              <Input id="report-schedule" value={scheduleCron} onChange={(e) => setScheduleCron(e.target.value)} placeholder="0 8 * * 1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => createReport.mutate()}
+              disabled={createReport.isPending || !name || !type}
+            >
+              {createReport.isPending ? tc('creating') : tc('create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <Button>
+        <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t('newReport')}
         </Button>

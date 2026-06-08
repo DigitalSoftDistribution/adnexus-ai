@@ -1,14 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { ChartCard } from '@/components/charts/ChartCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Bell, Plus, AlertTriangle, TrendingDown, DollarSign, Users, Activity } from 'lucide-react';
 
 interface AlertRule {
@@ -45,6 +54,42 @@ export function AlertsContent() {
   const { rules, isLoading, isError, refetch, filter, setFilter, total } = useAlerts();
   const t = useTranslations('alerts');
   const tc = useTranslations('common');
+  const queryClient = useQueryClient();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState('');
+  const [metric, setMetric] = useState('');
+  const [operator, setOperator] = useState('>');
+  const [threshold, setThreshold] = useState('');
+
+  const createAlert = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/v2/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          type,
+          metric,
+          operator,
+          threshold: parseFloat(threshold),
+          channels: ['email'],
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create alert');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      setDialogOpen(false);
+      setName('');
+      setType('');
+      setMetric('');
+      setOperator('>');
+      setThreshold('');
+    },
+  });
 
   const alertTypes = [
     { name: t('alertTypes.budget'), icon: DollarSign, color: 'bg-red-100 text-red-700' },
@@ -62,12 +107,52 @@ export function AlertsContent() {
 
   return (
     <div className="space-y-6">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('newAlertRule')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="alert-name">{tc('name')}</Label>
+              <Input id="alert-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('alertNamePlaceholder')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="alert-type">{t('type')}</Label>
+              <Input id="alert-type" value={type} onChange={(e) => setType(e.target.value)} placeholder="budget" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="alert-metric">{t('metric')}</Label>
+                <Input id="alert-metric" value={metric} onChange={(e) => setMetric(e.target.value)} placeholder="spend" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="alert-operator">{t('operator')}</Label>
+                <Input id="alert-operator" value={operator} onChange={(e) => setOperator(e.target.value)} placeholder=">" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="alert-threshold">{t('threshold')}</Label>
+                <Input id="alert-threshold" type="number" value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="100" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => createAlert.mutate()}
+              disabled={createAlert.isPending || !name || !type || !metric || !threshold}
+            >
+              {createAlert.isPending ? tc('creating') : tc('create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <Button>
+        <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t('newAlertRule')}
         </Button>
