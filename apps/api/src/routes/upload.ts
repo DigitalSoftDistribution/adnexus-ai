@@ -2,6 +2,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { ParsedQs } from 'qs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -103,14 +105,20 @@ function generatePublicUrl(supabase: SupabaseClient, storagePath: string): strin
 // ─── Middleware ──────────────────────────────────────────────────
 
 function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  // Attach user if auth token is present; allow anonymous uploads too
   const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    // Token verification would go here in production
-    // For now, decode the user from context or use a placeholder
-    // req.user = decodedUser;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    return;
   }
-  next();
+
+  try {
+    const token = authHeader.slice(7);
+    const payload = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] }) as { sub: string; workspace_id: string };
+    req.user = { id: payload.sub, workspaceId: payload.workspace_id };
+    next();
+  } catch {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid token' } });
+  }
 }
 
 // ─── Ensure Bucket Exists ────────────────────────────────────────

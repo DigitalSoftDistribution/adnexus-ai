@@ -24,6 +24,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { supabase } from '../lib/supabase';
+import { decryptToken } from '../security/encryption';
 import { asyncHandler } from '../middleware/errorHandler';
 import {
   NotFoundError,
@@ -284,7 +285,7 @@ async function getPlatformClient(platform: AdPlatform, workspaceId: string): Pro
     .limit(1)
     .single();
 
-  const token = account?.oauth_token;
+  const token = account?.oauth_token ? decryptToken(account.oauth_token) : null;
   if (!token) {
     throw new PlatformAPIError(platform, `No connected ${platform} account with valid token found`);
   }

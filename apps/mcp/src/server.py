@@ -2,7 +2,7 @@
 """
 AdNexus AI - Production-Ready MCP Server v2
 ============================================
-A FastMCP server that proxies 30+ tools to the AdNexus Node.js API,
+A FastMCP server that proxies 15 tools to the AdNexus Node.js API,
 enabling AI assistants (Claude, Cursor, etc.) to manage ad campaigns
 across Meta, Google, TikTok, and Snapchat with full safety controls.
 
@@ -35,15 +35,13 @@ import logging
 import os
 import time
 import uuid
-from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Any, Literal, Optional
-from functools import lru_cache
 
 import httpx
-from fastmcp import FastMCP, Context
-from pydantic import BaseModel, Field, field_validator, model_validator
+from fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Logging setup
@@ -94,29 +92,71 @@ class ToolCache:
     def __init__(self, ttl_seconds: int = 60):
         self._cache: dict[str, tuple[Any, datetime]] = {}
         self._ttl = timedelta(seconds=ttl_seconds)
+        self._lock = asyncio.Lock()
 
-    def get(self, key: str) -> Any | None:
-        if key not in self._cache:
-            return None
-        value, timestamp = self._cache[key]
-        if datetime.now() - timestamp > self._ttl:
-            del self._cache[key]
-            return None
-        return value
+    async def get(self, key: str) -> Any | None:
+        async with self._lock:
+            if key not in self._cache:
+                return None
+            value, timestamp = self._cache[key]
+            if datetime.now() - timestamp > self._ttl:
+                del self._cache[key]
+                return None
+            return value
 
-    def set(self, key: str, value: Any) -> None:
-        self._cache[key] = (value, datetime.now())
+    async def set(self, key: str, value: Any) -> None:
+        async with self._lock:
+            self._cache[key] = (value, datetime.now())
 
-    def invalidate(self, pattern: str | None = None) -> None:
-        if pattern is None:
-            self._cache.clear()
-        else:
-            keys_to_remove = [k for k in self._cache if pattern in k]
-            for k in keys_to_remove:
-                del self._cache[k]
+    async def invalidate(self, pattern: str | None = None) -> None:
+        async with self._lock:
+            if pattern is None:
+                self._cache.clear()
+            else:
+                keys_to_remove = [k for k in self._cache if pattern in k]
+                for k in keys_to_remove:
+                    del self._cache[k]
 
 
 tool_cache = ToolCache(CACHE_TTL)
+
+
+# ---------------------------------------------------------------------------
+# Token-bucket rate limiter
+# ---------------------------------------------------------------------------
+class RateLimiter:
+    """Simple token-bucket rate limiter for protecting downstream API."""
+
+    def __init__(self, rate: float = 10.0, burst: int = 20):
+        self._rate = rate
+        self._burst = burst
+        self._tokens = float(burst)
+        self._last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> bool:
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._last_refill
+            self._tokens = min(self._burst, self._tokens + elapsed * self._rate)
+            self._last_refill = now
+            if self._tokens >= 1.0:
+                self._tokens -= 1.0
+                return True
+            return False
+
+_rate_limiter = RateLimiter()
+
+
+def rate_limited(func):
+    """Decorator that enforces rate limiting on tool calls."""
+    async def wrapper(*args, **kwargs):
+        if not await _rate_limiter.acquire():
+            return _err("Rate limit exceeded — please slow down requests", code="RATE_LIMITED")
+        return await func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
 # ---------------------------------------------------------------------------
@@ -195,7 +235,7 @@ async def _api_call(
             data = resp.json()
 
             if use_cache:
-                tool_cache.set(cache_key, data)
+                await tool_cache.set(cache_key, data)
 
             return data
         except httpx.HTTPStatusError as e:
@@ -226,6 +266,28 @@ async def _api_call(
 mcp = FastMCP("adnexus-ai")
 
 
+
+# ---------------------------------------------------------------------------
+# Workspace context authentication
+# ---------------------------------------------------------------------------
+async def _validate_workspace(workspace_id: str, ctx: _ReqCtx) -> str | None:
+    """Validate that the caller has access to the given workspace.
+
+    Returns an error message string if validation fails, or None if successful.
+    """
+    if not workspace_id:
+        return _err("workspace_id is required", code="AUTH_MISSING_WORKSPACE")
+    result = await _api_call(
+        "GET", f"/workspaces/{workspace_id}/verify",
+        params={"workspace_id": workspace_id},
+        ctx=ctx,
+        use_cache=True,
+    )
+    if isinstance(result, dict) and "error" in result:
+        return _err(f"Workspace access denied: {result['error']}", code="AUTH_WORKSPACE_DENIED")
+    return None
+
+
 # ===========================================================================
 # Pydantic input models
 # ===========================================================================
@@ -246,9 +308,9 @@ class GetCampaignInput(BaseModel):
 class CreateCampaignInput(BaseModel):
     workspace_id: str = Field(..., description="Workspace UUID")
     ad_account_id: str = Field(..., description="Ad account UUID")
-    platform: str = Field(..., description="Platform: meta, google, tiktok, snap")
+    platform: Literal["meta", "google", "tiktok", "snap"] = Field(..., description="Platform: meta, google, tiktok, snap")
     name: str = Field(..., min_length=2, max_length=255)
-    status: str = Field("draft", description="Campaign status")
+    status: Literal["draft", "active", "paused", "archived"] = Field("draft", description="Campaign status")
     objective: Optional[str] = Field(None, description="Campaign objective")
     budget_type: Optional[str] = Field(None, description="daily or lifetime")
     daily_budget: Optional[float] = Field(None, ge=0)
@@ -261,7 +323,7 @@ class UpdateCampaignInput(BaseModel):
     campaign_id: str = Field(..., description="Campaign UUID")
     workspace_id: str = Field(..., description="Workspace UUID")
     name: Optional[str] = Field(None, min_length=2, max_length=255)
-    status: Optional[str] = Field(None)
+    status: Optional[Literal["draft", "active", "paused", "archived"]] = Field(None)
     daily_budget: Optional[float] = Field(None, ge=0)
     lifetime_budget: Optional[float] = Field(None, ge=0)
 
@@ -279,7 +341,7 @@ class ListDraftsInput(BaseModel):
 
 class CreateDraftInput(BaseModel):
     workspace_id: str = Field(..., description="Workspace UUID")
-    platform: str = Field(..., description="Platform or 'all'")
+    platform: Literal["meta", "google", "tiktok", "snap"] = Field(..., description="Platform: meta, google, tiktok, snap")
     campaign_id: Optional[str] = Field(None, description="Campaign UUID")
     draft_type: str = Field(..., description="Type of change")
     change_summary: str = Field(..., min_length=5, max_length=500)
@@ -320,14 +382,14 @@ class AnalyzeAudienceInput(BaseModel):
 
 class ForecastBudgetInput(BaseModel):
     workspace_id: str = Field(..., description="Workspace UUID")
-    campaign_ids: list[str] = Field(default_factory=list, description="Campaigns to forecast")
+    campaign_ids: list[str] = Field(default_factory=list, max_length=50, description="Campaigns to forecast")
     days: int = Field(30, ge=7, le=90, description="Forecast horizon in days")
-    budget_scenarios: list[float] = Field(default_factory=lambda: [1.0, 1.2, 1.5], description="Budget multipliers to test")
+    budget_scenarios: list[float] = Field(default_factory=lambda: [1.0, 1.2, 1.5], max_length=10, description="Budget multipliers to test")
 
 
 class BatchOperationInput(BaseModel):
     workspace_id: str = Field(..., description="Workspace UUID")
-    operations: list[dict] = Field(..., description="List of operations to perform")
+    operations: list[dict] = Field(..., max_length=50, description="List of operations to perform")
 
 
 class CacheControlInput(BaseModel):
@@ -339,6 +401,7 @@ class CacheControlInput(BaseModel):
 # Campaign tools
 # ===========================================================================
 @mcp.tool()
+@rate_limited
 async def list_campaigns(input: ListCampaignsInput) -> str:
     """List campaigns for a workspace with optional filters."""
     ctx = _ReqCtx("list_campaigns")
@@ -359,6 +422,7 @@ async def list_campaigns(input: ListCampaignsInput) -> str:
 
 
 @mcp.tool()
+@rate_limited
 async def get_campaign(input: GetCampaignInput) -> str:
     """Get detailed information about a specific campaign."""
     ctx = _ReqCtx("get_campaign")
@@ -369,16 +433,18 @@ async def get_campaign(input: GetCampaignInput) -> str:
 
 
 @mcp.tool()
+@rate_limited
 async def create_campaign(input: CreateCampaignInput) -> str:
     """Create a new advertising campaign."""
     ctx = _ReqCtx("create_campaign")
     payload = input.model_dump(exclude_none=True)
     result = await _api_call("POST", "/campaigns", json_data=payload, ctx=ctx)
-    tool_cache.invalidate("/campaigns")
+    await tool_cache.invalidate("/campaigns")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
+@rate_limited
 async def update_campaign(input: UpdateCampaignInput) -> str:
     """Update an existing campaign."""
     ctx = _ReqCtx("update_campaign")
@@ -388,11 +454,12 @@ async def update_campaign(input: UpdateCampaignInput) -> str:
     result = await _api_call(
         "PATCH", f"/campaigns/{input.campaign_id}", json_data=payload, ctx=ctx
     )
-    tool_cache.invalidate(f"/campaigns/{input.campaign_id}")
+    await tool_cache.invalidate(f"/campaigns/{input.campaign_id}")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
+@rate_limited
 async def get_campaign_summary(input: GetCampaignSummaryInput) -> str:
     """Get aggregate campaign statistics for a workspace."""
     ctx = _ReqCtx("get_campaign_summary")
@@ -406,6 +473,7 @@ async def get_campaign_summary(input: GetCampaignSummaryInput) -> str:
 # Draft tools
 # ===========================================================================
 @mcp.tool()
+@rate_limited
 async def list_drafts(input: ListDraftsInput) -> str:
     """List optimization drafts for a workspace."""
     ctx = _ReqCtx("list_drafts")
@@ -422,28 +490,31 @@ async def list_drafts(input: ListDraftsInput) -> str:
 
 
 @mcp.tool()
+@rate_limited
 async def create_draft(input: CreateDraftInput) -> str:
     """Create an optimization draft for review."""
     ctx = _ReqCtx("create_draft")
     payload = input.model_dump(exclude_none=True)
     result = await _api_call("POST", "/drafts", json_data=payload, ctx=ctx)
-    tool_cache.invalidate("/drafts")
+    await tool_cache.invalidate("/drafts")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
+@rate_limited
 async def approve_draft(input: ApproveDraftInput) -> str:
     """Approve a pending optimization draft."""
     ctx = _ReqCtx("approve_draft")
     result = await _api_call(
         "POST", f"/drafts/{input.draft_id}/approve", json_data={"workspace_id": input.workspace_id}, ctx=ctx
     )
-    tool_cache.invalidate("/drafts")
-    tool_cache.invalidate(f"/drafts/{input.draft_id}")
+    await tool_cache.invalidate("/drafts")
+    await tool_cache.invalidate(f"/drafts/{input.draft_id}")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
+@rate_limited
 async def reject_draft(input: RejectDraftInput) -> str:
     """Reject a pending optimization draft."""
     ctx = _ReqCtx("reject_draft")
@@ -451,12 +522,13 @@ async def reject_draft(input: RejectDraftInput) -> str:
     if input.rejection_reason:
         payload["rejection_reason"] = input.rejection_reason
     result = await _api_call("POST", f"/drafts/{input.draft_id}/reject", json_data=payload, ctx=ctx)
-    tool_cache.invalidate("/drafts")
-    tool_cache.invalidate(f"/drafts/{input.draft_id}")
+    await tool_cache.invalidate("/drafts")
+    await tool_cache.invalidate(f"/drafts/{input.draft_id}")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
+@rate_limited
 async def get_draft_details(input: GetDraftDetailsInput) -> str:
     """Get full details of a draft including change diff."""
     ctx = _ReqCtx("get_draft_details")
@@ -470,6 +542,7 @@ async def get_draft_details(input: GetDraftDetailsInput) -> str:
 # AI Tools (New in v2)
 # ===========================================================================
 @mcp.tool()
+@rate_limited
 async def generate_creative(input: GenerateCreativeInput) -> str:
     """Generate ad creative variants using AI.
 
@@ -485,6 +558,7 @@ async def generate_creative(input: GenerateCreativeInput) -> str:
 
 
 @mcp.tool()
+@rate_limited
 async def analyze_audience(input: AnalyzeAudienceInput) -> str:
     """Analyze audience performance and suggest optimizations.
 
@@ -503,6 +577,7 @@ async def analyze_audience(input: AnalyzeAudienceInput) -> str:
 
 
 @mcp.tool()
+@rate_limited
 async def forecast_budget(input: ForecastBudgetInput) -> str:
     """Forecast campaign performance under different budget scenarios.
 
@@ -520,6 +595,7 @@ async def forecast_budget(input: ForecastBudgetInput) -> str:
 # Batch Operations (New in v2)
 # ===========================================================================
 @mcp.tool()
+@rate_limited
 async def batch_operations(input: BatchOperationInput) -> str:
     """Execute multiple operations in a single batch request.
 
@@ -527,6 +603,8 @@ async def batch_operations(input: BatchOperationInput) -> str:
     Returns results for all operations with individual success/failure status.
     """
     ctx = _ReqCtx("batch_operations")
+    if len(input.operations) > 50:
+        return _err("Batch limited to 50 operations per request", code="BATCH_TOO_LARGE")
     results = []
 
     for idx, op in enumerate(input.operations):
@@ -573,6 +651,7 @@ async def batch_operations(input: BatchOperationInput) -> str:
 # Cache Management (New in v2)
 # ===========================================================================
 @mcp.tool()
+@rate_limited
 async def cache_control(input: CacheControlInput) -> str:
     """Manage the MCP tool result cache.
 
@@ -583,7 +662,7 @@ async def cache_control(input: CacheControlInput) -> str:
     ctx = _ReqCtx("cache_control")
 
     if input.action == "clear":
-        tool_cache.invalidate(input.pattern)
+        await tool_cache.invalidate(input.pattern)
         return _ok({"message": "Cache cleared", "pattern": input.pattern or "all"}, meta={"trace_id": ctx.trace_id})
     elif input.action == "stats":
         return _ok({

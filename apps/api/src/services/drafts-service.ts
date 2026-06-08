@@ -4,6 +4,7 @@ import { createMetaCampaign, updateMetaCampaign } from './meta-api';
 import { ragService } from './rag-service';
 import { renderInsightCard, insightInputFromDraft } from './rag-cards';
 import { getModuleLogger } from '../lib/logger';
+import { decryptToken } from '../security/encryption';
 import type { Draft, DraftStats, DraftType, Platform } from '../types';
 
 const draftsLog = getModuleLogger('drafts-service');
@@ -262,6 +263,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     throw new Error(`No connected ${draft.platform} account found`);
   }
 
+  const token = decryptToken(account.oauth_token);
   const detail = draft.change_detail;
 
   switch (draft.draft_type) {
@@ -269,7 +271,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
       // detail has: name, objective, daily_budget
       await createMetaCampaign(
         '', // account ID would come from ad_accounts
-        account.oauth_token,
+        token,
         {
           name: detail.name as string,
           objective: detail.objective as string,
@@ -282,7 +284,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     case 'budget_change': {
       const campaignPid = detail.platform_campaign_id as string;
       if (campaignPid) {
-        await updateMetaCampaign(campaignPid, account.oauth_token, {
+        await updateMetaCampaign(campaignPid, token, {
           [detail.field === 'lifetime_budget' ? 'lifetime_budget' : 'daily_budget']:
             Math.round((detail.new_value as number) * 100),
         });
@@ -292,7 +294,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     case 'status_change': {
       const campaignPid = detail.platform_campaign_id as string;
       if (campaignPid) {
-        await updateMetaCampaign(campaignPid, account.oauth_token, {
+        await updateMetaCampaign(campaignPid, token, {
           status: detail.new_status as string,
         });
       }

@@ -396,10 +396,10 @@ export interface MetaApiLogger {
 
 /** Default console-based logger */
 const defaultLogger: MetaApiLogger = {
-  debug: (msg, meta) => console.debug(`[MetaAPI:DEBUG] ${msg}`, meta || ""),
-  info: (msg, meta) => console.info(`[MetaAPI:INFO] ${msg}`, meta || ""),
-  warn: (msg, meta) => console.warn(`[MetaAPI:WARN] ${msg}`, meta || ""),
-  error: (msg, meta) => console.error(`[MetaAPI:ERROR] ${msg}`, meta || ""),
+  debug: (msg, meta) => getModuleLogger('meta-client').debug(meta ?? {}, msg)] ${msg}`, meta || ""),
+  info: (msg, meta) => getModuleLogger('meta-client').info(meta ?? {}, msg)] ${msg}`, meta || ""),
+  warn: (msg, meta) => getModuleLogger('meta-client').warn(meta ?? {}, msg)] ${msg}`, meta || ""),
+  error: (msg, meta) => getModuleLogger('meta-client').error(meta ?? {}, msg)] ${msg}`, meta || ""),
 };
 
 // ============================================================================

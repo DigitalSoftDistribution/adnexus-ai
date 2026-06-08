@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -21,6 +22,45 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const TOKEN_KEY = 'adnexus_token';
+
+function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+  // Mirror to a non-httpOnly cookie so the middleware can read it for routing
+  // guards. The API still requires the Bearer header for actual auth.
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
+}
+
+function clearStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('workspace_id');
+  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+}
+
+/**
+ * Fetch wrapper that attaches the bearer token to same-origin /api/* requests.
+ * Replaces the fragile window.fetch monkey-patch (M30 fix).
+ */
+function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  const isApi = url.startsWith('/api/') || (typeof window !== 'undefined' && url.includes('//' + window.location.host + '/api/'));
+  const token = isApi ? getStoredToken() : null;
+
+  if (token) {
+    const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+    if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+    return fetch(input, { ...init, headers });
+  }
+  return fetch(input, init);
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
@@ -31,58 +71,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  // Install a one-time fetch interceptor that attaches the stored bearer token
-  // to same-origin /api/* requests. The dashboard data components call
-  // fetch('/api/v2/...') without headers; the v2 API requires Authorization.
+  // Install authFetch as a safer alternative to the window.fetch monkey-patch
   useEffect(() => {
     const w = window as typeof window & { __adnexusFetchPatched?: boolean };
     if (w.__adnexusFetchPatched) return;
     w.__adnexusFetchPatched = true;
+    // Keep fetch interceptor for backward compatibility with existing bare fetch() calls
     const origFetch = window.fetch.bind(window);
     window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      try {
-        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-        const isApi = url.startsWith('/api/') || url.includes('//' + window.location.host + '/api/');
-        const token = isApi ? localStorage.getItem('adnexus_token') : null;
-        if (token) {
-          const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
-          if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
-          return origFetch(input, { ...init, headers });
-        }
-      } catch {
-        // fall through to the original fetch on any error
-      }
-      return origFetch(input, init);
+      return authFetch(input, init).then(
+        (r) => r,
+        (e) => origFetch(input, init),
+      );
     };
   }, []);
 
   useEffect(() => {
-    // Check for existing session
-    const token = localStorage.getItem('adnexus_token');
+    const token = getStoredToken();
     if (!token) {
       setIsLoading(false);
       return;
     }
 
-    // Validate token and fetch user
-    fetch('/api/v1/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    authFetch('/api/v1/auth/me')
       .then(async (res) => {
-        // Only treat genuine auth failures (401/403) as an invalid session.
-        // Transient failures (429 rate limit, 5xx, network) must NOT log the
-        // user out — keep the token and let the next request retry.
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem('adnexus_token');
+          clearStoredToken();
           return;
         }
         if (!res.ok) return;
 
         const body = await res.json();
-        // /api/v1/auth/me returns { success, data: { id, email, name, role,
-        // user: {...}, workspace: {...} } }. The user fields live under `data`
-        // (with a nested `user`), not at the top level.
         const payload = body?.data ?? body;
         const u = payload?.user ?? payload;
         const ws = payload?.workspace;
@@ -104,7 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    localStorage.removeItem('adnexus_token');
+    try {
+      // Attempt to invalidate server-side session
+      await authFetch('/api/v1/auth/signout', { method: 'POST' });
+    } catch {
+      // Best-effort server signout
+    }
+    clearStoredToken();
+    queryClient.clear();
     setUser(null);
     router.push('/auth/signin');
   };

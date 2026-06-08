@@ -43,6 +43,7 @@ export function SignUpForm() {
         setError(t('signUpFailed'));
         return;
       }
+      document.cookie = `adnexus_token=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
       localStorage.setItem('adnexus_token', token);
       window.location.assign(`/${locale}/onboarding`);
     } catch {

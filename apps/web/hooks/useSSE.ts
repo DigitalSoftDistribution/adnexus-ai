@@ -13,15 +13,12 @@ interface SSEEvent {
 export function useSSE(enabled: boolean = true) {
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
-  // Tracks the *actual* connection state from EventSource lifecycle events,
-  // not merely whether an EventSource object was constructed.
   const [isConnected, setIsConnected] = useState(false);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const sseEvent: SSEEvent = JSON.parse(event.data);
 
-      // Invalidate relevant queries based on event type
       switch (sseEvent.type) {
         case 'campaign.created':
         case 'campaign.updated':
@@ -56,7 +53,6 @@ export function useSSE(enabled: boolean = true) {
           break;
 
         default:
-          // Unknown event type — invalidate all dashboard data
           queryClient.invalidateQueries({ queryKey: ['campaigns'] });
           queryClient.invalidateQueries({ queryKey: ['drafts'] });
           break;
@@ -69,26 +65,39 @@ export function useSSE(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled) return;
 
-    // Get auth token for SSE connection
     const token = localStorage.getItem('adnexus_token');
-    const url = new URL('/api/v2/events', window.location.origin);
-    if (token) {
-      url.searchParams.set('token', token);
-    }
+    if (!token) return;
 
-    const es = new EventSource(url.toString());
-    eventSourceRef.current = es;
+    // Use short-lived SSE token instead of main auth token in URL (C7 fix)
+    let cancelled = false;
+    let es: EventSource | null = null;
 
-    es.onopen = () => setIsConnected(true);
-    es.onmessage = handleMessage;
+    fetch('/api/v2/events/connect', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const sseToken = data?.sseToken ?? data?.token;
+        if (!sseToken || cancelled) return;
 
-    es.onerror = () => {
-      // EventSource auto-reconnects; reflect the dropped state until it reopens.
-      setIsConnected(false);
-    };
+        const url = new URL('/api/v2/events', window.location.origin);
+        url.searchParams.set('token', sseToken);
+        es = new EventSource(url.toString());
+        eventSourceRef.current = es;
+
+        es.onopen = () => setIsConnected(true);
+        es.onmessage = handleMessage;
+        es.onerror = () => setIsConnected(false);
+      })
+      .catch(() => {
+        // SSE connect failed
+      });
 
     return () => {
-      es.close();
+      cancelled = true;
+      es?.close();
       eventSourceRef.current = null;
       setIsConnected(false);
     };

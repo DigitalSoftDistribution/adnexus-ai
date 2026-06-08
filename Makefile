@@ -7,10 +7,10 @@ setup: setup-frontend setup-backend
 	@echo "AdNexus AI setup complete!"
 
 setup-frontend:
-	cd app && npm install
+	cd apps/web && npm install
 
 setup-backend:
-	cd adnexus-backend/api && npm install
+	cd apps/api && npm install
 	cd adnexus-backend/mcp-server && pip install -r requirements.txt
 
 # === Development ===
@@ -20,20 +20,20 @@ dev-db:
 	docker-compose -f adnexus-backend/docker-compose.dev.yml up -d postgres redis
 
 dev-backend:
-	cd adnexus-backend/api && npm run dev
+	cd apps/api && npm run dev
 
 dev-frontend:
-	cd app && npm run dev
+	cd apps/web && npm run dev
 
 dev-mcp:
 	cd adnexus-backend/mcp-server && python server.py
 
 # === Database ===
 migrate:
-	cd adnexus-backend/api && npm run migrate:up
+	cd apps/api && npm run migrate:up
 
 seed:
-	cd adnexus-backend/api && npm run seed
+	cd apps/api && npm run seed
 
 reset-db: migrate seed
 
@@ -41,25 +41,25 @@ reset-db: migrate seed
 test: test-frontend test-backend
 
 test-frontend:
-	cd app && npm run test
+	cd apps/web && npm run test
 
 test-backend:
-	cd adnexus-backend/api && npm run test:unit
+	cd apps/api && npm run test:unit
 
 test-e2e:
-	cd adnexus-backend/api && npm run test:e2e
+	cd apps/api && npm run test:e2e
 
 test-integration:
-	cd adnexus-backend/api && npm run test:integration
+	cd apps/api && npm run test:integration
 
 # === Build ===
 build: build-frontend build-backend
 
 build-frontend:
-	cd app && npm run build
+	cd apps/web && npm run build
 
 build-backend:
-	cd adnexus-backend/api && npm run build
+	cd apps/api && npm run build
 
 # === Deploy ===
 deploy-staging:
@@ -72,15 +72,15 @@ deploy-production:
 lint: lint-frontend lint-backend
 
 lint-frontend:
-	cd app && npm run lint
+	cd apps/web && npm run lint
 
 lint-backend:
-	cd adnexus-backend/api && npm run lint
+	cd apps/api && npm run lint
 
 # === Clean ===
 clean:
-	cd app && rm -rf node_modules dist
-	cd adnexus-backend/api && rm -rf node_modules dist
+	cd apps/web && rm -rf node_modules dist
+	cd apps/api && rm -rf node_modules dist
 
 docker-clean:
 	docker-compose -f adnexus-backend/docker-compose.dev.yml down -v

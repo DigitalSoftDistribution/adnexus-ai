@@ -130,26 +130,26 @@ export interface EncryptedData {
 
 /**
  * Serialize encrypted data to a single string format.
- * Format: {keyVersion}:{iv}:{tag}:{ciphertext} (all base64url)
+ * Format: {keyVersion}:{salt}:{iv}:{tag}:{ciphertext} (all base64)
  */
-function serializeEncrypted(data: EncryptedData): string {
-  return [data.keyVersion, data.iv, data.tag, data.ciphertext].join(":");
+function serializeEncrypted(data: EncryptedData & { salt: string }): string {
+  return [data.keyVersion, data.salt, data.iv, data.tag, data.ciphertext].join(":");
 }
 
 /**
- * Parse a serialized encrypted string back to EncryptedData.
+ * Parse a serialized encrypted string back to EncryptedData with salt.
  */
-function parseEncrypted(serialized: string): EncryptedData {
+function parseEncrypted(serialized: string): EncryptedData & { salt: string } {
   const parts = serialized.split(":");
-  if (parts.length !== 4) {
-    throw new Error("Invalid encrypted data format: expected 4 colon-separated parts");
+  if (parts.length !== 5) {
+    throw new Error("Invalid encrypted data format: expected 5 colon-separated parts");
   }
-  const [keyVersionStr, iv, tag, ciphertext] = parts;
+  const [keyVersionStr, salt, iv, tag, ciphertext] = parts;
   const keyVersion = parseInt(keyVersionStr, 10);
   if (isNaN(keyVersion) || keyVersion < 1) {
     throw new Error(`Invalid key version: ${keyVersionStr}`);
   }
-  return { keyVersion, iv, tag, ciphertext, algorithm: AES_ALGORITHM };
+  return { keyVersion, salt, iv, tag, ciphertext, algorithm: AES_ALGORITHM };
 }
 
 /**
@@ -174,15 +174,14 @@ export function encrypt(plaintext: string): string {
 
   const tag = cipher.getAuthTag();
 
-  const encrypted: EncryptedData = {
+  return serializeEncrypted({
     keyVersion,
+    salt: salt.toString("base64"),
     iv: iv.toString("base64"),
     tag: tag.toString("base64"),
     ciphertext,
     algorithm: AES_ALGORITHM,
-  };
-
-  return serializeEncrypted(encrypted);
+  });
 }
 
 /**
@@ -201,9 +200,9 @@ export function decrypt(serialized: string): string {
 
   const iv = Buffer.from(data.iv, "base64");
   const tag = Buffer.from(data.tag, "base64");
-  const salt = Buffer.alloc(KEY_DERIVATION_SALT_SIZE); // Salt is embedded in IV for this scheme
+  const salt = Buffer.from(data.salt, "base64");
 
-  // Derive the same key
+  // Derive the same per-encryption key using the stored salt
   const derivedKey = createHmac(HMAC_ALGORITHM, keyEntry.key).update(salt).digest();
 
   const decipher = createDecipheriv(AES_ALGORITHM, derivedKey.slice(0, AES_KEY_SIZE), iv);

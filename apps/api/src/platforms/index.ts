@@ -148,6 +148,7 @@ import {
 } from './config';
 
 import {
+import { getModuleLogger } from "../../lib/logger";
   loadWorkspaceAccounts,
   persistRefreshedToken,
   markAccountDisconnected,
@@ -478,7 +479,7 @@ export class PlatformManager {
 
     // Log partial failures
     if (errors.length > 0 && clients.length > 1) {
-      console.warn(`[PlatformManager] getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`, errors);
+      getModuleLogger('platforms').warn({ errors: errors.length, clients: clients.length }, `getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`);
     }
 
     return filtered.slice(offset, offset + limit);
@@ -656,7 +657,7 @@ export class PlatformManager {
         try {
           return await client.getAccountSummary(dateRange);
         } catch (error) {
-          console.warn(`[PlatformManager] Account summary failed for ${platform}/${accountId}:`, error);
+          getModuleLogger('platforms').warn({ platform, accountId, error }, `Account summary failed for ${platform}/${accountId}`);
           return null;
         }
       }),

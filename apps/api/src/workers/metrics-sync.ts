@@ -2,6 +2,7 @@
 import { Worker, Queue, Job } from 'bullmq';
 import { config } from '../config';
 import { supabase } from '../lib/supabase';
+import { decryptToken } from '../security/encryption';
 import { PlatformError } from '../lib/errors';
 import type { Platform, AdAccount } from '../types';
 import * as metaApi from '../services/meta-api';
@@ -1080,7 +1081,7 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
   const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000; // 5-minute buffer
 
   if (!isExpired && accountData.oauth_token) {
-    return accountData.oauth_token;
+    return decryptToken(accountData.oauth_token);
   }
 
   // Token is expired or about to expire — refresh it

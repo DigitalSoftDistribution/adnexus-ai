@@ -337,7 +337,7 @@ router.put(
         auto_execute: z.boolean().optional(),
         notification_channels: z.array(z.string()).optional(),
       })
-      .passthrough();
+      .strict();
 
     const body = updateSchema.parse(req.body);
 

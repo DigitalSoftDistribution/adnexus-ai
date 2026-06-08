@@ -8,6 +8,7 @@
  */
 
 import {
+import { getModuleLogger } from "../../../lib/logger";
   GAQLQuery,
   GAQLCondition,
   GAQLResource,
@@ -460,7 +461,7 @@ export class GAQLBuilder {
     if (!this.validated) {
       const { warnings } = this.validate();
       for (const w of warnings) {
-        console.warn(`[GAQLBuilder] ${w}`);
+        getModuleLogger('gaql-builder').warn(${w}`);
       }
     }
 

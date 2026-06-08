@@ -8,6 +8,7 @@
  */
 
 import {
+import { getModuleLogger } from "../../../lib/logger";
   GoogleAdsApiError,
   GoogleAdsErrorResponse,
   GoogleAdsErrorDetail,

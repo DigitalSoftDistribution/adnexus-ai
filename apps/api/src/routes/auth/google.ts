@@ -11,6 +11,7 @@ import { Router, type Request, type Response } from 'express';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
+import { encryptToken } from '../../security/encryption';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
 import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 
@@ -251,8 +252,8 @@ router.get('/callback', async (req: Request, res: Response) => {
           platform: 'google',
           platform_account_id: account.id,
           name: account.descriptiveName || `Google Ads ${account.id}`,
-          oauth_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
+          oauth_token: encryptToken(tokens.access_token),
+          refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
           token_expires_at: expiresAt,
           scopes,
           status: 'active',

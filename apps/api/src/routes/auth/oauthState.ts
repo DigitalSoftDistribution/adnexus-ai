@@ -89,7 +89,7 @@ export async function createOAuthState(payload: Omit<OAuthStatePayload, 'nonce'>
 export function verifyOAuthState(state: unknown, platform: OAuthPlatform): OAuthStatePayload | null {
   if (typeof state !== 'string' || !state) return null;
   try {
-    const decoded = jwt.verify(state, config.jwt.secret) as Partial<OAuthStatePayload>;
+    const decoded = jwt.verify(state, config.jwt.secret, { algorithms: ["HS256"] }) as Partial<OAuthStatePayload>;
     if (
       decoded.platform !== platform ||
       typeof decoded.workspaceId !== 'string' ||

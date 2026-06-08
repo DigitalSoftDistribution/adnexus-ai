@@ -2,6 +2,7 @@ import { query } from '../database/connection';
 import { refreshGoogleToken } from '../../services/google-api';
 import { persistRefreshedToken } from '../../platforms/account-store';
 import { getModuleLogger } from '../../lib/logger';
+import { decryptToken } from '../../security/encryption';
 
 const log = getModuleLogger('google-token');
 
@@ -23,26 +24,26 @@ export async function resolveGoogleToken(adAccountId: string): Promise<string | 
   const expiresSoon = expiryMs !== null && expiryMs < now + 5 * 60 * 1000;
   const alreadyExpired = expiryMs !== null && expiryMs <= now;
 
-  if (!expiresSoon) return row.oauth_token;
+  if (!expiresSoon) return decryptToken(row.oauth_token);
 
   if (!row.refresh_token) {
     if (!alreadyExpired) {
       log.warn({ adAccountId }, 'Google token expiring soon and no refresh token; using remaining lifetime');
-      return row.oauth_token;
+      return decryptToken(row.oauth_token);
     }
     log.warn({ adAccountId }, 'Google token expired and no refresh token');
     return null;
   }
 
   try {
-    const refreshed = await refreshGoogleToken(row.refresh_token);
+    const refreshed = await refreshGoogleToken(decryptToken(row.refresh_token));
     await persistRefreshedToken(adAccountId, refreshed.accessToken, refreshed.expiresAt.toISOString());
     log.info({ adAccountId }, 'Refreshed Google token');
     return refreshed.accessToken;
   } catch (e) {
     if (!alreadyExpired) {
       log.warn({ err: e, adAccountId }, 'Google token refresh failed; using remaining lifetime');
-      return row.oauth_token;
+      return decryptToken(row.oauth_token);
     }
     log.warn({ err: e, adAccountId }, 'Google token refresh failed and token expired');
     return null;

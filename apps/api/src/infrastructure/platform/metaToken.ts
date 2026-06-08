@@ -2,6 +2,7 @@ import { query } from '../database/connection';
 import { refreshMetaToken } from '../../services/meta-api';
 import { persistRefreshedToken } from '../../platforms/account-store';
 import { getModuleLogger } from '../../lib/logger';
+import { decryptToken } from '../../security/encryption';
 
 const log = getModuleLogger('meta-token');
 
@@ -29,7 +30,7 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   const expiresSoon = expiryMs !== null && expiryMs < now + 5 * 60 * 1000;
   const alreadyExpired = expiryMs !== null && expiryMs <= now;
 
-  if (!expiresSoon) return row.oauth_token;
+  if (!expiresSoon) return decryptToken(row.oauth_token);
 
   // Expiring soon: prefer a proactive refresh. If refresh isn't possible, fall
   // back to the current token as long as it has not actually expired yet, so we
@@ -37,14 +38,14 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   if (!row.refresh_token) {
     if (!alreadyExpired) {
       log.warn({ adAccountId }, 'Meta token expiring soon and no refresh token; using remaining lifetime');
-      return row.oauth_token;
+      return decryptToken(row.oauth_token);
     }
     log.warn({ adAccountId }, 'Meta token expired and no refresh token');
     return null;
   }
 
   try {
-    const refreshed = await refreshMetaToken(row.refresh_token);
+    const refreshed = await refreshMetaToken(decryptToken(row.refresh_token));
     const newExpiry = new Date(now + (refreshed.expires_in ?? 3600) * 1000).toISOString();
     await persistRefreshedToken(adAccountId, refreshed.access_token, newExpiry);
     log.info({ adAccountId }, 'Refreshed Meta token');
@@ -52,7 +53,7 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   } catch (e) {
     if (!alreadyExpired) {
       log.warn({ err: e, adAccountId }, 'Meta token refresh failed; using remaining lifetime');
-      return row.oauth_token;
+      return decryptToken(row.oauth_token);
     }
     log.warn({ err: e, adAccountId }, 'Meta token refresh failed and token expired');
     return null;

@@ -373,7 +373,7 @@ router.post(
     // ── 1. Verify the refresh token ──
     let payload: jwt.JwtPayload;
     try {
-      payload = jwt.verify(body.refresh_token, config.jwt.secret, {
+      payload = jwt.verify(body.refresh_token, config.jwt.secret, { algorithms: ["HS256"],
         clockTolerance: 60,
       }) as jwt.JwtPayload;
     } catch {
@@ -753,7 +753,7 @@ router.post(
       type: string;
     };
     try {
-      payload = jwt.verify(body.token, config.jwt.secret, {
+      payload = jwt.verify(body.token, config.jwt.secret, { algorithms: ["HS256"],
         clockTolerance: 60,
       }) as typeof payload;
     } catch {

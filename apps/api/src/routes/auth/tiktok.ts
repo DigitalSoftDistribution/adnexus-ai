@@ -13,6 +13,7 @@ import { Router, type Request, type Response } from 'express';
 import axios from 'axios';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
+import { encryptToken } from '../../security/encryption';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
 import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
@@ -129,7 +130,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         platform: 'tiktok',
         platform_account_id: advertiserId,
         name: 'TikTok Ads',
-        oauth_token: accessToken,
+        oauth_token: encryptToken(accessToken),
         refresh_token: null,
         scopes: [],
         status: 'active',

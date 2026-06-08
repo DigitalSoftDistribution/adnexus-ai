@@ -6,6 +6,7 @@
  */
 
 import { query } from '../infrastructure/database/connection';
+import { decryptToken, encryptToken } from '../security/encryption';
 import type { AdAccount, Platform } from './types';
 
 interface AdAccountRow {
@@ -34,8 +35,8 @@ function mapRow(row: AdAccountRow): AdAccount {
     currency: (meta.currency as string) ?? 'USD',
     timezone: (meta.timezone as string) ?? 'UTC',
     status: (row.status === 'active' ? 'active' : 'disconnected') as AdAccount['status'],
-    accessToken: row.oauth_token ?? '',
-    refreshToken: row.refresh_token ?? undefined,
+    accessToken: row.oauth_token ? decryptToken(row.oauth_token) : '',
+    refreshToken: row.refresh_token ? decryptToken(row.refresh_token) : undefined,
     tokenExpiresAt: row.token_expires_at ?? undefined,
     metadata: meta,
     createdAt: row.created_at,
@@ -67,7 +68,7 @@ export async function persistRefreshedToken(
     `UPDATE ad_accounts
      SET oauth_token = $2, token_expires_at = $3, updated_at = NOW()
      WHERE id = $1`,
-    [accountId, accessToken, tokenExpiresAt ?? null],
+    [accountId, encryptToken(accessToken), tokenExpiresAt ?? null],
   );
 }
 

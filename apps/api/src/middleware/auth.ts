@@ -25,7 +25,7 @@ export async function authenticateToken(req: Request, _res: Response, next: Next
     }
 
     const token = authHeader.slice(7);
-    const payload = jwt.verify(token, config.jwt.secret, { clockTolerance: 60 }) as JWTPayload;
+    const payload = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'], clockTolerance: 60 }) as JWTPayload;
 
     // Verify user still exists and is active
     const { data: user, error } = await supabase

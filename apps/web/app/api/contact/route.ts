@@ -8,7 +8,26 @@ const schema = z.object({
   message: z.string().min(10, 'Please include at least 10 characters').max(4000),
 });
 
+function validateOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+  const candidate = origin ?? referer;
+  if (!candidate) return false;
+
+  try {
+    const candidateHost = new URL(candidate).host;
+    const requestHost = request.headers.get('host') ?? '';
+    return candidateHost === requestHost;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
+  if (!validateOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

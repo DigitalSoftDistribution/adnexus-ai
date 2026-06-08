@@ -11,6 +11,7 @@ import { Router, type Request, type Response } from "express";
 import { config } from "../../config";
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
+import { encryptToken, decryptToken } from "../../security/encryption";
 import axios from "axios";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
 import { consumeOAuthStateNonce, createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
@@ -202,7 +203,7 @@ router.get("/callback", async (req: Request, res: Response) => {
         const { error: updateErr } = await supabase
           .from("ad_accounts")
           .update({
-            oauth_token: accessToken,
+            oauth_token: encryptToken(accessToken),
             refresh_token: accessToken, // Meta uses same token refreshed
             token_expires_at: expiresAt,
             scopes: REQUIRED_SCOPES,
@@ -234,7 +235,7 @@ router.get("/callback", async (req: Request, res: Response) => {
           const { error: updateErr } = await supabase
             .from("ad_accounts")
             .update({
-              oauth_token: accessToken,
+              oauth_token: encryptToken(accessToken),
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
@@ -261,7 +262,7 @@ router.get("/callback", async (req: Request, res: Response) => {
               platform_account_id: acc.id,
               name: acc.name || `Meta Ads Account ${acc.id}`,
               status: acc.account_status === 1 ? "active" : "error",
-              oauth_token: accessToken,
+              oauth_token: encryptToken(accessToken),
               refresh_token: accessToken,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
@@ -334,10 +335,10 @@ router.post("/disconnect", requireAuth, requireAdmin, async (req: Request, res: 
       .single();
 
     if (account?.oauth_token) {
-      // Revoke with Meta
+      // Revoke with Meta (token is stored encrypted at rest)
       try {
         await axios.delete(`${META_GRAPH_URL}/me/permissions`, {
-          params: { access_token: account.oauth_token },
+          params: { access_token: decryptToken(account.oauth_token) },
         });
       } catch {
         // Token may already be invalid; continue with DB cleanup

@@ -52,6 +52,7 @@ import {
 import { GoogleAdsAuth } from "./auth";
 import { GAQLBuilder, GAQLPresets } from "./gaql-builder";
 import {
+import { getModuleLogger } from "../../../lib/logger";
   RateLimiter,
   RetryHandler,
   ErrorParser,
@@ -315,7 +316,7 @@ export class GoogleAdsClient {
               `[GoogleAdsClient] Partial failure in mutate: ${failures.length}/${operations.length} operations failed`
             );
             for (const f of failures) {
-              console.warn(`  [Op ${f.operationIndex}] ${f.error.message}`);
+              logGG.warn({ operationIndex: f.operationIndex, message: f.error.message }, `[Op ${f.operationIndex}] ${f.error.message}`);
             }
           }
         }

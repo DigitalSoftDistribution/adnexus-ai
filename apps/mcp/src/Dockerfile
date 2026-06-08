@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 COPY server.py ./
-COPY models/ ./models/
-COPY tools/ ./tools/
+# Models and tools are runtime-extensible; create empty dirs as mount points
+RUN mkdir -p models tools
 
 # Expose the MCP server port
 EXPOSE 8000

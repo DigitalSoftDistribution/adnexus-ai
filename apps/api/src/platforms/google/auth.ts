@@ -6,6 +6,7 @@
  * and request authentication for Google Ads API.
  */
 
+import { getModuleLogger } from "../../lib/logger";
 import {
   GoogleOAuthConfig,
   GoogleTokens,
@@ -334,7 +335,7 @@ export class GoogleAdsAuth {
       try {
         await callback(tokens);
       } catch (err) {
-        console.error("Token refresh callback error:", err);
+        getModuleLogger('google-auth').error({ err }, "Token refresh callback error");
       }
     }
   }
@@ -357,7 +358,7 @@ export class GoogleAdsAuth {
         body: new URLSearchParams({ token: this.tokens.access_token }),
       });
     } catch (err) {
-      console.warn("Token revocation request failed:", err);
+      getModuleLogger('google-auth').warn({ err }, "Token revocation request failed");
     }
 
     this.tokens = null;
