@@ -7,6 +7,9 @@ import { config } from '../config';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('upload');
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -135,7 +138,7 @@ async function ensureBucket(supabase: SupabaseClient): Promise<void> {
       });
     }
   } catch (err) {
-    console.warn('[upload] Bucket check/creation warning:', (err as Error).message);
+    logger.warn({ err }, "Bucket check/creation warning");
   }
 }
 
@@ -192,7 +195,7 @@ router.post(
         });
 
       if (uploadError) {
-        console.error('[upload] Supabase upload error:', uploadError);
+        logger.error({ err: uploadError }, "Supabase upload error");
         return res.status(500).json({
           success: false,
           message: 'Failed to upload file to storage',
@@ -242,7 +245,7 @@ router.post(
       if (dbError) {
         // Rollback: delete from storage
         await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
-        console.error('[upload] Database insert error:', dbError);
+        logger.error({ err: dbError }, "Database insert error");
         return res.status(500).json({
           success: false,
           message: 'File uploaded but failed to save metadata',
@@ -264,7 +267,7 @@ router.post(
         },
       });
     } catch (err: any) {
-      console.error('[upload] Unexpected error:', err);
+      logger.error({ err }, "Unexpected error");
       return res.status(500).json({
         success: false,
         message: 'Internal server error during upload',
@@ -354,7 +357,7 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('[uploads] Query error:', error);
+      logger.error({ err: error }, "Query error");
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch uploads',
@@ -385,7 +388,7 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
 
     return res.status(200).json(response);
   } catch (err: any) {
-    console.error('[uploads] Unexpected error:', err);
+    logger.error({ err }, "Unexpected error");
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -466,7 +469,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
       .remove([upload.storage_path]);
 
     if (storageError) {
-      console.warn('[uploads] Storage delete warning:', storageError.message);
+      logger.warn({ err: storageError }, "Storage delete warning");
       // Continue even if storage delete fails — may already be gone
     }
 
@@ -483,7 +486,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
       .eq('id', id);
 
     if (dbError) {
-      console.error('[uploads] Database delete error:', dbError);
+      logger.error({ err: dbError }, "Database delete error");
       return res.status(500).json({
         success: false,
         message: 'Failed to delete upload record',
@@ -497,7 +500,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
       data: { id },
     });
   } catch (err: any) {
-    console.error('[uploads] Delete error:', err);
+    logger.error({ err }, "Delete error");
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -581,7 +584,7 @@ router.use((err: any, _req: Request, res: Response, _next: any) => {
       message: err.message,
     });
   }
-  console.error('[upload] Error:', err);
+  logger.error({ err }, "Error");
   return res.status(500).json({
     success: false,
     message: err?.message || 'Unexpected error',

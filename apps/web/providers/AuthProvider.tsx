@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { getAuthToken, clearAuthToken, authFetch } from '../src/lib/authFetch';
 
 interface User {
   id: string;
@@ -21,45 +22,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const TOKEN_KEY = 'adnexus_token';
-
-function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function setStoredToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-  // Mirror to a non-httpOnly cookie so the middleware can read it for routing
-  // guards. The API still requires the Bearer header for actual auth.
-  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
-}
-
-function clearStoredToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('workspace_id');
-  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
-}
-
-/**
- * Fetch wrapper that attaches the bearer token to same-origin /api/* requests.
- * Replaces the fragile window.fetch monkey-patch (M30 fix).
- */
-function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-  const isApi = url.startsWith('/api/') || (typeof window !== 'undefined' && url.includes('//' + window.location.host + '/api/'));
-  const token = isApi ? getStoredToken() : null;
-
-  if (token) {
-    const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
-    if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
-    return fetch(input, { ...init, headers });
-  }
-  return fetch(input, init);
-}
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -89,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = getStoredToken();
+    const token = getAuthToken();
     if (!token) {
       setIsLoading(false);
       return;
@@ -98,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authFetch('/api/v1/auth/me')
       .then(async (res) => {
         if (res.status === 401 || res.status === 403) {
-          clearStoredToken();
+          clearAuthToken();
           return;
         }
         if (!res.ok) return;
@@ -126,12 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Attempt to invalidate server-side session
       await authFetch('/api/v1/auth/signout', { method: 'POST' });
     } catch {
       // Best-effort server signout
     }
-    clearStoredToken();
+    clearAuthToken();
     queryClient.clear();
     setUser(null);
     router.push('/auth/signin');

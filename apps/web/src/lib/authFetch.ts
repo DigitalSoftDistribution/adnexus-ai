@@ -1,3 +1,23 @@
+const TOKEN_KEY = 'adnexus_token';
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function clearAuthToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('workspace_id');
+  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+}
+
 export interface AuthFetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | null | undefined>;
 }
@@ -23,7 +43,7 @@ function buildUrl(path: string, params?: AuthFetchOptions['params']): string {
 
 function authHeaders(init?: RequestInit): Headers {
   const headers = new Headers(init?.headers);
-  const token = localStorage.getItem('adnexus_token');
+  const token = getAuthToken();
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);

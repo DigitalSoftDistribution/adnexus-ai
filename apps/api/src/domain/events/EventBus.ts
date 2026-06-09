@@ -1,4 +1,7 @@
 import type { DomainEvent } from './DomainEvent';
+import { getModuleLogger } from '../../lib/logger';
+
+const logger = getModuleLogger('event-bus');
 
 export type EventHandler<T extends DomainEvent> = (event: T) => Promise<void> | void;
 
@@ -20,7 +23,7 @@ export class InMemoryEventBus implements IEventBus {
       try {
         await handler(event);
       } catch (err) {
-        console.error(`Event handler failed for ${eventName}:`, err);
+        logger.error({ eventName, err }, `Event handler failed for ${eventName}`);
       }
     });
 

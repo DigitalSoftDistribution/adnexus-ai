@@ -312,8 +312,9 @@ export class GoogleAdsClient {
         if (partialFailure && hasPartialFailure(data)) {
           const failures = ErrorParser.parsePartialFailure(data);
           if (failures && failures.length > 0) {
-            console.warn(
-              `[GoogleAdsClient] Partial failure in mutate: ${failures.length}/${operations.length} operations failed`
+            getModuleLogger('google-client').warn(
+              { partialFailures: failures.length, operations: operations.length },
+              `Partial failure in mutate: ${failures.length}/${operations.length} operations failed`
             );
             for (const f of failures) {
               logGG.warn({ operationIndex: f.operationIndex, message: f.error.message }, `[Op ${f.operationIndex}] ${f.error.message}`);

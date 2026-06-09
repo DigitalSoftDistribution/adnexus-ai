@@ -6,6 +6,9 @@
 import nodemailer from 'nodemailer';
 import Mail from 'nodemailer/lib/mailer';
 import { EmailAttachment } from '../types/report';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('email-service');
 
 /** Email service configuration */
 export interface EmailConfig {
@@ -50,7 +53,7 @@ export class EmailService {
       await this.transporter.verify();
       return true;
     } catch (error) {
-      console.error('[EmailService] SMTP verification failed:', error);
+      logger.error({ err: error }, 'SMTP verification failed');
       return false;
     }
   }
@@ -106,11 +109,9 @@ export class EmailService {
 
     try {
       const result = await this.transporter.sendMail(mailOptions);
-      console.log(
-        `[EmailService] Email sent successfully: MessageId=${result.messageId}, Recipients=${validEmails.join(', ')}`
-      );
+      logger.info({ messageId: result.messageId, recipients: validEmails }, 'Email sent successfully');
     } catch (error) {
-      console.error('[EmailService] Failed to send email:', error);
+      logger.error({ err: error }, 'Failed to send email');
       throw new EmailError(`Email delivery failed: ${(error as Error).message}`);
     }
   }

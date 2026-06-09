@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../middleware/errorHandler';
 import { ValidationError } from '../lib/errors';
 import { supabase } from '../lib/supabase';
+import { getModuleLogger } from '../lib/logger';
 import {
   handleMetaWebhook,
   handleGoogleWebhook,
@@ -11,6 +12,8 @@ import {
   registerWebhook,
 } from '../services/webhook-handler';
 import axios from 'axios';
+
+const logger = getModuleLogger('webhooks');
 
 const router = Router();
 
@@ -45,7 +48,7 @@ router.post(
       try {
         await handleMetaWebhook(req.body, signature);
       } catch (err) {
-        console.error('[webhook] Meta processing error:', (err as Error).message);
+        logger.error({ err }, "Meta processing error");
       }
     })();
   }),
@@ -88,7 +91,7 @@ router.post(
       try {
         await handleGoogleWebhook(req.body);
       } catch (err) {
-        console.error('[webhook] Google processing error:', (err as Error).message);
+        logger.error({ err }, "Google processing error");
       }
     })();
   }),
@@ -117,7 +120,7 @@ router.post(
       try {
         await handleTikTokWebhook(req.body, signature);
       } catch (err) {
-        console.error('[webhook] TikTok processing error:', (err as Error).message);
+        logger.error({ err }, "TikTok processing error");
       }
     })();
   }),
@@ -157,7 +160,7 @@ router.post(
       try {
         await handleSnapWebhook(req.body);
       } catch (err) {
-        console.error('[webhook] Snap processing error:', (err as Error).message);
+        logger.error({ err }, "Snap processing error");
       }
     })();
   }),
@@ -219,7 +222,7 @@ router.post(
     });
 
     if (storeError) {
-      console.error(`[webhook] Failed to store custom payload for workspace ${workspaceId}:`, storeError.message);
+      logger.error({ workspaceId, err: storeError }, "Failed to store custom payload");
     }
 
     // Respond immediately
@@ -247,10 +250,7 @@ router.post(
             validateStatus: () => true, // Don't throw on non-2xx
           });
         } catch (err) {
-          console.error(
-            `[webhook] Custom forward failed for workspace ${workspaceId}:`,
-            (err as Error).message,
-          );
+          logger.error({ workspaceId, err }, "Custom forward failed");
         }
       })();
     }

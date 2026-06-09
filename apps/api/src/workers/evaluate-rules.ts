@@ -1,10 +1,9 @@
-// @ts-nocheck — unported worker, deep type mismatches with DB access
 // evaluate-rules.ts — AI Rule Evaluation Worker
 // Periodically evaluates all active AI rules and creates drafts when conditions are met.
 // Runs every 5 minutes via BullMQ with full observability, caching, and rate-limiting.
 
 import { Worker, Queue, Job, FlowProducer } from "bullmq";
-import IORedis from "ioredis";
+import type { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,7 +96,7 @@ export interface EvaluationResult {
 }
 
 export interface WorkerConfig {
-  redis: IORedis;
+  redis: Redis;
   queueName?: string;
   cronExpression?: string; // default: every 5 min
   maxDraftsPerHourDefault?: number;
@@ -204,7 +203,7 @@ class ConditionCache {
 
 class RateLimiter {
   constructor(
-    private redis: IORedis,
+    private redis: Redis,
     private defaultMaxDrafts: number = 50,
   ) {}
 
@@ -996,7 +995,7 @@ export interface WorkerDependencies {
 }
 
 export function createRuleEvaluationWorker(
-  redis: IORedis,
+  redis: Redis,
   deps: WorkerDependencies,
   overrides?: Partial<WorkerConfig>,
 ): RuleEvaluationWorker {

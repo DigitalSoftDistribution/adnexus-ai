@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { createDraft } from './drafts-service';
+import { getModuleLogger } from '../lib/logger';
 import type { AutomationRule, DraftType, Platform } from '../types';
+
+const logger = getModuleLogger('agent-engine');
 
 // ─── Evaluate All Rules ──────────────────────────────────────
 
@@ -22,7 +25,7 @@ export async function evaluateRules(workspaceId: string): Promise<{ triggered: n
         drafts += 1;
       }
     } catch (err) {
-      console.error(`Rule ${rule.id} failed:`, err);
+      logger.error({ ruleId: rule.id, err }, `Rule ${rule.id} failed`);
     }
   }
 

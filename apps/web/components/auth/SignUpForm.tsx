@@ -1,3 +1,4 @@
+import { setAuthToken } from '../../src/lib/authFetch';
 'use client';
 
 import { useState } from 'react';
@@ -43,8 +44,7 @@ export function SignUpForm() {
         setError(t('signUpFailed'));
         return;
       }
-      document.cookie = `adnexus_token=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
-      localStorage.setItem('adnexus_token', token);
+      setAuthToken(token);
       window.location.assign(`/${locale}/onboarding`);
     } catch {
       setError(t('unexpectedError'));

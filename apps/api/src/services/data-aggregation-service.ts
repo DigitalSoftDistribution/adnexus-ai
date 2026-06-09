@@ -3,6 +3,7 @@
 // Fetches and aggregates metrics from multiple advertising platforms
 // ============================================================================
 
+import { getModuleLogger } from '../lib/logger';
 import {
   PlatformSource,
   TimeRange,
@@ -12,6 +13,8 @@ import {
   PlatformBreakdown,
   PeriodComparison,
 } from '../types/report';
+
+const logger = getModuleLogger('data-aggregation-service');
 
 /** Platform API client interface */
 interface PlatformApiClient {
@@ -70,7 +73,7 @@ export class DataAggregationService {
         onProgress?.(source.platformId, 'completed');
       } catch (error) {
         const errorMessage = `Failed to fetch from ${source.platformName}: ${(error as Error).message}`;
-        console.error(`[DataAggregationService] ${errorMessage}`);
+        logger.error({ err }, errorMessage);
         errors.push(errorMessage);
         onProgress?.(source.platformId, 'failed', errorMessage);
 

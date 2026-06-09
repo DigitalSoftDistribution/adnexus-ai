@@ -1,3 +1,4 @@
+import { setAuthToken } from '../../src/lib/authFetch';
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
@@ -130,8 +131,7 @@ export function SignInForm() {
         setError(t('signInFailed'));
         return;
       }
-      document.cookie = `adnexus_token=${token}; path=/; SameSite=Lax; Secure; max-age=86400`;
-      localStorage.setItem('adnexus_token', token);
+      setAuthToken(token);
       window.location.assign(`/${locale}/dashboard`);
     } catch {
       setError(t('unexpectedError'));

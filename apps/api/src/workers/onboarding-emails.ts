@@ -1,4 +1,3 @@
-// @ts-nocheck — unported worker, Transporter type mismatch
 /**
  * AdNexus Onboarding Email Sequence Worker
  *
@@ -20,11 +19,14 @@
  */
 
 import { Queue, Worker, Job } from "bullmq";
-import { createTransport, Transporter } from "nodemailer";
-import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import { createTransport } from "nodemailer";
+import type { Transporter } from "nodemailer";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { Redis } from "ioredis";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger('onboarding-emails');
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Configuration
@@ -166,9 +168,9 @@ function createEmailTransporter() {
   });
 }
 
-let transporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
+let transporter: Transporter | null = null;
 
-function getTransporter(): Transporter<SMTPTransport.SentMessageInfo> {
+function getTransporter(): Transporter {
   if (!transporter) {
     transporter = createEmailTransporter();
   }
@@ -224,8 +226,9 @@ function renderTemplate(
  *   - SELECT has_used_ai_agent, has_setup_workflow, ... FROM users WHERE id = $1
  *   - SELECT unsubscribed FROM email_preferences WHERE user_id = $1 AND type = 'onboarding'
  */
-async function fetchUserState(userId: string): Promise<UserState> {
+async function fetchUserState(_userId: string): Promise<UserState> {
   // Placeholder: return default state. In production, query your database.
+  void _userId; // INTEGRATION: use userId to query the database
   return {
     hasConnectedAccount: false,
     hasCreatedCampaign: false,
@@ -310,7 +313,7 @@ export async function enqueueOnboardingSequence(params: {
 
   await Promise.all(addPromises);
 
-  console.log(`[Onboarding] Enqueued ${jobs.length} emails for user ${userId} (${email})`);
+  logger.info({ emailCount: jobs.length, userId, email }, 'Enqueued onboarding emails for user');
 }
 
 /**
@@ -337,7 +340,7 @@ export async function cancelOnboardingSequence(userId: string): Promise<void> {
 
   await Promise.all(removals);
 
-  console.log(`[Onboarding] Cancelled all pending emails for user ${userId}`);
+  logger.info({ userId }, 'Cancelled all pending emails for user');
 }
 
 /**
@@ -349,24 +352,26 @@ export async function unsubscribeFromOnboarding(userId: string): Promise<void> {
 
   await cancelOnboardingSequence(userId);
 
-  console.log(`[Onboarding] User ${userId} unsubscribed from onboarding emails`);
+  logger.info({ userId }, 'User unsubscribed from onboarding emails');
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Worker: Processes Jobs from the Queue
 // ──────────────────────────────────────────────────────────────────────────────
 
+type JobResult = { skipped: true; reason: string } | { sent: true; template: string; recipient: string };
+
 const worker = new Worker(
   QUEUE_NAME,
-  async (job: Job<OnboardingEmailJob>) => {
+  async (job: Job<OnboardingEmailJob>): Promise<JobResult> => {
     const { userId, userName, email, template } = job.data;
 
-    console.log(`[Onboarding] Processing ${job.name} for ${email} (attempt ${job.attemptsMade + 1})`);
+    logger.info({ template: job.name, email, attempt: job.attemptsMade + 1 }, 'Processing onboarding email');
 
     // 1. Check if user is unsubscribed
     const userState = await fetchUserState(userId);
     if (userState.unsubscribedFromOnboarding) {
-      console.log(`[Onboarding] Skipping ${template} — user ${userId} unsubscribed`);
+      logger.info({ template, userId }, 'Skipping email — user unsubscribed');
       return { skipped: true, reason: "unsubscribed" };
     }
 
@@ -377,7 +382,7 @@ const worker = new Worker(
     }
 
     if (!templateData.shouldSend(userState)) {
-      console.log(`[Onboarding] Skipping ${template} — action already completed or prerequisite not met`);
+      logger.info({ template }, 'Skipping email — action already completed');
       return { skipped: true, reason: "action_already_completed" };
     }
 
@@ -412,7 +417,7 @@ const worker = new Worker(
       },
     });
 
-    console.log(`[Onboarding] Sent ${template} to ${email}`);
+    logger.info({ template, email }, 'Sent onboarding email');
 
     return { sent: true, template, recipient: email };
   },
@@ -430,16 +435,16 @@ const worker = new Worker(
 // Event Handlers
 // ──────────────────────────────────────────────────────────────────────────────
 
-worker.on("completed", (job, result) => {
-  if (result?.skipped) {
-    console.log(`[Onboarding] Job ${job.id} skipped: ${result.reason}`);
+worker.on("completed", (job: Job<OnboardingEmailJob>, result: JobResult) => {
+  if ('skipped' in result) {
+    logger.info({ jobId: job.id, reason: result.reason }, 'Job skipped');
   } else {
-    console.log(`[Onboarding] Job ${job.id} completed: sent ${result?.template}`);
+    logger.info({ jobId: job.id, template: result.template }, 'Job completed');
   }
 });
 
 worker.on("failed", (job, err) => {
-  console.error(`[Onboarding] Job ${job?.id} failed:`, err.message);
+  logger.error({ jobId: job?.id, err }, 'Job failed');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -447,11 +452,11 @@ worker.on("failed", (job, err) => {
 // ──────────────────────────────────────────────────────────────────────────────
 
 async function shutdown(signal: string): Promise<void> {
-  console.log(`[Onboarding] Received ${signal}, shutting down gracefully...`);
+  logger.info({ signal }, 'Received signal, shutting down gracefully...');
   await worker.close();
   await onboardingQueue.close();
   await redisConnection.quit();
-  console.log("[Onboarding] Worker and queue closed. Exiting.");
+  logger.info("Worker and queue closed. Exiting.");
   process.exit(0);
 }
 
@@ -463,7 +468,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 // ──────────────────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
-  console.log("[Onboarding] Email worker started. Waiting for jobs...");
+  logger.info("Email worker started. Waiting for jobs...");
 }
 
 // Export the worker for testability

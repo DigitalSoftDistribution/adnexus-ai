@@ -1,4 +1,4 @@
-// @ts-nocheck — unported worker, depends on Prisma/OpenAI/Redis not yet available
+// @ts-nocheck — unported worker; blocked by: (1) path aliases @/lib/logger and @/config not yet configured in tsconfig, (2) config.openai property does not exist in config type, (3) Prisma generated client types not available (creativePerformance, adDailyMetric, alert, creativeDraft, creativeRefreshRecommendation), (4) simple-statistics linearRegression return type requires explicit annotation
 /**
  * Creative Fatigue Detection Worker
  *

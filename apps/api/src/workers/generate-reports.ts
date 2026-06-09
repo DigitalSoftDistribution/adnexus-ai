@@ -48,6 +48,9 @@ import { PdfService } from '../services/pdf-service';
 import { ExportService } from '../services/export-service';
 import { EmailService, EmailConfig } from '../services/email-service';
 import { DataAggregationService } from '../services/data-aggregation-service';
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger('generate-reports');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -134,7 +137,7 @@ export class ReportGenerationWorker {
    */
   start(): void {
     if (this.worker) {
-      console.warn('[ReportGenerationWorker] Worker already running');
+      logger.warn('Worker already running');
       return;
     }
 
@@ -158,17 +161,17 @@ export class ReportGenerationWorker {
 
     // Handle worker-level errors
     this.worker.on('error', (error) => {
-      console.error('[ReportGenerationWorker] Worker error:', error);
+      logger.error({ err: error }, 'Worker error');
     });
 
     // Handle stalled jobs (will be retried)
     this.worker.on('stalled', (jobId) => {
-      console.warn(`[ReportGenerationWorker] Job ${jobId} stalled and will be retried`);
+      logger.warn({ jobId }, 'Job stalled and will be retried');
     });
 
     // Log completed jobs
     this.worker.on('completed', (job) => {
-      console.log(`[ReportGenerationWorker] Job ${job.id} (${job.data.type}) completed successfully`);
+      logger.info({ jobId: job.id, type: job.data.type }, 'Job completed successfully');
       this.activeJobs.delete(job.id || '');
     });
 
@@ -176,7 +179,7 @@ export class ReportGenerationWorker {
     this.worker.on('failed', async (job, error) => {
       if (!job) return;
 
-      console.error(`[ReportGenerationWorker] Job ${job.id} (${job.data.type}) failed:`, error.message);
+      logger.error({ jobId: job.id, type: job.data.type, err: error }, 'Job failed');
       this.activeJobs.delete(job.id || '');
 
       // If all retries exhausted, move to dead letter queue
@@ -185,7 +188,7 @@ export class ReportGenerationWorker {
       }
     });
 
-    console.log(`[ReportGenerationWorker] Worker started on queue "${QUEUE_NAME}" (concurrency: ${this.config.concurrency})`);
+    logger.info({ queueName: QUEUE_NAME, concurrency: this.config.concurrency }, 'Worker started');
   }
 
   /**
@@ -193,12 +196,12 @@ export class ReportGenerationWorker {
    */
   async stop(timeoutMs = 30000): Promise<void> {
     this.isShuttingDown = true;
-    console.log('[ReportGenerationWorker] Shutting down gracefully...');
+    logger.info('Shutting down gracefully...');
 
     // Wait for active jobs to complete (with timeout)
     const startTime = Date.now();
     while (this.activeJobs.size > 0 && Date.now() - startTime < timeoutMs) {
-      console.log(`[ReportGenerationWorker] Waiting for ${this.activeJobs.size} active jobs...`);
+      logger.info({ activeJobCount: this.activeJobs.size }, 'Waiting for active jobs to complete...');
       await new Promise((r) => setTimeout(r, 1000));
     }
 
@@ -220,7 +223,7 @@ export class ReportGenerationWorker {
       await this.emailService.close();
     }
 
-    console.log('[ReportGenerationWorker] Worker stopped');
+    logger.info('Worker stopped');
   }
 
   // =========================================================================
@@ -238,7 +241,7 @@ export class ReportGenerationWorker {
     this.activeJobs.set(job.id || '', job);
 
     const { type } = job.data;
-    console.log(`[ReportGenerationWorker] Processing job ${job.id} (type: ${type}, attempt: ${job.attemptsMade + 1}/${this.config.maxRetries})`);
+    logger.info({ jobId: job.id, type, attempt: job.attemptsMade + 1, maxRetries: this.config.maxRetries }, 'Processing job');
 
     // Initialize per-job temp file manager
     const tempManager = tempFileManager;
@@ -278,7 +281,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('scheduleId is required for scheduled jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Generating scheduled report: ${scheduleId}`);
+    logger.info({ jobId: job.id, scheduleId }, 'Generating scheduled report');
 
     // Fetch schedule configuration from Redis/database
     const schedule = await this.loadSchedule(scheduleId);
@@ -287,7 +290,7 @@ export class ReportGenerationWorker {
     }
 
     if (!schedule.isActive) {
-      console.log(`[ReportGenerationWorker] [Job ${job.id}] Schedule ${scheduleId} is inactive, skipping`);
+      logger.info({ jobId: job.id, scheduleId }, 'Schedule is inactive, skipping');
       throw new ReportGenerationError('Schedule is inactive', 'validation', false);
     }
 
@@ -318,7 +321,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('reportParams are required for on-demand jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Generating on-demand report: ${reportParams.name}`);
+    logger.info({ jobId: job.id, reportName: reportParams.name }, 'Generating on-demand report');
 
     // Validate parameters
     this.validateReportParams(reportParams);
@@ -350,7 +353,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('format is required for export jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Exporting report ${reportId} as ${format}`);
+    logger.info({ jobId: job.id, reportId, format }, 'Exporting report');
 
     await job.updateProgress(10);
 
@@ -426,13 +429,13 @@ export class ReportGenerationWorker {
       // Stage 1: Data Aggregation (0-30%)
       // ------------------------------------------------------------------
       await job?.updateProgress(5);
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 1: Aggregating data from ${params.platforms.length} platforms`);
+      logger.info({ reportId, platformCount: params.platforms.length }, 'Stage 1: Aggregating data');
 
       const platformMetrics = await this.dataAggregation.fetchAllPlatformMetrics(
         params.platforms,
         params.timeRange,
         (platformId, status, error) => {
-          console.log(`[ReportGenerationWorker] [${reportId}] Platform ${platformId}: ${status}${error ? ` (${error})` : ''}`);
+          logger.info({ reportId, platformId, status, error }, 'Platform aggregation status');
         }
       );
 
@@ -451,7 +454,7 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 2: Compute Summary Statistics (30-35%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 2: Computing summary statistics`);
+      logger.info({ reportId }, 'Stage 2: Computing summary statistics');
 
       // TODO: Fetch previous period metrics for period-over-period comparison
       const summary = this.dataAggregation.computeReportSummary(platformMetrics);
@@ -461,7 +464,7 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 3: Chart Generation (35-75%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 3: Generating ${params.charts.length} charts`);
+      logger.info({ reportId, chartCount: params.charts.length }, 'Stage 3: Generating charts');
 
       const chartService = new ChartService(tempManager, this.config.chartWidth, this.config.chartHeight);
 
@@ -474,7 +477,7 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 4: PDF Generation (75-90%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 4: Generating PDF`);
+      logger.info({ reportId }, 'Stage 4: Generating PDF');
 
       const reportResult: ReportResult = {
         reportId,
@@ -496,17 +499,17 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 5: Persist Report (90-95%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 5: Persisting report`);
+      logger.info({ reportId }, 'Stage 5: Persisting report');
 
       await this.persistReport(reportResult);
 
       await job?.updateProgress(95);
 
-      console.log(`[ReportGenerationWorker] [${reportId}] Report generation completed (${reportResult.status})`);
+      logger.info({ reportId, status: reportResult.status }, 'Report generation completed');
 
       return reportResult;
     } catch (error) {
-      console.error(`[ReportGenerationWorker] [${reportId}] Report generation failed:`, error);
+      logger.error({ reportId, err: error }, 'Report generation failed');
 
       if (error instanceof ReportGenerationError) {
         throw error;
@@ -652,7 +655,7 @@ export class ReportGenerationWorker {
     tempManager: TempFileManager
   ): Promise<void> {
     if (!this.emailService) {
-      console.log(`[ReportGenerationWorker] Email service not configured, skipping email for ${reportId}`);
+      logger.info({ reportId }, 'Email service not configured, skipping email');
       return;
     }
 
@@ -670,7 +673,7 @@ export class ReportGenerationWorker {
   ): Promise<void> {
     if (!this.emailService) return;
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Sending email to ${emails.join(', ')}`);
+    logger.info({ reportId, recipients: emails.join(', ') }, 'Sending email');
 
     const attachments: EmailAttachment[] = [];
 
@@ -711,7 +714,7 @@ export class ReportGenerationWorker {
       }
     );
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Email sent successfully`);
+    logger.info({ reportId }, 'Email sent successfully');
   }
 
   /**
@@ -743,7 +746,7 @@ export class ReportGenerationWorker {
       }]
     );
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Export email sent to ${emails.join(', ')}`);
+    logger.info({ reportId, recipients: emails.join(', ') }, 'Export email sent');
   }
 
   /**
@@ -774,9 +777,9 @@ export class ReportGenerationWorker {
         }
       );
 
-      console.log(`[ReportGenerationWorker] Job ${job.id} moved to dead letter queue`);
+      logger.info({ jobId: job.id }, 'Job moved to dead letter queue');
     } catch (dlqError) {
-      console.error(`[ReportGenerationWorker] Failed to move job ${job.id} to DLQ:`, dlqError);
+      logger.error({ jobId: job.id, err: dlqError }, 'Failed to move job to DLQ');
     }
   }
 
@@ -949,7 +952,7 @@ export class ReportGenerationWorker {
       JSON.stringify(report)
     );
 
-    console.log(`[ReportGenerationWorker] [${report.reportId}] Report persisted to storage`);
+    logger.info({ reportId: report.reportId }, 'Report persisted to storage');
   }
 
   /**

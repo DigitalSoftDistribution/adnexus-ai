@@ -15,6 +15,7 @@ import {
 } from './index';
 import { MetaPlatformClient } from './meta/MetaPlatformClient';
 import { PlatformAPIError } from './errors';
+import { getModuleLogger } from '../lib/logger';
 import type {
   AdAccount,
   Platform,
@@ -32,6 +33,8 @@ import type {
   TokenRefreshResult,
   RateLimitStatus,
 } from './types';
+
+const logger = getModuleLogger('platforms-register');
 
 const PLATFORMS: Platform[] = ['meta', 'google', 'tiktok', 'snap'];
 
@@ -110,7 +113,7 @@ class PlatformClientAdapter implements PlatformClient {
           };
         }
       } catch (e) {
-        console.warn('[PlatformClientAdapter] Google token refresh failed:', (e as Error).message);
+        logger.warn({ err: e }, 'Google token refresh failed');
       }
     }
     return {

@@ -3,7 +3,10 @@ import { config } from '../config';
 import { supabase } from '../lib/supabase';
 import { ValidationError } from '../lib/errors';
 import { broadcastToWorkspace } from './notification-service';
+import { getModuleLogger } from '../lib/logger';
 import axios from 'axios';
+
+const logger = getModuleLogger('webhook-handler');
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -207,7 +210,7 @@ async function checkAndRecordIdempotency(
       return true; // Already processed
     }
     // Other DB error — log but don't block processing
-    console.error(`[webhook] Idempotency check error for ${source}/${eventId}:`, error.message);
+    logger.error({ source, eventId, err: error }, "Idempotency check error");
   }
 
   return false; // Not yet processed
@@ -233,7 +236,7 @@ async function storeRawPayload(
     .single();
 
   if (error) {
-    console.error(`[webhook] Failed to store raw payload from ${source}:`, error.message);
+    logger.error({ source, err: error }, "Failed to store raw payload");
     return 'unknown';
   }
 
@@ -255,7 +258,7 @@ async function resolveWorkspaceFromAccount(
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    console.error(`[webhook] Could not resolve workspace for ${platform} account ${accountId}`);
+    logger.error({ platform, accountId }, "Could not resolve workspace for account");
     return null;
   }
 
@@ -274,7 +277,7 @@ async function resolveWorkspaceFromCampaign(
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    console.error(`[webhook] Could not resolve workspace for ${platform} campaign ${platformCampaignId}`);
+    logger.error({ platform, platformCampaignId }, "Could not resolve workspace for campaign");
     return null;
   }
 
@@ -310,7 +313,7 @@ async function logWebhookAudit(
   });
 
   if (error) {
-    console.error(`[webhook] Audit log error for ${platform}:`, error.message);
+    logger.error({ platform, err: error }, "Audit log error");
   }
 }
 
@@ -323,7 +326,7 @@ async function logWebhookAudit(
  */
 export async function processCampaignUpdate(event: CampaignUpdateEvent): Promise<void> {
   if (!event.campaignId) {
-    console.error('[webhook] CampaignUpdateEvent missing campaignId');
+    logger.error('CampaignUpdateEvent missing campaignId');
     return;
   }
 
@@ -335,7 +338,7 @@ export async function processCampaignUpdate(event: CampaignUpdateEvent): Promise
     .single();
 
   if (!campaign) {
-    console.error(`[webhook] Campaign ${event.campaignId} not found for update`);
+    logger.error({ campaignId: event.campaignId }, "Campaign not found for update");
     return;
   }
 
@@ -412,7 +415,7 @@ export async function processCampaignUpdate(event: CampaignUpdateEvent): Promise
       .eq('id', event.campaignId);
 
     if (error) {
-      console.error(`[webhook] Failed to update campaign ${event.campaignId}:`, error.message);
+      logger.error({ campaignId: event.campaignId, err: error }, "Failed to update campaign");
       return;
     }
   }
@@ -452,7 +455,7 @@ export async function processCampaignUpdate(event: CampaignUpdateEvent): Promise
         },
       });
     } catch (notifErr) {
-      console.error('[webhook] Failed to create notification for campaign update:', notifErr);
+      logger.error({ err: notifErr }, "Failed to create notification for campaign update");
     }
   }
 }
@@ -479,10 +482,10 @@ export async function processLeadEvent(event: LeadEvent): Promise<void> {
   if (leadError) {
     // Duplicate lead — check if this was already recorded
     if (leadError.code === '23505') {
-      console.log(`[webhook] Lead ${event.leadgenId} already recorded, skipping`);
+      logger.info({ leadgenId: event.leadgenId }, "Lead already recorded, skipping");
       return;
     }
-    console.error(`[webhook] Failed to store lead ${event.leadgenId}:`, leadError.message);
+    logger.error({ leadgenId: event.leadgenId, err: leadError }, "Failed to store lead");
     return;
   }
 
@@ -502,7 +505,7 @@ export async function processLeadEvent(event: LeadEvent): Promise<void> {
       },
     });
   } catch (notifErr) {
-    console.error('[webhook] Failed to create lead notification:', notifErr);
+    logger.error({ err: notifErr }, "Failed to create lead notification");
   }
 
   // Optionally forward to CRM webhook if configured
@@ -554,7 +557,7 @@ async function forwardToCrm(
       validateStatus: () => true, // Don't throw on non-2xx
     });
   } catch (err) {
-    console.error(`[webhook] CRM forward failed for workspace ${workspaceId}:`, (err as Error).message);
+    logger.error({ workspaceId, err }, "CRM forward failed");
   }
 }
 
@@ -602,7 +605,7 @@ export async function handleMetaWebhook(
       const eventType = `meta_${field}`;
       const alreadyProcessed = await checkAndRecordIdempotency('meta', `${eventId}_${field}`, eventType, value);
       if (alreadyProcessed) {
-        console.log(`[webhook] Meta event ${eventId}/${field} already processed, skipping`);
+        logger.info({ eventId, field }, "Meta event already processed, skipping");
         continue;
       }
 
@@ -615,7 +618,7 @@ export async function handleMetaWebhook(
       }
 
       if (!workspaceId) {
-        console.log(`[webhook] Meta event ${eventId}: no workspace resolved, skipping`);
+        logger.info({ eventId }, "Meta event: no workspace resolved, skipping");
         continue;
       }
 
@@ -713,7 +716,7 @@ export async function handleMetaWebhook(
               data: { ad_id: value.ad_id, platform: 'meta', ...value },
             });
           } catch (notifErr) {
-            console.error('[webhook] Failed to create creative review notification:', notifErr);
+            logger.error({ err: notifErr }, "Failed to create creative review notification");
           }
         }
         continue;
@@ -741,7 +744,7 @@ export async function handleGoogleWebhook(payload: GoogleWebhookPayload): Promis
   // Idempotency check
   const alreadyProcessed = await checkAndRecordIdempotency('google', eventId, eventType, payload);
   if (alreadyProcessed) {
-    console.log(`[webhook] Google event ${eventId} already processed, skipping`);
+    logger.info({ eventId }, "Google event already processed, skipping");
     return;
   }
 
@@ -755,7 +758,7 @@ export async function handleGoogleWebhook(payload: GoogleWebhookPayload): Promis
   }
 
   if (!workspaceId) {
-    console.log(`[webhook] Google event ${eventId}: no workspace resolved, skipping`);
+    logger.info({ eventId }, "Google event: no workspace resolved, skipping");
     return;
   }
 
@@ -797,7 +800,7 @@ export async function handleGoogleWebhook(payload: GoogleWebhookPayload): Promis
       });
 
       if (error) {
-        console.error(`[webhook] Failed to store conversion event:`, error.message);
+        logger.error({ err: error }, "Failed to store conversion event");
       }
 
       await logWebhookAudit(workspaceId, 'google', 'conversion_upload', payload.campaignId, {
@@ -838,7 +841,7 @@ export async function handleTikTokWebhook(
   // Idempotency check
   const alreadyProcessed = await checkAndRecordIdempotency('tiktok', eventId, eventType, payload);
   if (alreadyProcessed) {
-    console.log(`[webhook] TikTok event ${eventId} already processed, skipping`);
+    logger.info({ eventId }, "TikTok event already processed, skipping");
     return;
   }
 
@@ -852,7 +855,7 @@ export async function handleTikTokWebhook(
   }
 
   if (!workspaceId) {
-    console.log(`[webhook] TikTok event ${eventId}: no workspace resolved, skipping`);
+    logger.info({ eventId }, "TikTok event: no workspace resolved, skipping");
     return;
   }
 
@@ -917,7 +920,7 @@ export async function handleTikTokWebhook(
           },
         });
       } catch (notifErr) {
-        console.error('[webhook] Failed to create TikTok creative review notification:', notifErr);
+        logger.error({ err: notifErr }, "Failed to create TikTok creative review notification");
       }
     }
 
@@ -952,7 +955,7 @@ export async function handleSnapWebhook(payload: SnapWebhookPayload): Promise<vo
   // Idempotency check
   const alreadyProcessed = await checkAndRecordIdempotency('snap', eventId, eventType, payload);
   if (alreadyProcessed) {
-    console.log(`[webhook] Snap event ${eventId} already processed, skipping`);
+    logger.info({ eventId }, "Snap event already processed, skipping");
     return;
   }
 
@@ -966,7 +969,7 @@ export async function handleSnapWebhook(payload: SnapWebhookPayload): Promise<vo
   }
 
   if (!workspaceId) {
-    console.log(`[webhook] Snap event ${eventId}: no workspace resolved, skipping`);
+    logger.info({ eventId }, "Snap event: no workspace resolved, skipping");
     return;
   }
 
@@ -1024,7 +1027,7 @@ export async function handleSnapWebhook(payload: SnapWebhookPayload): Promise<vo
           },
         });
       } catch (notifErr) {
-        console.error('[webhook] Failed to create Snap creative review notification:', notifErr);
+        logger.error({ err: notifErr }, "Failed to create Snap creative review notification");
       }
     }
 
@@ -1091,7 +1094,7 @@ async function resolveCampaignId(
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    console.error(`[webhook] Could not resolve campaign ${platformCampaignId} for ${platform}`);
+    logger.error({ platformCampaignId, platform }, "Could not resolve campaign");
     return undefined;
   }
 
@@ -1110,7 +1113,7 @@ async function resolveAdsetId(
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    console.error(`[webhook] Could not resolve adset ${platformAdsetId} for ${platform}`);
+    logger.error({ platformAdsetId, platform }, "Could not resolve adset");
     return undefined;
   }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck — unported worker, email-service API mismatch
 // ============================================
 // AdNexus AI — Scheduled Report Generator Worker
 // BullMQ worker that executes scheduled reports with multi-format output
@@ -8,9 +7,27 @@ import { Worker, Queue, Job } from 'bullmq';
 import { supabase } from '../lib/supabase';
 import { config } from '../config';
 import { AppError, NotFoundError } from '../lib/errors';
-import { sendEmail } from '../services/email-service';
+import { EmailService } from '../services/email-service';
+import type { EmailConfig } from '../services/email-service';
 import { createNotification } from '../services/notification-service';
 import type { Platform } from '../types';
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger('report-generator');
+
+// ─── Email Service ─────────────────────────────────────────────
+
+const emailConfig: EmailConfig = {
+  smtpHost: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpSecure: parseInt(process.env.SMTP_PORT || '587', 10) === 465,
+  smtpUser: process.env.SMTP_USER || 'apikey',
+  smtpPass: process.env.SMTP_PASS || '',
+  fromAddress: process.env.FROM_EMAIL || 'reports@adnexus.io',
+  fromName: process.env.FROM_NAME || 'AdNexus AI',
+};
+
+const emailService = new EmailService(emailConfig);
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -86,11 +103,11 @@ export interface ReportResultRow {
 
 // ─── Redis Connection Helper ─────────────────────────────────
 
-function getRedisConnection(): { host: string; port: number } {
+function getRedisConnection(): { host: string; port: number } | { url: string } {
   if (config.redis.url) {
     try {
-      const url = new URL(config.redis.url);
-      return { host: url.hostname, port: parseInt(url.port || '6379', 10) };
+      new URL(config.redis.url);
+      return { url: config.redis.url };
     } catch {
       // fall through
     }
@@ -128,7 +145,7 @@ export function calculateNextRun(cronExpression: string, timezone?: string): Dat
   const parts = normalized.trim().split(/\s+/);
 
   if (parts.length !== 5) {
-    console.error(`[Report Generator] Invalid cron expression "${cronExpression}", falling back to @daily`);
+    logger.error({ cronExpression }, 'Invalid cron expression, falling back to @daily');
     return getNextDailyRun(timezone);
   }
 
@@ -324,7 +341,7 @@ function computeNextCronOccurrence(
   }
 
   // Fallback: return 24h from now if no match found
-  console.warn('[Report Generator] Cron iteration limit reached, falling back to +24h');
+  logger.warn('Cron iteration limit reached, falling back to +24h');
   return new Date(Date.now() + 24 * 3_600_000);
 }
 
@@ -378,7 +395,7 @@ export const reportGeneratorWorker = new Worker(
   'report-generator',
   async (job: Job<{ reportId: string; workspaceId: string }>) => {
     const { reportId, workspaceId } = job.data as { reportId: string; workspaceId: string };
-    console.log(`[Report Generator] Executing report ${reportId} for workspace ${workspaceId} (attempt ${job.attemptsMade + 1})`);
+    logger.info({ reportId, workspaceId, attempt: job.attemptsMade + 1 }, 'Executing report');
 
     // 1. Fetch scheduled report configuration
     const { data: reportConfig, error: configError } = await supabase
@@ -389,13 +406,13 @@ export const reportGeneratorWorker = new Worker(
       .single();
 
     if (configError || !reportConfig) {
-      console.error(`[Report Generator] Report config not found: ${reportId}`, configError);
+      logger.error({ reportId: reportId, configError: configError }, 'Report config not found: %s %s', reportId, configError);
       throw new NotFoundError('Scheduled report');
     }
 
     // Check if report is active
     if (reportConfig.status !== 'active') {
-      console.log(`[Report Generator] Report ${reportId} is not active (status: ${reportConfig.status}), skipping`);
+      logger.info({ reportId, status: reportConfig.status }, 'Report is not active, skipping');
       return { skipped: true, reason: `Report status is ${reportConfig.status}` };
     }
 
@@ -417,21 +434,23 @@ export const reportGeneratorWorker = new Worker(
       .eq('id', reportId);
 
     if (updateError) {
-      console.error(`[Report Generator] Failed to update scheduled report ${reportId}:`, updateError.message);
+      logger.error({ reportId, err: updateError }, 'Failed to update scheduled report');
     }
 
     // 8. Email report to recipients if configured
     const recipients = scheduledReport.config.recipients ?? [];
     if (recipients.length > 0 && reportResult.html) {
       try {
-        await sendEmail({
-          to: recipients,
-          subject: scheduledReport.config.emailSubject ?? `${scheduledReport.name} — AdNexus AI Report`,
-          html: reportResult.html,
-        });
-        console.log(`[Report Generator] Emailed report ${reportId} to ${recipients.join(', ')}`);
+        await emailService.sendReportEmail(
+          recipients,
+          scheduledReport.config.emailSubject ?? `${scheduledReport.name} — AdNexus AI Report`,
+          scheduledReport.name,
+          [],
+          { htmlBody: reportResult.html },
+        );
+        logger.info({ reportId, recipients: recipients.join(', ') }, 'Emailed report');
       } catch (emailErr) {
-        console.error(`[Report Generator] Failed to email report ${reportId}:`, emailErr instanceof Error ? emailErr.message : String(emailErr));
+        logger.error({ reportId, err: emailErr }, 'Failed to email report');
         // Don't fail the job — email failure is non-critical
       }
     }
@@ -451,11 +470,11 @@ export const reportGeneratorWorker = new Worker(
         },
       });
     } catch (notifErr) {
-      console.error(`[Report Generator] Failed to create notification for report ${reportId}:`, notifErr instanceof Error ? notifErr.message : String(notifErr));
+      logger.error({ reportId, err: notifErr }, 'Failed to create notification for report');
     }
 
     // 10. Return summary
-    console.log(`[Report Generator] Completed report ${reportId} with ${reportResult.sections.length} sections`);
+    logger.info({ reportId, sections: reportResult.sections.length }, 'Completed report');
     return {
       reportId,
       workspaceId,
@@ -483,7 +502,7 @@ export async function triggerReportGeneration(reportId: string, workspaceId: str
       backoff: { type: 'exponential', delay: 10000 },
     },
   );
-  console.log(`[Report Generator] Queued report generation job ${job.id} for report ${reportId}`);
+  logger.info({ jobId: job.id, reportId }, 'Queued report generation job');
   return job.id as string;
 }
 
@@ -499,7 +518,7 @@ export async function checkScheduledReports(): Promise<void> {
     .lte('next_run_at', now);
 
   if (error) {
-    console.error('[Report Generator] Failed to query scheduled reports:', error.message);
+    logger.error({ err: error }, 'Failed to query scheduled reports');
     throw new AppError('SCHEDULED_REPORTS_QUERY_FAILED', `Failed to query scheduled reports: ${error.message}`, 500);
   }
 
@@ -507,13 +526,13 @@ export async function checkScheduledReports(): Promise<void> {
     return;
   }
 
-  console.log(`[Report Generator] Found ${dueReports.length} scheduled report(s) due for execution`);
+  logger.info({ count: dueReports.length }, 'Found scheduled reports due for execution');
 
   for (const report of dueReports) {
     try {
       await triggerReportGeneration(report.id, report.workspace_id);
     } catch (err) {
-      console.error(`[Report Generator] Failed to queue report ${report.id}:`, err instanceof Error ? err.message : String(err));
+      logger.error({ reportId: report.id, err }, 'Failed to queue report');
     }
   }
 }
@@ -1240,7 +1259,7 @@ export async function storeReportResult(
   });
 
   if (error) {
-    console.error(`[Report Generator] Failed to store report result for ${reportId}:`, error.message);
+    logger.error({ reportId, err: error }, 'Failed to store report result');
     throw new AppError('REPORT_STORAGE_FAILED', `Failed to store report result: ${error.message}`, 500);
   }
 }
@@ -1248,25 +1267,25 @@ export async function storeReportResult(
 // ─── Graceful Shutdown ───────────────────────────────────────
 
 export async function shutdownReportGenerator(): Promise<void> {
-  console.log('[Report Generator] Shutting down worker...');
+  logger.info('Shutting down worker...');
   await reportGeneratorWorker.close();
   await reportGeneratorQueue.close();
-  console.log('[Report Generator] Worker shut down complete');
+  logger.info('Worker shut down complete');
 }
 
 // ─── Event Handlers ──────────────────────────────────────────
 
 reportGeneratorWorker.on('completed', (job: Job<{ reportId: string; workspaceId: string }>) => {
-  console.log(`[Report Generator] Job ${job.id} completed for report ${job.data.reportId}`);
+  logger.info({ jobId: job.id, reportId: job.data.reportId }, 'Job completed for report');
 });
 
 reportGeneratorWorker.on('failed', (job: Job<{ reportId: string; workspaceId: string }> | undefined, err: Error) => {
   const reportId = job?.data?.reportId ?? 'unknown';
-  console.error(`[Report Generator] Job ${job?.id} failed for report ${reportId}:`, err instanceof Error ? err.message : String(err));
+  logger.error({ jobId: job?.id, reportId, err }, 'Job failed for report');
 });
 
 reportGeneratorWorker.on('error', (err: Error) => {
-  console.error('[Report Generator] Worker error:', err instanceof Error ? err.message : String(err));
+  logger.error({ err }, 'Worker error');
 });
 
 // ─── Helpers ─────────────────────────────────────────────────

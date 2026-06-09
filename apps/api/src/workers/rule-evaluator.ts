@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase';
 import { createDraft } from '../services/drafts-service';
 import { broadcastToWorkspace, createNotification } from '../services/notification-service';
 import type { AutomationRule, RuleCondition, RuleAction, Platform } from '../types';
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger('rule-evaluator');
 
 // ─── Redis Connection ──────────────────────────────────────
 
@@ -22,11 +25,11 @@ function getRedisConnection(): Redis {
 const redisConnection = getRedisConnection();
 
 redisConnection.on('error', (err) => {
-  console.error('[Rule Evaluator] Redis connection error:', err.message);
+  logger.error({ err }, 'Redis connection error');
 });
 
 redisConnection.on('connect', () => {
-  console.log('[Rule Evaluator] Redis connected');
+  logger.info('Redis connected');
 });
 
 // ─── Queue Configuration ───────────────────────────────────
@@ -82,7 +85,7 @@ export const ruleEvaluatorWorker = new Worker(
   'rule-evaluation',
   async (job: Job) => {
     const { workspaceId } = job.data as { workspaceId: string };
-    console.log(`[Rule Evaluator] Evaluating rules for workspace ${workspaceId} (job ${job.id})`);
+    logger.info({ workspaceId: workspaceId, id: job.id }, 'Evaluating rules for workspace %s (job %s)', workspaceId, job.id);
 
     const summary: EvaluationSummary = {
       rulesChecked: 0,
@@ -100,7 +103,7 @@ export const ruleEvaluatorWorker = new Worker(
         .eq('status', 'active');
 
       if (rulesError) {
-        console.error(`[Rule Evaluator] Failed to fetch rules for workspace ${workspaceId}:`, rulesError.message);
+        logger.error({ workspaceId, err: rulesError }, 'Failed to fetch rules for workspace %s: %s', workspaceId, rulesError.message);
         return summary;
       }
 
@@ -108,7 +111,7 @@ export const ruleEvaluatorWorker = new Worker(
       summary.rulesChecked = activeRules.length;
 
       if (activeRules.length === 0) {
-        console.log(`[Rule Evaluator] No active rules for workspace ${workspaceId}`);
+        logger.info({ workspaceId: workspaceId }, 'No active rules for workspace %s', workspaceId);
         return summary;
       }
 
@@ -120,12 +123,12 @@ export const ruleEvaluatorWorker = new Worker(
         .eq('status', 'active');
 
       if (accountsError) {
-        console.error(`[Rule Evaluator] Failed to fetch ad accounts for workspace ${workspaceId}:`, accountsError.message);
+        logger.error({ workspaceId, err: accountsError }, 'Failed to fetch ad accounts for workspace %s: %s', workspaceId, accountsError.message);
         return summary;
       }
 
       if (!accounts || accounts.length === 0) {
-        console.log(`[Rule Evaluator] No active ad accounts for workspace ${workspaceId}`);
+        logger.info({ workspaceId: workspaceId }, 'No active ad accounts for workspace %s', workspaceId);
         return summary;
       }
 
@@ -139,7 +142,7 @@ export const ruleEvaluatorWorker = new Worker(
         .eq('status', 'active');
 
       if (campaignsError) {
-        console.error(`[Rule Evaluator] Failed to fetch campaigns for workspace ${workspaceId}:`, campaignsError.message);
+        logger.error({ workspaceId, err: campaignsError }, 'Failed to fetch campaigns for workspace %s: %s', workspaceId, campaignsError.message);
         return summary;
       }
 
@@ -147,7 +150,7 @@ export const ruleEvaluatorWorker = new Worker(
       summary.campaignsChecked = activeCampaigns.length;
 
       if (activeCampaigns.length === 0) {
-        console.log(`[Rule Evaluator] No active campaigns for workspace ${workspaceId}`);
+        logger.info({ workspaceId: workspaceId }, 'No active campaigns for workspace %s', workspaceId);
         return summary;
       }
 
@@ -175,20 +178,16 @@ export const ruleEvaluatorWorker = new Worker(
               .eq('id', rule.id);
           }
         } catch (ruleErr) {
-          console.error(`[Rule Evaluator] Rule ${rule.id} (${rule.name}) failed for workspace ${workspaceId}:`,
-            ruleErr instanceof Error ? ruleErr.message : ruleErr);
+          logger.error({ ruleId: rule.id, ruleName: rule.name, workspaceId, err: ruleErr }, 'Rule failed for workspace');
           // Continue with other rules — one rule failure doesn't stop others
         }
       }
 
-      console.log(
-        `[Rule Evaluator] Workspace ${workspaceId} complete: ${summary.rulesChecked} rules, ${summary.campaignsChecked} campaigns, ${summary.rulesTriggered} triggered, ${summary.draftsCreated} drafts created`,
-      );
+      logger.info({ workspaceId: workspaceId, rulesChecked: summary.rulesChecked, campaignsChecked: summary.campaignsChecked, rulesTriggered: summary.rulesTriggered, draftsCreated: summary.draftsCreated }, 'Workspace %s complete: %s rules, %s campaigns, %s triggered, %s drafts created', workspaceId, summary.rulesChecked, summary.campaignsChecked, summary.rulesTriggered, summary.draftsCreated);
 
       return summary;
     } catch (err) {
-      console.error(`[Rule Evaluator] Fatal error evaluating workspace ${workspaceId}:`,
-        err instanceof Error ? err.message : err);
+      logger.error({ workspaceId, err }, 'Fatal error evaluating workspace');
       throw err; // Re-throw so BullMQ can handle retries
     }
   },
@@ -247,10 +246,7 @@ async function evaluateRuleForWorkspace(
         });
       }
     } catch (campaignErr) {
-      console.error(
-        `[Rule Evaluator] Error evaluating rule ${rule.id} on campaign ${campaign.id} (${campaign.name}):`,
-        campaignErr instanceof Error ? campaignErr.message : campaignErr,
-      );
+      logger.error({ ruleId: rule.id, campaignId: campaign.id, campaignName: campaign.name, err: campaignErr }, 'Error evaluating rule %s on campaign %s (%s)', rule.id, campaign.id, campaign.name);
       // Continue with other campaigns — one failure doesn't stop the rule
     }
   }
@@ -598,8 +594,7 @@ async function executeAction(
           },
         });
       } catch (notifyErr) {
-        console.error(`[Rule Evaluator] Failed to create alert for rule ${rule.id}:`,
-          notifyErr instanceof Error ? notifyErr.message : notifyErr);
+        logger.error({ ruleId: rule.id, err: notifyErr }, 'Failed to create alert for rule');
       }
       break;
     }
@@ -639,8 +634,7 @@ async function executeAction(
           },
         });
       } catch (notifyErr) {
-        console.error(`[Rule Evaluator] Failed to notify team for rule ${rule.id}:`,
-          notifyErr instanceof Error ? notifyErr.message : notifyErr);
+        logger.error({ ruleId: rule.id, err: notifyErr }, 'Failed to notify team for rule');
       }
       break;
     }
@@ -705,7 +699,7 @@ export async function triggerRuleEvaluation(workspaceId: string): Promise<string
       backoff: { type: 'exponential', delay: 5000 },
     },
   );
-  console.log(`[Rule Evaluator] Queued evaluation for workspace ${workspaceId}, job ${job.id}`);
+  logger.info({ workspaceId: workspaceId, id: job.id }, 'Queued evaluation for workspace %s, job %s', workspaceId, job.id);
   return job.id as string;
 }
 
@@ -716,7 +710,7 @@ export async function triggerRuleEvaluation(workspaceId: string): Promise<string
  * Called by a cron job every 15 minutes.
  */
 export async function scheduleRuleEvaluations(): Promise<void> {
-  console.log('[Rule Evaluator] Starting scheduled evaluation for all workspaces');
+  logger.info('Starting scheduled evaluation for all workspaces');
 
   try {
     // Fetch all workspaces that have at least one active rule
@@ -726,12 +720,12 @@ export async function scheduleRuleEvaluations(): Promise<void> {
       .order('id');
 
     if (error) {
-      console.error('[Rule Evaluator] Failed to fetch workspaces:', error.message);
+      logger.error({ err: error }, 'Failed to fetch workspaces');
       return;
     }
 
     const workspaceIds = (workspaces ?? []).map((w) => w.id as string);
-    console.log(`[Rule Evaluator] Found ${workspaceIds.length} workspaces to evaluate`);
+    logger.info({ length: workspaceIds.length }, 'Found %s workspaces to evaluate', workspaceIds.length);
 
     // Queue evaluation jobs for each workspace
     const batchSize = 10;
@@ -748,7 +742,7 @@ export async function scheduleRuleEvaluations(): Promise<void> {
               .eq('status', 'active');
 
             if (ruleCheckError) {
-              console.error(`[Rule Evaluator] Error checking rules for workspace ${workspaceId}:`, ruleCheckError.message);
+              logger.error({ workspaceId, err: ruleCheckError }, 'Error checking rules for workspace %s: %s', workspaceId, ruleCheckError.message);
               return;
             }
 
@@ -765,19 +759,17 @@ export async function scheduleRuleEvaluations(): Promise<void> {
                 backoff: { type: 'exponential', delay: 5000 },
               },
             );
-            console.log(`[Rule Evaluator] Scheduled evaluation for workspace ${workspaceId}`);
+            logger.info({ workspaceId: workspaceId }, 'Scheduled evaluation for workspace %s', workspaceId);
           } catch (err) {
-            console.error(`[Rule Evaluator] Failed to schedule workspace ${workspaceId}:`
-              , err instanceof Error ? err.message : err);
+            logger.error({ workspaceId, err }, 'Failed to schedule workspace %s', workspaceId);
           }
         }),
       );
     }
 
-    console.log(`[Rule Evaluator] Scheduled evaluation complete. Queued jobs for ${workspaceIds.length} workspaces.`);
+    logger.info({ length: workspaceIds.length }, 'Scheduled evaluation complete. Queued jobs for %s workspaces.', workspaceIds.length);
   } catch (err) {
-    console.error('[Rule Evaluator] Fatal error during scheduleRuleEvaluations:',
-      err instanceof Error ? err.message : err);
+    logger.error({ err }, 'Fatal error during scheduleRuleEvaluations');
   }
 }
 
@@ -788,51 +780,43 @@ export async function scheduleRuleEvaluations(): Promise<void> {
  * Call this on application shutdown.
  */
 export async function shutdownRuleEvaluator(): Promise<void> {
-  console.log('[Rule Evaluator] Shutting down...');
+  logger.info('Shutting down...');
 
   try {
     await ruleEvaluatorWorker.close();
-    console.log('[Rule Evaluator] Worker closed');
+    logger.info('Worker closed');
   } catch (err) {
-    console.error('[Rule Evaluator] Error closing worker:', err instanceof Error ? err.message : err);
+    logger.error({ err }, 'Error closing worker');
   }
 
   try {
     await ruleEvaluatorQueue.close();
-    console.log('[Rule Evaluator] Queue closed');
+    logger.info('Queue closed');
   } catch (err) {
-    console.error('[Rule Evaluator] Error closing queue:', err instanceof Error ? err.message : err);
+    logger.error({ err }, 'Error closing queue');
   }
 
   try {
     await redisConnection.quit();
-    console.log('[Rule Evaluator] Redis connection closed');
+    logger.info('Redis connection closed');
   } catch (err) {
-    console.error('[Rule Evaluator] Error closing Redis connection:', err instanceof Error ? err.message : err);
+    logger.error({ err }, 'Error closing Redis connection');
   }
 
-  console.log('[Rule Evaluator] Shutdown complete');
+  logger.info('Shutdown complete');
 }
 
 // ─── Event Handlers ────────────────────────────────────────
 
 ruleEvaluatorWorker.on('completed', (job) => {
   const summary = job.returnvalue as EvaluationSummary | undefined;
-  console.log(
-    `[Rule Evaluator] Job ${job.id} completed for workspace ${job.data.workspaceId}:`,
-    summary
-      ? `${summary.rulesChecked} rules, ${summary.campaignsChecked} campaigns, ${summary.rulesTriggered} triggered, ${summary.draftsCreated} drafts`
-      : 'no summary returned',
-  );
+  logger.info({ jobId: job.id, workspaceId: job.data.workspaceId, summary }, 'Job completed for workspace');
 });
 
 ruleEvaluatorWorker.on('failed', (job, err) => {
-  console.error(
-    `[Rule Evaluator] Job ${job?.id} failed for workspace ${job?.data?.workspaceId}:`,
-    err instanceof Error ? err.message : err,
-  );
+  logger.error({ jobId: job?.id, workspaceId: job?.data?.workspaceId, err }, 'Job failed for workspace');
 });
 
 ruleEvaluatorWorker.on('error', (err) => {
-  console.error('[Rule Evaluator] Worker error:', err instanceof Error ? err.message : err);
+  logger.error({ err }, 'Worker error');
 });

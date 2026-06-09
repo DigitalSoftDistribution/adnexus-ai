@@ -15,7 +15,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { query, closePool } from "./connection";
-import { logger } from "../utils/logger";
+import { getModuleLogger } from "../lib/logger";
+
+const log = getModuleLogger("db-migrate");
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
@@ -68,7 +70,7 @@ function parseMigration(content: string): { upSql: string; downSql: string } {
  */
 function loadMigrations(): MigrationFile[] {
   if (!fs.existsSync(MIGRATIONS_DIR)) {
-    logger.error(`[Migrate] Migrations directory not found: ${MIGRATIONS_DIR}`);
+    log.error(`[Migrate] Migrations directory not found: ${MIGRATIONS_DIR}`);
     process.exit(1);
   }
 
@@ -168,39 +170,39 @@ async function migrateUp(): Promise<void> {
   const pending = migrations.filter((m) => !appliedIds.has(m.id));
 
   if (pending.length === 0) {
-    console.log("✅ No pending migrations. Database is up to date.");
+    log.info("✅ No pending migrations. Database is up to date.");
     return;
   }
 
   const batch = await getNextBatch();
-  console.log(`⬆️  Applying ${pending.length} migration(s) (batch ${batch})...\n`);
+  log.info(`⬆️  Applying ${pending.length} migration(s) (batch ${batch})...\n`);
 
   for (const migration of pending) {
     if (!migration.upSql) {
-      console.log(`⚠️  Skipping ${migration.filename} — no up migration found`);
+      log.warn(`⚠️  Skipping ${migration.filename} — no up migration found`);
       continue;
     }
 
-    console.log(`  → ${migration.id}_${migration.name}`);
-    logger.info(`[Migrate:UP] ${migration.id}_${migration.name}`);
+    log.info(`  → ${migration.id}_${migration.name}`);
+    log.info(`[Migrate:UP] ${migration.id}_${migration.name}`);
 
     try {
       await query("BEGIN");
       await query(migration.upSql);
       await recordMigration(migration.id, migration.name, batch);
       await query("COMMIT");
-      console.log(`     ✅ Applied`);
+      log.info(`     ✅ Applied`);
     } catch (error) {
       await query("ROLLBACK");
-      logger.error(`[Migrate:UP] Failed on ${migration.filename}`, {
+      log.error(`[Migrate:UP] Failed on ${migration.filename}`, {
         error: (error as Error).message,
       });
-      console.error(`     ❌ Failed: ${(error as Error).message}`);
+      log.error(`     ❌ Failed: ${(error as Error).message}`);
       throw error;
     }
   }
 
-  console.log(`\n✅ ${pending.length} migration(s) applied successfully.`);
+  log.info(`\n✅ ${pending.length} migration(s) applied successfully.`);
 }
 
 /**
@@ -213,7 +215,7 @@ async function migrateDown(): Promise<void> {
   const applied = await getAppliedMigrations();
 
   if (applied.length === 0) {
-    console.log("ℹ️  No migrations have been applied.");
+    log.info("ℹ️  No migrations have been applied.");
     return;
   }
 
@@ -222,7 +224,7 @@ async function migrateDown(): Promise<void> {
   const toRollback = applied.filter((a) => a.batch === maxBatch);
   const rollbackIds = new Set(toRollback.map((a) => a.id));
 
-  console.log(
+  log.info(
     `⬇️  Rolling back ${toRollback.length} migration(s) (batch ${maxBatch})...\n`
   );
 
@@ -233,32 +235,32 @@ async function migrateDown(): Promise<void> {
 
   for (const migration of rollbackMigrations) {
     if (!migration.downSql) {
-      console.log(
+      log.warn(
         `⚠️  Skipping ${migration.filename} — no down migration (non-reversible)`
       );
       continue;
     }
 
-    console.log(`  → ${migration.id}_${migration.name}`);
-    logger.info(`[Migrate:DOWN] ${migration.id}_${migration.name}`);
+    log.info(`  → ${migration.id}_${migration.name}`);
+    log.info(`[Migrate:DOWN] ${migration.id}_${migration.name}`);
 
     try {
       await query("BEGIN");
       await query(migration.downSql);
       await removeMigration(migration.id);
       await query("COMMIT");
-      console.log(`     ✅ Rolled back`);
+      log.info(`     ✅ Rolled back`);
     } catch (error) {
       await query("ROLLBACK");
-      logger.error(`[Migrate:DOWN] Failed on ${migration.filename}`, {
+      log.error(`[Migrate:DOWN] Failed on ${migration.filename}`, {
         error: (error as Error).message,
       });
-      console.error(`     ❌ Failed: ${(error as Error).message}`);
+      log.error(`     ❌ Failed: ${(error as Error).message}`);
       throw error;
     }
   }
 
-  console.log(`\n✅ ${toRollback.length} migration(s) rolled back.`);
+  log.info(`\n✅ ${toRollback.length} migration(s) rolled back.`);
 }
 
 /**
@@ -271,21 +273,21 @@ async function migrateStatus(): Promise<void> {
   const applied = await getAppliedMigrations();
   const appliedMap = new Map(applied.map((a) => [a.id, a]));
 
-  console.log("\n📋 Migration Status\n");
-  console.log("  ID  │ Status   │ Name");
-  console.log("──────┼──────────┼─────────────────────────────────────────");
+  log.info("\n📋 Migration Status\n");
+  log.info("  ID  │ Status   │ Name");
+  log.info("──────┼──────────┼─────────────────────────────────────────");
 
   for (const m of migrations) {
     const app = appliedMap.get(m.id);
     const status = app ? `✅ applied` : `⬜ pending`;
     const batch = app ? ` (batch ${app.batch})` : "";
-    console.log(
+    log.info(
       `  ${String(m.id).padStart(3)} │ ${status.padEnd(8)} │ ${m.name}${batch}`
     );
   }
 
   const pending = migrations.length - applied.length;
-  console.log(`\n  Total: ${migrations.length}  |  Applied: ${applied.length}  |  Pending: ${pending}`);
+  log.info(`\n  Total: ${migrations.length}  |  Applied: ${applied.length}  |  Pending: ${pending}`);
 }
 
 // ── CLI entry point ─────────────────────────────────────────────────────────
@@ -300,29 +302,29 @@ async function main(): Promise<void> {
   const cmd = process.argv[2] ?? "status";
 
   if (!COMMANDS[cmd]) {
-    console.error(`\n❌ Unknown command: "${cmd}"`);
-    console.error("\nUsage: ts-node migrate.ts <command>");
-    console.error("  Commands:");
-    console.error("    up      Apply all pending migrations");
-    console.error("    down    Rollback the last batch");
-    console.error("    status  Show migration status\n");
+    log.error(`\n❌ Unknown command: "${cmd}"`);
+    log.error("\nUsage: ts-node migrate.ts <command>");
+    log.error("  Commands:");
+    log.error("    up      Apply all pending migrations");
+    log.error("    down    Rollback the last batch");
+    log.error("    status  Show migration status\n");
     process.exit(1);
   }
 
   try {
     // Verify database connectivity first
     const { rows } = await query<{ now: Date }>("SELECT NOW() as now");
-    logger.info("[Migrate] Connected to PostgreSQL", {
+    log.info("[Migrate] Connected to PostgreSQL", {
       serverTime: rows[0].now,
     });
 
     await COMMANDS[cmd]();
   } catch (error) {
-    logger.error("[Migrate] Fatal error", {
+    log.error("[Migrate] Fatal error", {
       command: cmd,
       error: (error as Error).message,
     });
-    console.error(`\n❌ Migration failed: ${(error as Error).message}`);
+    log.error(`\n❌ Migration failed: ${(error as Error).message}`);
     process.exit(1);
   } finally {
     await closePool();

@@ -308,9 +308,9 @@ export class RetryHandler {
 
         const delay = this.calculateDelay(attempt, error);
 
-        console.warn(
-          `[GoogleAdsAPI] ${operationName} failed (attempt ${attempt + 1}/${this.config.maxRetries + 1}). ` +
-            `Retrying in ${delay}ms... Error: ${(error as Error).message}`
+        getModuleLogger('google-errhandler').warn(
+          { attempt: attempt + 1, maxRetries: this.config.maxRetries + 1, delay, errorMessage: (error as Error).message },
+          `${operationName} failed (attempt ${attempt + 1}/${this.config.maxRetries + 1}). Retrying in ${delay}ms`
         );
 
         await this.sleep(delay);

@@ -11,6 +11,9 @@ import rateLimit, { RateLimitRequestHandler } from "express-rate-limit";
 import slowDown from "express-slow-down";
 import hpp from "hpp";
 import mongoSanitize from "express-mongo-sanitize";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger('security');
 
 // ── Constants ──────────────────────────────────────────────
 
@@ -214,7 +217,7 @@ export function createCorsMiddleware(): ReturnType<typeof cors> {
       }
 
       // Log blocked origins for security monitoring
-      console.warn(`[security] CORS blocked origin: ${origin}`);
+      logger.warn({ origin }, "CORS blocked origin");
       callback(new Error(`Origin ${origin} is not allowed by CORS`));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -379,11 +382,7 @@ export function sqlInjectionDetection(
   // Check query parameters
   const queryResult = scanObject(req.query, SQLI_CHECK_FIELDS);
   if (queryResult) {
-    console.warn(`[security] SQL injection attempt detected in query:`, {
-      ip: req.ip,
-      path: req.path,
-      ...queryResult,
-    });
+    logger.warn({ ip: req.ip, path: req.path, ...queryResult }, "SQL injection attempt detected in query");
     res.status(403).json({
       error: "Invalid input detected",
       code: "SQL_INJECTION_DETECTED",
@@ -394,11 +393,7 @@ export function sqlInjectionDetection(
   // Check request body
   const bodyResult = scanObject(req.body, SQLI_CHECK_FIELDS);
   if (bodyResult) {
-    console.warn(`[security] SQL injection attempt detected in body:`, {
-      ip: req.ip,
-      path: req.path,
-      ...bodyResult,
-    });
+    logger.warn({ ip: req.ip, path: req.path, ...bodyResult }, "SQL injection attempt detected in body");
     res.status(403).json({
       error: "Invalid input detected",
       code: "SQL_INJECTION_DETECTED",
@@ -410,10 +405,7 @@ export function sqlInjectionDetection(
   const rawUrl = req.originalUrl || req.url;
   const urlMatch = SQL_INJECTION_PATTERNS.find((p) => p.test(rawUrl));
   if (urlMatch) {
-    console.warn(`[security] SQL injection pattern in URL:`, {
-      ip: req.ip,
-      url: rawUrl,
-    });
+    logger.warn({ ip: req.ip, url: rawUrl }, 'SQL injection pattern in URL');
     res.status(403).json({
       error: "Invalid request",
       code: "SQL_INJECTION_DETECTED",
@@ -490,11 +482,7 @@ export function bruteForceProtection(
 
     if (currentEntry.attempts >= BRUTE_FORCE_MAX_ATTEMPTS) {
       currentEntry.blockedUntil = now + BRUTE_FORCE_BLOCK_DURATION_MS;
-      console.warn(`[security] Account locked due to brute force:`, {
-        identifier: id,
-        attempts: currentEntry.attempts,
-        blockedUntil: new Date(currentEntry.blockedUntil).toISOString(),
-      });
+      logger.warn({ identifier: id, attempts: currentEntry.attempts, blockedUntil: new Date(currentEntry.blockedUntil).toISOString() }, "Account locked due to brute force");
     }
 
     bruteForceStore.set(id, currentEntry);
@@ -639,10 +627,7 @@ export function createHppMiddleware() {
 export function createMongoSanitizeMiddleware() {
   return mongoSanitize({
     onSanitize: ({ req, key }) => {
-      console.warn(`[security] Sanitized MongoDB operator in key: ${key}`, {
-        ip: req.ip,
-        path: req.path,
-      });
+      logger.warn({ key, ip: req.ip, path: req.path }, "Sanitized MongoDB operator in key");
     },
   });
 }

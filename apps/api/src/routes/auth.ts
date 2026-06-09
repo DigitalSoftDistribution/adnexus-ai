@@ -6,7 +6,10 @@ import { supabase } from '../lib/supabase';
 import { ValidationError, UnauthorizedError, NotFoundError, AppError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
+import { getModuleLogger } from '../lib/logger';
 import type { TokenResponse, User, Workspace, WorkspaceRole } from '../types';
+
+const logger = getModuleLogger('auth');
 
 const router = Router();
 
@@ -534,7 +537,7 @@ router.post(
 
     if (error) {
       // Still return the same message; log the actual error internally
-      console.error('[auth] Supabase resetPasswordForEmail failed:', error.message);
+      logger.error({ err: error }, 'Supabase resetPasswordForEmail failed');
     }
 
     res.json({

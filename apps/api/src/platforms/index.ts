@@ -776,7 +776,7 @@ export class PlatformManager {
             refreshed: true,
           });
         } catch (error) {
-          console.error(`[PlatformManager] Token refresh failed for ${account.platform}/${account.id}:`, error);
+          getModuleLogger('platforms').error({ platform: account.platform, accountId: account.id, err: error }, `Token refresh failed for ${account.platform}/${account.id}`);
           results.push({
             accountId: account.id,
             platform: account.platform,

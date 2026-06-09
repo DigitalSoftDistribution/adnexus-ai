@@ -3,6 +3,10 @@
 // Renders Chart.js charts to PNG images using node-canvas
 // ============================================================================
 
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('chart-service');
+
 // Chart.js v5 API — light stubs to keep compilation clean
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -90,7 +94,7 @@ export class ChartService {
   async renderCharts(configs: ChartConfig[], jobId?: string): Promise<ChartImage[]> {
     const promises = configs.map((config, index) =>
       this.renderChart(config, jobId).catch(error => {
-        console.error(`[ChartService] Failed to render chart "${config.title}":`, error);
+        logger.error({ title: config.title, err: error }, "Failed to render chart");
         throw new ChartRenderError(`Chart "${config.title}" failed: ${(error as Error).message}`);
       })
     );
