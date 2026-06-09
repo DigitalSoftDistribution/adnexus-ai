@@ -1,0 +1,61 @@
+---
+description: ONLY redeploy when actually needed. Triggering deploys back-to-back self-cancels them and creates queue zombies in Coolify.
+alwaysApply: true
+---
+
+# Deploy discipline — don't redeploy unless needed
+
+## Why this exists
+
+Coolify auto-deploys on every push to a watched branch. When multiple deploys queue back-to-back (within seconds of each other), Coolify's deploy worker **cancels the in-progress deploy** when a new one arrives. Symptoms: deploys stuck in `queued` status, zombie entries in the deployment queue, repeated `RuntimeException: Deployment cancelled by user` errors.
+
+This was observed on adnexus-api on 2026-06-07 — 5 deploys queued in 9 minutes, all failed because each new push cancelled the previous build mid-way.
+
+## Hard rules
+
+### 1. **Do NOT trigger a deploy unless code changed**
+- Pushing an empty / no-op commit to force redeploy = forbidden
+- Triggering a manual deploy from Coolify UI / API to "see if it works now" = forbidden
+- If a deploy failed for non-code reasons (queue jammed, infra issue, secret missing), FIX the upstream issue first — don't re-roll the dice with another deploy
+
+### 2. **Don't push multiple commits to a watched branch in <2 min**
+- Coolify's worker takes 30-300 sec per deploy. New pushes during that window cancel the old build.
+- If you have 5 small changes, **batch them into one commit** before pushing. Use `git commit --amend` or interactive rebase to consolidate.
+- If you're mid-batch and need to wait for a deploy to settle: `git stash` your in-progress work until the deploy reports finished/healthy.
+
+### 3. **Verify a deploy COMPLETED before triggering another**
+Before pushing again, check:
+```bash
+coolify apps | grep -i <app-name>          # status should be running:healthy
+coolify GET applications/<uuid>/deployments  # latest deploy status=finished
+```
+If status shows `queued`, `in_progress`, `running:unhealthy`, or any deploy in last 60 sec — **wait**.
+
+### 4. **No "trigger and pray" deploys**
+If you're not sure whether a feature works, test LOCALLY (or on a PR preview URL) BEFORE merging to a branch that auto-deploys to production. The deploy cycle is expensive — it eats build cache, queue slots, and your time waiting for status.
+
+## What COUNTS as "needed redeploy"
+
+- New code changes that affect runtime behavior
+- Dependency updates (package.json / lockfile changed)
+- Env var changes in Coolify (config push)
+- Dockerfile / build pipeline changes
+- Rollback to a known-good commit after a bad deploy
+
+## What does NOT count
+
+- "Let's see if it works now"
+- "I want to verify the env var I just added"  →  use Coolify UI to verify env var was saved, don't redeploy
+- "The preview URL still shows old content"  →  Cloudflare cache, NOT a deploy issue; purge cache instead
+- Restart for transient errors (use Coolify's "Restart" button, not "Deploy")
+
+## If a deploy is stuck
+
+1. Check the deployment queue: `coolify GET applications/<uuid>/deployments?limit=5`
+2. If multiple `queued` entries exist → **don't queue more**; the worker will pick them up sequentially
+3. If queue is jammed (deploys queued >5 min ago and not in_progress), check Horizon: `ssh root@95.217.117.169 'docker exec coolify php artisan horizon:status'`
+4. Surface the issue to the user — don't try to "unjam" by triggering more deploys
+
+## TL;DR
+
+**One commit, one push, one deploy. Wait for it to land. Only then push again if needed.**
