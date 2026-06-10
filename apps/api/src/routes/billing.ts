@@ -9,7 +9,6 @@ import {
   retrieveInvoices,
   stripe,
   getConfiguredPlans,
-  getPlanForPrice,
   isBillingCheckoutConfigured,
   isStripeSecretConfigured,
 } from "../services/stripe";
