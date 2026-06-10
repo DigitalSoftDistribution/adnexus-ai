@@ -1,0 +1,90 @@
+---
+description: "Two deploy paths — depends per repo. LIVE prod with public domain → docker-fleet via GHA. Preview-only or no public domain → Coolify handles main+previews."
+alwaysApply: true
+---
+
+# Deploy Routing — single source of truth (2026-06-03)
+
+**Per-repo decision: does the app have its own LIVE public domain?**
+- **YES** (`<app>.com/.io/.ai/etc.`) → main → docker-fleet via GHA. Previews still go to Coolify.
+- **NO** (only `.apps.softblaze.net` URL) → BOTH main + previews → Coolify.
+
+There is **NEVER** a case where the same commit deploys twice. Coolify and GHA are coordinated by the `is_auto_deploy_enabled` flag per Coolify app.
+
+## How to tell which path your repo uses
+
+```bash
+# In CF dashboard / API: does a zone exist for this app's public domain?
+# Yes → app needs HAS_LIVE_PROD config (auto_deploy=false in Coolify + .github/workflows/deploy-prod.yml)
+# No → app is preview-only (auto_deploy=true in Coolify, no GHA prod workflow)
+```
+
+Current LIVE prod apps (2026-06-03):
+- distivo (distivo.com)
+- lizensa (lizensa.{com,de,fr,eu,nl,pl,co.uk,at})
+- tracklayer (tracklayer.io)
+- beamdesk (beamdesk.ai)
+- aethosestate (aethos.estate)
+- distilo (distilo.ai)
+- euguard-app, euguard-site (euguard.ai)
+- returnsense-ai, returnsense-site (returnsense.ai)
+
+Current preview-only apps (main → Coolify too):
+- adnexus-ai
+- edge-agent-api, edge-agent-frontend, edge-agent-marketing
+- fakturapl-shopify
+- ksef-demo-{m2,ps8,ps9,wc}
+- plugkit-demo-{m2,ps8,ps9,wc}
+- polymarket-qdrant
+- tracklayer-* (branch/feature variants)
+
+## LIVE production path (docker-fleet AX41 — 116.202.113.146)
+
+- **Trigger**: push to `main`
+- **Pipeline**: GHA `.github/workflows/deploy-prod.yml` → build → push to `ghcr.io/digitalsoftdistribution/<repo>:main` → SSH-deploy
+- **Host**: `/srv/<app>/{docker-compose.yml,.env}` deploys as `deploy` user
+- **SSL**: Cloudflare Tunnel `docker-fleet` (id `64b737b9-...`) terminates TLS at edge
+- **DNS**: `<app>.com` CNAME → `64b737b9-...cfargotunnel.com` (proxied)
+- **In Coolify on old AX41**: `is_auto_deploy_enabled = false`
+
+## Preview / branch / PR path (old AX41 — 95.217.117.169)
+
+- **Trigger**: any non-main branch push + PR open/sync (Coolify GH App webhook)
+- **Pipeline**: Coolify v4 at `new-coolify.softblaze.net`
+- **Coolify-Traefik bound to 127.0.0.1:8180/8543** (does not fight CyberPanel/OLS for 80/443)
+- **SSL**: CF Tunnel `softblaze-preview-wildcard` routes `*.apps.softblaze.net` → `localhost:8180`
+- **For preview-only apps**: `is_auto_deploy_enabled = true` (main also lands here)
+- **For LIVE prod apps**: `is_auto_deploy_enabled = false`, but `preview_deployments_enabled = true` (PRs only)
+
+## Anti-patterns — DO NOT
+
+- ❌ Enable Coolify auto_deploy on a LIVE prod app (races GHA — duplicate builds)
+- ❌ Add `<app>.com` to Coolify domains (Coolify only handles `.apps.softblaze.net`)
+- ❌ Add Let's Encrypt / ACME on origin — CF terminates TLS at the edge
+- ❌ Route `<app>.com` through old AX41 (containers were stopped 2026-06-03 — ports 3212/3213 freed)
+
+## Cursor + Claude agents — when to use which path
+
+| Situation | Where to deploy |
+|---|---|
+| Adding new LIVE site with public domain | docker-fleet (set up `/srv/<app>` + GHA workflow + tunnel ingress + CNAME) |
+| Internal tool, only need preview URL | Coolify only (add app via API, `is_auto_deploy_enabled = true`) |
+| Adding feature flag / branch deploy | Coolify auto-creates on PR open |
+| Hotfix to prod | push to main of LIVE app → GHA deploys (skip Coolify) |
+| Long-running staging of a feature | Coolify branch deploy (separate Coolify app pointing at that branch) |
+
+## Build file convention (added 2026-06-03)
+
+**Each LIVE-prod repo can have TWO build paths** (used by different consumers):
+
+| File | Used by | Purpose |
+|---|---|---|
+| `Dockerfile` (or absent — Coolify uses nixpacks) | Coolify previews on old AX41 | Fast preview build per PR; nixpacks auto-detect OR explicit Dockerfile if needed |
+| `Dockerfile.prod` | GHA `deploy-prod.yml` → docker-fleet | Production-optimized build for live deploys |
+
+For monorepo repos (e.g. tracklayer), `Dockerfile.prod` should:
+- Use the right pnpm workspace filter (e.g. `pnpm --filter @org/web build`)
+- Output the production-ready container (Next.js standalone, etc.)
+- Be self-contained (no dev deps, multi-stage, slim runtime)
+
+The GHA workflow `.github/workflows/deploy-prod.yml` references `file: Dockerfile.prod` explicitly via `docker/build-push-action`. If the file doesn't exist, the build fails. **That's a feature** — it prevents accidentally deploying preview-quality builds to prod.
