@@ -24,4 +24,5 @@ export interface IAdRepository {
   list(filters: AdFilters): Promise<AdListResult>;
   getPerformance(adId: string, dateFrom: string, dateTo: string): Promise<AdPerformance>;
   getCreativePerformance(adId: string): Promise<AdCreativePerformance>;
+  update(id: string, updates: Partial<Ad>): Promise<Ad | null>;
 }

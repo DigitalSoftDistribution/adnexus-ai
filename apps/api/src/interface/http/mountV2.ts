@@ -43,6 +43,8 @@ import { AutomationRuleRepository } from '../../infrastructure/repositories/Auto
 import { AuditLogRepository } from '../../infrastructure/repositories/AuditLogRepository';
 import { ExportRepository } from '../../infrastructure/repositories/ExportRepository';
 import { AssetRepository } from '../../infrastructure/repositories/AssetRepository';
+import { CommentRepository } from '../../infrastructure/repositories/CommentRepository';
+import { AdminOpsRepository } from '../../infrastructure/repositories/AdminOpsRepository';
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
@@ -85,6 +87,7 @@ import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
 import { createMcpRoutes } from './routes/mcp';
 import { createOnboardingRoutes } from './routes/onboarding';
+import { createCommentRoutes } from './routes/comments';
 
 // OpenAPI
 import { generateOpenAPIDocument } from '../../openapi/generator';
@@ -130,6 +133,8 @@ export function buildContainer(): Container {
     auditLogRepository: new AuditLogRepository(),
     exportRepository: new ExportRepository(),
     assetRepository: new AssetRepository(),
+    commentRepository: new CommentRepository(),
+    adminOpsRepository: new AdminOpsRepository(),
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
@@ -198,6 +203,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/exports', authenticatedRateLimiter, createExportRoutes(container));
   v2.use('/assets', authenticatedRateLimiter, createAssetRoutes(container));
   v2.use('/admin', authenticatedRateLimiter, createAdminRoutes(container));
+  v2.use('/comments', authenticatedRateLimiter, createCommentRoutes(container));
 
   // Realtime SSE endpoint. EventSource can't send an Authorization header, so
   // the token arrives as a ?token= query param — requireAuthQuery handles both.

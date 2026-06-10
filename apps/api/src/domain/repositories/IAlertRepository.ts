@@ -38,6 +38,13 @@ export interface AlertHistoryEntry {
   acknowledged: boolean;
 }
 
+export interface AlertStats {
+  total: number;
+  enabled: number;
+  triggered24h: number;
+  byType: Record<string, number>;
+}
+
 export interface IAlertRepository {
   list(filters: AlertFilters): Promise<AlertListResult>;
   findById(id: string): Promise<Alert | null>;
@@ -48,4 +55,5 @@ export interface IAlertRepository {
   toggle(id: string, enabled: boolean): Promise<Alert | null>;
   getHistory(alertId: string): Promise<AlertHistoryEntry[]>;
   addHistory(entry: Omit<AlertHistoryEntry, 'id'>): Promise<AlertHistoryEntry>;
+  getStats(workspaceId: string): Promise<AlertStats>;
 }
