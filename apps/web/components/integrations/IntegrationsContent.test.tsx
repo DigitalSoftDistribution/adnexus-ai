@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { IntegrationsContent } from './IntegrationsContent';
 import messages from '@/messages/en.json';
 
+const { searchParamsRef } = vi.hoisted(() => ({
+  searchParamsRef: { current: new URLSearchParams() },
+}));
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParamsRef.current,
 }));
 
 function renderWithQuery(ui: ReactNode) {
@@ -66,7 +70,10 @@ const mockIntegrations = [
 ];
 
 describe('IntegrationsContent', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    searchParamsRef.current = new URLSearchParams();
+  });
   afterEach(() => vi.unstubAllGlobals());
 
   it('renders connected and disconnected integrations', async () => {
@@ -113,5 +120,75 @@ describe('IntegrationsContent', () => {
     await screen.findByText('Meta Ads');
 
     expect(fetchMock).toHaveBeenCalledWith('/api/v2/integrations');
+  });
+
+  it('surfaces OAuth callback errors from query params', async () => {
+    searchParamsRef.current = new URLSearchParams('status=error&platform=meta&reason=access_denied');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: mockIntegrations.filter((integration) => !integration.connected),
+        }),
+      }),
+    );
+
+    renderWithQuery(<IntegrationsContent />);
+
+    await waitFor(() => {
+      const alerts = screen.getAllByRole('alert');
+      expect(alerts.some((alert) => alert.textContent?.includes('meta:error (access_denied)'))).toBe(true);
+    });
+    expect(screen.getAllByText(/Connection needs attention/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('starts OAuth connect for a disconnected platform', async () => {
+    const disconnectedMeta = [
+      {
+        platform: 'meta',
+        label: 'Meta Ads',
+        connected: false,
+        status: 'DISCONNECTED',
+        id: null,
+        accountId: null,
+        accountName: null,
+        lastSyncedAt: null,
+        connectUrl: '/api/v2/auth/meta',
+      },
+    ];
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/v2/integrations') {
+        return { ok: true, json: async () => ({ data: disconnectedMeta }) } as Response;
+      }
+      if (url === '/api/v2/auth/meta' && init?.headers) {
+        return {
+          ok: true,
+          json: async () => ({ data: { redirectUrl: 'https://facebook.com/oauth' } }),
+        } as Response;
+      }
+      return { ok: false, json: async () => ({}) } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    Object.defineProperty(window, 'location', {
+      value: { href: '' },
+      writable: true,
+    });
+
+    renderWithQuery(<IntegrationsContent />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v2/auth/meta',
+        expect.objectContaining({ headers: { Accept: 'application/json' } }),
+      );
+    });
+    expect(window.location.href).toBe('https://facebook.com/oauth');
   });
 });

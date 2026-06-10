@@ -834,9 +834,9 @@ export const campaignsApi = {
   },
 };
 
-/** Demo mode detection */
+/** Local mock data — opt-in only; never inferred from missing VITE_API_URL. */
 function isDemoMode(): boolean {
-  return !import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL === '';
+  return import.meta.env.VITE_DEMO_MODE === 'true';
 }
 
 /** Local mock list implementation */

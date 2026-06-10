@@ -64,6 +64,8 @@ test.describe('Auth Guard — Unauthenticated Redirects', () => {
     '/en/dashboard/integrations',
     '/en/dashboard/mcp',
     '/en/dashboard/settings',
+    '/en/dashboard/billing',
+    '/en/billing',
     '/en/onboarding',
   ];
 

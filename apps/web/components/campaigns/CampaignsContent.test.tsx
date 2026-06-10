@@ -83,6 +83,15 @@ describe('CampaignsContent', () => {
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 
+  it('does not show mock SPA campaign names when the request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+
+    renderWithQuery(<CampaignsContent />);
+
+    expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.queryByText('Summer Sale 2026')).not.toBeInTheDocument();
+  });
+
   it('requests the v2 campaigns endpoint with pagination params', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
