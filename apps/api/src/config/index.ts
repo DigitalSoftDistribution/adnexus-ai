@@ -71,7 +71,6 @@ const envSchema = z.object({
   MOCK_TRAFFIC_HARNESS_CONTEXT: z.string().default(''),
   MOCK_TRAFFIC_HARNESS_KEY: z.string().default(''),
 
-
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
   TIKTOK_API_URL: z.string().url().default('https://business-api.tiktok.com/open_api/v1.3'),
@@ -228,7 +227,6 @@ export const config = {
     context: env.MOCK_TRAFFIC_HARNESS_CONTEXT,
     hasKey: env.MOCK_TRAFFIC_HARNESS_KEY.length > 0,
   },
-
 
   tiktok: {
     appId: env.TIKTOK_APP_ID,

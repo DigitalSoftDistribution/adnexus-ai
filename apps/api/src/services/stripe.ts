@@ -121,6 +121,7 @@ interface CreateCheckoutParams {
 interface CreatePortalParams {
   customerId: string;
   returnUrl: string;
+  flow?: Stripe.BillingPortal.SessionCreateParams.FlowData.Type;
 }
 
 interface RetrieveInvoicesParams {
@@ -193,15 +194,26 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
 // ─── Create Customer Portal Session ───
 export async function createPortalSession(params: CreatePortalParams) {
   assertStripeConfigured("create a billing portal session");
-  const { customerId, returnUrl } = params;
+  const { customerId, returnUrl, flow } = params;
 
-  const session = await stripe.billingPortal.sessions.create({
+  const sessionConfig: Stripe.BillingPortal.SessionCreateParams = {
     customer: customerId,
     return_url: returnUrl,
-    flow_data: {
-      type: "payment_method_update",
-    },
-  });
+  };
+
+  if (flow) {
+    sessionConfig.flow_data = {
+      type: flow,
+      after_completion: {
+        type: "redirect",
+        redirect: {
+          return_url: returnUrl,
+        },
+      },
+    };
+  }
+
+  const session = await stripe.billingPortal.sessions.create(sessionConfig);
 
   logger.info({ sessionId: session.id, customerId }, "Stripe portal session created");
 
