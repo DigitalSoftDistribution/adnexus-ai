@@ -149,9 +149,12 @@ import {
 
 import {
   loadWorkspaceAccounts,
+  loadAdAccountById,
   persistRefreshedToken,
   markAccountDisconnected,
 } from './account-store';
+
+import { MetaPlatformClient } from '../infrastructure/platform/MetaPlatformClient';
 
 // ═══════════════════════════════════════════════
 //  Client Registry — maps platform → client factory
@@ -1213,4 +1216,26 @@ export function createPlatformManagerWithConfig(
     defaults: { ...PLATFORM_CONFIG.defaults, ...overrides.defaults },
   };
   return new PlatformManager(merged);
+}
+
+// ═══════════════════════════════════════════════
+//  Meta platform client factory (per-workspace OAuth)
+// ═══════════════════════════════════════════════
+
+export { loadAdAccountById };
+
+/**
+ * Create a MetaPlatformClient for a workspace-connected ad account.
+ * Returns null when the account is missing, inactive, or not a Meta account
+ * in the given workspace.
+ */
+export async function createMetaPlatformClientForWorkspace(
+  workspaceId: string,
+  adAccountId: string,
+): Promise<MetaPlatformClient | null> {
+  const account = await loadAdAccountById(adAccountId);
+  if (!account || account.workspaceId !== workspaceId || account.platform !== 'meta') {
+    return null;
+  }
+  return new MetaPlatformClient(account.id);
 }
