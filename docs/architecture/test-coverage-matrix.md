@@ -1,104 +1,81 @@
 # Test Coverage Matrix & Architecture Findings
 
-> Generated 2026-06-02 during the comprehensive testing + path-to-v1 effort.
-> Branch: `fix/api-test-suite-green-2026-06-02`.
+> Updated 2026-06-10 (SB-3098 gap audit).
+> Original audit: 2026-06-02, branch `fix/api-test-suite-green-2026-06-02`.
 
-## TL;DR — the three structural surprises
+## TL;DR — status as of 2026-06-10
 
-1. **The deployed API serves v1 only.** `apps/api/src/index.ts` (the entrypoint behind
-   `start: node dist/index.js`) mounts **25 v1 routes and zero v2 routes**, and never imports
-   `createServer.ts`. The entire v2 Clean Architecture server
-   (`apps/api/src/interface/http/createServer.ts`, ~110 use cases, 20 v2 route files, the DI
-   container) is **built but unwired at runtime**. V2-ROADMAP marks Phases 1-5 "COMPLETE", but
-   v2 is not actually served. The Next.js frontend rewrites `/api/v2/*` to the API
-   (`apps/web/next.config.ts`), so any dashboard call to v2 currently hits a 404 unless the
-   page falls back to v1.
+1. **The deployed API serves v1 and v2.** `apps/api/src/index.ts` mounts 25 v1 routes **and**
+   v2 Clean Architecture routes via `mountV2Routes(app)` at line 256. The Next.js frontend
+   rewrites `/api/v2/*` to the API (`apps/web/next.config.ts`); dashboard calls hit served v2
+   routes on preview (`https://adnexus-api.apps.softblaze.net`).
 
-2. **Every existing API test targets v1.** 9 test files reference `/api/v1/*`; **0 reference
-   `/api/v2/*`**. The v2 layer has only **3 vitest unit files** under `src/` (CreateCampaignUseCase,
-   Result, EventBus = 27 tests) and these are **not run by `pnpm test`** (the script runs jest with
-   `roots: ['tests']`; the vitest config `include: ['src/**/*.test.ts']` is never invoked by CI).
+2. **v2 integration tests exist.** `apps/api/tests/integration/v2-campaigns.test.ts`,
+   `v2-settings-api-keys.test.ts`, and `v2-reports-dashboard.test.ts` exercise served `/api/v2/*`
+   routes (auth, RBAC, envelope). Additional v2 unit coverage in `apps/api/tests/unit/v2-auth-proxy.test.ts`.
 
-3. **The web app ships a dead Vite SPA.** `apps/web` builds Next.js (`app/`), but also contains an
-   unbuilt Vite SPA (`index.html`, `src/main.tsx`, `src/App.tsx`, `src/spa-pages/` 65 pages,
-   `src/views/` orphan duplicate). ADR-003 declared Vite canonical; later Coolify/Next commits
-   reversed that. Decision (2026-06-02): **keep Next.js, delete the dead Vite SPA**, supersede
-   ADR-003. Note: `apps/web/lib/*` and `apps/web/hooks/*` (live Next code) re-export from
-   `apps/web/src/lib/*`, so `src/lib/` is SHARED and must be preserved during SPA deletion.
+3. **Use-case unit tests are wired and growing.** ~30 vitest files under
+   `apps/api/src/application/use-cases/**/*.test.ts` run as part of
+   `pnpm --filter @adnexus/api test` (jest suites + vitest). Repo-wide: **77** test files;
+   Playwright smoke at repo root (`pnpm test:smoke`, `playwright.config.ts` on `main`).
+
+4. **The dead Vite SPA was deleted (2026-06-02).** Next.js is canonical; ADR-003 superseded.
 
 ## API test suites (jest, `apps/api/tests/`)
 
-| Suite | Targets | Baseline | After infra fixes |
-|---|---|---|---|
-| `unit/auth.test.ts` | helpers | PASS | PASS |
-| `unit/ai-engine.test.ts` | ai-engine | PASS | PASS |
-| `unit/cache-service.test.ts` | cache | PASS | PASS |
-| `unit/platforms.test.ts` | platform clients | PASS | PASS |
-| `unit/drafts-service.test.ts` | v1 drafts svc | FAIL | PASS (fixed: getDraft mock seam, paginate assertion, audit thenable) |
-| `unit/rate-limiter.test.ts` | rate limiter | FAIL | PASS (boundary `>=`) |
-| `unit/agent-engine.test.ts` | rule engine | FAIL | see triage |
-| `workers/generate-reports.test.ts` | report worker | FAIL (vitest leftovers) | PASS (jest globals) |
-| `integration/auth-routes.test.ts` | v1 auth | FAIL | see triage |
-| `integration/campaign-routes.test.ts` | v1 campaigns | FAIL | see triage |
-| `integration/draft-routes.test.ts` | v1 drafts | FAIL | see triage |
-| `integration/agent-routes.test.ts` | v1 agent | FAIL | see triage |
-| `integration/billing-routes.test.ts` | v1 billing | FAIL | see triage |
-| `e2e/auth.test.ts` | v1 auth flow | FAIL (no `auth.admin` mock) | see triage |
-| `e2e/campaigns.test.ts` | v1 campaigns | FAIL | see triage |
-| `e2e/drafts.test.ts` | v1 drafts | FAIL | see triage |
-
-Root causes of the FAILs were **test-infra / stale-mock**, not (mostly) product logic:
-- jest `transform` only matched `.ts`; a real `await`-outside-async bug in `auth-routes.test.ts`
-  (used `bcrypt.hashSync` fix) produced a misleading parse error.
-- `generate-reports.test.ts` was a half-converted vitest file (`const {describe}=jest`, `vi` shim).
-- Integration/e2e supabase mocks were incomplete vs current routes (missing `auth.admin.*`,
-  `signInWithPassword`, full query chains).
-- One genuine product bug found + fixed: `errorHandler` emitted a flat `{error,code}` instead of the
-  documented `{success:false,error:{code,message,details}}` envelope, and `ZodError` fell through to
-  500 instead of 400.
-
-## v2 Clean Architecture — coverage gap (the big one)
-
-20 v2 route files in `apps/api/src/interface/http/routes/`; ~110 use cases in
-`apps/api/src/application/use-cases/`. Unit-test coverage:
-
-| Use-case area | Use cases | Unit tests |
+| Suite | Targets | Status |
 |---|---|---|
-| campaign | 13 | 1 (`CreateCampaignUseCase`) |
-| draft | 10 | 0 |
-| ad / ad-set | 9 | 0 |
-| agent | 7 | 0 |
-| alert | 7 | 0 |
-| audience | 6 | 0 |
-| report | 6 | 0 |
-| goal | 6 | 0 |
-| settings | 11 | 0 |
-| billing | 5 | 0 |
-| asset | 5 | 0 |
-| export | 4 | 0 |
-| admin | 4 | 0 |
-| notification / search / webhook / audit-log / workspace / ad-account | ~18 | 0 |
-| **Total** | **~110** | **1** |
+| `unit/auth.test.ts` | helpers | PASS |
+| `unit/ai-engine.test.ts` | ai-engine | PASS |
+| `unit/cache-service.test.ts` | cache | PASS |
+| `unit/platforms.test.ts` | platform clients | PASS |
+| `unit/drafts-service.test.ts` | v1 drafts svc | PASS |
+| `unit/rate-limiter.test.ts` | rate limiter | PASS |
+| `unit/v2-auth-proxy.test.ts` | v2 auth proxy | PASS |
+| `workers/generate-reports.test.ts` | report worker | PASS |
+| `integration/auth-routes.test.ts` | v1 auth | PASS |
+| `integration/campaign-routes.test.ts` | v1 campaigns | PASS |
+| `integration/draft-routes.test.ts` | v1 drafts | PASS |
+| `integration/agent-routes.test.ts` | v1 agent | PASS |
+| `integration/billing-routes.test.ts` | v1 billing | PASS |
+| `integration/v2-campaigns.test.ts` | v2 campaigns (served) | PASS |
+| `integration/v2-settings-api-keys.test.ts` | v2 settings/API keys | PASS |
+| `integration/v2-reports-dashboard.test.ts` | v2 reports/dashboard | PASS |
+| `e2e/auth.test.ts` | v1 auth flow | PASS |
+| `e2e/campaigns.test.ts` | v1 campaigns | PASS |
+| `e2e/drafts.test.ts` | v1 drafts | PASS |
+| `e2e/v1-sellability-qa.test.ts` | launch sellability smoke | PASS |
+| `e2e/billing-flow.test.ts`, `e2e/alerts-flow.test.ts` | critical flows | PASS |
 
-Integration coverage of v2 routes: **0**.
+Historical note: the 2026-06-02 audit triaged 250+ failures into infra fixes, stale mocks, and
+a handful of real product bugs (error envelope, ZodError status, 409 conflicts, v1 campaign RBAC).
 
-## Recommended test targets (Phase 4)
+## v2 Clean Architecture — use-case coverage
 
-- **Unit (vitest, mirror `CreateCampaignUseCase.test.ts`):** the critical-path use cases first —
-  Approve/Execute/RejectDraft, Update/Delete/Pause/ActivateCampaign, Create/CancelSubscription
-  (billing), CreateApiKey/UpdateTeamMemberRole (settings RBAC).
-- **Integration (against `createServer` once wired):** auth-required, RBAC, validation, and the
-  `{success,error}` envelope for each v2 resource.
-- **E2E (4 critical flows):** signup→connect→create campaign; AI draft→approve→execute;
-  plan upgrade→webhook→credits; alert→notification.
-- **Wire vitest into CI:** add a `test:unit:v2` (vitest) step so the 3 existing + new use-case tests
-  actually run.
+~110 use cases in `apps/api/src/application/use-cases/`; **~30** have co-located vitest unit tests
+(template: `CreateCampaignUseCase.test.ts`). Integration coverage for served v2 routes: **3 suites**
+(see above).
+
+| Use-case area | Use cases (approx) | Unit tests (approx) |
+|---|---|---|
+| campaign | 13 | several |
+| draft | 10 | several |
+| settings / billing / alert / audience / report / … | ~87 | remainder of ~30 files |
+| **Total** | **~110** | **~30** |
+
+## Recommended test targets (ongoing)
+
+- **Unit (vitest):** expand critical-path use cases — Approve/Execute/RejectDraft, billing
+  subscriptions, settings RBAC, integrations sync.
+- **Integration:** extend v2 route coverage as new dashboard surfaces ship.
+- **E2E:** billing plan-upgrade→Stripe-webhook→credits (partial integration coverage today).
+- **Playwright:** extend `pnpm test:smoke` for marketing and dashboard happy paths on preview.
 
 ## Frontend (apps/web)
 
-| Test | Targets | Keep? |
+| Test | Targets | Status |
 |---|---|---|
-| `src/App.test.tsx` | string-matches dead SPA routes | DROP with SPA deletion |
-| `src/spa-pages/*.test.ts`, `src/views/*.test.ts` | dead SPA pages | DROP with SPA deletion |
-| `src/stores/draftStore.test.ts`, `src/lib/api.test.ts` | SPA store/client | DROP if SPA-only |
-| NEW: RTL for `components/*Content` | live Next dashboard | ADD |
+| RTL for `components/*Content` | live Next dashboard | ADDED (Dashboard, Campaigns templates) |
+| Dead SPA tests | removed with SPA deletion | DROPPED |
+
+Run: `pnpm --filter @adnexus/web test`

@@ -1,5 +1,23 @@
 # V1 Sellability Manual QA Checklist (SB-3099)
 
+## Last audit (2026-06-10, SB-3098)
+
+| Item | Value |
+|---|---|
+| **Web preview** | `https://adnexus-ai.apps.softblaze.net` (Coolify app `adnexus-ai`) |
+| **API preview** | `https://adnexus-api.apps.softblaze.net` (Coolify app `adnexus-api`) |
+| **PR preview pattern** | `https://pr-<N>-adnexus-ai.previews.softblaze.net` (stable per open PR) |
+| **Automated API smoke** | `pnpm --filter @adnexus/api exec jest tests/e2e/v1-sellability-qa.test.ts --runInBand --ci --forceExit` |
+| **Launch smoke CLI** | `pnpm smoke:v1 -- --base-url https://adnexus-api.apps.softblaze.net --web-url https://adnexus-ai.apps.softblaze.net` |
+| **Playwright (main)** | `pnpm test:smoke` — root `playwright.config.ts`; marketing/auth/dashboard paths |
+| **v2 integration** | `apps/api/tests/integration/v2-*.test.ts` — campaigns, settings/API keys, reports |
+| **Use-case unit tests** | ~30 vitest files under `apps/api/src/application/use-cases/` (77 test files repo-wide) |
+| **Manual gaps** | Real Meta OAuth consent, Stripe Checkout/portal, mobile visual QA, axe/Lighthouse (see below) |
+
+Wait for `coolify/adnexus-ai` GitHub commit status success before treating preview URLs as current.
+
+---
+
 Use this checklist for launch go/no-go gaps that cannot be fully automated without browser access, real OAuth consent, Stripe credentials, or production-like seeded data. Pair it with the executable smoke suite:
 
 ```bash
