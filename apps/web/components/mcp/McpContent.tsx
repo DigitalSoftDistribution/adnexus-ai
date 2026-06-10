@@ -63,7 +63,35 @@ function useMcpTools() {
 const capabilities = [
   'Connect AdNexus to AI clients such as Claude, Cursor, and other MCP-compatible tools.',
   'Query campaign, report, audience, and sync data through the read-first MCP tool catalog.',
-  'Prepare draft-first actions for optimizations so humans can review before spend-impacting changes run.',
+  'Stage optimizations as drafts first — spend-impacting changes require human approval before execution.',
+];
+
+const safetyTiers = [
+  {
+    label: 'read',
+    description: 'List campaigns, drafts, metrics, and recommendations. No workspace mutations.',
+  },
+  {
+    label: 'draft',
+    description: 'Stage proposed changes via create_optimization_draft. Nothing goes live until approved.',
+  },
+  {
+    label: 'execute',
+    description: 'Approve or reject pending drafts — explicit human actions that may apply staged changes.',
+  },
+];
+
+const httpEndpoints = [
+  {
+    method: 'GET',
+    path: '/api/v2/mcp/status',
+    description: 'MCP readiness, safety model, catalog counts, and known implementation gaps.',
+  },
+  {
+    method: 'GET',
+    path: '/api/v2/mcp/tools',
+    description: 'Full V2 tool catalog with mode (read / draft / approve), scopes, and backend routes.',
+  },
 ];
 
 export function McpContent() {
@@ -109,7 +137,7 @@ export function McpContent() {
     },
     {
       title: 'Generate an API key',
-      description: 'API keys are the credential source for future MCP access scopes.',
+      description: 'API keys with mcp:read (and future scoped write keys) authenticate catalog and tool calls.',
       href: '/dashboard/settings',
       cta: 'Manage API keys',
       done: false,
@@ -120,6 +148,13 @@ export function McpContent() {
       href: null,
       cta: `${status.catalog.byStatus.implemented} live mappings`,
       done: status.catalog.byStatus.implemented > 0,
+    },
+    {
+      title: 'Review pending drafts',
+      description: 'After an assistant stages a draft, approve or reject it from the Approvals queue.',
+      href: '/dashboard/approvals',
+      cta: 'Open approvals',
+      done: false,
     },
     {
       title: 'Enable MCP transport',
@@ -161,19 +196,21 @@ export function McpContent() {
               </Badge>
             </div>
             <h2 className="text-lg font-semibold tracking-tight">
-              {status.catalog.total} MCP tools catalogued ({status.catalog.byStatus.implemented} implemented)
+              Draft-first MCP safety — {status.catalog.total} tools catalogued (
+              {status.catalog.byStatus.implemented} implemented)
             </h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
               This dashboard reads live readiness from GET /api/v2/mcp/status and the tool catalog from
-              GET /api/v2/mcp/tools. Client install snippets appear only after the production transport is deployed.
+              GET /api/v2/mcp/tools. Risky writes route through create_optimization_draft; client install
+              snippets appear only after the production transport is deployed.
             </p>
             <p className="text-xs text-muted-foreground">
               Planned endpoint: <span className="font-mono">{status.transports.currentAppServer}</span>
             </p>
           </div>
           <Button asChild>
-            <Link href="/dashboard/integrations">
-              Connect data source
+            <Link href="/dashboard/approvals">
+              Review drafts
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -192,6 +229,26 @@ export function McpContent() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Draft-first safety tiers</CardTitle>
+          <CardDescription>
+            Every MCP tool is classified. Writes default to draft staging — direct platform mutations from
+            MCP are disabled.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          {safetyTiers.map((tier) => (
+            <div key={tier.label} className="flex gap-3 rounded-lg border p-4">
+              <Badge variant="outline" className="h-fit shrink-0 font-mono uppercase">
+                {tier.label}
+              </Badge>
+              <p className="text-sm text-muted-foreground">{tier.description}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <Card>
@@ -230,22 +287,36 @@ export function McpContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Client setup</CardTitle>
+            <CardTitle>HTTP catalog endpoints</CardTitle>
             <CardDescription>
-              {status.liveTransport ? 'Configure your MCP client' : 'No transport snippet yet'}
+              {status.liveTransport
+                ? 'Authenticated with your session or API key bearer token.'
+                : 'Use REST catalog endpoints until Streamable HTTP transport is live.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-3">
+              {httpEndpoints.map((endpoint) => (
+                <div key={endpoint.path} className="rounded-lg border bg-muted/40 p-4">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    <Badge variant="outline" className="font-mono">
+                      {endpoint.method}
+                    </Badge>
+                    <code className="text-xs">{endpoint.path}</code>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{endpoint.description}</p>
+                </div>
+              ))}
+            </div>
             <div className="rounded-lg border bg-muted/40 p-4">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <TerminalSquare className="h-4 w-4" />
-                MCP client config
+                Example (session cookie or Bearer token)
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {status.liveTransport
-                  ? 'Use an API key from Settings and point your MCP client at the v2 MCP transport URL above.'
-                  : 'We intentionally hide Claude/Cursor JSON snippets until Streamable HTTP is deployed. Use API keys for REST access today.'}
-              </p>
+              <pre className="mt-2 overflow-x-auto text-xs text-muted-foreground">
+                {`curl -s -H "Authorization: Bearer <api-key>" \\
+  https://<your-app>/api/v2/mcp/tools?mode=draft`}
+              </pre>
             </div>
             <Button asChild variant="outline" className="w-full">
               <Link href="/dashboard/webhooks">Review webhooks</Link>
@@ -302,9 +373,9 @@ export function McpContent() {
       <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <CheckCircle2 className="h-4 w-4 text-primary" />
-          Dashboard wired to /api/v2/mcp/status and /api/v2/mcp/tools.
+          GET /api/v2/mcp/status and /api/v2/mcp/tools are available now.
         </span>
-        <span>Operational MCP transport will surface here when liveTransport becomes true.</span>
+        <span>Claude/Cursor JSON config ships when Streamable HTTP transport lands.</span>
       </div>
     </div>
   );
