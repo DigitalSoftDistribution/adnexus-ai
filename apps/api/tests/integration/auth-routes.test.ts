@@ -4,6 +4,22 @@ import bcrypt from 'bcryptjs';
 import app from '../../src/index';
 import { mockUsers, mockWorkspaces, mockWorkspaceMembers, UUIDS, mockPasswords } from '../fixtures/data';
 import { generateToken } from '../utils/helpers';
+import { UnauthorizedError } from '../../src/lib/errors';
+
+jest.mock('../../src/services/refresh-token-service', () => {
+  const actual = jest.requireActual('../../src/services/refresh-token-service') as typeof import('../../src/services/refresh-token-service');
+  return {
+    ...actual,
+    createAndStoreRefreshToken: jest.fn(),
+    rotateRefreshToken: jest.fn(),
+  };
+});
+
+const refreshTokenService = jest.requireMock('../../src/services/refresh-token-service') as {
+  createAndStoreRefreshToken: jest.Mock;
+  rotateRefreshToken: jest.Mock;
+  TokenReuseDetectedError: typeof import('../../src/services/refresh-token-service').TokenReuseDetectedError;
+};
 
 // ─── Mock Supabase ───────────────────────────────────────────────
 
@@ -616,6 +632,17 @@ describe('POST /api/v1/auth/refresh', () => {
       process.env.JWT_SECRET ?? 'test-secret',
       { expiresIn: '30d' },
     );
+    const newRefreshToken = jwt.sign(
+      { sub: UUIDS.owner, type: 'refresh' },
+      process.env.JWT_SECRET ?? 'test-secret',
+      { expiresIn: '30d' },
+    );
+
+    refreshTokenService.rotateRefreshToken.mockResolvedValue({
+      userId: UUIDS.owner,
+      accessTokenPayload: { sub: UUIDS.owner, type: 'refresh' },
+      refreshToken: newRefreshToken,
+    });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'users') {
@@ -646,6 +673,8 @@ describe('POST /api/v1/auth/refresh', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.token).toBeDefined();
+    expect(response.body.data.refresh_token).toBe(newRefreshToken);
+    expect(refreshTokenService.rotateRefreshToken).toHaveBeenCalledWith(refreshToken, expect.any(String));
   });
 
   it('should reject invalid refresh token type', async () => {
@@ -656,6 +685,8 @@ describe('POST /api/v1/auth/refresh', () => {
       process.env.JWT_SECRET ?? 'test-secret',
     );
 
+    refreshTokenService.rotateRefreshToken.mockRejectedValue(new UnauthorizedError('Invalid refresh token'));
+
     // Act
     const response = await request(app)
       .post('/api/v1/auth/refresh')
@@ -664,6 +695,39 @@ describe('POST /api/v1/auth/refresh', () => {
     // Assert
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
+  });
+
+  it('should return 401 and log audit when refresh token reuse is detected', async () => {
+    const jwt = require('jsonwebtoken');
+    const stolenToken = jwt.sign(
+      { sub: UUIDS.owner, type: 'refresh' },
+      process.env.JWT_SECRET ?? 'test-secret',
+      { expiresIn: '30d' },
+    );
+
+    refreshTokenService.rotateRefreshToken.mockRejectedValue(new refreshTokenService.TokenReuseDetectedError());
+
+    const auditInsert = jest.fn().mockReturnThis();
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'audit_log') {
+        return {
+          insert: auditInsert,
+        };
+      }
+      return defaultBuilder();
+    });
+
+    const response = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refresh_token: stolenToken });
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(auditInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action_category: 'token_reuse',
+      }),
+    );
   });
 });
 

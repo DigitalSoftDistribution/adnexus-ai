@@ -2,17 +2,26 @@ import { jest } from '@jest/globals';
 
 // ─── Mock DB Connection (no real DB in test) ─────────────────────
 
+export const mockClientQuery = jest.fn<(...args: unknown[]) => Promise<{ rows: unknown[]; rowCount: number }>>()
+  .mockResolvedValue({ rows: [], rowCount: 0 });
+const mockClient = {
+  query: mockClientQuery,
+  release: jest.fn(),
+};
+
+export const mockDbTransaction = jest.fn(async (fn: (client: typeof mockClient) => Promise<unknown>) =>
+  fn(mockClient),
+);
+
 jest.mock('../src/db/connection', () => ({
   getPool: jest.fn(() => ({
     query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-    connect: jest.fn().mockResolvedValue({ query: jest.fn().mockResolvedValue({ rows: [] }), release: jest.fn() }),
+    connect: jest.fn().mockResolvedValue(mockClient),
     end: jest.fn().mockResolvedValue(undefined),
   })),
   query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-  getClient: jest.fn().mockResolvedValue({
-    query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-    release: jest.fn(),
-  }),
+  transaction: (...args: unknown[]) => mockDbTransaction(...args),
+  getClient: jest.fn().mockResolvedValue(mockClient),
 }));
 
 // ─── Environment Setup ───────────────────────────────────────────

@@ -4,6 +4,11 @@ import { z } from 'zod';
 import { config } from '../config';
 import { supabase } from '../lib/supabase';
 import { ValidationError, UnauthorizedError, NotFoundError, AppError } from '../lib/errors';
+import {
+  createAndStoreRefreshToken,
+  rotateRefreshToken,
+  TokenReuseDetectedError,
+} from '../services/refresh-token-service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import type { TokenResponse, User, Workspace, WorkspaceRole } from '../types';
@@ -72,18 +77,6 @@ function signAccessToken(userId: string, email: string, workspaceId: string, rol
     { sub: userId, email, workspace_id: workspaceId, role },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn as unknown as number },
-  );
-}
-
-/**
- * Sign a long-lived refresh token.
- * Used to obtain new access tokens without re-authenticating.
- */
-function signRefreshToken(userId: string): string {
-  return jwt.sign(
-    { sub: userId, type: 'refresh' },
-    config.jwt.secret,
-    { expiresIn: config.jwt.refreshExpiresIn as unknown as number },
   );
 }
 
@@ -238,7 +231,7 @@ router.post(
 
     // ── 7. Generate tokens ──
     const token = signAccessToken(userRecord.id, userRecord.email, workspace.id, 'owner');
-    const refreshToken = signRefreshToken(userRecord.id);
+    const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
 
     // ── 8. Log audit event ──
     await supabase.from('audit_log').insert({
@@ -332,7 +325,7 @@ router.post(
       workspace.id,
       membership.role,
     );
-    const refreshToken = signRefreshToken(userRecord.id);
+    const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
 
     // ── 6. Log audit event ──
     await supabase.from('audit_log').insert({
@@ -360,42 +353,43 @@ router.post(
 /**
  * POST /auth/refresh
  *
- * Exchange a valid refresh token for a new access token.
+ * Exchange a valid refresh token for a new access + refresh token pair.
+ * Rotates the refresh token atomically and revokes all sessions on reuse.
  *
  * @body { refresh_token: string }
- * @returns { token: string }
+ * @returns { token: string, refresh_token: string }
  */
 router.post(
   '/refresh',
   asyncHandler(async (req, res) => {
     const body = refreshSchema.parse(req.body);
 
-    // ── 1. Verify the refresh token ──
-    let payload: jwt.JwtPayload;
+    let rotation: Awaited<ReturnType<typeof rotateRefreshToken>>;
     try {
-      payload = jwt.verify(body.refresh_token, config.jwt.secret, {
-        clockTolerance: 60,
-      }) as jwt.JwtPayload;
-    } catch {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      rotation = await rotateRefreshToken(body.refresh_token, req.ip);
+    } catch (error) {
+      if (error instanceof TokenReuseDetectedError) {
+        await supabase.from('audit_log').insert({
+          actor_type: 'system',
+          action: 'Refresh token reuse detected — all sessions revoked',
+          action_category: 'token_reuse',
+          source: 'api',
+          ip_address: req.ip,
+        });
+      }
+      throw error;
     }
 
-    if (payload.type !== 'refresh' || !payload.sub) {
-      throw new UnauthorizedError('Invalid refresh token');
-    }
-
-    // ── 2. Verify user still exists ──
     const { data: userRecord, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', payload.sub)
+      .eq('id', rotation.userId)
       .single();
 
     if (userError || !userRecord) {
       throw new UnauthorizedError('User no longer exists');
     }
 
-    // ── 3. Get workspace membership ──
     const { data: membership } = await supabase
       .from('workspace_members')
       .select('workspace_id, role')
@@ -408,7 +402,6 @@ router.post(
       throw new UnauthorizedError('No workspace membership found');
     }
 
-    // ── 4. Issue new access token ──
     const newToken = signAccessToken(
       userRecord.id,
       userRecord.email,
@@ -418,7 +411,10 @@ router.post(
 
     res.json({
       success: true,
-      data: { token: newToken },
+      data: {
+        token: newToken,
+        refresh_token: rotation.refreshToken,
+      },
     });
   }),
 );
@@ -897,7 +893,7 @@ router.post(
 
     // ── 9. Generate tokens ──
     const token = signAccessToken(userId, payload.email, payload.workspace_id, payload.role);
-    const refreshToken = signRefreshToken(userId);
+    const refreshToken = await createAndStoreRefreshToken(userId, req.ip);
 
     // ── 10. Log audit event ──
     await supabase.from('audit_log').insert({
