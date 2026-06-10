@@ -101,7 +101,10 @@ export function createIntegrationController(container: Container) {
         userRole: req.user!.role,
         platforms: body.platforms,
         variant: body.variant,
-        harnessKey: body.harnessKey ?? (req.headers['x-mock-traffic-key'] as string | undefined),
+        harnessKey:
+          body.harnessKey
+          ?? (req.headers['x-mock-traffic-key'] as string | undefined)
+          ?? (req.headers['x-mock-traffic-harness-key'] as string | undefined),
       });
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
