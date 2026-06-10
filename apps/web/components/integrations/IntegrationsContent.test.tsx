@@ -191,4 +191,32 @@ describe('IntegrationsContent', () => {
     });
     expect(window.location.href).toBe('https://facebook.com/oauth');
   });
+
+  it('renders a Disconnect button and sync controls for connected platforms', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/v2/integrations') {
+          return {
+            ok: true,
+            json: async () => ({ data: mockIntegrations }),
+          } as Response;
+        }
+        if (url.includes('/api/v2/integrations/accounts/acc-1/sync-jobs')) {
+          return { ok: true, json: async () => ({ data: [] }) } as Response;
+        }
+        return { ok: false, json: async () => ({}) } as Response;
+      }),
+    );
+
+    renderWithQuery(<IntegrationsContent />);
+
+    // Connected Meta Ads card shows Disconnect + Sync controls
+    expect(await screen.findByText('Meta Ads')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sync now' })).toBeInTheDocument();
+    // Last synced text is visible
+    expect(screen.getByText(/Last synced:/)).toBeInTheDocument();
+  });
 });
