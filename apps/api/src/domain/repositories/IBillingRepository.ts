@@ -52,8 +52,21 @@ export interface PlanLimits {
   aiCredits: number;
 }
 
+export interface BillingUsage {
+  workspaceId: string;
+  plan: PlanTier;
+  period: {
+    start: string | null;
+    end: string | null;
+  };
+  credits: BillingInfo['credits'];
+  /** Per-feature metering is not wired yet; UI should defer breakdown UI when false. */
+  detailedBreakdownAvailable: boolean;
+}
+
 export interface IBillingRepository {
   getBillingInfo(workspaceId: string): Promise<BillingInfo | null>;
+  getBillingUsage(workspaceId: string): Promise<BillingUsage | null>;
   getInvoices(workspaceId: string, limit: number, startingAfter?: string): Promise<{ invoices: Invoice[]; hasMore: boolean }>;
   createCheckoutSession(workspaceId: string, userId: string, email: string, priceId: string, successUrl: string, cancelUrl: string): Promise<CheckoutSession>;
   createPortalSession(workspaceId: string, returnUrl: string): Promise<PortalSession>;
