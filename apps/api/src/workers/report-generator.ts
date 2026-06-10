@@ -1,19 +1,40 @@
-// @ts-nocheck — unported worker, email-service API mismatch
-// ============================================
-// AdNexus AI — Scheduled Report Generator Worker
-// BullMQ worker that executes scheduled reports with multi-format output
-// ============================================
+/**
+ * AdNexus AI — Scheduled Report Generator Worker
+ *
+ * BullMQ worker that executes scheduled reports with multi-format output.
+ * Worker startup is gated by BACKGROUND_JOBS_ENABLED and
+ * BACKGROUND_REPORT_GENERATOR_ENABLED (default-off, PR #79 pattern).
+ */
 
 import { Worker, Queue, Job } from 'bullmq';
+import { Redis } from 'ioredis';
 import { supabase } from '../lib/supabase';
 import { config } from '../config';
+import { getRedisClient } from '../lib/redis';
 import { AppError, NotFoundError } from '../lib/errors';
-import { sendEmail } from '../services/email-service';
+import { EmailService, type EmailConfig } from '../services/email-service';
 import { createNotification } from '../services/notification-service';
 import type { Platform } from '../types';
 
 import { getModuleLogger } from '../lib/logger';
+
 const logger = getModuleLogger('report-generator');
+
+export const REPORT_GENERATOR_QUEUE_NAME = 'report-generator';
+
+export type ReportGeneratorWorkerStatus = 'disabled' | 'starting' | 'running' | 'stopped' | 'error';
+
+export interface ReportGeneratorWorkerSnapshot {
+  status: ReportGeneratorWorkerStatus;
+  enabled: boolean;
+  reason?: string;
+  startedAt?: string;
+}
+
+export interface ReportGeneratorJobData {
+  reportId: string;
+  workspaceId: string;
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -87,33 +108,115 @@ export interface ReportResultRow {
   created_at: string;
 }
 
-// ─── Redis Connection Helper ─────────────────────────────────
+// ─── Lazy worker state ───────────────────────────────────────
 
-function getRedisConnection(): { host: string; port: number } {
-  if (config.redis.url) {
-    try {
-      const url = new URL(config.redis.url);
-      return { host: url.hostname, port: parseInt(url.port || '6379', 10) };
-    } catch {
-      // fall through
-    }
+let workerRedis: Redis | null = null;
+let reportGeneratorQueue: Queue<ReportGeneratorJobData> | null = null;
+let reportGeneratorWorker: Worker<ReportGeneratorJobData> | null = null;
+let reportEmailService: EmailService | null = null;
+let workerSnapshot: ReportGeneratorWorkerSnapshot = {
+  status: 'disabled',
+  enabled: false,
+};
+
+export function getReportGeneratorDisableReason(): string | null {
+  if (!config.backgroundJobs.enabled) {
+    return 'BACKGROUND_JOBS_ENABLED is not true';
   }
-  return { host: 'localhost', port: 6379 };
+  if (!config.backgroundJobs.reportGeneratorEnabled) {
+    return 'BACKGROUND_REPORT_GENERATOR_ENABLED is not true';
+  }
+  if (!config.redis.url) {
+    return 'REDIS_URL is not configured';
+  }
+
+  const redis = getRedisClient();
+  if (!redis || redis.status !== 'ready') {
+    return `Redis is not ready: ${redis?.status ?? 'disconnected'}`;
+  }
+
+  return null;
 }
 
-const redisConnection = getRedisConnection();
+export function getReportGeneratorWorkerStatus(): ReportGeneratorWorkerSnapshot {
+  return { ...workerSnapshot };
+}
 
-// ─── Queue ───────────────────────────────────────────────────
+export function buildReportGeneratorJobId(reportId: string, timestamp = Date.now()): string {
+  return `report-${reportId}-${timestamp}`;
+}
 
-export const reportGeneratorQueue = new Queue('report-generator', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 10000 },
-    removeOnComplete: 50,
-    removeOnFail: 20,
-  },
-});
+function getWorkerRedis(): Redis {
+  if (!workerRedis) {
+    workerRedis = new Redis(config.redis.url ?? 'redis://localhost:6379', {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  }
+  return workerRedis;
+}
+
+function getReportGeneratorQueue(): Queue<ReportGeneratorJobData> {
+  if (!reportGeneratorQueue) {
+    reportGeneratorQueue = new Queue<ReportGeneratorJobData>(REPORT_GENERATOR_QUEUE_NAME, {
+      connection: getWorkerRedis(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 50,
+        removeOnFail: 20,
+      },
+    });
+  }
+  return reportGeneratorQueue;
+}
+
+function getReportEmailConfig(): EmailConfig | null {
+  const smtpHost = process.env.SMTP_HOST;
+  if (!smtpHost) {
+    return null;
+  }
+
+  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+  return {
+    smtpHost,
+    smtpPort,
+    smtpSecure: process.env.SMTP_SECURE === 'true' || smtpPort === 465,
+    smtpUser: process.env.SMTP_USER,
+    smtpPass: process.env.SMTP_PASS,
+    fromAddress: process.env.EMAIL_FROM || process.env.SMTP_FROM || 'noreply@adnexus.ai',
+    fromName: process.env.EMAIL_FROM_NAME || 'AdNexus AI',
+  };
+}
+
+function getReportEmailService(): EmailService | null {
+  if (reportEmailService) {
+    return reportEmailService;
+  }
+
+  const emailConfig = getReportEmailConfig();
+  if (!emailConfig) {
+    return null;
+  }
+
+  reportEmailService = new EmailService(emailConfig);
+  return reportEmailService;
+}
+
+async function deliverReportEmail(
+  recipients: string[],
+  subject: string,
+  html: string,
+  reportName: string,
+): Promise<void> {
+  const emailService = getReportEmailService();
+  if (!emailService) {
+    console.log('[Report Generator] SMTP not configured; skipping email delivery');
+    return;
+  }
+
+  await emailService.sendReportEmail(recipients, subject, reportName, [], { htmlBody: html });
+}
 
 // ─── Cron Parser (lightweight, no external dep) ──────────────
 
@@ -333,7 +436,7 @@ function computeNextCronOccurrence(
 
 // ─── Date Range Resolver ─────────────────────────────────────
 
-function resolveDateRange(reportConfig: ReportConfig): { start: string; end: string } {
+export function resolveDateRange(reportConfig: ReportConfig): { start: string; end: string } {
   const rangeType = reportConfig.dateRange ?? 'last_7d';
   const now = new Date();
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
@@ -375,12 +478,10 @@ function resolveDateRange(reportConfig: ReportConfig): { start: string; end: str
   return { start: fmt(start), end: fmt(now) };
 }
 
-// ─── Worker ──────────────────────────────────────────────────
+// ─── Worker job processor ────────────────────────────────────
 
-export const reportGeneratorWorker = new Worker(
-  'report-generator',
-  async (job: Job<{ reportId: string; workspaceId: string }>) => {
-    const { reportId, workspaceId } = job.data as { reportId: string; workspaceId: string };
+async function processReportGeneratorJob(job: Job<ReportGeneratorJobData>): Promise<Record<string, unknown>> {
+    const { reportId, workspaceId } = job.data;
     logger.info(`[Report Generator] Executing report ${reportId} for workspace ${workspaceId} (attempt ${job.attemptsMade + 1})`);
 
     // 1. Fetch scheduled report configuration
@@ -427,11 +528,12 @@ export const reportGeneratorWorker = new Worker(
     const recipients = scheduledReport.config.recipients ?? [];
     if (recipients.length > 0 && reportResult.html) {
       try {
-        await sendEmail({
-          to: recipients,
-          subject: scheduledReport.config.emailSubject ?? `${scheduledReport.name} — AdNexus AI Report`,
-          html: reportResult.html,
-        });
+        await deliverReportEmail(
+          recipients,
+          scheduledReport.config.emailSubject ?? `${scheduledReport.name} — AdNexus AI Report`,
+          reportResult.html,
+          scheduledReport.name,
+        );
         logger.info(`[Report Generator] Emailed report ${reportId} to ${recipients.join(', ')}`);
       } catch (emailErr) {
         logger.error({ err: emailErr instanceof Error ? emailErr.message : String(emailErr) }, `[Report Generator] Failed to email report ${reportId}:`);
@@ -467,32 +569,127 @@ export const reportGeneratorWorker = new Worker(
       dateRange: reportResult.dateRange,
       emailedTo: recipients.length > 0 ? recipients : undefined,
     };
-  },
-  {
-    connection: redisConnection,
-    concurrency: 2,
-  },
-);
+}
+
+export async function startReportGeneratorWorker(): Promise<ReportGeneratorWorkerSnapshot> {
+  const disableReason = getReportGeneratorDisableReason();
+  if (disableReason) {
+    workerSnapshot = {
+      status: 'disabled',
+      enabled: false,
+      reason: disableReason,
+    };
+    return getReportGeneratorWorkerStatus();
+  }
+
+  if (reportGeneratorWorker) {
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: workerSnapshot.startedAt,
+    };
+    return getReportGeneratorWorkerStatus();
+  }
+
+  workerSnapshot = { status: 'starting', enabled: true };
+
+  try {
+    const activeWorker = new Worker<ReportGeneratorJobData>(
+      REPORT_GENERATOR_QUEUE_NAME,
+      processReportGeneratorJob,
+      {
+        connection: getWorkerRedis(),
+        concurrency: 2,
+      },
+    );
+
+    activeWorker.on('completed', (job) => {
+      logger.info(`[Report Generator] Job ${job.id} completed for report ${job.data.reportId}`);
+    });
+
+    activeWorker.on('failed', (job, err) => {
+      const reportId = job?.data?.reportId ?? 'unknown';
+      logger.error({ err: err.message }, `[Report Generator] Job ${job?.id} failed for report ${reportId}:`);
+    });
+
+    activeWorker.on('error', (err) => {
+      logger.error({ err: err.message }, '[Report Generator] Worker error:');
+    });
+
+    reportGeneratorWorker = activeWorker;
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    workerSnapshot = {
+      status: 'error',
+      enabled: true,
+      reason: message,
+    };
+  }
+
+  return getReportGeneratorWorkerStatus();
+}
+
+export async function stopReportGeneratorWorker(): Promise<void> {
+  if (reportGeneratorWorker) {
+    await reportGeneratorWorker.close();
+    reportGeneratorWorker = null;
+  }
+  if (reportGeneratorQueue) {
+    await reportGeneratorQueue.close();
+    reportGeneratorQueue = null;
+  }
+  if (workerRedis) {
+    await workerRedis.quit();
+    workerRedis = null;
+  }
+  if (reportEmailService) {
+    await reportEmailService.close();
+    reportEmailService = null;
+  }
+
+  workerSnapshot = {
+    status: 'stopped',
+    enabled: false,
+  };
+}
 
 // ─── Job Trigger ─────────────────────────────────────────────
 
-export async function triggerReportGeneration(reportId: string, workspaceId: string): Promise<string> {
-  const job = await reportGeneratorQueue.add(
+export async function triggerReportGeneration(reportId: string, workspaceId: string): Promise<string | null> {
+  const disableReason = getReportGeneratorDisableReason();
+  if (disableReason) {
+    console.log(`[Report Generator] Skipping enqueue: ${disableReason}`);
+    return null;
+  }
+
+  const queue = getReportGeneratorQueue();
+  const job = await queue.add(
     `report-${reportId}`,
     { reportId, workspaceId },
     {
-      jobId: `report-${reportId}-${Date.now()}`,
+      jobId: buildReportGeneratorJobId(reportId),
       attempts: 3,
       backoff: { type: 'exponential', delay: 10000 },
     },
   );
   logger.info(`[Report Generator] Queued report generation job ${job.id} for report ${reportId}`);
-  return job.id as string;
+  return job.id ?? null;
 }
 
 // ─── Schedule Checker ────────────────────────────────────────
 
 export async function checkScheduledReports(): Promise<void> {
+  const disableReason = getReportGeneratorDisableReason();
+  if (disableReason) {
+    console.log(`[Report Generator] Skipping scheduled report check: ${disableReason}`);
+    return;
+  }
+
   const now = new Date().toISOString();
 
   const { data: dueReports, error } = await supabase
@@ -1248,29 +1445,25 @@ export async function storeReportResult(
   }
 }
 
-// ─── Graceful Shutdown ───────────────────────────────────────
+// ─── Graceful Shutdown (legacy alias) ────────────────────────
 
 export async function shutdownReportGenerator(): Promise<void> {
   logger.info('[Report Generator] Shutting down worker...');
-  await reportGeneratorWorker.close();
-  await reportGeneratorQueue.close();
+  await stopReportGeneratorWorker();
   logger.info('[Report Generator] Worker shut down complete');
 }
 
-// ─── Event Handlers ──────────────────────────────────────────
+if (require.main === module) {
+  void startReportGeneratorWorker().then((status) => {
+    if (status.status !== 'running') {
+      console.log(`[Report Generator] Worker not started: ${status.reason ?? status.status}`);
+      process.exit(0);
+    }
+    console.log('[Report Generator] Worker started. Waiting for jobs...');
+  });
+}
 
-reportGeneratorWorker.on('completed', (job: Job<{ reportId: string; workspaceId: string }>) => {
-  logger.info(`[Report Generator] Job ${job.id} completed for report ${job.data.reportId}`);
-});
-
-reportGeneratorWorker.on('failed', (job: Job<{ reportId: string; workspaceId: string }> | undefined, err: Error) => {
-  const reportId = job?.data?.reportId ?? 'unknown';
-  logger.error({ err: err instanceof Error ? err.message : String(err) }, `[Report Generator] Job ${job?.id} failed for report ${reportId}:`);
-});
-
-reportGeneratorWorker.on('error', (err: Error) => {
-  logger.error({ err: err instanceof Error ? err.message : String(err) }, '[Report Generator] Worker error:');
-});
+export { reportGeneratorWorker, reportGeneratorQueue };
 
 // ─── Helpers ─────────────────────────────────────────────────
 
