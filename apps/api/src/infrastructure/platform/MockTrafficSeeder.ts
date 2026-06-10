@@ -190,17 +190,18 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
            name = $2,
            status = 'active',
            metadata = $3,
+           account_id = COALESCE(account_id, $4),
            last_synced_at = NOW(),
            updated_at = NOW()
          WHERE id = $1`,
-        [existing[0].id, fixture.name, JSON.stringify(metadata)],
+        [existing[0].id, fixture.name, JSON.stringify(metadata), fixture.platformAccountId],
       );
       return existing[0].id;
     }
 
     const { rows } = await query<{ id: string }>(
-      `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, name, status, metadata, last_synced_at)
-       VALUES ($1, $2, $3, $4, 'active', $5, NOW())
+      `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, account_id, name, status, metadata, last_synced_at)
+       VALUES ($1, $2, $3, $3, $4, 'active', $5, NOW())
        RETURNING id`,
       [workspaceId, platform, fixture.platformAccountId, fixture.name, JSON.stringify(metadata)],
     );
