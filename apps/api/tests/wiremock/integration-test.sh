@@ -149,9 +149,17 @@ fi
 # ─── 7. WireMock Integration ─────────────────────────────────────
 echo ""
 echo "--- WireMock Ad Platform APIs ---"
+MWM=$(curl -s "$WIREMOCK_BASE_URL/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=mock&client_secret=mock&fb_exchange_token=old" 2>/dev/null | head -c 200)
+if echo "$MWM" | grep -q "access_token"; then pass "WireMock Meta OAuth refresh"; else fail "WireMock Meta OAuth" "$MWM"; fi
+
 MWM=$(curl -s "$WIREMOCK_BASE_URL/v19.0/act_1234567890/insights" \
   -H "Authorization: Bearer test-token" 2>/dev/null | head -c 200)
 if echo "$MWM" | grep -q "impressions"; then pass "WireMock Meta Insights"; else fail "WireMock Meta" "$MWM"; fi
+
+MWM=$(curl -s -X POST "$WIREMOCK_BASE_URL/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token&refresh_token=mock&client_id=mock&client_secret=mock" 2>/dev/null | head -c 200)
+if echo "$MWM" | grep -q "MockRefreshedAccessToken"; then pass "WireMock Google OAuth refresh"; else fail "WireMock Google OAuth" "$MWM"; fi
 
 MWM=$(curl -s -X POST "$WIREMOCK_BASE_URL/v16/customers/1234567890/googleAds:search" \
   -H "Content-Type: application/json" -d '{"query":"SELECT campaign.id FROM campaign"}' 2>/dev/null | head -c 200)
