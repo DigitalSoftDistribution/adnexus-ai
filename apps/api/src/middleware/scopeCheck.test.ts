@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { parseScopes, requireScope } from '../../src/middleware/scopeCheck';
+import { parseScopes, requireScope } from './scopeCheck';
 
 function runScopeCheck(
   required: string,
