@@ -40,4 +40,12 @@ describe('migration hardening', () => {
     expect(migration).toContain("UPDATE ad_accounts SET is_active = (status = 'active');");
     expect(migration).not.toContain("WHERE is_active IS NULL");
   });
+
+  it('creates refresh_tokens in the canonical migrations directory', () => {
+    const migration = readFileSync(join(migrationsDir, '032_create_refresh_tokens.sql'), 'utf8');
+
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS refresh_tokens');
+    expect(migration).toContain('token_hash TEXT NOT NULL UNIQUE');
+    expect(migration).toContain('replaced_by UUID REFERENCES refresh_tokens(id)');
+  });
 });
