@@ -8,6 +8,7 @@ const options = {
   webUrl: process.env.WEB_URL || '',
   timeoutMs: Number(process.env.SMOKE_TIMEOUT_MS || 8000),
   retries: Number(process.env.SMOKE_RETRIES || 1),
+  throttleMs: Number(process.env.SMOKE_THROTTLE_MS || 0),
   origin: process.env.SMOKE_ORIGIN || process.env.WEB_URL || 'https://adnexus-ai.apps.softblaze.net',
   token: process.env.SMOKE_AUTH_TOKEN || '',
 };
@@ -34,6 +35,9 @@ for (let i = 0; i < args.length; i += 1) {
   } else if (arg === '--timeout-ms') {
     options.timeoutMs = Number(readValue(args, i, arg));
     i += 1;
+  } else if (arg === '--throttle-ms') {
+    options.throttleMs = Number(readValue(args, i, arg));
+    i += 1;
   } else if (arg === '--retries') {
     options.retries = Number(readValue(args, i, arg));
     i += 1;
@@ -44,7 +48,7 @@ for (let i = 0; i < args.length; i += 1) {
     options.token = readValue(args, i, arg);
     i += 1;
   } else if (arg === '--help' || arg === '-h') {
-    console.log(`Usage: pnpm smoke:v1 -- --base-url <api-url> [--web-url <web-url>] [--origin <origin>] [--token <jwt>] [--timeout-ms 8000] [--retries 1]
+    console.log(`Usage: pnpm smoke:v1 -- --base-url <api-url> [--web-url <web-url>] [--origin <origin>] [--token <jwt>] [--timeout-ms 8000] [--retries 1] [--throttle-ms 0]
 
 Checks AdNexus V1 preview/runtime readiness:
   - API /health, /ready, /metrics, /api/v2/openapi.json
@@ -53,7 +57,7 @@ Checks AdNexus V1 preview/runtime readiness:
   - Optional authenticated probes when SMOKE_AUTH_TOKEN or --token is supplied
   - Optional web routes and same-origin /api/v2 rewrite behavior
 
-Environment alternatives: API_URL, WEB_URL, SMOKE_ORIGIN, SMOKE_AUTH_TOKEN, SMOKE_TIMEOUT_MS, SMOKE_RETRIES.`);
+Environment alternatives: API_URL, WEB_URL, SMOKE_ORIGIN, SMOKE_AUTH_TOKEN, SMOKE_TIMEOUT_MS, SMOKE_RETRIES, SMOKE_THROTTLE_MS.`);
     process.exit(0);
   } else {
     throw new Error(`Unknown argument: ${arg}`);
@@ -115,17 +119,38 @@ async function check({ name, url, expect, validate, init }) {
   return { name, ok: false, url, error: lastError?.message || 'unknown error' };
 }
 
+// One probe per mountV2 route group (expect 401 without token).
 const unauthenticatedApiPaths = [
   '/api/v2/campaigns/summary',
-  '/api/v2/integrations',
   '/api/v2/drafts',
   '/api/v2/billing',
-  '/api/v2/settings',
+  '/api/v2/ads',
+  '/api/v2/settings/workspace',
+  '/api/v2/integrations',
+  '/api/v2/onboarding',
+  '/api/v2/audiences',
   '/api/v2/reports',
+  '/api/v2/alerts',
+  '/api/v2/search',
+  '/api/v2/notifications',
+  '/api/v2/webhooks/config',
+  '/api/v2/campaigns/00000000-0000-0000-0000-000000000001/adsets',
+  '/api/v2/goals',
+  '/api/v2/agent/status',
+  '/api/v2/audit-log',
+  '/api/v2/exports',
+  '/api/v2/assets',
+  '/api/v2/admin/stats',
+  '/api/v2/auth/me',
+  '/api/v2/events',
 ];
 
 const webRoutes = [
+  '/',
   '/en',
+  '/en/pricing',
+  '/en/features',
+  '/en/about',
   '/en/auth/signup',
   '/en/auth/signin',
   '/en/onboarding',
@@ -136,6 +161,13 @@ const webRoutes = [
   '/en/dashboard/settings',
   '/en/dashboard/integrations',
   '/en/dashboard/reports',
+  '/en/dashboard/ai-agent',
+  '/en/dashboard/webhooks',
+  '/en/dashboard/audiences',
+  '/en/dashboard/alerts',
+  '/en/dashboard/goals',
+  '/en/dashboard/audit-log',
+  '/en/dashboard/mcp',
 ];
 
 const checks = [
@@ -162,6 +194,18 @@ const checks = [
     url: joinUrl(options.baseUrl, '/api/v2/openapi.json'),
     expect: (response) => response.status === 200,
     validate: (body) => Boolean(body && typeof body === 'object' && (body.openapi || body.info)),
+  },
+  {
+    name: 'v2 events stats',
+    url: joinUrl(options.baseUrl, '/api/v2/events/stats'),
+    expect: (response) => response.status === 200,
+    validate: (body) => Boolean(body && typeof body === 'object' && body.success === true && body.data),
+  },
+  {
+    name: 'v2 auth signin validation',
+    url: joinUrl(options.baseUrl, '/api/v2/auth/signin'),
+    init: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    expect: (response) => response.status === 400 || response.status === 422,
   },
   {
     name: 'api preview cors preflight',
@@ -231,6 +275,9 @@ const results = [];
 for (const item of checks) {
   const result = await check(item);
   results.push(result);
+  if (options.throttleMs > 0 && item.url.includes('/api/v2/')) {
+    await delay(options.throttleMs);
+  }
   const marker = result.ok ? 'PASS' : 'FAIL';
   console.log(`${marker} ${result.name} ${result.status ? `(${result.status})` : ''} ${result.url}${result.error ? ` — ${result.error}` : ''}`);
 }
