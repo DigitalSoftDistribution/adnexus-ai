@@ -46,6 +46,17 @@ function mapRow(row: AdAccountRow): AdAccount {
 const SELECT_COLS = `id, workspace_id, platform, platform_account_id, name,
   oauth_token, refresh_token, token_expires_at, status, metadata, created_at, updated_at`;
 
+/** Load a single active ad account by its internal id. */
+export async function loadAdAccountById(accountId: string): Promise<AdAccount | null> {
+  const { rows } = await query<AdAccountRow>(
+    `SELECT ${SELECT_COLS} FROM ad_accounts
+     WHERE id = $1 AND is_active = true
+     LIMIT 1`,
+    [accountId],
+  );
+  return rows[0] ? mapRow(rows[0]) : null;
+}
+
 /** Load all active ad accounts for a workspace. */
 export async function loadWorkspaceAccounts(workspaceId: string): Promise<AdAccount[]> {
   const { rows } = await query<AdAccountRow>(
