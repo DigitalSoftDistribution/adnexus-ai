@@ -2,7 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { config } from '../config';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAuthAdmin } from '../lib/supabase';
 import { ValidationError, UnauthorizedError, NotFoundError, AppError } from '../lib/errors';
 import {
   createAndStoreRefreshToken,
@@ -123,7 +123,7 @@ router.post(
     const body = signupSchema.parse(req.body);
 
     // ── 1. Check if email already exists in Supabase Auth ──
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const { data: existingUsers } = await supabaseAuthAdmin.auth.admin.listUsers();
     const emailExists = existingUsers?.users?.some(
       (u) => u.email?.toLowerCase() === body.email.toLowerCase(),
     );
@@ -132,7 +132,7 @@ router.post(
     }
 
     // ── 2. Create user in Supabase Auth ──
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAuthAdmin.auth.admin.createUser({
       email: body.email,
       password: body.password,
       email_confirm: true,
@@ -178,7 +178,7 @@ router.post(
 
     if (userError || !userRecord) {
       // Rollback: delete the auth user
-      await supabase.auth.admin.deleteUser(supabaseUser.id);
+      await supabaseAuthAdmin.auth.admin.deleteUser(supabaseUser.id);
       throw new AppError('USER_CREATE_FAILED', 'Failed to create user profile', 500, {
         dbCode: userError?.code,
         dbMessage: userError?.message,
@@ -203,7 +203,7 @@ router.post(
 
     if (wsError || !workspace) {
       // Rollback: delete auth user (profile cascades via FK)
-      await supabase.auth.admin.deleteUser(supabaseUser.id);
+      await supabaseAuthAdmin.auth.admin.deleteUser(supabaseUser.id);
       throw new AppError('WORKSPACE_CREATE_FAILED', 'Failed to create workspace', 500);
     }
 
@@ -217,7 +217,7 @@ router.post(
     if (memberError) {
       // Rollback: delete workspace, auth user
       await supabase.from('workspaces').delete().eq('id', workspace.id);
-      await supabase.auth.admin.deleteUser(supabaseUser.id);
+      await supabaseAuthAdmin.auth.admin.deleteUser(supabaseUser.id);
       throw new AppError('MEMBER_CREATE_FAILED', 'Failed to add workspace member', 500);
     }
 
@@ -509,7 +509,7 @@ router.post(
     const body = resetPasswordRequestSchema.parse(req.body);
 
     // Check whether the user exists before sending (don't leak this info)
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const { data: existingUsers } = await supabaseAuthAdmin.auth.admin.listUsers();
     const targetUser = existingUsers?.users?.find(
       (u) => u.email?.toLowerCase() === body.email.toLowerCase(),
     );
@@ -579,7 +579,7 @@ router.post(
     }
 
     // ── 3. Update password via Supabase Auth Admin ──
-    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+    const { error: updateError } = await supabaseAuthAdmin.auth.admin.updateUserById(userId, {
       password: body.newPassword,
     });
 
@@ -798,10 +798,10 @@ router.post(
       userRecord = existingUser as User;
 
       // Ensure they have a Supabase Auth identity
-      const { data: existingAuthUser } = await supabase.auth.admin.getUserById(userId);
+      const { data: existingAuthUser } = await supabaseAuthAdmin.auth.admin.getUserById(userId);
       if (!existingAuthUser.user) {
         // Create auth user if missing
-        const { error: createAuthError } = await supabase.auth.admin.createUser({
+        const { error: createAuthError } = await supabaseAuthAdmin.auth.admin.createUser({
           email: payload.email,
           password: body.password,
           email_confirm: true,
@@ -813,7 +813,7 @@ router.post(
       }
     } else {
       // ── 4b. Create new Supabase Auth user ──
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAuthAdmin.auth.admin.createUser({
         email: payload.email,
         password: body.password,
         email_confirm: true,
@@ -842,7 +842,7 @@ router.post(
         .single();
 
       if (profileError || !newUser) {
-        await supabase.auth.admin.deleteUser(userId);
+        await supabaseAuthAdmin.auth.admin.deleteUser(userId);
         throw new AppError('PROFILE_CREATE_FAILED', 'Failed to create user profile', 500);
       }
 
