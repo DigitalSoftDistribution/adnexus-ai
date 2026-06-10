@@ -5,6 +5,7 @@ import { config } from '../config';
 import { supabase } from '../lib/supabase';
 import { UnauthorizedError, ForbiddenError } from '../lib/errors';
 import type { JWTPayload, WorkspaceRole } from '../types';
+import { expandLegacyScopes } from './scopeCheck';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- Express type augmentation requires namespace
@@ -60,7 +61,7 @@ async function authenticateApiKey(rawKey: string, req: Request, next: NextFuncti
     throw new UnauthorizedError('API key expired');
   }
 
-  const scopes = parseJsonStringArray(keyRecord.scopes);
+  const scopes = expandLegacyScopes(parseJsonStringArray(keyRecord.scopes));
   const platforms = parseJsonStringArray(keyRecord.platforms);
   const resolvedPlatforms = platforms.length > 0 ? platforms : DEFAULT_API_KEY_PLATFORMS;
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { parseScopes, requireScope } from './scopeCheck';
+import { parseScopes, requireScope, expandLegacyScopes } from './scopeCheck';
 
 function runScopeCheck(
   required: string,
@@ -60,6 +60,20 @@ describe('scopeCheck', () => {
 
     it('allows wildcard read scope without platform suffix', () => {
       expect(runScopeCheck('campaigns:read', ['campaigns:read'])).toBe(true);
+    });
+  });
+
+  describe('expandLegacyScopes', () => {
+    it('expands legacy read/write scopes to resource grants', () => {
+      const expanded = expandLegacyScopes(['read', 'write']);
+      expect(expanded).toContain('campaigns:read');
+      expect(expanded).toContain('campaigns:write');
+      expect(expanded).not.toContain('read');
+    });
+
+    it('leaves modern scopes unchanged', () => {
+      const scopes = ['campaigns:read:meta'];
+      expect(expandLegacyScopes(scopes)).toEqual(scopes);
     });
   });
 });

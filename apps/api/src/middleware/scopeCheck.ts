@@ -7,6 +7,14 @@ const OPERATION_HIERARCHY: Record<string, number> = {
   admin: 3,
 };
 
+const LEGACY_OPERATIONS = new Set(['read', 'write', 'admin']);
+
+const SCOPED_RESOURCES = [
+  'campaigns', 'ads', 'drafts', 'reports', 'audiences', 'settings',
+  'notifications', 'billing', 'goals', 'exports', 'search', 'rag',
+  'webhooks', 'audit-log', 'comments', 'alerts', 'agent',
+] as const;
+
 interface ParsedScope {
   resource: string;
   operation: string;
@@ -27,6 +35,49 @@ function parseScope(scope: string): ParsedScope | null {
 
 export function parseScopes(scopes: string[]): ParsedScope[] {
   return scopes.map(parseScope).filter((s): s is ParsedScope => s !== null);
+}
+
+/** Expand legacy coarse scopes (`read`, `write`, `admin`) to resource-scoped grants. */
+export function expandLegacyScopes(scopes: string[]): string[] {
+  if (scopes.length === 0) return scopes;
+
+  const allLegacy = scopes.every((scope) => LEGACY_OPERATIONS.has(scope));
+  if (!allLegacy) return scopes;
+
+  const expanded: string[] = [];
+  for (const operation of scopes) {
+    for (const resource of SCOPED_RESOURCES) {
+      expanded.push(`${resource}:${operation}`);
+    }
+  }
+  return expanded;
+}
+
+function extractPlatformFromRequest(req: Request): string | null {
+  const candidates = [
+    req.query.platform,
+    req.body?.platform,
+    req.params.platform,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function assertPlatformAllowed(req: Request, platform: string): void {
+  const keyPlatforms = req.apiKeyPlatforms;
+  if (!keyPlatforms || keyPlatforms.length === 0) return;
+
+  if (!keyPlatforms.includes(platform)) {
+    throw new ForbiddenError(
+      `API key is not authorized for platform "${platform}". Allowed: [${keyPlatforms.join(', ')}]`,
+    );
+  }
 }
 
 function scopeCovers(required: ParsedScope, stored: ParsedScope): boolean {
@@ -109,17 +160,27 @@ export function requireScope(...requiredScopes: string[]) {
 /** Map HTTP method → operation and enforce `{resource}:{operation}` for API keys. */
 export function requireResourceAccess(resource: string) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const operation = httpMethodToOperation(req.method);
-    requireScope(`${resource}:${operation}`)(req, res, next);
+    try {
+      const operation = httpMethodToOperation(req.method);
+      const platform = extractPlatformFromRequest(req);
+
+      if (req.user?.apiKeyId && platform) {
+        assertPlatformAllowed(req, platform);
+      }
+
+      const requiredScope = platform
+        ? `${resource}:${operation}:${platform}`
+        : `${resource}:${operation}`;
+
+      requireScope(requiredScope)(req, res, next);
+    } catch (err) {
+      next(err);
+    }
   };
 }
 
 export function generateValidScopes(): string[] {
-  const resources = [
-    'campaigns', 'ads', 'drafts', 'reports', 'audiences', 'settings',
-    'notifications', 'billing', 'goals', 'exports', 'search', 'rag',
-    'webhooks', 'audit-log', 'comments', 'alerts', 'agent',
-  ];
+  const resources = [...SCOPED_RESOURCES];
   const operations = ['read', 'write', 'admin'];
   const platforms = ['meta', 'google', 'tiktok', 'snap'];
 

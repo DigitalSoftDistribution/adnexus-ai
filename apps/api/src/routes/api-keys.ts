@@ -142,6 +142,30 @@ function filterScopesByPlatforms(
   });
 }
 
+function validateScopesAgainstPlatforms(scopes: string[], platforms: string[]): void {
+  const mismatched = scopes.filter((scope) => {
+    const parts = scope.split(':');
+    return parts.length === 3 && !platforms.includes(parts[2]);
+  });
+
+  if (mismatched.length > 0) {
+    throw new ValidationError(
+      `Platform-specific scopes must match selected platforms: ${mismatched.join(', ')}`,
+    );
+  }
+
+  const platformSpecific = scopes.filter((scope) => scope.split(':').length === 3);
+  if (platformSpecific.length > 0) {
+    const filtered = filterScopesByPlatforms(scopes, platforms);
+    if (filtered.length === 0) {
+      throw new ValidationError(
+        'No scopes match the selected platforms. Platform-specific scopes (e.g., "campaigns:read:meta") ' +
+        'must match at least one platform in the platforms array.',
+      );
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GET /api/v1/api-keys/scopes — List valid scope strings
 // ═══════════════════════════════════════════════════════════════
@@ -243,13 +267,7 @@ router.post(
     const body = req.body as z.infer<typeof createApiKeySchema>;
 
     if (body.scopes.length > 0 && body.platforms.length > 0) {
-      const filtered = filterScopesByPlatforms(body.scopes, body.platforms);
-      if (filtered.length === 0) {
-        throw new ValidationError(
-          'No scopes match the selected platforms. Platform-specific scopes (e.g., "campaigns:read:meta") ' +
-          'must match at least one platform in the platforms array.',
-        );
-      }
+      validateScopesAgainstPlatforms(body.scopes, body.platforms);
     }
 
     const fullKey = generateApiKey();
@@ -322,13 +340,8 @@ router.patch(
     const scopes = body.scopes ?? (existingKey.scopes as string[] ?? []);
     const platforms = body.platforms ?? (existingKey.platforms as string[] ?? SUPPORTED_PLATFORMS);
 
-    if (body.scopes && scopes.length > 0 && platforms.length > 0) {
-      const filtered = filterScopesByPlatforms(scopes, platforms);
-      if (filtered.length === 0) {
-        throw new ValidationError(
-          'No scopes match the selected platforms.',
-        );
-      }
+    if (body.scopes !== undefined || body.platforms !== undefined) {
+      validateScopesAgainstPlatforms(scopes, platforms);
     }
 
     const updates: Record<string, unknown> = {};
