@@ -52,12 +52,12 @@ const TOOLS = [
     tagColor: '#F59E0B',
   },
   {
-    href: '#',
+    href: '/tools/creative-fatigue',
     icon: <Clock size={24} style={{ color: '#EF4444' }} aria-hidden="true" />,
     title: 'Creative Fatigue Tracker',
     desc: 'Estimate when your creative will fatigue based on frequency, CTR trends, and historical performance.',
-    tag: 'Coming soon',
-    tagColor: '#F59E0B',
+    tag: 'Free',
+    tagColor: '#c3f53b',
   },
 ];
 
