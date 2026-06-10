@@ -3,8 +3,15 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { authenticateToken, requireAuth, requireRole, requireAdmin, requireMember } from '../../src/middleware/auth';
 import { UnauthorizedError, ForbiddenError } from '../../src/lib/errors';
+import {
+  createAndStoreRefreshToken,
+  hashRefreshToken,
+  rotateRefreshToken,
+  TokenReuseDetectedError,
+} from '../../src/services/refresh-token-service';
 import { mockUsers, mockWorkspaces, mockWorkspaceMembers, UUIDS } from '../fixtures/data';
 import { generateToken, generateExpiredToken, generateMalformedToken, generateWrongSecretToken, createMockRequest, createMockResponse, createMockNext } from '../utils/helpers';
+import { mockClientQuery } from '../setup';
 
 // ─── Mock Supabase ───────────────────────────────────────────────
 
@@ -527,5 +534,105 @@ describe('workspace scoping', () => {
     expect(req.workspaceId).toBe(mockWorkspaces.pro.id);
     // Should NOT be workspace1
     expect(req.workspaceId).not.toBe(mockWorkspaces.free.id);
+  });
+});
+
+// ─── Suite: refresh token rotation (AUTH-001) ──────────────────
+
+describe('refresh token rotation', () => {
+  beforeEach(() => {
+    mockClientQuery.mockReset();
+    mockClientQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+  });
+
+  it('hashRefreshToken should produce stable sha256 hex', () => {
+    const hash = hashRefreshToken('sample-token');
+    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(hashRefreshToken('sample-token')).toBe(hash);
+  });
+
+  it('createAndStoreRefreshToken should persist a refresh token row', async () => {
+    mockClientQuery.mockResolvedValueOnce({ rows: [{ id: 'new-token-id' }], rowCount: 1 });
+
+    const refreshToken = await createAndStoreRefreshToken(UUIDS.owner);
+
+    expect(typeof refreshToken).toBe('string');
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET ?? 'test-jwt-secret-key-for-testing-only') as jwt.JwtPayload;
+    expect(decoded.sub).toBe(UUIDS.owner);
+    expect(decoded.type).toBe('refresh');
+    expect(mockClientQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO refresh_tokens'),
+      expect.arrayContaining([UUIDS.owner, hashRefreshToken(refreshToken)]),
+    );
+  });
+
+  it('rotateRefreshToken should revoke old token and return a new pair', async () => {
+    const refreshToken = jwt.sign(
+      { sub: UUIDS.owner, type: 'refresh' },
+      process.env.JWT_SECRET ?? 'test-jwt-secret-key-for-testing-only',
+      { expiresIn: '7d' },
+    );
+
+    mockClientQuery
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 'old-token-id',
+          user_id: UUIDS.owner,
+          revoked_at: null,
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+        }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'new-token-id' }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const result = await rotateRefreshToken(refreshToken);
+
+    expect(result.userId).toBe(UUIDS.owner);
+    expect(result.refreshToken).not.toBe(refreshToken);
+    expect(mockClientQuery).toHaveBeenCalledWith(
+      expect.stringContaining('FOR UPDATE'),
+      [hashRefreshToken(refreshToken)],
+    );
+    expect(mockClientQuery).toHaveBeenCalledWith(
+      expect.stringContaining('SET revoked_at = NOW(), replaced_by = $2'),
+      ['old-token-id', 'new-token-id'],
+    );
+  });
+
+  it('rotateRefreshToken should revoke all sessions when a revoked token is reused', async () => {
+    const refreshToken = jwt.sign(
+      { sub: UUIDS.owner, type: 'refresh' },
+      process.env.JWT_SECRET ?? 'test-jwt-secret-key-for-testing-only',
+      { expiresIn: '7d' },
+    );
+
+    mockClientQuery
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 'revoked-token-id',
+          user_id: UUIDS.owner,
+          revoked_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+        }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    await expect(rotateRefreshToken(refreshToken)).rejects.toBeInstanceOf(TokenReuseDetectedError);
+    expect(mockClientQuery).toHaveBeenCalledWith(
+      expect.stringContaining('WHERE user_id = $1 AND revoked_at IS NULL'),
+      [UUIDS.owner],
+    );
+  });
+
+  it('rotateRefreshToken should reject tokens missing from the database', async () => {
+    const refreshToken = jwt.sign(
+      { sub: UUIDS.owner, type: 'refresh' },
+      process.env.JWT_SECRET ?? 'test-jwt-secret-key-for-testing-only',
+      { expiresIn: '7d' },
+    );
+
+    await expect(rotateRefreshToken(refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
   });
 });

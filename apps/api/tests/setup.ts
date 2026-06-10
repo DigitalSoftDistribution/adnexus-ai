@@ -1,18 +1,117 @@
+import { createHash, randomUUID } from 'crypto';
 import { jest } from '@jest/globals';
 
 // ─── Mock DB Connection (no real DB in test) ─────────────────────
 
+interface MockRefreshTokenRow {
+  id: string;
+  user_id: string;
+  revoked_at: Date | string | null;
+  expires_at: Date | string;
+}
+
+const mockRefreshTokenStore = new Map<string, MockRefreshTokenRow>();
+
+function hashRefreshTokenForMock(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function handleRefreshTokenQuery(
+  sql: string,
+  params?: unknown[],
+): { rows: unknown[]; rowCount: number } {
+  const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  if (normalized.includes('insert into refresh_tokens')) {
+    const userId = params?.[0] as string;
+    const tokenHash = params?.[1] as string;
+    const id = randomUUID();
+    mockRefreshTokenStore.set(tokenHash, {
+      id,
+      user_id: userId,
+      revoked_at: null,
+      expires_at: (params?.[2] as Date | string | undefined) ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+    return { rows: [{ id }], rowCount: 1 };
+  }
+
+  if (normalized.includes('from refresh_tokens') && normalized.includes('for update')) {
+    const tokenHash = params?.[0] as string;
+    const row = mockRefreshTokenStore.get(tokenHash);
+    return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
+  }
+
+  if (normalized.includes('update refresh_tokens') && normalized.includes('replaced_by')) {
+    const oldId = params?.[0] as string;
+    for (const [hash, row] of mockRefreshTokenStore) {
+      if (row.id === oldId) {
+        mockRefreshTokenStore.set(hash, { ...row, revoked_at: new Date().toISOString() });
+        break;
+      }
+    }
+    return { rows: [], rowCount: 1 };
+  }
+
+  if (normalized.includes('update refresh_tokens') && normalized.includes('where id = $1')) {
+    const oldId = params?.[0] as string;
+    for (const [hash, row] of mockRefreshTokenStore) {
+      if (row.id === oldId) {
+        mockRefreshTokenStore.set(hash, { ...row, revoked_at: new Date().toISOString() });
+        break;
+      }
+    }
+    return { rows: [], rowCount: 1 };
+  }
+
+  if (normalized.includes('where user_id = $1 and revoked_at is null')) {
+    const userId = params?.[0] as string;
+    for (const [hash, row] of mockRefreshTokenStore) {
+      if (row.user_id === userId && !row.revoked_at) {
+        mockRefreshTokenStore.set(hash, { ...row, revoked_at: new Date().toISOString() });
+      }
+    }
+    return { rows: [], rowCount: 0 };
+  }
+
+  return { rows: [], rowCount: 0 };
+}
+
+/** Seed a refresh JWT into the in-memory mock store for E2E helpers. */
+export function seedMockRefreshToken(userId: string, refreshToken: string): void {
+  const tokenHash = hashRefreshTokenForMock(refreshToken);
+  mockRefreshTokenStore.set(tokenHash, {
+    id: randomUUID(),
+    user_id: userId,
+    revoked_at: null,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+}
+
+export function resetMockRefreshTokenStore(): void {
+  mockRefreshTokenStore.clear();
+}
+
+export const mockClientQuery = jest.fn(async (sql: unknown, params?: unknown[]) =>
+  handleRefreshTokenQuery(String(sql), params),
+);
+const mockClient = {
+  query: mockClientQuery,
+  release: jest.fn(),
+};
+
+export const mockDbTransaction = jest.fn(async (fn: (client: typeof mockClient) => Promise<unknown>) =>
+  fn(mockClient),
+);
+
 jest.mock('../src/db/connection', () => ({
   getPool: jest.fn(() => ({
     query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-    connect: jest.fn().mockResolvedValue({ query: jest.fn().mockResolvedValue({ rows: [] }), release: jest.fn() }),
+    connect: jest.fn().mockResolvedValue(mockClient),
     end: jest.fn().mockResolvedValue(undefined),
   })),
   query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-  getClient: jest.fn().mockResolvedValue({
-    query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-    release: jest.fn(),
-  }),
+  transaction: (...args: unknown[]) => mockDbTransaction(...args),
+  getClient: jest.fn().mockResolvedValue(mockClient),
 }));
 
 // ─── Environment Setup ───────────────────────────────────────────
@@ -253,4 +352,5 @@ jest.setTimeout(10000);
 
 afterEach(() => {
   jest.clearAllMocks();
+  resetMockRefreshTokenStore();
 });

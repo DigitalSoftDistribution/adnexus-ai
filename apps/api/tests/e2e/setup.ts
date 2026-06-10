@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto';
 import { config } from '../../src/config';
 import { supabase } from '../../src/lib/supabase';
 import type { WorkspaceRole } from '../../src/types';
+import { seedMockRefreshToken } from '../setup';
 
 // ─── Environment Configuration ───────────────────────────────────
 
@@ -270,7 +271,9 @@ export function generateRefreshToken(
     type: 'refresh',
   };
 
-  return jwt.sign(payload, config.jwt.secret, { expiresIn });
+  const token = jwt.sign(payload, config.jwt.secret, { expiresIn });
+  seedMockRefreshToken(userId, token);
+  return token;
 }
 
 /**
