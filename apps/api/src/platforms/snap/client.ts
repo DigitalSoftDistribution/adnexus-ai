@@ -1,10 +1,10 @@
 // ============================================
 // Snap Ads API Client — AdNexus AI
 // ============================================
-// Production-grade client for Snapchat Marketing API v1
-// with OAuth 2.0, token refresh, rate limiting (20 QPS),
-// exponential backoff, retry logic, and full CRUD for
-// campaigns, ads, and insights.
+// Typed client scaffold for Snapchat Marketing API v1.
+// It is not wired into production sync yet; it supports mock/readiness
+// contract tests while OAuth approval, token persistence, account selection,
+// and live sync mappings remain pending.
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { config } from '../../config';
@@ -505,9 +505,13 @@ export class SnapTokenManager {
 // ─── Snap Ads API Client ─────────────────────────────────────
 
 /**
- * Production-grade Snap Ads API client.
+ * Typed Snap Ads API client scaffold.
  *
- * Features:
+ * This is not wired into production sync yet; it supports mock/readiness
+ * contract tests while OAuth approval, token persistence, account selection,
+ * and live sync mappings remain pending.
+ *
+ * Implemented client capabilities:
  * - OAuth 2.0 authorization code flow
  * - Automatic token refresh with 2-minute buffer
  * - 20 QPS rate limiting with per-request enforcement

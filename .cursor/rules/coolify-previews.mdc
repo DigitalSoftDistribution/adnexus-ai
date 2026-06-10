@@ -1,0 +1,20 @@
+---
+description: Preview deployments MUST use Coolify via the coolify MCP — never local dev servers or the deprecated branch-preview
+globs:
+alwaysApply: true
+---
+
+# Coolify Previews — MANDATORY
+
+All preview/staging deployments run on **Coolify** (dashboard `https://coolify.softblaze.net`, wildcard `*.apps.softblaze.net`), driven through the **`coolify` MCP**. The old Beast `branch-preview` supervisor and ad-hoc `next dev`/`pnpm dev` preview servers are **deprecated** — they wedged and leaked. Do not use them.
+
+## Rules for agents
+
+- **To preview / deploy a branch:** use the `coolify` MCP — `coolify-list-applications` → find the app uuid → `coolify-deploy`. Read logs with `coolify-application-logs` / `coolify-deployment`. Debug with `coolify-diagnose-app` / `coolify-find-issues`. Fix build/env with `coolify-application` (PATCH commands) / `coolify-env-vars`.
+- **NEVER** run `next dev`, `pnpm dev`, `npm run dev`, or start a long-lived local/Beast dev server to "preview." Those are not previews — deploy to Coolify instead.
+- **NEVER** SSH-hack the Coolify host or edit its containers by hand — drive everything through the `coolify` MCP.
+- Per-PR previews are auto-created on push; the app URL is `https://<app>.apps.softblaze.net`.
+- Coolify command fields reject `(` and `||` — use `&&` and plain commands.
+- If the `coolify` MCP isn't attached, restart/reload MCP servers (it's one of the always-on entries) before falling back to anything else.
+
+Reference: `.claude/rules/shared/coolify-previews.md` (full tool list + common fixes).

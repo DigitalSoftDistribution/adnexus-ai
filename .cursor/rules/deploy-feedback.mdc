@@ -1,0 +1,96 @@
+---
+description: After every `git push`, a PostToolUse hook fires post-git-push-coolify-watch.sh and injects a Coolify deploy-status system-reminder into your next turn. Read that reminder before pushing again.
+alwaysApply: true
+---
+
+# Deploy feedback — what to expect after `git push`
+
+Whenever you run `git push`, a PostToolUse hook (`post-git-push-coolify-watch.sh`) runs in the background and emits a `<system-reminder>` block into your **next turn's context** within 60-90 sec containing the Coolify deployment status for the commit you just pushed.
+
+## What URL to visit after a push
+
+The reminder hands you a `fqdn` per app. **Always visit `fqdn`. Never visit the production URL to verify your just-pushed code.**
+
+### Case A — feature branch with an open PR (the common case)
+
+When you push a feature branch (anything except `main`), the hook resolves the PR via `gh pr view`, finds the parent app(s) that track `main` for this repo, and emits:
+
+```
+fqdn:   https://pr-<N>-<app>.previews.softblaze.net
+status: preview_pending
+```
+
+The preview container takes ~3–7 min after first push to come up. Then visit `fqdn`. **Concrete examples for keyflow-wholesale-nexus:**
+
+```
+https://pr-616-lizensa.previews.softblaze.net          ← lizensa.com canonical (en, default)
+https://pr-616-lizensa-de.previews.softblaze.net       ← lizensa.de (de, /produkte slug)
+https://pr-616-lizensa-pl.previews.softblaze.net       ← lizensa.pl (pl, /produkty slug)
+https://pr-616-distivo.previews.softblaze.net          ← distivo.com
+```
+
+> **Hard rule: when verifying your just-pushed code, hit the `pr-<N>-<app>.previews.softblaze.net` URL from the reminder. NEVER hit `lizensa.com` / `distivo.com` / any `<app>.apps.softblaze.net` URL for that purpose** — those serve production code from `main`, not your branch. Confusing production with preview is the most common verification mistake on this project.
+
+### Case B — direct push to a tracked branch (`main`)
+
+When the pushed branch is directly tracked by a Coolify app (e.g. `main` → `lizensa`), the hook emits the app's configured `fqdn` (production URL) and polls deeply until terminal status (`finished` / `failed` / `cancelled`). The reminder includes `deployment_id` and `error_excerpt` (if failed).
+
+## The reminder shape
+
+```json
+{
+  "event": "coolify_deploy_check",
+  "repo": "DigitalSoftDistribution/<repo>",
+  "branch": "<branch>",
+  "head_sha": "<sha>",
+  "pr_number": <int, only present for Case A>,
+  "apps": [
+    {
+      "app": "<app-name>",
+      "app_uuid": "<uuid>",
+      "pr": <int, only present for Case A>,
+      "fqdn": "<public URL — pr-N-app.previews.softblaze.net for Case A, app fqdn for Case B>",
+      "status": "<preview_pending|queued|in_progress|finished|failed|cancelled-by-user|not_seen|still_running>",
+      "deployment_id": "<uuid|empty for preview_pending>",
+      "elapsed_s": 30,
+      "error_excerpt": "<last ~30 lines of build log filtered for errors, only if failed>"
+    }
+  ],
+  "hint": "<human-readable advice — always read this>"
+}
+```
+
+## Status values + what to do
+
+| Status | What it means | Your next action |
+|---|---|---|
+| `preview_pending` | Case A — feature branch with PR. Coolify is spawning the preview container. | Wait 3–7 min. Visit `fqdn` (`pr-<N>-<app>.previews.softblaze.net`) — **NOT** the production URL. If preview never comes up after 10 min, run `/deploy-status` or check the PR's Coolify-bot comment on GitHub. |
+| `finished` | Deploy succeeded. `fqdn` is the live URL. | Verify the change is live by hitting `fqdn`. Then continue work or close PR. |
+| `failed` | Deploy crashed during build/run. `error_excerpt` shows the failure. | **Read `error_excerpt` FIRST.** Don't re-push. Fix the actual cause. See `coolify-api.mdc` for common failure classes. |
+| `cancelled-by-user` or `cancelled` | A newer push superseded this one. Normal. | Wait for the newer deploy's reminder. |
+| `queued` / `in_progress` | Still building when the hook timed out at ~5 min. | **Don't push again.** Run `/deploy-status` to re-check. Long Next.js builds (6+ min) are normal. |
+| `still_running` | Hook hit its 5-min cap; deploy is genuinely slow. | Wait, then `/deploy-status` to re-check. |
+| `not_seen` | Coolify didn't register a deploy for `head_sha` within the polling window. | Could mean: webhook didn't fire (check Coolify GitHub App config), the app's `git_branch` doesn't match this branch, or `auto_deploy` is off. Run `/deploy-status` for hints. |
+| `no_app_found` | No Coolify app watches this repo+branch. | First push to a fresh repo? Register the app in Coolify UI first. |
+| `api_unavailable` | Coolify REST returned empty/error. | Check `coolify.softblaze.net` is reachable. The hook's failure is transient. |
+| `skipped` | Hook ran but `COOLIFY_ACCESS_TOKEN` env was missing. | Infra issue — flag to user. |
+
+## Hard rules
+
+1. **NEVER push again before the previous push's reminder arrives** (or you've explicitly checked with `/deploy-status`). Coolify serializes deploys per-app and rapid-fire pushes self-cancel — this caused the 35-commits-behind incident on 2026-06-07.
+2. **If `status=failed`, read `error_excerpt` carefully.** Most build failures are Dockerfile/dependency/env-var problems documented in `coolify-api.mdc` (apt GPG, missing build args, OOM, etc.). Don't blindly re-push — fix the root cause.
+3. **If reminder doesn't arrive within 90 sec**, the hook may have failed silently. Run `/deploy-status` to query manually.
+4. **`error_excerpt` is truncated to ~2.5 KB.** For the full log, use `mcp__coolify__coolify-application-logs` with the `app_uuid` from the reminder, or `coolify lastfail <app>` from a Shell call.
+
+## How this composes with other deploy rules
+
+- `coolify-api.mdc` — the full tool inventory + diagnostic ladder (use after reading the reminder)
+- `deploy-discipline.mdc` — the "don't rapid-fire push" rule (this rule enforces it by making the cost visible)
+- `coolify-previews.mdc` — preview-URL conventions
+- `/deploy-status` skill — ad-hoc query when hook didn't fire (e.g., agent dispatched from Cursor web)
+
+## Hook + skill locations
+
+- Hook: `/home/devops/.claude/hooks/post-git-push-coolify-watch.sh` (Beast global, symlinked into project hooks dir)
+- Skill: `/deploy-status` — invoke as `/deploy-status [app-name|uuid]`
+- Registered in project `.claude/settings.json` under `hooks.PostToolUse[matcher="Bash"]`

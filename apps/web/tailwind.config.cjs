@@ -10,8 +10,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        space: ['var(--font-space)', 'Space Grotesk', 'sans-serif'],
-        sans: ['var(--font-sans)', 'Inter', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Geist', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'Geist Mono', 'JetBrains Mono', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -39,19 +40,6 @@ module.exports = {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
-        platform: {
-          meta: "hsl(var(--platform-meta))",
-          google: "hsl(var(--platform-google))",
-          tiktok: "hsl(var(--platform-tiktok))",
-          snap: "hsl(var(--platform-snap))",
-        },
-        chart: {
-          1: "hsl(var(--chart-1))",
-          2: "hsl(var(--chart-2))",
-          3: "hsl(var(--chart-3))",
-          4: "hsl(var(--chart-4))",
-          5: "hsl(var(--chart-5))",
-        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -67,6 +55,19 @@ module.exports = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        platform: {
+          meta: "hsl(var(--platform-meta))",
+          google: "hsl(var(--platform-google))",
+          tiktok: "hsl(var(--platform-tiktok))",
+          snap: "hsl(var(--platform-snap))",
+        },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -88,6 +89,8 @@ module.exports = {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        glow: "0 0 20px hsl(var(--primary) / 0.15), 0 0 40px hsl(var(--primary) / 0.08)",
+        "glow-accent": "0 0 20px hsl(var(--accent) / 0.15), 0 0 40px hsl(var(--accent) / 0.08)",
       },
       keyframes: {
         "accordion-down": {
@@ -109,6 +112,10 @@ module.exports = {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        pulse: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -116,6 +123,7 @@ module.exports = {
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
         shimmer: "shimmer 1.5s infinite",
+        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

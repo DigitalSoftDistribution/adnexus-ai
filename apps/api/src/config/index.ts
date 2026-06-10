@@ -53,10 +53,18 @@ const envSchema = z.object({
   META_APP_ID: z.string().default(''),
   META_APP_SECRET: z.string().default(''),
   META_API_VERSION: z.string().default('v19.0'),
+  META_GRAPH_URL: z.string().url().default('https://graph.facebook.com'),
 
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
+  GOOGLE_ADS_API_BASE_URL: z.string().url().default('https://googleads.googleapis.com'),
+  GOOGLE_ADS_API_URL: z.string().url().default('https://googleads.googleapis.com/v16'),
+  GOOGLE_OAUTH_URL: z.string().url().default('https://accounts.google.com/o/oauth2/v2/auth'),
+  GOOGLE_OAUTH_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
+  GOOGLE_TOKEN_URL: z.string().url().default('https://oauth2.googleapis.com/token'),
+  GOOGLE_OAUTH_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
+  GOOGLE_TOKEN_INFO_URL: z.string().url().default('https://oauth2.googleapis.com/tokeninfo'),
 
   // Preview/dev QA harness for fake Meta/Google traffic. Disabled by default.
   MOCK_TRAFFIC_HARNESS_ENABLED: z.string().default('false'),
@@ -65,14 +73,26 @@ const envSchema = z.object({
 
   TIKTOK_APP_ID: z.string().default(''),
   TIKTOK_APP_SECRET: z.string().default(''),
+  TIKTOK_API_URL: z.string().url().default('https://business-api.tiktok.com/open_api/v1.3'),
 
   SNAP_CLIENT_ID: z.string().default(''),
   SNAP_CLIENT_SECRET: z.string().default(''),
+  SNAP_API_BASE_URL: z.string().url().default('https://adsapi.snapchat.com/v1'),
+  SNAP_OAUTH_BASE_URL: z.string().url().default('https://accounts.snapchat.com/accounts/oauth2'),
+  ENABLE_MOCK_SOCIAL_SYNC: z.string().default('false'),
 
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_PUBLISHABLE_KEY: z.string().default(''),
+  STRIPE_PRICE_STARTER: z.string().default(''),
+  STRIPE_PRICE_GROWTH: z.string().default(''),
+  STRIPE_PRICE_PRO: z.string().default(''),
+  STRIPE_PRICE_ENTERPRISE: z.string().default(''),
+  STRIPE_PRICE_ID_STARTER: z.string().default(''),
+  STRIPE_PRICE_ID_GROWTH: z.string().default(''),
+  STRIPE_PRICE_ID_PRO: z.string().default(''),
+  STRIPE_PRICE_ID_ENTERPRISE: z.string().default(''),
 
   // MCP
   MCP_API_KEY: z.string().default(''),
@@ -108,6 +128,35 @@ if (!parsedEnv.success) {
 }
 
 const env = parsedEnv.data;
+
+export const BRANCH_PREVIEW_HOST_SUFFIX = '.apps.softblaze.net';
+
+function isAllowedBranchPreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+    if (!hostname.endsWith(BRANCH_PREVIEW_HOST_SUFFIX)) {
+      return false;
+    }
+
+    const previewLabel = hostname.slice(0, -BRANCH_PREVIEW_HOST_SUFFIX.length);
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(previewLabel);
+  } catch {
+    return false;
+  }
+}
+
+export function isAllowedCorsOrigin(origin: string, allowedOrigins: readonly string[]): boolean {
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return isAllowedBranchPreviewOrigin(origin);
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  Typed Config Object
@@ -157,13 +206,20 @@ export const config = {
     appId: env.META_APP_ID,
     appSecret: env.META_APP_SECRET,
     apiVersion: env.META_API_VERSION,
-    graphUrl: 'https://graph.facebook.com',
+    graphUrl: env.META_GRAPH_URL,
   },
 
   google: {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
     developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
+    adsApiBaseUrl: env.GOOGLE_ADS_API_BASE_URL,
+    adsApiUrl: env.GOOGLE_ADS_API_URL,
+    oauthUrl: env.GOOGLE_OAUTH_URL,
+    oauthTokenUrl: env.GOOGLE_OAUTH_TOKEN_URL,
+    tokenUrl: env.GOOGLE_TOKEN_URL,
+    oauthTokenInfoUrl: env.GOOGLE_OAUTH_TOKEN_INFO_URL,
+    tokenInfoUrl: env.GOOGLE_TOKEN_INFO_URL,
   },
 
   mockTrafficHarness: {
@@ -175,17 +231,30 @@ export const config = {
   tiktok: {
     appId: env.TIKTOK_APP_ID,
     appSecret: env.TIKTOK_APP_SECRET,
+    apiUrl: env.TIKTOK_API_URL,
   },
 
   snap: {
     clientId: env.SNAP_CLIENT_ID,
     clientSecret: env.SNAP_CLIENT_SECRET,
+    apiBaseUrl: env.SNAP_API_BASE_URL,
+    oauthBaseUrl: env.SNAP_OAUTH_BASE_URL,
+  },
+
+  socialSync: {
+    enableMockTikTokSnap: env.ENABLE_MOCK_SOCIAL_SYNC === 'true',
   },
 
   stripe: {
     secretKey: env.STRIPE_SECRET_KEY,
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
     publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    prices: {
+      starter: env.STRIPE_PRICE_STARTER || env.STRIPE_PRICE_ID_STARTER,
+      growth: env.STRIPE_PRICE_GROWTH || env.STRIPE_PRICE_ID_GROWTH,
+      pro: env.STRIPE_PRICE_PRO || env.STRIPE_PRICE_ID_PRO,
+      enterprise: env.STRIPE_PRICE_ENTERPRISE || env.STRIPE_PRICE_ID_ENTERPRISE,
+    },
   },
 
   mcp: {

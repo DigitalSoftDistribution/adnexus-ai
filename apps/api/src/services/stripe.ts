@@ -17,27 +17,89 @@ export const stripe = new Stripe(apiKey || "sk_placeholder", {
 });
 
 // ─── Plan mapping from Stripe Price IDs to internal plan names ───
-export const PRICE_TO_PLAN: Record<string, string> = {
-  // Map your Stripe price IDs to plan names:
-  // "price_abc123": "starter",
-  // "price_def456": "growth",
-  // "price_ghi789": "pro",
-};
+//
+// Production must provide this mapping via environment. Supported forms:
+//   STRIPE_PRICE_STARTER=price_...
+//   STRIPE_PRICE_GROWTH=price_...
+//   STRIPE_PRICE_PRO=price_...
+//   STRIPE_PRICE_ENTERPRISE=price_...
+// or the equivalent STRIPE_PRICE_ID_<PLAN> variables.
+//
+// We intentionally do not default unknown webhook prices to a paid/free plan: a
+// missing mapping means billing is misconfigured and must fail loudly so Stripe
+// retries after configuration is fixed.
+const BILLABLE_PLANS = ["starter", "growth", "pro", "enterprise"] as const;
 
-export const PLAN_TO_PRICE: Record<string, string> = {
-  // Reverse mapping for upgrades
-  // "starter": "price_abc123",
-  // "growth": "price_def456",
-  // "pro": "price_ghi789",
-};
+function buildPriceMappings() {
+  const priceToPlan: Record<string, string> = {};
+  const planToPrice: Record<string, string> = {};
 
-const PLAN_LIMITS: Record<string, { creatives: number; impressions: number; aiCredits: number }> = {
+  for (const plan of BILLABLE_PLANS) {
+    const envKey = plan.toUpperCase();
+    const priceId =
+      process.env[`STRIPE_PRICE_${envKey}`]
+      || process.env[`STRIPE_PRICE_ID_${envKey}`]
+      || "";
+
+    if (!priceId.trim()) continue;
+
+    priceToPlan[priceId.trim()] = plan;
+    planToPrice[plan] = priceId.trim();
+  }
+
+  return { priceToPlan, planToPrice };
+}
+
+const initialMappings = buildPriceMappings();
+export const PRICE_TO_PLAN: Record<string, string> = initialMappings.priceToPlan;
+export const PLAN_TO_PRICE: Record<string, string> = initialMappings.planToPrice;
+
+export const PLAN_LIMITS: Record<string, { creatives: number; impressions: number; aiCredits: number }> = {
   free: { creatives: 5, impressions: 1000, aiCredits: 50 },
   starter: { creatives: 50, impressions: 50000, aiCredits: 500 },
   growth: { creatives: 200, impressions: 500000, aiCredits: 5000 },
   pro: { creatives: 1000, impressions: 2000000, aiCredits: 25000 },
   enterprise: { creatives: -1, impressions: -1, aiCredits: -1 },
 };
+
+export function getPlanForPrice(priceId?: string | null): string | null {
+  if (!priceId) return null;
+  return PRICE_TO_PLAN[priceId] ?? null;
+}
+
+export function getPriceForPlan(plan: string): string | null {
+  return PLAN_TO_PRICE[plan] ?? null;
+}
+
+export function getConfiguredPlans() {
+  return Object.entries(PLAN_TO_PRICE).map(([plan, priceId]) => ({
+    plan,
+    priceId,
+    limits: PLAN_LIMITS[plan],
+  }));
+}
+
+export function isStripeSecretConfigured(): boolean {
+  return !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith("sk_");
+}
+
+export function isBillingCheckoutConfigured(): boolean {
+  return isStripeSecretConfigured() && Object.keys(PRICE_TO_PLAN).length > 0;
+}
+
+function assertStripeConfigured(operation: string): void {
+  if (!isStripeSecretConfigured()) {
+    throw new Error(`Stripe is not configured; cannot ${operation}`);
+  }
+}
+
+function assertKnownPrice(priceId?: string | null): string {
+  const planName = getPlanForPrice(priceId);
+  if (!planName) {
+    throw new Error(`Stripe price ${priceId || "<missing>"} is not mapped to an AdNexus plan`);
+  }
+  return planName;
+}
 
 // ─── Types ───
 interface CreateCustomerParams {
@@ -70,6 +132,7 @@ interface RetrieveInvoicesParams {
 
 // ─── Create Stripe Customer ───
 export async function createStripeCustomer(params: CreateCustomerParams): Promise<string> {
+  assertStripeConfigured("create a Stripe customer");
   const { email, name, workspaceId, userId } = params;
 
   const customer = await stripe.customers.create({
@@ -88,7 +151,9 @@ export async function createStripeCustomer(params: CreateCustomerParams): Promis
 
 // ─── Create Checkout Session ───
 export async function createCheckoutSession(params: CreateCheckoutParams) {
+  assertStripeConfigured("create a checkout session");
   const { customerId, priceId, workspaceId, userId, successUrl, cancelUrl } = params;
+  assertKnownPrice(priceId);
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -128,6 +193,7 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
 
 // ─── Create Customer Portal Session ───
 export async function createPortalSession(params: CreatePortalParams) {
+  assertStripeConfigured("create a billing portal session");
   const { customerId, returnUrl, flow } = params;
 
   const sessionConfig: Stripe.BillingPortal.SessionCreateParams = {
@@ -156,6 +222,7 @@ export async function createPortalSession(params: CreatePortalParams) {
 
 // ─── Retrieve Invoices ───
 export async function retrieveInvoices(params: RetrieveInvoicesParams) {
+  assertStripeConfigured("retrieve invoices");
   const { customerId, limit, startingAfter } = params;
 
   const invoices = await stripe.invoices.list({
@@ -193,7 +260,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
         );
 
         const priceId = subscription.items.data[0]?.price.id;
-        const planName = PRICE_TO_PLAN[priceId] || "starter";
+        const planName = assertKnownPrice(priceId);
 
         await updateWorkspacePlan(workspaceId, {
           plan: planName,
@@ -236,7 +303,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
         });
       } else {
         const priceId = subscription.items.data[0]?.price.id;
-        const planName = PRICE_TO_PLAN[priceId];
+        const planName = assertKnownPrice(priceId);
 
         const updateData: Record<string, unknown> = {
           status: subscription.status,
@@ -469,5 +536,5 @@ async function resetUsageCounters(workspaceId: string): Promise<void> {
 
 // ─── Graceful degradation check ───
 export function isBillingEnabled(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith("sk_");
+  return isBillingCheckoutConfigured();
 }

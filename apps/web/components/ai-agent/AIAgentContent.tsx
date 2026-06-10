@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Bot, Sparkles, TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { formatDate } from '@/lib/utils';
+import { Bot, Sparkles, TrendingUp, AlertTriangle, CheckCircle, XCircle, FileEdit, ShieldCheck } from 'lucide-react';
 
 interface AgentStatus {
   isRunning: boolean;
@@ -36,6 +38,7 @@ interface Recommendation {
   reasoning: string;
   createdAt: string;
   expiresAt: string | null;
+  appliedDraftId: string | null;
 }
 
 interface Insight {
@@ -75,11 +78,12 @@ function useRecommendations() {
 }
 
 function useInsights() {
+  const t = useTranslations('aiAgent');
   return useQuery({
     queryKey: ['agent', 'insights'],
     queryFn: async (): Promise<Insight[]> => {
       const res = await fetch('/api/v2/agent/insights');
-      if (!res.ok) throw new Error('Failed to fetch insights');
+      if (!res.ok) throw new Error(t('failedToFetchInsights'));
       const data = await res.json();
       return data.data ?? [];
     },
@@ -122,6 +126,15 @@ export function AIAgentContent() {
   const { data: recommendations, isLoading: recsLoading } = useRecommendations();
   const actions = useAgentActions();
   const t = useTranslations('aiAgent');
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+
+  const isGenerating = false; // Backend generates recommendations on fetch
+
+  const triggerGeneration = () => {
+    queryClient.invalidateQueries({ queryKey: ['agent', 'recommendations'] });
+    queryClient.invalidateQueries({ queryKey: ['agent', 'status'] });
+  };
 
   const isLoading = statusLoading || recsLoading;
 
@@ -142,9 +155,29 @@ export function AIAgentContent() {
         icon={<Bot className="h-5 w-5" />}
         title={t('title')}
         description={t('description')}
+        actions={
+          <Button onClick={triggerGeneration} disabled={isGenerating}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {t('generateRecommendations')}
+          </Button>
+        }
       />
 
-      {/* Agent Status Cards */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 font-medium">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              {t('guardrailTitle')}
+            </div>
+            <p className="max-w-3xl text-sm text-muted-foreground">{t('guardrailDescription')}</p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <Link href="/dashboard/drafts">{t('reviewDrafts')}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatusCard
           label={t('agentStatus')}
@@ -166,7 +199,7 @@ export function AIAgentContent() {
         />
         <StatusCard
           label={t('lastRun')}
-          value={status?.lastRunAt ? new Date(status.lastRunAt).toLocaleDateString() : t('never')}
+          value={status?.lastRunAt ? formatDate(status.lastRunAt, locale) : t('never')}
           icon={Bot}
           color="text-muted-foreground"
         />
@@ -177,6 +210,7 @@ export function AIAgentContent() {
           <TabsTrigger value="recommendations">
             {t('recommendations')} ({pendingRecs.length})
           </TabsTrigger>
+          <TabsTrigger value="approvals">{t('approvals')}</TabsTrigger>
           <TabsTrigger value="insights">{t('insights')}</TabsTrigger>
           <TabsTrigger value="history">{t('history')}</TabsTrigger>
         </TabsList>
@@ -187,6 +221,19 @@ export function AIAgentContent() {
               icon={<Sparkles className="h-6 w-6" />}
               title={t('noRecommendations')}
               description={t('recommendationsPlaceholder')}
+              action={
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button asChild size="sm">
+                    <Link href="/dashboard/integrations">{t('connectPlatform')}</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/dashboard/goals">{t('defineGoals')}</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href="/dashboard/ai-agent/rules">{t('reviewRules')}</Link>
+                  </Button>
+                </div>
+              }
             />
           ) : (
             recs.map((rec) => (
@@ -200,6 +247,10 @@ export function AIAgentContent() {
               />
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="approvals">
+          <ApprovalsTab recommendations={recs} />
         </TabsContent>
 
         <TabsContent value="insights">
@@ -279,9 +330,16 @@ function RecommendationCard({
               <p className="text-xs text-muted-foreground/80">{rec.reasoning}</p>
             )}
             {!isPending && (
-              <Badge variant={rec.status === 'applied' ? 'success' : 'secondary'} className="capitalize">
-                {rec.status}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={rec.status === 'applied' ? 'success' : 'secondary'} className="capitalize">
+                  {rec.status === 'applied' ? t('draftCreated') : rec.status}
+                </Badge>
+                {rec.appliedDraftId ? (
+                  <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
+                    <Link href="/dashboard/drafts">{t('viewApprovalQueue')}</Link>
+                  </Button>
+                ) : null}
+              </div>
             )}
           </div>
           {isPending && (
@@ -291,14 +349,57 @@ function RecommendationCard({
                 {tc('dismiss')}
               </Button>
               <Button size="sm" onClick={onApply} disabled={isApplying}>
-                <CheckCircle className="mr-1 h-3 w-3" />
-                {isApplying ? tc('applying') : tc('apply')}
+                <FileEdit className="mr-1 h-3 w-3" />
+                {isApplying ? tc('applying') : t('draftForApproval')}
               </Button>
             </div>
           )}
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ApprovalsTab({ recommendations }: { recommendations: Recommendation[] }) {
+  const t = useTranslations('aiAgent');
+  const drafted = recommendations.filter((rec) => rec.status === 'applied');
+
+  if (drafted.length === 0) {
+    return (
+      <EmptyState
+        icon={<FileEdit className="h-6 w-6" />}
+        title={t('noDraftApprovals')}
+        description={t('noDraftApprovalsDescription')}
+        action={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/drafts">{t('openApprovals')}</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {drafted.map((rec) => (
+        <Card key={rec.id}>
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="success">{t('draftCreated')}</Badge>
+                <Badge variant="outline" className="capitalize">{rec.type.replace(/_/g, ' ')}</Badge>
+                <Badge variant="secondary" className="capitalize">{rec.platform}</Badge>
+              </div>
+              <p className="font-medium">{rec.title}</p>
+              <p className="text-sm text-muted-foreground">{rec.description}</p>
+            </div>
+            <Button asChild size="sm" className="shrink-0">
+              <Link href="/dashboard/drafts">{t('reviewDraft')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 
@@ -363,9 +464,16 @@ function HistoryTab() {
             <p className="truncate font-medium">{rec.title}</p>
             <p className="truncate text-sm text-muted-foreground">{rec.estimatedImpact}</p>
           </div>
-          <Badge variant={rec.status === 'applied' ? 'success' : 'secondary'} className="capitalize">
-            {rec.status}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-3">
+            {rec.appliedDraftId ? (
+              <Button asChild variant="link" size="sm" className="h-auto p-0">
+                <Link href="/dashboard/drafts">{t('reviewDraft')}</Link>
+              </Button>
+            ) : null}
+            <Badge variant={rec.status === 'applied' ? 'success' : 'secondary'} className="capitalize">
+              {rec.status === 'applied' ? t('draftCreated') : rec.status}
+            </Badge>
+          </div>
         </div>
       ))}
     </div>

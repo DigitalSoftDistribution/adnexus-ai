@@ -59,11 +59,14 @@ CREATE TABLE ad_accounts (
   workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   platform VARCHAR(50) NOT NULL, -- meta, google, tiktok, snap
   platform_account_id VARCHAR(255) NOT NULL,
-  account_name VARCHAR(255) NOT NULL,
-  access_token TEXT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  oauth_token TEXT,
   refresh_token TEXT,
   token_expires_at TIMESTAMPTZ,
-  status VARCHAR(50) DEFAULT 'active', -- active, expired, disconnected
+  scopes TEXT[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT TRUE,
+  last_synced_at TIMESTAMPTZ,
+  status VARCHAR(50) DEFAULT 'active', -- active, expired, disconnected, error
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -271,16 +274,23 @@ CREATE TABLE creative_performance (
 -- =============================================================================
 CREATE TABLE api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   name VARCHAR(255) NOT NULL,
-  key_hash VARCHAR(255) NOT NULL,
+  key_hash VARCHAR(255) UNIQUE NOT NULL,
   key_prefix VARCHAR(20) NOT NULL,
-  scopes JSONB DEFAULT '["read"]',
-  last_used_at TIMESTAMPTZ,
+  scopes TEXT[] DEFAULT ARRAY[]::TEXT[],
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
   expires_at TIMESTAMPTZ,
+  last_used_at TIMESTAMPTZ,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  revoked_by UUID REFERENCES users(id) ON DELETE SET NULL,
   revoked_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  calls_today INTEGER NOT NULL DEFAULT 0,
+  calls_this_month INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT api_keys_status_check CHECK (status IN ('active', 'revoked', 'expired'))
 );
 
 -- =============================================================================
@@ -296,6 +306,11 @@ CREATE INDEX idx_notifications_user_read ON notifications(user_id, read);
 CREATE INDEX idx_audit_workspace_created ON audit_log(workspace_id, created_at);
 CREATE INDEX idx_creative_perf_ad_date ON creative_performance(ad_id, date);
 CREATE INDEX idx_ad_accounts_workspace ON ad_accounts(workspace_id);
+CREATE INDEX idx_api_keys_workspace_id ON api_keys(workspace_id);
+CREATE INDEX idx_api_keys_status ON api_keys(status);
+CREATE INDEX idx_api_keys_workspace_status ON api_keys(workspace_id, status);
+CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX idx_api_keys_active ON api_keys(key_hash) WHERE status = 'active';
 CREATE INDEX idx_campaigns_ad_account ON campaigns(ad_account_id);
 CREATE INDEX idx_ad_sets_campaign ON ad_sets(campaign_id);
 CREATE INDEX idx_ads_campaign ON ads(campaign_id);

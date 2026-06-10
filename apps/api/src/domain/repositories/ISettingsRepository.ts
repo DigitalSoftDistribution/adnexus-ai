@@ -16,7 +16,7 @@ export interface Integration {
   id: string;
   platform: string;
   name: string;
-  status: 'connected' | 'disconnected' | 'expired' | 'error';
+  status: 'active' | 'connected' | 'disconnected' | 'expired' | 'error';
   accountId: string | null;
   accountName: string | null;
   connectedAt: string | null;
@@ -78,6 +78,9 @@ export interface ISettingsRepository {
 
   // Team
   getTeamMembers(workspaceId: string): Promise<TeamMember[]>;
+  findUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
+  findTeamMember(workspaceId: string, userId: string): Promise<TeamMember | null>;
+  canAddTeamMember(workspaceId: string): Promise<boolean>;
   addTeamMember(workspaceId: string, userId: string, role: WorkspaceRole, invitedBy: string): Promise<TeamMember>;
   updateTeamMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<boolean>;
   removeTeamMember(workspaceId: string, userId: string): Promise<boolean>;

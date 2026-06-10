@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
-import { PricingContent } from '@/components/marketing/PricingContent';
+import { ROICalculator } from '@/components/marketing/v4/ROICalculator';
 import { JsonLd } from '@/components/marketing/JsonLd';
+import { PricingComparisonTable } from '@/components/marketing/v4/PricingComparisonTable';
+import { PricingPreview } from '@/components/marketing/v4/PricingPreview';
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -34,7 +36,23 @@ const FAQ_JSONLD = {
       name: 'Which ad platforms are supported?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Growth covers Meta and Google. Scale and Agency add TikTok and Snapchat — all four major platforms in one dashboard.',
+        text: 'Growth covers Meta and Google. Scale includes Meta execution with Google, TikTok, and Snap read-only or coming-soon coverage as noted in the feature matrix. Agency adds unlimited accounts, API access, SSO, and dedicated success support.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Do I need a credit card to start?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No credit card is required for the 14-day free trial. You only enter payment details when you choose to subscribe.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What happens after the 14-day trial ends?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can subscribe to keep your paid features, or your account automatically drops to the Free tier with read-only access. No data is lost.',
       },
     },
   ],
@@ -44,7 +62,14 @@ export default function PricingPage() {
   return (
     <>
       <JsonLd data={FAQ_JSONLD} />
-      <PricingContent />
+      <PricingPreview
+        headline="Transparent plans for every stage"
+        subtitle="Compare Free, Growth, Scale, and Agency with flat monthly pricing before you dive into the full feature matrix."
+        differentiator="Agency plans include advanced onboarding, SLAs, and platform roadmap access for teams that need more control."
+        comparisonHref={null}
+      />
+      <PricingComparisonTable />
+      <ROICalculator />
     </>
   );
 }

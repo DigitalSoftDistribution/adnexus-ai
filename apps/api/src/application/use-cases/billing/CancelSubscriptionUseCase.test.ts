@@ -14,11 +14,15 @@ const makeRepo = (overrides: Partial<IBillingRepository> = {}): IBillingReposito
   }) as IBillingRepository;
 
 describe('CancelSubscriptionUseCase', () => {
-  it('cancels the subscription for an owner', async () => {
+  it('rejects owner cancellation through the local-only path', async () => {
     const repo = makeRepo();
     const result = await new CancelSubscriptionUseCase(repo).execute({ workspaceId: 'ws-1', userRole: 'owner' });
-    expect(result.success).toBe(true);
-    expect(repo.cancelSubscription).toHaveBeenCalledWith('ws-1');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(400);
+      expect(result.error.message).toContain('Stripe billing portal');
+    }
+    expect(repo.cancelSubscription).not.toHaveBeenCalled();
   });
 
   it.each(['admin', 'editor', 'analyst', 'viewer'])('denies a %s (only owner may cancel)', async (role) => {

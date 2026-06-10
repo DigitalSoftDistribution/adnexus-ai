@@ -45,15 +45,13 @@ jest.mock('stripe', () => {
 // Configure the price->plan map BEFORE importing the service.
 process.env.STRIPE_PRICE_GROWTH = GROWTH_PRICE;
 
-import { handleWebhookEvent, PRICE_TO_PLAN } from '../../src/services/stripe';
+import { handleWebhookEvent } from '../../src/services/stripe';
 
 describe('E2E: billing plan-upgrade -> Stripe webhook -> credits', () => {
   const WORKSPACE_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1';
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Make the growth price resolve to a known plan for the assertion.
-    PRICE_TO_PLAN[GROWTH_PRICE] = 'growth';
   });
 
   it('checkout.session.completed upgrades plan, provisions credits, resets usage', async () => {
@@ -110,5 +108,37 @@ describe('E2E: billing plan-upgrade -> Stripe webhook -> credits', () => {
       .map((c) => c[0] as Record<string, unknown>)
       .find((u) => u.creativesUsed === 0 && u.impressionsUsed === 0 && u.aiCreditsUsed === 0);
     expect(usageReset).toBeDefined();
+  });
+
+  it('fails loudly when a checkout webhook contains an unmapped Stripe price', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    subscriptionsRetrieve.mockResolvedValue({
+      id: 'sub_unknown_price',
+      status: 'active',
+      cancel_at_period_end: false,
+      current_period_start: now,
+      current_period_end: now + 30 * 24 * 3600,
+      items: { data: [{ price: { id: 'price_unknown_test' } }] },
+    });
+
+    const event = {
+      id: 'evt_unknown_price',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_unknown_price',
+          mode: 'subscription',
+          subscription: 'sub_unknown_price',
+          customer: 'cus_unknown_price',
+          metadata: { workspace_id: WORKSPACE_ID },
+        },
+      },
+    } as any;
+
+    await expect(handleWebhookEvent(event)).rejects.toThrow(
+      'Stripe price price_unknown_test is not mapped to an AdNexus plan',
+    );
+    expect(updateSet).not.toHaveBeenCalled();
+    expect(insertValues).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,10 @@ import {
   isBillingEnabled,
   retrieveInvoices,
   stripe,
+  getConfiguredPlans,
+  getPlanForPrice,
+  isBillingCheckoutConfigured,
+  isStripeSecretConfigured,
 } from "../services/stripe";
 import { db } from "../db";
 import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
@@ -82,6 +86,29 @@ router.get("/", requireAuth, requireWorkspace, async (req, res, next) => {
     };
 
     res.json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /billing/plans — configured launch-safe paid plans ───
+router.get("/plans", requireAuth, requireWorkspace, async (_req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        billingEnabled: isBillingCheckoutConfigured(),
+        stripeConfigured: isStripeSecretConfigured(),
+        plans: getConfiguredPlans().map(({ plan, priceId, limits }) => ({
+          plan,
+          priceId,
+          credits: limits,
+        })),
+        message: isBillingCheckoutConfigured()
+          ? null
+          : "Billing checkout is not configured. Set Stripe secret and price mapping environment variables before enabling upgrades.",
+      },
+    });
   } catch (err) {
     next(err);
   }

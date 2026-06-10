@@ -1,0 +1,1143 @@
+{
+  "mappings": [
+    {
+      "name": "Meta Graph API - OAuth access token",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/oauth/access_token"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "access_token": "EAAMockAccessToken1234567890",
+          "token_type": "bearer",
+          "expires_in": 5184000
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - ad accounts",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/me/adaccounts"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "id": "act_1234567890",
+              "account_id": "1234567890",
+              "name": "WireMock Meta Account",
+              "account_status": 1,
+              "business_name": "AdNexus QA"
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/act_[^/]+/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "id": "12020000000000001",
+              "name": "WireMock Meta Prospecting",
+              "status": "ACTIVE",
+              "objective": "OUTCOME_SALES",
+              "daily_budget": "18000",
+              "start_time": "2026-01-15T00:00:00+0000",
+              "account_id": "1234567890"
+            },
+            {
+              "id": "12020000000000002",
+              "name": "WireMock Meta Retargeting",
+              "status": "PAUSED",
+              "objective": "OUTCOME_SALES",
+              "daily_budget": "9500",
+              "start_time": "2026-01-20T00:00:00+0000",
+              "account_id": "1234567890"
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - campaign details",
+      "priority": 20,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/120200000000000[0-9]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "12020000000000001",
+          "name": "WireMock Meta Prospecting",
+          "status": "ACTIVE",
+          "objective": "OUTCOME_SALES",
+          "daily_budget": "18000",
+          "start_time": "2026-01-15T00:00:00+0000",
+          "account_id": "1234567890"
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - create campaign paused",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9.]+/act_[^/]+/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "12020000000009999"
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - update campaign",
+      "priority": 30,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9.]+/[0-9]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "success": true
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - adsets",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/[0-9]+/adsets"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "id": "6300000000000001",
+              "name": "WireMock Meta Ad Set",
+              "status": "ACTIVE",
+              "campaign_id": "12020000000000001",
+              "daily_budget": "9000",
+              "bid_strategy": "LOWEST_COST_WITHOUT_CAP"
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - ads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/[0-9]+/ads"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "id": "73000000000000001",
+              "name": "WireMock Meta Ad",
+              "status": "ACTIVE",
+              "adset_id": "6300000000000001",
+              "campaign_id": "12020000000000001",
+              "creative": {
+                "id": "640000000000001",
+                "object_type": "SHARE"
+              }
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - insights baseline",
+      "priority": 20,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/[^/]+/insights",
+        "queryParameters": {
+          "mock_variant": {
+            "absent": true
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "spend": "1840.00",
+              "impressions": "124000",
+              "clicks": "3360",
+              "ctr": "2.71",
+              "conversions": "185",
+              "cost_per_conversion": "9.95",
+              "purchase_roas": [
+                {
+                  "value": "9.4"
+                }
+              ],
+              "frequency": "1.8",
+              "reach": "68889",
+              "cpm": "14.84",
+              "cpc": "0.55"
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - insights low ROAS variant",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v[0-9.]+/[^/]+/insights",
+        "queryParameters": {
+          "mock_variant": {
+            "equalTo": "low_roas"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": [
+            {
+              "spend": "1840.00",
+              "impressions": "124000",
+              "clicks": "3360",
+              "ctr": "2.71",
+              "conversions": "102",
+              "cost_per_conversion": "18.04",
+              "purchase_roas": [
+                {
+                  "value": "3.95"
+                }
+              ],
+              "frequency": "1.8",
+              "reach": "68889",
+              "cpm": "14.84",
+              "cpc": "0.55"
+            }
+          ],
+          "paging": {}
+        }
+      }
+    },
+    {
+      "name": "Google OAuth auth placeholder",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/google/oauth2/auth"
+      },
+      "response": {
+        "status": 302,
+        "headers": {
+          "Location": "http://localhost:5173/auth/google/callback?code=mock-google-code&state=mock-state"
+        }
+      }
+    },
+    {
+      "name": "Google OAuth token",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/token"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "access_token": "ya29.MockGoogleAccessToken1234567890",
+          "refresh_token": "mock-google-refresh-token",
+          "token_type": "Bearer",
+          "expires_in": 3599
+        }
+      }
+    },
+    {
+      "name": "Google token info",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/tokeninfo"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "expires_in": 3599,
+          "scope": "https://www.googleapis.com/auth/adwords"
+        }
+      }
+    },
+    {
+      "name": "Google Ads API - search",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "results": [
+            {
+              "campaign": {
+                "resourceName": "customers/1234567890/campaigns/1111111111",
+                "id": "1111111111",
+                "name": "WireMock Google Search",
+                "status": "ENABLED",
+                "advertisingChannelType": "SEARCH",
+                "campaignBudget": "customers/1234567890/campaignBudgets/2222222222",
+                "startDate": "2026-01-15"
+              },
+              "metrics": {
+                "impressions": "5000",
+                "clicks": "200",
+                "ctr": 0.04,
+                "averageCpc": "750000",
+                "costMicros": "150000000",
+                "conversions": 32,
+                "conversionsValue": 6120
+              }
+            }
+          ],
+          "totalResultsCount": "1"
+        }
+      }
+    },
+    {
+      "name": "Google Ads API - mutate",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:mutate"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "results": [
+            {
+              "resourceName": "customers/1234567890/campaigns/9999999999"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TikTok OAuth access token",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/open_api/v1.3/oauth/access_token/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-token",
+          "data": {
+            "access_token": "mock-tiktok-access-token",
+            "refresh_token": "mock-tiktok-refresh-token",
+            "expires_in": 86400,
+            "token_type": "Bearer",
+            "scope": [
+              "ads_management",
+              "ads_read"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok advertiser list",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/open_api/v1.3/oauth2/advertiser/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-advertisers",
+          "data": {
+            "list": [
+              {
+                "advertiser_id": "tt_adv_123",
+                "advertiser_name": "WireMock TikTok Advertiser",
+                "status": "STATUS_ENABLE"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/open_api/v1.3/campaign/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-campaigns",
+          "data": {
+            "list": [
+              {
+                "campaign_id": "tt_cmp_1001",
+                "campaign_name": "WireMock TikTok Conversions",
+                "status": "CAMPAIGN_STATUS_ENABLE",
+                "objective_type": "WEB_CONVERSIONS",
+                "budget": 100,
+                "budget_mode": "BUDGET_MODE_DAY",
+                "spend_cap": 0,
+                "create_time": "2026-01-15T10:00:00Z",
+                "modify_time": "2026-01-16T10:00:00Z",
+                "advertiser_id": "tt_adv_123"
+              }
+            ],
+            "page_info": {
+              "page": 1,
+              "page_size": 100,
+              "total_number": 1,
+              "total_page": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok ad groups",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/open_api/v1.3/adgroup/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-adgroups",
+          "data": {
+            "list": [
+              {
+                "adgroup_id": "tt_ag_1001",
+                "adgroup_name": "WireMock TikTok Ad Group",
+                "campaign_id": "tt_cmp_1001",
+                "status": "ADGROUP_STATUS_ENABLE",
+                "budget": 80,
+                "budget_mode": "BUDGET_MODE_DAY",
+                "billing_event": "CPC",
+                "placement_type": "PLACEMENT_TYPE_AUTOMATIC",
+                "create_time": "2026-01-15T10:00:00Z",
+                "modify_time": "2026-01-16T10:00:00Z",
+                "advertiser_id": "tt_adv_123"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok ads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/open_api/v1.3/ad/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-ads",
+          "data": {
+            "list": [
+              {
+                "ad_id": "tt_ad_1001",
+                "ad_name": "WireMock TikTok Ad",
+                "adgroup_id": "tt_ag_1001",
+                "campaign_id": "tt_cmp_1001",
+                "status": "AD_STATUS_ENABLE",
+                "create_time": "2026-01-15T10:00:00Z",
+                "modify_time": "2026-01-16T10:00:00Z",
+                "advertiser_id": "tt_adv_123",
+                "creative": {
+                  "ad_text": "Mock creative"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok report integrated",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/open_api/v1.3/report/integrated/get/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-report",
+          "data": {
+            "list": [
+              {
+                "dimensions": {
+                  "campaign_id": "tt_cmp_1001"
+                },
+                "metrics": {
+                  "spend": 420,
+                  "cpm": 12.4,
+                  "cpc": 0.61,
+                  "ctr": 2.03,
+                  "conversion": 48,
+                  "cost_per_conversion": 8.75,
+                  "conversion_rate": 0.07,
+                  "show_cnt": 33870,
+                  "click_cnt": 689,
+                  "video_play_actions": 4200,
+                  "video_views_p25": 3600,
+                  "video_views_p50": 2900,
+                  "video_views_p75": 2100,
+                  "video_views_p100": 1600
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "TikTok write endpoints",
+      "priority": 20,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/open_api/v1.3/(campaign|adgroup|ad)/[^/]+/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "code": 0,
+          "message": "OK",
+          "request_id": "mock-tiktok-write",
+          "data": {
+            "campaign_id": "tt_cmp_created",
+            "adgroup_id": "tt_ag_created",
+            "ad_id": "tt_ad_created"
+          }
+        }
+      }
+    },
+    {
+      "name": "Snap OAuth token",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/snap/oauth2/token"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "access_token": "mock-snap-access-token",
+          "refresh_token": "mock-snap-refresh-token",
+          "expires_in": 3600,
+          "token_type": "Bearer"
+        }
+      }
+    },
+    {
+      "name": "Snap organizations",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPath": "/v1/organizations"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "organizations": [
+            {
+              "organization": {
+                "id": "snap_org_123",
+                "name": "WireMock Snap Org"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap ad accounts",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/organizations/[^/]+/adaccounts"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "adaccounts": [
+            {
+              "adaccount": {
+                "id": "snap_adacct_123",
+                "name": "WireMock Snap Account",
+                "status": "ACTIVE",
+                "organization_id": "snap_org_123",
+                "currency": "USD",
+                "timezone": "UTC",
+                "created_at": "2026-01-15T00:00:00Z",
+                "updated_at": "2026-01-16T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap campaigns",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/adaccounts/[^/]+/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "campaigns": [
+            {
+              "campaign": {
+                "id": "snap_cmp_1001",
+                "name": "WireMock Snap Conversions",
+                "status": "ACTIVE",
+                "objective": "WEBSITE_CONVERSIONS",
+                "daily_budget_micro": 100000000,
+                "start_time": "2026-01-15T00:00:00Z",
+                "created_at": "2026-01-15T00:00:00Z",
+                "updated_at": "2026-01-16T00:00:00Z",
+                "ad_account_id": "snap_adacct_123"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap create campaign",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v1/adaccounts/[^/]+/campaigns"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "campaigns": [
+            {
+              "campaign": {
+                "id": "snap_cmp_created"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap update campaign",
+      "priority": 10,
+      "request": {
+        "method": "PUT",
+        "urlPathPattern": "/v1/campaigns/[^/]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "request_status": "SUCCESS"
+        }
+      }
+    },
+    {
+      "name": "Snap ad squads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/campaigns/[^/]+/adsquads"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "adsquads": [
+            {
+              "adsquad": {
+                "id": "snap_as_1001",
+                "name": "WireMock Snap Ad Squad",
+                "status": "ACTIVE",
+                "campaign_id": "snap_cmp_1001",
+                "daily_budget_micro": 70000000,
+                "start_time": "2026-01-15T00:00:00Z",
+                "placement": "AUTOMATIC",
+                "created_at": "2026-01-15T00:00:00Z",
+                "updated_at": "2026-01-16T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap create ad squad",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v1/campaigns/[^/]+/adsquads"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "adsquads": [
+            {
+              "adsquad": {
+                "id": "snap_as_created"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap ads",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/adsquads/[^/]+/ads"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "ads": [
+            {
+              "ad": {
+                "id": "snap_ad_1001",
+                "name": "WireMock Snap Ad",
+                "status": "ACTIVE",
+                "ad_squad_id": "snap_as_1001",
+                "creative_id": "snap_creative_1001",
+                "type": "SNAP_AD",
+                "created_at": "2026-01-15T00:00:00Z",
+                "updated_at": "2026-01-16T00:00:00Z"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap create ad",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v1/adsquads/[^/]+/ads"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "ads": [
+            {
+              "ad": {
+                "id": "snap_ad_created"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Snap campaign stats",
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/campaigns/[^/]+/stats"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "timeseries_stats": [
+            {
+              "id": "snap_cmp_1001",
+              "type": "campaign",
+              "timeseries": [],
+              "total": {
+                "stats": {
+                  "impressions": 28800,
+                  "swipes": 780,
+                  "spend": 560000000,
+                  "conversions": 51,
+                  "conversion_value": 4480,
+                  "video_views": 6200,
+                  "quartile_3": 2800,
+                  "reach": 17000
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WireMock harness health",
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "url": "/health"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "status": "healthy",
+          "service": "adnexus-wiremock",
+          "timestamp": "{{now}}"
+        }
+      }
+    },
+    {
+      "name": "Google OAuth token refresh",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/token",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.grant_type",
+            "equalTo": "refresh_token"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "access_token": "ya29.MockRefreshedAccessToken_Refresh",
+          "token_type": "Bearer",
+          "expires_in": 3599,
+          "scope": "https://www.googleapis.com/auth/adwords"
+        }
+      }
+    },
+    {
+      "name": "Google Ads API - search ad groups",
+      "priority": 15,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search",
+        "bodyPatterns": [
+          {
+            "matches": ".*ad_group\\.(resource_name|id|name|status|campaign|cpc_bid_micros).*"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "results": [
+            {
+              "adGroup": {
+                "resourceName": "customers/1234567890/adGroups/3333333333",
+                "id": "3333333333",
+                "name": "WireMock Ad Group - Search Prospecting",
+                "status": "ENABLED",
+                "campaign": "customers/1234567890/campaigns/1111111111",
+                "cpcBidMicros": "500000"
+              }
+            },
+            {
+              "adGroup": {
+                "resourceName": "customers/1234567890/adGroups/4444444444",
+                "id": "4444444444",
+                "name": "WireMock Ad Group - Remarketing",
+                "status": "ENABLED",
+                "campaign": "customers/1234567890/campaigns/1111111111",
+                "cpcBidMicros": "750000"
+              }
+            }
+          ],
+          "totalResultsCount": "2"
+        }
+      }
+    },
+    {
+      "name": "Google Ads API - search ads",
+      "priority": 15,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search",
+        "bodyPatterns": [
+          {
+            "matches": ".*ad_group_ad\\.(resource_name|ad\\.id|ad\\.name|ad\\.type|ad\\.final_urls|ad\\.responsive_search_ad).*"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "results": [
+            {
+              "adGroupAd": {
+                "resourceName": "customers/1234567890/adGroupAds/3333333333~5555555555",
+                "status": "ENABLED",
+                "ad": {
+                  "id": "5555555555",
+                  "name": "WireMock RSA - Free Shipping",
+                  "type": "RESPONSIVE_SEARCH_AD",
+                  "finalUrls": [
+                    "https://example.com/landing"
+                  ],
+                  "responsiveSearchAd": {
+                    "headlines": [
+                      {
+                        "text": "Free Shipping Today"
+                      },
+                      {
+                        "text": "Shop Best Deals"
+                      },
+                      {
+                        "text": "Limited Time Offer"
+                      }
+                    ],
+                    "descriptions": [
+                      {
+                        "text": "Get free shipping on all orders over $50. Shop now!"
+                      },
+                      {
+                        "text": "Hurry, offer ends soon. Don't miss out."
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "adGroupAd": {
+                "resourceName": "customers/1234567890/adGroupAds/3333333333~6666666666",
+                "status": "PAUSED",
+                "ad": {
+                  "id": "6666666666",
+                  "name": "WireMock RSA - Spring Sale (Paused)",
+                  "type": "RESPONSIVE_SEARCH_AD",
+                  "finalUrls": [
+                    "https://example.com/sale"
+                  ],
+                  "responsiveSearchAd": {
+                    "headlines": [
+                      {
+                        "text": "Spring Sale - 30% Off"
+                      },
+                      {
+                        "text": "New Arrivals Weekly"
+                      }
+                    ],
+                    "descriptions": [
+                      {
+                        "text": "Shop our spring collection with exclusive discounts."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "totalResultsCount": "2"
+        }
+      }
+    },
+    {
+      "name": "Google Ads API - search campaigns (with budget)",
+      "priority": 12,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9]+/customers/[0-9]+/googleAds:search",
+        "bodyPatterns": [
+          {
+            "matches": ".*campaign\\.(resource_name|id|name|status|advertising_channel_type|campaign_budget|start_date|end_date).*"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "results": [
+            {
+              "campaign": {
+                "resourceName": "customers/1234567890/campaigns/1111111111",
+                "id": "1111111111",
+                "name": "WireMock Google Search",
+                "status": "ENABLED",
+                "advertisingChannelType": "SEARCH",
+                "campaignBudget": "customers/1234567890/campaignBudgets/2222222222",
+                "startDate": "2026-01-15",
+                "endDate": "2026-12-31"
+              }
+            },
+            {
+              "campaign": {
+                "resourceName": "customers/1234567890/campaigns/7777777777",
+                "id": "7777777777",
+                "name": "WireMock Demand Gen",
+                "status": "ENABLED",
+                "advertisingChannelType": "DEMAND_GEN",
+                "campaignBudget": "customers/1234567890/campaignBudgets/8888888888",
+                "startDate": "2026-02-01"
+              }
+            }
+          ],
+          "totalResultsCount": "2"
+        }
+      }
+    }
+  ]
+}

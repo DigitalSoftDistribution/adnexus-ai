@@ -5,9 +5,29 @@ import createNextIntlPlugin from 'next-intl/plugin';
 // prerendering, and metadata generation can all resolve messages/locale.
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
+const legalAliasRedirects = ['privacy', 'terms', 'cookies', 'dpa'] as const;
+const localePattern = 'de|en|es|fr|it|ja|nl|pl|pt|ru';
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+
+  async redirects() {
+    return [
+      ...legalAliasRedirects.flatMap((page) => [
+        {
+          source: `/${page}`,
+          destination: `/legal/${page}`,
+          permanent: true,
+        },
+        {
+          source: `/:locale(${localePattern})/${page}`,
+          destination: `/:locale/legal/${page}`,
+          permanent: true,
+        },
+      ]),
+    ];
+  },
 
   // Skip TS errors during build (typecheck runs separately via `beast typecheck`)
   typescript: {
