@@ -70,6 +70,57 @@ node scripts/v1-smoke.mjs \
 
 **Result:** 25/25 checks passed (API health/ready/metrics/openapi, CORS, unauth 401s, web routes, web API rewrite).
 
+## Visual QA — Coolify preview (2026-06-10, run #3)
+
+**Environment:** main web `https://adnexus-ai.apps.softblaze.net` · main API `https://adnexus-api.apps.softblaze.net`  
+**Method:** `coolify doctor`, route `curl`, Firecrawl scrape (markdown + screenshot @ 1280×800)
+
+### Coolify doctor
+
+| App | Status | FQDN probe | Notes |
+| --- | --- | --- | --- |
+| adnexus-ai | `running:unknown` | HTTP **307** → `/en` | Main container + PR sidecars (`pr-86`, `pr-87`, `pr-107`, …) running. Last 3 deploys **finished**. |
+| adnexus-api | `running:healthy` | HTTP **401** on `/` | `/health` **200**, `/ready` **200**, `/metrics` **200**. No failed deploys in 24h. |
+
+### Main route HTTP codes
+
+| Route | Code | Notes |
+| --- | --- | --- |
+| `/` | 200 | Redirect chain ends at `/en` |
+| `/en` | 200 | Homepage |
+| `/en/pricing` | 200 | Feature comparison + savings calculator |
+| `/en/dashboard/billing` | 200 | Unauthenticated → client redirect to `/en/auth/signin` (auth gate OK) |
+| `/en/auth/signup` | 200 | Signup form renders |
+| `/en/auth/signin` | 200 | Sign-in form renders |
+| `/en/auth/login` | **404** | Broken alias — use `/en/auth/signin` |
+| API `/` | 401 | Expected (auth required) |
+| API `/health` | 200 | |
+| API `/ready` | 200 | |
+| API `/metrics` | 200 | |
+
+### Firecrawl visual pass (main)
+
+| Page | HTTP | Visual / content | Severity |
+| --- | --- | --- | --- |
+| `/en` | 200 | **PASS** — Hero, dashboard mock KPIs, draft inbox preview, feature grid, inline pricing cards, FAQ, footer CTAs all present in markdown. Nav + “Start Free Trial” / “Sign in” links resolve. | — |
+| `/en/pricing` | 200 | **PASS (partial)** — Nav, feature-comparison matrix, mobile plan cards, savings calculator, footer all render. **P2:** No pricing-tier hero/plan cards above the fold (page opens on “Feature comparison”; tiers live on homepage). | P2 |
+| `/en/dashboard/billing` | 200→signin | **PASS** — Unauthenticated users land on sign-in (“Welcome back”) with email/password + signup link. No billing data leaked. | — |
+| `/en/auth/signup` | 200 | **PASS** — “Create an account” form: Full Name, Email, Password, Sign Up CTA, sign-in link. | — |
+
+### PR preview FQDNs (`gh pr checks`)
+
+| PR | Branch | `coolify/adnexus-ai` | Preview URL | HTTP | Action |
+| --- | --- | --- | --- | --- | --- |
+| [#106](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/106) | `feat/qa-evidence-sb-3220-2026-06-10` | **pass** | `https://pr-106-adnexus-ai.previews.softblaze.net` | **404** | Coolify container `…-pr-86`/`pr-107` running but **CF/Caddy route missing** for `previews.softblaze.net` PR hostnames — infra blocker for PR visual QA |
+| [#107](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/107) | `feat/docs-refresh-sb-3098` | **pass** | `https://pr-107-adnexus-ai.previews.softblaze.net` | **404** | Same routing gap |
+| [#86](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/86) | `feat/stripe-portal-wire-2026-06-07` | *absent* | `https://pr-86-adnexus-ai.previews.softblaze.net` | **404** | CI **Test fail**; no Coolify status on latest commit; container exists from older deploy |
+
+### Visual issues logged
+
+1. **P2 — `/en/auth/login` 404:** Legacy/login alias not routed; marketing links correctly use `/en/auth/signin`.
+2. **P2 — Pricing page hierarchy:** Dedicated pricing page lacks tier hero; comparison table is first visible section (tiers duplicated on homepage).
+3. **P1 — PR preview URLs unreachable:** `pr-<N>-adnexus-ai.previews.softblaze.net` returns 404 despite successful Coolify builds on PRs 106/107 — blocks branch-preview visual QA until DNS/Traefik ingress wired.
+
 ## Known manual gaps
 
 - Real browser rendering and CTA clickthrough for marketing/dashboard routes.
@@ -77,3 +128,4 @@ node scripts/v1-smoke.mjs \
 - Real Stripe Checkout, portal, and webhook replay.
 - Mobile visual QA and accessibility tooling.
 - Live signup/session persistence on preview Supabase.
+- PR preview hostname routing on `previews.softblaze.net` (404 today).
