@@ -336,7 +336,7 @@ export class SettingsRepository implements ISettingsRepository {
   // API Keys
   async getApiKeys(workspaceId: string): Promise<ApiKey[]> {
     const { rows } = await query<Record<string, unknown>>(
-      `SELECT id, workspace_id, name, key_hash, key_prefix, scopes, status,
+      `SELECT id, workspace_id, name, key_hash, key_prefix, scopes, platforms, status,
               expires_at, created_by, revoked_by, revoked_at, last_used_at,
               calls_today, calls_this_month, created_at, updated_at
          FROM api_keys
@@ -383,6 +383,12 @@ export class SettingsRepository implements ISettingsRepository {
         ? JSON.parse(row.scopes) as string[]
         : [];
 
+    const platforms = Array.isArray(row.platforms)
+      ? row.platforms as string[]
+      : typeof row.platforms === 'string'
+        ? JSON.parse(row.platforms) as string[]
+        : ['meta', 'google', 'tiktok', 'snap'];
+
     return {
       id: row.id as string,
       workspaceId: row.workspace_id as string,
@@ -390,6 +396,7 @@ export class SettingsRepository implements ISettingsRepository {
       keyHash: row.key_hash as string,
       keyPrefix: row.key_prefix as string,
       scopes,
+      platforms,
       status: (row.status as ApiKey['status']) ?? 'active',
       expiresAt: row.expires_at ? new Date(row.expires_at as string) : null,
       createdBy: (row.created_by as string | null) ?? null,

@@ -11,6 +11,12 @@ declare global {
       user?: JWTPayload;
       /** Active workspace ID extracted from token claims */
       workspaceId?: string;
+      /** API key scopes set by API key auth middleware */
+      apiKeyScopes?: string[];
+      /** API key database ID, set when authenticated via API key */
+      apiKeyId?: string;
+      /** API key platforms restriction, set by API key auth middleware */
+      apiKeyPlatforms?: string[];
     }
   }
 }

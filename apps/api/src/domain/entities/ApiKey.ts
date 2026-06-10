@@ -7,6 +7,7 @@ export interface ApiKey {
   keyHash: string;
   keyPrefix: string;
   scopes: string[];
+  platforms: string[];
   status: ApiKeyStatus;
   expiresAt: Date | null;
   createdBy: string | null;

@@ -26,7 +26,8 @@ import {
   webhookRateLimiter,
 } from './middleware/rateLimiter';
 import { authenticate } from './middleware/authenticate';
-import { authenticateToken } from './middleware/auth';
+import { authenticateToken, requireAdmin } from './middleware/auth';
+import { requireResourceAccess } from './middleware/scopeCheck';
 import { errorHandler } from './middleware/errorHandler';
 import { supabase } from './lib/supabase';
 import { isRedisAvailable, closeRedis } from './lib/redis';
@@ -275,26 +276,26 @@ app.use(authenticatedRateLimiter);
 
 // ─── Core API v1 Routes ──────────────────────────────────────
 
-app.use('/api/v1/campaigns', campaignRoutes);
-app.use('/api/v1/ads', adRoutes);
-app.use('/api/v1/drafts', draftRoutes);
-app.use('/api/v1/agent', agentRoutes);
-app.use('/api/v1/reports', reportRoutes);
-app.use('/api/v1/audiences', audienceRoutes);
-app.use('/api/v1/settings', settingsRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/billing', billingRoutes);
-app.use('/api/v1/goals', goalRoutes);
-app.use('/api/v1/exports', exportRoutes);
-app.use('/api/v1/search', searchRoutes);
-app.use('/api/v1/rag', ragRoutes);
-app.use('/api/v1/webhooks', webhooksConfigRoutes);
-app.use('/api/v1/audit-log', auditLogRoutes);
-app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/api-keys', apiKeyRoutes);
-app.use('/api/v1/comments', commentRoutes);
-app.use('/api/v1/upload', uploadRoutes);
-app.use('/api/v1/alerts', alertRoutes);
+app.use('/api/v1/campaigns', requireResourceAccess('campaigns'), campaignRoutes);
+app.use('/api/v1/ads', requireResourceAccess('ads'), adRoutes);
+app.use('/api/v1/drafts', requireResourceAccess('drafts'), draftRoutes);
+app.use('/api/v1/agent', requireResourceAccess('agent'), agentRoutes);
+app.use('/api/v1/reports', requireResourceAccess('reports'), reportRoutes);
+app.use('/api/v1/audiences', requireResourceAccess('audiences'), audienceRoutes);
+app.use('/api/v1/settings', requireResourceAccess('settings'), settingsRoutes);
+app.use('/api/v1/notifications', requireResourceAccess('notifications'), notificationRoutes);
+app.use('/api/v1/billing', requireResourceAccess('billing'), billingRoutes);
+app.use('/api/v1/goals', requireResourceAccess('goals'), goalRoutes);
+app.use('/api/v1/exports', requireResourceAccess('exports'), exportRoutes);
+app.use('/api/v1/search', requireResourceAccess('search'), searchRoutes);
+app.use('/api/v1/rag', requireResourceAccess('rag'), ragRoutes);
+app.use('/api/v1/webhooks', requireResourceAccess('webhooks'), webhooksConfigRoutes);
+app.use('/api/v1/audit-log', requireResourceAccess('audit-log'), auditLogRoutes);
+app.use('/api/v1/admin', requireResourceAccess('settings'), adminRoutes);
+app.use('/api/v1/api-keys', requireAdmin, apiKeyRoutes);
+app.use('/api/v1/comments', requireResourceAccess('comments'), commentRoutes);
+app.use('/api/v1/upload', requireResourceAccess('exports'), uploadRoutes);
+app.use('/api/v1/alerts', requireResourceAccess('alerts'), alertRoutes);
 
 // ─── Real-Time: SSE Endpoint ─────────────────────────────────
 
