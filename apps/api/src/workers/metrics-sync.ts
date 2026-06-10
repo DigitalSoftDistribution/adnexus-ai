@@ -1,6 +1,14 @@
-// @ts-nocheck — unported worker, token types mismatch
+/**
+ * AdNexus Metrics Sync Worker
+ *
+ * Worker startup is gated by BACKGROUND_JOBS_ENABLED and
+ * BACKGROUND_METRICS_SYNC_ENABLED (default-off, PR #79 pattern).
+ */
+
 import { Worker, Queue, Job } from 'bullmq';
+import { Redis } from 'ioredis';
 import { config } from '../config';
+import { getRedisClient } from '../lib/redis';
 import { supabase } from '../lib/supabase';
 import { PlatformError } from '../lib/errors';
 import type { Platform, AdAccount } from '../types';
@@ -15,6 +23,17 @@ import {
 import { getModuleLogger } from '../lib/logger';
 
 const logger = getModuleLogger('metrics-sync');
+
+export const METRICS_SYNC_QUEUE_NAME = 'metrics-sync';
+
+export type MetricsSyncWorkerStatus = 'disabled' | 'starting' | 'running' | 'stopped' | 'error';
+
+export interface MetricsSyncWorkerSnapshot {
+  status: MetricsSyncWorkerStatus;
+  enabled: boolean;
+  reason?: string;
+  startedAt?: string;
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -83,32 +102,114 @@ interface SyncSummary {
   errors: string[];
 }
 
-// ─── Redis Connection ────────────────────────────────────────
+let workerRedis: Redis | null = null;
+let metricsSyncQueue: Queue<SyncJobData> | null = null;
+let metricsSyncWorker: Worker<SyncJobData> | null = null;
+let workerSnapshot: MetricsSyncWorkerSnapshot = {
+  status: 'disabled',
+  enabled: false,
+};
 
-function getRedisConnection() {
-  if (config.redis.url) {
-    return { url: config.redis.url };
+export function getMetricsSyncDisableReason(): string | null {
+  if (!config.backgroundJobs.enabled) {
+    return 'BACKGROUND_JOBS_ENABLED is not true';
   }
-  return { host: 'localhost', port: 6379 };
+  if (!config.backgroundJobs.metricsSyncEnabled) {
+    return 'BACKGROUND_METRICS_SYNC_ENABLED is not true';
+  }
+  if (!config.redis.url) {
+    return 'REDIS_URL is not configured';
+  }
+
+  const redis = getRedisClient();
+  if (!redis || redis.status !== 'ready') {
+    return `Redis is not ready: ${redis?.status ?? 'disconnected'}`;
+  }
+
+  return null;
 }
 
-// ─── Queue ───────────────────────────────────────────────────
+export function getMetricsSyncWorkerStatus(): MetricsSyncWorkerSnapshot {
+  return { ...workerSnapshot };
+}
 
-export const metricsSyncQueue = new Queue('metrics-sync', {
-  connection: getRedisConnection(),
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 15000 },
-    removeOnComplete: 100,
-    removeOnFail: 50,
-  },
-});
+export function buildMetricsSyncJobId(workspaceId: string, timestamp = Date.now()): string {
+  return `sync-${workspaceId}-${timestamp}`;
+}
 
-// ─── Worker ──────────────────────────────────────────────────
+export function getMetricsSyncLookbackDays(syncType: SyncType): number {
+  return syncType === 'full' ? 30 : 7;
+}
 
-export const metricsSyncWorker = new Worker(
-  'metrics-sync',
-  async (job: Job<SyncJobData>) => {
+export function getMetricsSyncDateRange(
+  syncType: SyncType,
+  now = new Date(),
+): { dateStart: string; dateEnd: string } {
+  const lookbackDays = getMetricsSyncLookbackDays(syncType);
+  const dateEnd = now.toISOString().slice(0, 10);
+  const dateStart = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return { dateStart, dateEnd };
+}
+
+export function shouldMarkAccountRefreshNeeded(errorMessage: string): boolean {
+  const normalized = errorMessage.toLowerCase();
+  return (
+    normalized.includes('token refresh') ||
+    normalized.includes('unauthorized') ||
+    normalized.includes('invalid')
+  );
+}
+
+export function evaluateTokenExpiry(
+  expiresAt: string | null | undefined,
+  now = new Date(),
+  bufferMs = 5 * 60 * 1000,
+): { valid: boolean; expiresAt: Date | null } {
+  const parsedExpiry = expiresAt ? new Date(expiresAt) : null;
+  if (!parsedExpiry || Number.isNaN(parsedExpiry.getTime())) {
+    return { valid: false, expiresAt: null };
+  }
+
+  return {
+    valid: parsedExpiry.getTime() >= now.getTime() + bufferMs,
+    expiresAt: parsedExpiry,
+  };
+}
+
+export function dedupeWorkspaceIds(
+  rows: ReadonlyArray<{ workspace_id: string }>,
+): string[] {
+  return [...new Set(rows.map((row) => row.workspace_id))];
+}
+
+function getWorkerRedis(): Redis {
+  if (!workerRedis) {
+    workerRedis = new Redis(config.redis.url ?? 'redis://localhost:6379', {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  }
+  return workerRedis;
+}
+
+function getMetricsSyncQueue(): Queue<SyncJobData> {
+  if (!metricsSyncQueue) {
+    metricsSyncQueue = new Queue<SyncJobData>(METRICS_SYNC_QUEUE_NAME, {
+      connection: getWorkerRedis(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 15000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    });
+  }
+  return metricsSyncQueue;
+}
+
+async function processMetricsSyncJob(job: Job<SyncJobData>): Promise<SyncSummary> {
     const { workspaceId, syncType } = job.data;
     logger.info(`${syncType} sync started for workspace ${workspaceId}`);
 
@@ -177,7 +278,7 @@ export const metricsSyncWorker = new Worker(
           summary.errors.push(`[${account.platform}] ${account.account_id}: ${errMsg}`);
 
           // Mark account as error if token refresh fails
-          if (errMsg.includes('Token refresh') || errMsg.includes('unauthorized') || errMsg.includes('invalid')) {
+          if (shouldMarkAccountRefreshNeeded(errMsg)) {
             await supabase
               .from('ad_accounts')
               .update({ status: 'refresh_needed', updated_at: new Date().toISOString() })
@@ -216,47 +317,123 @@ export const metricsSyncWorker = new Worker(
 
       throw err;
     }
-  },
-  {
-    connection: getRedisConnection(),
-    concurrency: 3,
-  },
-);
+}
 
-// ─── Event Handlers ──────────────────────────────────────────
+export async function startMetricsSyncWorker(): Promise<MetricsSyncWorkerSnapshot> {
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    workerSnapshot = {
+      status: 'disabled',
+      enabled: false,
+      reason: disableReason,
+    };
+    return getMetricsSyncWorkerStatus();
+  }
 
-metricsSyncWorker.on('completed', (job) => {
-  const result = job.returnvalue as SyncSummary | undefined;
-  logger.info(
-    `Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
-    `${result?.accountsSynced ?? 0} accounts synced`,
-  );
-});
+  if (metricsSyncWorker) {
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: workerSnapshot.startedAt,
+    };
+    return getMetricsSyncWorkerStatus();
+  }
 
-metricsSyncWorker.on('failed', (job, err) => {
-  const jobId = job?.id ?? 'unknown';
-  const workspaceId = job?.data?.workspaceId ?? 'unknown';
-  logger.error({ err }, `Job ${jobId} failed for workspace ${workspaceId}`);
-});
+  workerSnapshot = { status: 'starting', enabled: true };
+
+  try {
+    const activeWorker = new Worker<SyncJobData>(
+      METRICS_SYNC_QUEUE_NAME,
+      processMetricsSyncJob,
+      {
+        connection: getWorkerRedis(),
+        concurrency: 3,
+      },
+    );
+
+    activeWorker.on('completed', (job) => {
+      const result = job.returnvalue as SyncSummary | undefined;
+      logger.info(
+        `Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
+          `${result?.accountsSynced ?? 0} accounts synced`,
+      );
+    });
+
+    activeWorker.on('failed', (job, err) => {
+      const jobId = job?.id ?? 'unknown';
+      const workspaceId = job?.data?.workspaceId ?? 'unknown';
+      logger.error({ err }, `Job ${jobId} failed for workspace ${workspaceId}`);
+    });
+
+    metricsSyncWorker = activeWorker;
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    workerSnapshot = {
+      status: 'error',
+      enabled: true,
+      reason: message,
+    };
+  }
+
+  return getMetricsSyncWorkerStatus();
+}
+
+export async function stopMetricsSyncWorker(): Promise<void> {
+  if (metricsSyncWorker) {
+    await metricsSyncWorker.close();
+    metricsSyncWorker = null;
+  }
+  if (metricsSyncQueue) {
+    await metricsSyncQueue.close();
+    metricsSyncQueue = null;
+  }
+  if (workerRedis) {
+    await workerRedis.quit();
+    workerRedis = null;
+  }
+
+  workerSnapshot = {
+    status: 'stopped',
+    enabled: false,
+  };
+}
 
 // ─── Job Trigger ─────────────────────────────────────────────
 
 export async function triggerMetricsSync(
   workspaceId: string,
   syncType: SyncType = 'incremental',
-): Promise<string> {
-  const job = await metricsSyncQueue.add(
-    'metrics-sync',
+): Promise<string | null> {
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    logger.info(`Skipping enqueue: ${disableReason}`);
+    return null;
+  }
+
+  const queue = getMetricsSyncQueue();
+  const job = await queue.add(
+    METRICS_SYNC_QUEUE_NAME,
     { workspaceId, syncType },
-    { jobId: `sync-${workspaceId}-${Date.now()}` },
+    { jobId: buildMetricsSyncJobId(workspaceId) },
   );
   logger.info(`Queued ${syncType} sync for workspace ${workspaceId}, job ${job.id}`);
-  return job.id as string;
+  return job.id ?? null;
 }
 
 // ─── Scheduled Sync ──────────────────────────────────────────
 
 export async function scheduleMetricsSync(): Promise<void> {
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    logger.info(`Skipping scheduled sync: ${disableReason}`);
+    return;
+  }
+
   logger.info('Running scheduled sync for all active workspaces');
 
   try {
@@ -277,7 +454,7 @@ export async function scheduleMetricsSync(): Promise<void> {
     }
 
     // Deduplicate workspace IDs
-    const uniqueWorkspaceIds = [...new Set(workspaces.map((w) => w.workspace_id as string))];
+    const uniqueWorkspaceIds = dedupeWorkspaceIds(workspaces);
 
     logger.info(`Queuing incremental sync for ${uniqueWorkspaceIds.length} workspace(s)`);
 
@@ -1083,13 +1260,12 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
     throw new PlatformError(account.platform, `Failed to fetch token for account ${account.id}: ${error?.message}`);
   }
 
-  const expiresAt = accountData.token_expires_at ? new Date(accountData.token_expires_at) : null;
-  const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000; // 5-minute buffer
+  const tokenExpiry = evaluateTokenExpiry(accountData.token_expires_at);
 
   const oauthToken = decryptOAuthTokenFromStorage(accountData.oauth_token);
   const refreshToken = decryptOAuthTokenFromStorage(accountData.refresh_token);
 
-  if (!isExpired && oauthToken) {
+  if (tokenExpiry.valid && oauthToken) {
     return oauthToken;
   }
 
@@ -1115,10 +1291,9 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
         if (!refreshToken) {
           throw new PlatformError('google', 'No refresh token available');
         }
-        const tokenData = await googleApi.handleGoogleCallback(refreshToken, account.workspace_id);
-        newToken = (tokenData as unknown as Record<string, unknown>).metadata?.access_token as string ?? '';
-        newRefreshToken = (tokenData as unknown as Record<string, unknown>).metadata?.refresh_token as string | undefined;
-        newExpiresAt = (tokenData as unknown as Record<string, unknown>).token_expires_at ? new Date((tokenData as unknown as Record<string, unknown>).token_expires_at as string) : new Date(Date.now() + 3600 * 1000);
+        const googleRefreshed = await googleApi.refreshGoogleToken(refreshToken ?? '');
+        newToken = googleRefreshed.accessToken;
+        newExpiresAt = googleRefreshed.expiresAt;
         break;
       }
       case 'tiktok': {
@@ -1191,8 +1366,7 @@ export async function handleRateLimit(platform: string, retryAfter?: number): Pr
 
 export async function shutdownMetricsSync(): Promise<void> {
   logger.info('Shutting down worker...');
-  await metricsSyncWorker.close();
-  await metricsSyncQueue.close();
+  await stopMetricsSyncWorker();
   logger.info('Worker shut down complete');
 }
 
@@ -1356,3 +1530,15 @@ function mapMetaStatus(status: string): 'active' | 'paused' | 'draft' | 'error' 
   };
   return statusMap[status] ?? 'paused';
 }
+
+if (require.main === module) {
+  void startMetricsSyncWorker().then((status) => {
+    if (status.status !== 'running') {
+      console.log(`[Metrics Sync] Worker not started: ${status.reason ?? status.status}`);
+      process.exit(0);
+    }
+    console.log('[Metrics Sync] Worker started. Waiting for jobs...');
+  });
+}
+
+export { metricsSyncWorker, metricsSyncQueue };

@@ -38,8 +38,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
 
   // Background jobs (default-off; see PR #79 scheduler gating pattern)
-  BACKGROUND_JOBS_ENABLED: z.string().default('false'),
   BACKGROUND_EVALUATE_RULES_ENABLED: z.string().default('false'),
+  BACKGROUND_METRICS_SYNC_ENABLED: z.string().default('false'),
 
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
@@ -191,8 +191,8 @@ export const config = {
   },
 
   backgroundJobs: {
-    enabled: env.BACKGROUND_JOBS_ENABLED === 'true',
     evaluateRulesEnabled: env.BACKGROUND_EVALUATE_RULES_ENABLED === 'true',
+    metricsSyncEnabled: env.BACKGROUND_METRICS_SYNC_ENABLED === 'true',
   },
 
   cors: {
