@@ -54,6 +54,7 @@ import { MockSocialPlatformSyncService } from '../../infrastructure/platform/Moc
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
 import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
+import { ScheduledReportRepository } from '../../infrastructure/repositories/ScheduledReportRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
 import { registerAllPlatformClients } from '../../platforms/register';
@@ -138,6 +139,7 @@ export function buildContainer(): Container {
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
+    scheduledReportRepository: new ScheduledReportRepository(),
     mockTrafficSeeder: new MockTrafficSeeder(),
     writeCampaignMetrics,
     stampAccountSynced,

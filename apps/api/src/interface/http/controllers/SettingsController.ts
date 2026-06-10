@@ -135,5 +135,45 @@ export function createSettingsController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    getProfile: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getProfile.execute({
+        userId: req.user!.id,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    updateProfile: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.updateProfile.execute({
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        name: req.body.name,
+        avatarUrl: req.body.avatarUrl,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    connectIntegration: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.connectPlatform.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    disconnectIntegration: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.disconnectIntegration.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

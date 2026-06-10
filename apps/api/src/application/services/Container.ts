@@ -28,6 +28,7 @@ import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRep
 import type { IExportRepository } from '../../domain/repositories/IExportRepository';
 import type { IAssetRepository } from '../../domain/repositories/IAssetRepository';
 import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
+import type { IScheduledReportRepository } from '../../domain/repositories/IScheduledReportRepository';
 import type { ISyncJobRepository } from '../../domain/repositories/ISyncJobRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
@@ -74,6 +75,8 @@ import { RemoveTeamMemberUseCase } from '../use-cases/settings/RemoveTeamMemberU
 import { GetIntegrationsUseCase } from '../use-cases/settings/GetIntegrationsUseCase';
 import { GetNotificationPreferencesUseCase } from '../use-cases/settings/GetNotificationPreferencesUseCase';
 import { UpdateNotificationPreferencesUseCase } from '../use-cases/settings/UpdateNotificationPreferencesUseCase';
+import { GetProfileUseCase } from '../use-cases/settings/GetProfileUseCase';
+import { UpdateProfileUseCase } from '../use-cases/settings/UpdateProfileUseCase';
 import { GetApiKeysUseCase } from '../use-cases/settings/GetApiKeysUseCase';
 import { CreateApiKeyUseCase } from '../use-cases/settings/CreateApiKeyUseCase';
 import { RevokeApiKeyUseCase } from '../use-cases/settings/RevokeApiKeyUseCase';
@@ -89,6 +92,12 @@ import { CreateReportUseCase } from '../use-cases/report/CreateReportUseCase';
 import { UpdateReportUseCase } from '../use-cases/report/UpdateReportUseCase';
 import { DeleteReportUseCase } from '../use-cases/report/DeleteReportUseCase';
 import { RunReportUseCase } from '../use-cases/report/RunReportUseCase';
+import { GetReportResultsUseCase } from '../use-cases/report/GetReportResultsUseCase';
+import {
+  ListScheduledReportsUseCase,
+  CreateScheduledReportUseCase,
+  DeleteScheduledReportUseCase,
+} from '../use-cases/report/ScheduledReportUseCases';
 import { ListAlertsUseCase } from '../use-cases/alert/ListAlertsUseCase';
 import { GetAlertByIdUseCase } from '../use-cases/alert/GetAlertByIdUseCase';
 import { CreateAlertUseCase } from '../use-cases/alert/CreateAlertUseCase';
@@ -103,6 +112,10 @@ import { MarkNotificationReadUseCase } from '../use-cases/notification/MarkNotif
 import { MarkAllNotificationsReadUseCase } from '../use-cases/notification/MarkAllNotificationsReadUseCase';
 import { ListWebhookConfigsUseCase } from '../use-cases/webhook/ListWebhookConfigsUseCase';
 import { CreateWebhookConfigUseCase } from '../use-cases/webhook/CreateWebhookConfigUseCase';
+import { UpdateWebhookConfigUseCase } from '../use-cases/webhook/UpdateWebhookConfigUseCase';
+import { DeleteWebhookConfigUseCase } from '../use-cases/webhook/DeleteWebhookConfigUseCase';
+import { TestWebhookConfigUseCase } from '../use-cases/webhook/TestWebhookConfigUseCase';
+import { ListWebhookDeliveriesUseCase } from '../use-cases/webhook/ListWebhookDeliveriesUseCase';
 import { ListDraftCommentsUseCase } from '../use-cases/draft/ListDraftCommentsUseCase';
 import { AddDraftCommentUseCase } from '../use-cases/draft/AddDraftCommentUseCase';
 import { DeleteDraftCommentUseCase } from '../use-cases/draft/DeleteDraftCommentUseCase';
@@ -140,6 +153,9 @@ import {
   DisconnectIntegrationUseCase,
   GetIntegrationHealthUseCase,
 } from '../use-cases/integration/IntegrationUseCases';
+import { ConnectPlatformUseCase } from '../use-cases/integration/ConnectPlatformUseCase';
+import { ListIntegrationAccountsUseCase } from '../use-cases/integration/ListIntegrationAccountsUseCase';
+import { SelectIntegrationAccountUseCase } from '../use-cases/integration/SelectIntegrationAccountUseCase';
 import {
   GetOnboardingStatusUseCase,
   SetOnboardingStepUseCase,
@@ -203,6 +219,8 @@ export interface ContainerConfig {
   /** Optional account-sync deps; required to expose the account sync use-case. */
   adAccountRepository?: IAdAccountRepository;
   syncJobRepository?: ISyncJobRepository;
+  /** Optional scheduled-report CRUD deps. */
+  scheduledReportRepository?: IScheduledReportRepository;
   /** Writes a per-day campaign_metrics row (infra-supplied). */
   writeCampaignMetrics?: (
     campaignId: string,
@@ -251,6 +269,8 @@ export class Container {
   readonly getAdCreativePerformance: GetAdCreativePerformanceUseCase;
   readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
   readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
+  readonly getProfile: GetProfileUseCase;
+  readonly updateProfile: UpdateProfileUseCase;
   readonly getTeamMembers: GetTeamMembersUseCase;
   readonly inviteTeamMember: InviteTeamMemberUseCase;
   readonly updateTeamMemberRole: UpdateTeamMemberRoleUseCase;
@@ -273,6 +293,10 @@ export class Container {
   readonly updateReport: UpdateReportUseCase;
   readonly deleteReport: DeleteReportUseCase;
   readonly runReport: RunReportUseCase;
+  readonly getReportResults: GetReportResultsUseCase;
+  readonly listScheduledReports?: ListScheduledReportsUseCase;
+  readonly createScheduledReport?: CreateScheduledReportUseCase;
+  readonly deleteScheduledReport?: DeleteScheduledReportUseCase;
   readonly listAlerts: ListAlertsUseCase;
   readonly getAlertById: GetAlertByIdUseCase;
   readonly createAlert: CreateAlertUseCase;
@@ -287,6 +311,10 @@ export class Container {
   readonly markAllNotificationsRead: MarkAllNotificationsReadUseCase;
   readonly listWebhookConfigs: ListWebhookConfigsUseCase;
   readonly createWebhookConfig: CreateWebhookConfigUseCase;
+  readonly updateWebhookConfig: UpdateWebhookConfigUseCase;
+  readonly deleteWebhookConfig: DeleteWebhookConfigUseCase;
+  readonly testWebhookConfig: TestWebhookConfigUseCase;
+  readonly listWebhookDeliveries: ListWebhookDeliveriesUseCase;
   readonly listDraftComments: ListDraftCommentsUseCase;
   readonly addDraftComment: AddDraftCommentUseCase;
   readonly deleteDraftComment: DeleteDraftCommentUseCase;
@@ -323,6 +351,9 @@ export class Container {
   readonly getIntegration: GetIntegrationUseCase;
   readonly disconnectIntegration: DisconnectIntegrationUseCase;
   readonly getIntegrationHealth: GetIntegrationHealthUseCase;
+  readonly connectPlatform: ConnectPlatformUseCase;
+  readonly listIntegrationAccounts?: ListIntegrationAccountsUseCase;
+  readonly selectIntegrationAccount?: SelectIntegrationAccountUseCase;
   readonly getOnboardingStatus: GetOnboardingStatusUseCase;
   readonly setOnboardingStep: SetOnboardingStepUseCase;
   readonly completeOnboarding: CompleteOnboardingUseCase;
@@ -406,6 +437,8 @@ export class Container {
 
     this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
     this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);
+    this.getProfile = new GetProfileUseCase(config.settingsRepository);
+    this.updateProfile = new UpdateProfileUseCase(config.settingsRepository);
     this.getTeamMembers = new GetTeamMembersUseCase(config.settingsRepository);
     this.inviteTeamMember = new InviteTeamMemberUseCase(config.settingsRepository);
     this.updateTeamMemberRole = new UpdateTeamMemberRoleUseCase(config.settingsRepository);
@@ -430,6 +463,13 @@ export class Container {
     this.updateReport = new UpdateReportUseCase(config.reportRepository);
     this.deleteReport = new DeleteReportUseCase(config.reportRepository);
     this.runReport = new RunReportUseCase(config.reportRepository);
+    this.getReportResults = new GetReportResultsUseCase(config.reportRepository);
+
+    if (config.scheduledReportRepository) {
+      this.listScheduledReports = new ListScheduledReportsUseCase(config.scheduledReportRepository);
+      this.createScheduledReport = new CreateScheduledReportUseCase(config.scheduledReportRepository);
+      this.deleteScheduledReport = new DeleteScheduledReportUseCase(config.scheduledReportRepository);
+    }
 
     this.listAlerts = new ListAlertsUseCase(config.alertRepository);
     this.getAlertById = new GetAlertByIdUseCase(config.alertRepository);
@@ -446,6 +486,10 @@ export class Container {
     this.markAllNotificationsRead = new MarkAllNotificationsReadUseCase(config.notificationRepository);
     this.listWebhookConfigs = new ListWebhookConfigsUseCase(config.webhookRepository);
     this.createWebhookConfig = new CreateWebhookConfigUseCase(config.webhookRepository);
+    this.updateWebhookConfig = new UpdateWebhookConfigUseCase(config.webhookRepository);
+    this.deleteWebhookConfig = new DeleteWebhookConfigUseCase(config.webhookRepository);
+    this.testWebhookConfig = new TestWebhookConfigUseCase(config.webhookRepository);
+    this.listWebhookDeliveries = new ListWebhookDeliveriesUseCase(config.webhookRepository);
 
     this.listDraftComments = new ListDraftCommentsUseCase(
       config.draftRepository,
@@ -535,6 +579,12 @@ export class Container {
     this.getIntegration = new GetIntegrationUseCase(config.settingsRepository);
     this.disconnectIntegration = new DisconnectIntegrationUseCase(config.settingsRepository);
     this.getIntegrationHealth = new GetIntegrationHealthUseCase(config.settingsRepository);
+    this.connectPlatform = new ConnectPlatformUseCase();
+
+    if (config.adAccountRepository) {
+      this.listIntegrationAccounts = new ListIntegrationAccountsUseCase(config.adAccountRepository);
+      this.selectIntegrationAccount = new SelectIntegrationAccountUseCase(config.adAccountRepository);
+    }
     this.getOnboardingStatus = new GetOnboardingStatusUseCase(
       config.workspaceRepository,
       config.settingsRepository,

@@ -19,6 +19,12 @@ export function createSettingsRoutes(container: Container): Router {
 
   // Integrations
   router.get('/integrations', requireAuth, controller.getIntegrations as any);
+  router.post('/integrations/:platform', requireAuth, requireRole('owner', 'admin') as any, controller.connectIntegration as any);
+  router.delete('/integrations/:platform', requireAuth, requireRole('owner', 'admin') as any, controller.disconnectIntegration as any);
+
+  // Profile
+  router.get('/profile', requireAuth, controller.getProfile as any);
+  router.put('/profile', requireAuth, controller.updateProfile as any);
 
   // Notifications
   router.get('/notifications', requireAuth, controller.getNotifications as any);
