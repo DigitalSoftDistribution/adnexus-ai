@@ -8,7 +8,7 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { MobileNav } from './MobileNav';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { redirect, usePathname } from '@/i18n/navigation';
+import { redirect, usePathname, useRouter } from '@/i18n/navigation';
 
 const COLLAPSE_KEY = 'adnexus_sidebar_collapsed';
 
@@ -16,6 +16,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
   const locale = useLocale();
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -40,6 +41,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/auth/signin');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
@@ -57,7 +64,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    redirect({ href: '/auth/signin', locale });
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   // Redirect fresh workspaces to onboarding (only when we have a definitive

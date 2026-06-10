@@ -39,7 +39,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
-RUN pnpm --filter @adnexus/api build
+# Build workspace deps first — tsc needs @adnexus/shared dist + .d.ts on disk.
+RUN pnpm turbo run build --filter=@adnexus/api
 
 # ---------- runner: minimal production image ----------
 FROM base AS runner
@@ -54,6 +55,9 @@ COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder --chown=node:node /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=node:node /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=builder --chown=node:node /app/packages/shared/node_modules ./packages/shared/node_modules
 
 USER node
 EXPOSE 3000

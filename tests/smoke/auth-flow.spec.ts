@@ -64,9 +64,11 @@ test.describe('Auth Flow', () => {
     // Should stay on signin page (not redirect)
     await expect(page).toHaveURL(/\/en\/auth\/signin/);
 
-    // Should show an error message
-    const errorText = page.locator('text=/failed|invalid|error|incorrect/i');
-    await expect(errorText.first()).toBeVisible({ timeout: 10_000 });
+    // Form error banner (exclude Next.js route announcer)
+    const errorBanner = page
+      .getByRole('alert')
+      .filter({ hasText: /invalid|failed|error|incorrect|unexpected/i });
+    await expect(errorBanner).toBeVisible({ timeout: 10_000 });
   });
 });
 
