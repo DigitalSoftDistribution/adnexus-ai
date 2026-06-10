@@ -177,15 +177,30 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
       seededAt: new Date().toISOString(),
     };
 
+    const { rows: existing } = await query<{ id: string }>(
+      `SELECT id FROM ad_accounts
+       WHERE workspace_id = $1 AND platform = $2 AND platform_account_id = $3
+       LIMIT 1`,
+      [workspaceId, platform, fixture.platformAccountId],
+    );
+
+    if (existing[0]) {
+      await query(
+        `UPDATE ad_accounts SET
+           name = $2,
+           status = 'active',
+           metadata = $3,
+           last_synced_at = NOW(),
+           updated_at = NOW()
+         WHERE id = $1`,
+        [existing[0].id, fixture.name, JSON.stringify(metadata)],
+      );
+      return existing[0].id;
+    }
+
     const { rows } = await query<{ id: string }>(
       `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, name, status, metadata, last_synced_at)
        VALUES ($1, $2, $3, $4, 'active', $5, NOW())
-       ON CONFLICT (workspace_id, platform, platform_account_id) DO UPDATE SET
-         name = EXCLUDED.name,
-         status = 'active',
-         metadata = EXCLUDED.metadata,
-         last_synced_at = NOW(),
-         updated_at = NOW()
        RETURNING id`,
       [workspaceId, platform, fixture.platformAccountId, fixture.name, JSON.stringify(metadata)],
     );
