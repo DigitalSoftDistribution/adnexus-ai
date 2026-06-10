@@ -5,7 +5,7 @@
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, createHmac, timingSafeEqual } from "crypto";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // ── Constants ──────────────────────────────────────────────
 
