@@ -153,7 +153,7 @@ export async function rotateRefreshToken(
 
     return {
       userId: stored.user_id,
-      accessTokenPayload: payload,
+      accessTokenPayload: { sub: stored.user_id, type: 'refresh' },
       refreshToken: newRefreshToken,
     };
   });
