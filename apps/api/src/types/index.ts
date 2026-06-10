@@ -52,6 +52,8 @@ export interface JWTPayload {
   role: WorkspaceRole;
   iat: number;
   exp: number;
+  /** If authenticated via API key, the key's database ID */
+  apiKeyId?: string;
 }
 
 export interface SignUpRequest {
