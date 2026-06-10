@@ -13,6 +13,7 @@ interface PricingPreviewProps {
   headline?: string;
   subtitle?: string;
   differentiator?: string;
+  comparisonHref?: string | null;
 }
 
 export function PricingPreview({
@@ -20,9 +21,10 @@ export function PricingPreview({
   headline = 'Your bill never grows with your ad spend',
   subtitle = 'Start free. Upgrade as your strategy grows — not as your budget does.',
   differentiator = 'Unlike Madgicx or Revealbot, we don\'t take a percentage.',
+  comparisonHref = '/pricing',
 }: PricingPreviewProps) {
   const { ref, isVisible } = useScrollAnimation(0.2);
-  const tiers = PRICING_TIERS.slice(0, 3);
+  const tiers = PRICING_TIERS;
 
   return (
     <section ref={ref} className="w-full py-24 px-6" style={{ background: 'var(--bg-primary)' }}>
@@ -38,7 +40,7 @@ export function PricingPreview({
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
           {tiers.map((tier, i) => (
             <motion.div
               key={tier.id}
@@ -92,10 +94,12 @@ export function PricingPreview({
           className="text-center space-y-3"
         >
           <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>{differentiator}</p>
-          <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#2563EB' }}>
-            View full pricing &amp; feature comparison
-            <ChevronRight size={14} aria-hidden="true" />
-          </Link>
+          {comparisonHref && (
+            <Link href={comparisonHref} className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#2563EB' }}>
+              View full pricing &amp; feature comparison
+              <ChevronRight size={14} aria-hidden="true" />
+            </Link>
+          )}
         </motion.div>
       </div>
     </section>
