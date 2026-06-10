@@ -128,6 +128,7 @@ const webRoutes = [
   '/en',
   '/en/auth/signup',
   '/en/auth/signin',
+  '/en/auth/login',
   '/en/onboarding',
   '/en/dashboard',
   '/en/dashboard/campaigns',
