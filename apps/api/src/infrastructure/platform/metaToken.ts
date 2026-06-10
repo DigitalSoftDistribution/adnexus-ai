@@ -3,6 +3,7 @@ import { refreshMetaToken } from '../../services/meta-api';
 import { persistRefreshedToken } from '../../platforms/account-store';
 import { decryptToken } from '../../security/encryption';
 import { getModuleLogger } from '../../lib/logger';
+import { decryptOAuthTokenFromStorage } from '../../security/oauth-token-crypto';
 
 const log = getModuleLogger('meta-token');
 
@@ -67,29 +68,24 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
     [adAccountId],
   );
   const row = rows[0];
-  if (!row?.oauth_token) return null;
-
-  const accessToken = unwrapStoredOAuthToken(row.oauth_token);
-  if (!accessToken) return null;
-
-  const refreshToken = row.refresh_token
-    ? unwrapStoredOAuthToken(row.refresh_token)
-    : null;
+  const oauthToken = decryptOAuthTokenFromStorage(row?.oauth_token);
+  if (!oauthToken) return null;
 
   const now = Date.now();
   const expiryMs = row.token_expires_at ? new Date(row.token_expires_at).getTime() : null;
   const expiresSoon = expiryMs !== null && expiryMs < now + 5 * 60 * 1000;
   const alreadyExpired = expiryMs !== null && expiryMs <= now;
 
-  if (!expiresSoon) return accessToken;
+  if (!expiresSoon) return oauthToken;
 
   // Expiring soon: prefer a proactive refresh. If refresh isn't possible, fall
   // back to the current token as long as it has not actually expired yet, so we
   // use its remaining lifetime instead of failing as "not connected".
+  const refreshToken = decryptOAuthTokenFromStorage(row.refresh_token);
   if (!refreshToken) {
     if (!alreadyExpired) {
       log.warn({ adAccountId }, 'Meta token expiring soon and no refresh token; using remaining lifetime');
-      return accessToken;
+      return oauthToken;
     }
     log.warn({ adAccountId }, 'Meta token expired and no refresh token');
     return null;
@@ -104,7 +100,7 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   } catch (e) {
     if (!alreadyExpired) {
       log.warn({ err: e, adAccountId }, 'Meta token refresh failed; using remaining lifetime');
-      return accessToken;
+      return oauthToken;
     }
     log.warn({ err: e, adAccountId }, 'Meta token refresh failed and token expired');
     return null;

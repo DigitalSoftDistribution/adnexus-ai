@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
 import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
+import { oauthTokensForDbWrite } from '../../security/oauth-token-crypto';
 
 const router = Router();
 
@@ -242,6 +243,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
     const scopes = tokens.scope?.split(' ').filter(Boolean) || REQUIRED_SCOPES;
     const connectedAccounts: string[] = [];
+    const storedTokens = oauthTokensForDbWrite(tokens.access_token, tokens.refresh_token);
 
     for (const account of accounts) {
       const { error: dbError } = await supabase
@@ -251,8 +253,7 @@ router.get('/callback', async (req: Request, res: Response) => {
           platform: 'google',
           platform_account_id: account.id,
           name: account.descriptiveName || `Google Ads ${account.id}`,
-          oauth_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
+          ...storedTokens,
           token_expires_at: expiresAt,
           scopes,
           status: 'active',

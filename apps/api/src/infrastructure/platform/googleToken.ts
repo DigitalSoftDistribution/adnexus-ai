@@ -2,6 +2,7 @@ import { query } from '../database/connection';
 import { refreshGoogleToken } from '../../services/google-api';
 import { persistRefreshedToken } from '../../platforms/account-store';
 import { getModuleLogger } from '../../lib/logger';
+import { decryptOAuthTokenFromStorage } from '../../security/oauth-token-crypto';
 
 const log = getModuleLogger('google-token');
 
@@ -16,33 +17,35 @@ export async function resolveGoogleToken(adAccountId: string): Promise<string | 
   );
 
   const row = rows[0];
-  if (!row?.oauth_token) return null;
+  const oauthToken = decryptOAuthTokenFromStorage(row?.oauth_token);
+  if (!oauthToken) return null;
 
   const now = Date.now();
   const expiryMs = row.token_expires_at ? new Date(row.token_expires_at).getTime() : null;
   const expiresSoon = expiryMs !== null && expiryMs < now + 5 * 60 * 1000;
   const alreadyExpired = expiryMs !== null && expiryMs <= now;
 
-  if (!expiresSoon) return row.oauth_token;
+  if (!expiresSoon) return oauthToken;
 
-  if (!row.refresh_token) {
+  const refreshToken = decryptOAuthTokenFromStorage(row.refresh_token);
+  if (!refreshToken) {
     if (!alreadyExpired) {
       log.warn({ adAccountId }, 'Google token expiring soon and no refresh token; using remaining lifetime');
-      return row.oauth_token;
+      return oauthToken;
     }
     log.warn({ adAccountId }, 'Google token expired and no refresh token');
     return null;
   }
 
   try {
-    const refreshed = await refreshGoogleToken(row.refresh_token);
+    const refreshed = await refreshGoogleToken(refreshToken);
     await persistRefreshedToken(adAccountId, refreshed.accessToken, refreshed.expiresAt.toISOString());
     log.info({ adAccountId }, 'Refreshed Google token');
     return refreshed.accessToken;
   } catch (e) {
     if (!alreadyExpired) {
       log.warn({ err: e, adAccountId }, 'Google token refresh failed; using remaining lifetime');
-      return row.oauth_token;
+      return oauthToken;
     }
     log.warn({ err: e, adAccountId }, 'Google token refresh failed and token expired');
     return null;

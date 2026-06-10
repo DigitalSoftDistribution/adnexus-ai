@@ -8,6 +8,10 @@ import * as metaApi from '../services/meta-api';
 import * as googleApi from '../services/google-api';
 import * as tiktokApi from '../services/tiktok-api';
 import * as snapApi from '../services/snap-api';
+import {
+  decryptOAuthTokenFromStorage,
+  encryptOAuthTokenForStorage,
+} from '../security/oauth-token-crypto';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -1079,8 +1083,11 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
   const expiresAt = accountData.token_expires_at ? new Date(accountData.token_expires_at) : null;
   const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000; // 5-minute buffer
 
-  if (!isExpired && accountData.oauth_token) {
-    return accountData.oauth_token;
+  const oauthToken = decryptOAuthTokenFromStorage(accountData.oauth_token);
+  const refreshToken = decryptOAuthTokenFromStorage(accountData.refresh_token);
+
+  if (!isExpired && oauthToken) {
+    return oauthToken;
   }
 
   // Token is expired or about to expire — refresh it
@@ -1093,19 +1100,19 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
 
     switch (account.platform) {
       case 'meta': {
-        if (!accountData.refresh_token) {
+        if (!refreshToken) {
           throw new PlatformError('meta', 'No refresh token available');
         }
-        const refreshed = await metaApi.refreshMetaToken(accountData.refresh_token);
+        const refreshed = await metaApi.refreshMetaToken(refreshToken);
         newToken = refreshed.access_token;
         newExpiresAt = new Date(Date.now() + (refreshed.expires_in ?? 3600) * 1000);
         break;
       }
       case 'google': {
-        if (!accountData.refresh_token) {
+        if (!refreshToken) {
           throw new PlatformError('google', 'No refresh token available');
         }
-        const tokenData = await googleApi.handleGoogleCallback(accountData.refresh_token, account.workspace_id);
+        const tokenData = await googleApi.handleGoogleCallback(refreshToken, account.workspace_id);
         newToken = (tokenData as unknown as Record<string, unknown>).metadata?.access_token as string ?? '';
         newRefreshToken = (tokenData as unknown as Record<string, unknown>).metadata?.refresh_token as string | undefined;
         newExpiresAt = (tokenData as unknown as Record<string, unknown>).token_expires_at ? new Date((tokenData as unknown as Record<string, unknown>).token_expires_at as string) : new Date(Date.now() + 3600 * 1000);
@@ -1135,14 +1142,20 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
         throw new PlatformError(account.platform, `Token refresh not implemented for platform: ${account.platform}`);
     }
 
-    // Store the new token
+    // Store the new token (encrypted at rest for Meta/Google)
     const updateData: Record<string, unknown> = {
-      oauth_token: newToken,
+      oauth_token:
+        account.platform === 'meta' || account.platform === 'google'
+          ? encryptOAuthTokenForStorage(newToken)
+          : newToken,
       token_expires_at: newExpiresAt.toISOString(),
       updated_at: new Date().toISOString(),
     };
     if (newRefreshToken) {
-      updateData.refresh_token = newRefreshToken;
+      updateData.refresh_token =
+        account.platform === 'meta' || account.platform === 'google'
+          ? encryptOAuthTokenForStorage(newRefreshToken)
+          : newRefreshToken;
     }
 
     const { error: updateError } = await supabase

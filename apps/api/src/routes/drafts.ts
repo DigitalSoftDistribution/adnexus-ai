@@ -66,6 +66,7 @@ import {
 
 import type { Platform, DraftType, Draft as AppDraft } from '../types';
 import { config } from '../config';
+import { decryptOAuthTokenFromStorage } from '../security/oauth-token-crypto';
 import { MetaApiClient } from '../platforms/meta/client';
 import { GoogleAdsClient } from '../platforms/google/client';
 
@@ -284,14 +285,18 @@ async function getPlatformClient(platform: AdPlatform, workspaceId: string): Pro
     .limit(1)
     .single();
 
-  const token = account?.oauth_token;
-  if (!token) {
+  const token = decryptOAuthTokenFromStorage(account?.oauth_token);
+  if (!token || !account) {
     throw new PlatformAPIError(platform, `No connected ${platform} account with valid token found`);
   }
 
   // ── Google Ads ──
   if (platform === AdPlatform.GOOGLE) {
-    return createGooglePlatformClient(account.platform_account_id, token, account.refresh_token);
+    return createGooglePlatformClient(
+      account.platform_account_id,
+      token,
+      decryptOAuthTokenFromStorage(account.refresh_token),
+    );
   }
 
   // ── Meta (default) ──
