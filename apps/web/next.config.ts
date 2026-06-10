@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
           permanent: true,
         },
       ]),
+      {
+        source: `/:locale(${localePattern})/signup`,
+        destination: `/:locale/auth/signup`,
+        permanent: true,
+      },
+      {
+        source: `/:locale(${localePattern})/dashboard/agent`,
+        destination: `/:locale/dashboard/ai-agent`,
+        permanent: true,
+      },
     ];
   },
 
