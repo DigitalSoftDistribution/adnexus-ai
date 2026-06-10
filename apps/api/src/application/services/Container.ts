@@ -62,6 +62,8 @@ import { CreateCheckoutSessionUseCase } from '../use-cases/billing/CreateCheckou
 import { CreatePortalSessionUseCase } from '../use-cases/billing/CreatePortalSessionUseCase';
 import { ListInvoicesUseCase } from '../use-cases/billing/ListInvoicesUseCase';
 import { CancelSubscriptionUseCase } from '../use-cases/billing/CancelSubscriptionUseCase';
+import { UpgradePlanUseCase } from '../use-cases/billing/UpgradePlanUseCase';
+import { DowngradePlanUseCase } from '../use-cases/billing/DowngradePlanUseCase';
 import { ListAdsUseCase } from '../use-cases/ad/ListAdsUseCase';
 import { GetAdByIdUseCase } from '../use-cases/ad/GetAdByIdUseCase';
 import { GetAdPerformanceUseCase } from '../use-cases/ad/GetAdPerformanceUseCase';
@@ -247,6 +249,8 @@ export class Container {
   readonly createPortalSession: CreatePortalSessionUseCase;
   readonly listInvoices: ListInvoicesUseCase;
   readonly cancelSubscription: CancelSubscriptionUseCase;
+  readonly upgradePlan: UpgradePlanUseCase;
+  readonly downgradePlan: DowngradePlanUseCase;
   readonly listAds: ListAdsUseCase;
   readonly getAdById: GetAdByIdUseCase;
   readonly getAdPerformance: GetAdPerformanceUseCase;
@@ -401,6 +405,8 @@ export class Container {
     this.createPortalSession = new CreatePortalSessionUseCase(config.billingRepository);
     this.listInvoices = new ListInvoicesUseCase(config.billingRepository);
     this.cancelSubscription = new CancelSubscriptionUseCase(config.billingRepository);
+    this.upgradePlan = new UpgradePlanUseCase(config.billingRepository);
+    this.downgradePlan = new DowngradePlanUseCase(config.billingRepository);
 
     this.listAds = new ListAdsUseCase(config.adRepository);
     this.getAdById = new GetAdByIdUseCase(config.adRepository);

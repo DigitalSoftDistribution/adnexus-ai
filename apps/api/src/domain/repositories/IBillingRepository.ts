@@ -46,6 +46,16 @@ export interface PortalSession {
   url: string | null;
 }
 
+export interface PlanChangeResult {
+  previousPlan: string;
+  plan: string;
+  priceId: string | null;
+  subscriptionId: string | null;
+  checkoutUrl: string | null;
+  effective: 'immediate' | 'period_end';
+  cancelAtPeriodEnd?: boolean;
+}
+
 export interface PlanLimits {
   creatives: number;
   impressions: number;
@@ -70,6 +80,15 @@ export interface IBillingRepository {
   getInvoices(workspaceId: string, limit: number, startingAfter?: string): Promise<{ invoices: Invoice[]; hasMore: boolean }>;
   createCheckoutSession(workspaceId: string, userId: string, email: string, priceId: string, successUrl: string, cancelUrl: string): Promise<CheckoutSession>;
   createPortalSession(workspaceId: string, returnUrl: string): Promise<PortalSession>;
+  upgradePlan(
+    workspaceId: string,
+    userId: string,
+    email: string,
+    targetPlan: string,
+    successUrl: string,
+    cancelUrl: string,
+  ): Promise<PlanChangeResult>;
+  downgradePlan(workspaceId: string, targetPlan: string): Promise<PlanChangeResult>;
   updatePlan(workspaceId: string, plan: PlanTier): Promise<void>;
   cancelSubscription(workspaceId: string): Promise<void>;
 }

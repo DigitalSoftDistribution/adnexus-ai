@@ -24,6 +24,8 @@ const makeRepo = (overrides: Partial<IBillingRepository> = {}): IBillingReposito
     getInvoices: vi.fn(),
     createCheckoutSession: vi.fn(),
     createPortalSession: vi.fn(),
+    upgradePlan: vi.fn(),
+    downgradePlan: vi.fn(),
     updatePlan: vi.fn(),
     cancelSubscription: vi.fn(),
     ...overrides,

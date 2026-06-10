@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,16 @@ interface BillingUsage {
   };
   credits: BillingInfo['credits'];
   detailedBreakdownAvailable: boolean;
+}
+
+interface PlanChangeResult {
+  previousPlan: string;
+  plan: string;
+  priceId: string | null;
+  subscriptionId: string | null;
+  checkoutUrl: string | null;
+  effective: 'immediate' | 'period_end';
+  cancelAtPeriodEnd?: boolean;
 }
 
 const PLAN_RANK: Record<string, number> = {
@@ -152,26 +162,51 @@ function useCreatePortalSession() {
   });
 }
 
-function useCreateCheckoutSession() {
+function useUpgradePlan() {
   const t = useTranslations('billing');
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (priceId: string) => {
+    mutationFn: async (plan: string) => {
       const currentPath = `${window.location.pathname}${window.location.search}`;
-      const res = await fetch('/api/v2/billing/checkout', {
+      const res = await fetch('/api/v2/billing/upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId,
+          plan,
           successUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}success=true`,
           cancelUrl: `${window.location.origin}${currentPath}${currentPath.includes('?') ? '&' : '?'}canceled=true`,
         }),
       });
-      if (!res.ok) throw new Error(t('failedToCreateCheckout'));
+      if (!res.ok) throw new Error(t('failedToUpgrade'));
       const data = await res.json();
-      return (data.data ?? data) as { url: string };
+      return (data.data ?? data) as PlanChangeResult;
     },
     onSuccess: (data) => {
-      if (data.url) window.location.href = data.url;
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey: ['billing'] });
+    },
+  });
+}
+
+function useDowngradePlan() {
+  const t = useTranslations('billing');
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (plan: string) => {
+      const res = await fetch('/api/v2/billing/downgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error(t('failedToDowngrade'));
+      const data = await res.json();
+      return (data.data ?? data) as PlanChangeResult;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['billing'] });
     },
   });
 }
@@ -182,7 +217,8 @@ export function BillingContent() {
   const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, error: invoicesErrorValue, refetch: refetchInvoices } = useInvoices();
   const { data: billingPlans } = useBillingPlans();
   const portalMutation = useCreatePortalSession();
-  const checkoutMutation = useCreateCheckoutSession();
+  const upgradeMutation = useUpgradePlan();
+  const downgradeMutation = useDowngradePlan();
   const t = useTranslations('billing');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -220,9 +256,22 @@ export function BillingContent() {
   const upgradePlan = (billingPlans?.plans ?? [])
     .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) > currentPlanRank)
     .sort((a, b) => (PLAN_RANK[a.plan] ?? 0) - (PLAN_RANK[b.plan] ?? 0))[0] ?? null;
-  const canStartCheckout = Boolean(billingPlans?.billingEnabled && upgradePlan);
+  const downgradePlan = (billingPlans?.plans ?? [])
+    .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) < currentPlanRank)
+    .sort((a, b) => (PLAN_RANK[b.plan] ?? 0) - (PLAN_RANK[a.plan] ?? 0))[0] ?? null;
+  const canChangePlans = Boolean(billingPlans?.billingEnabled);
+  const canUpgrade = canChangePlans && Boolean(upgradePlan);
+  const canDowngrade = canChangePlans && Boolean(billing?.stripeSubscriptionId) && (Boolean(downgradePlan) || currentPlanRank > PLAN_RANK.free);
   const usageCredits = usage?.credits ?? billing?.credits;
-  const showUsageDeferral = usageError || usage?.detailedBreakdownAvailable === false;
+  const showUsageEndpointDeferral = usageError;
+  const showUsageBreakdownDeferral = !usageError && usage?.detailedBreakdownAvailable === false;
+  const planChangeNotice = upgradeMutation.isSuccess && upgradeMutation.data && !upgradeMutation.data.checkoutUrl
+    ? t('planChangeSuccess', { plan: upgradeMutation.data.plan })
+    : downgradeMutation.isSuccess && downgradeMutation.data
+      ? downgradeMutation.data.effective === 'period_end'
+        ? t('planChangeScheduled', { plan: downgradeMutation.data.plan === billing?.plan ? 'free' : downgradeMutation.data.plan })
+        : t('planChangeSuccess', { plan: downgradeMutation.data.plan })
+      : null;
 
   return (
     <div className="space-y-6">
@@ -238,7 +287,7 @@ export function BillingContent() {
         </Card>
       )}
 
-      {canStartCheckout && upgradePlan && (
+      {canUpgrade && upgradePlan && (
         <Card className="border-emerald-200 bg-emerald-50/50">
           <CardContent className="flex flex-col gap-4 pt-6 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-3">
@@ -249,23 +298,47 @@ export function BillingContent() {
               </div>
             </div>
             <Button
-              onClick={() => checkoutMutation.mutate(upgradePlan.priceId)}
-              disabled={checkoutMutation.isPending}
+              onClick={() => upgradeMutation.mutate(upgradePlan.plan)}
+              disabled={upgradeMutation.isPending}
               className="shrink-0"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {checkoutMutation.isPending ? t('startingCheckout') : t('upgradePlan', { plan: upgradePlan.plan })}
+              {upgradeMutation.isPending ? t('changingPlan') : t('upgradePlan', { plan: upgradePlan.plan })}
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {checkoutMutation.isError && (
+      {planChangeNotice && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="flex gap-3 pt-6 text-sm text-emerald-950">
+            <CheckCircle className="mt-0.5 h-4 w-4 flex-none" />
+            <p>{planChangeNotice}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {upgradeMutation.isError && (
         <ErrorState
           title={tc('error')}
-          description={t('failedToCreateCheckout')}
+          description={t('failedToUpgrade')}
           retryLabel={tc('retry')}
-          onRetry={() => upgradePlan && checkoutMutation.mutate(upgradePlan.priceId)}
+          onRetry={() => upgradePlan && upgradeMutation.mutate(upgradePlan.plan)}
+        />
+      )}
+
+      {downgradeMutation.isError && (
+        <ErrorState
+          title={tc('error')}
+          description={t('failedToDowngrade')}
+          retryLabel={tc('retry')}
+          onRetry={() => {
+            if (downgradePlan) {
+              downgradeMutation.mutate(downgradePlan.plan);
+            } else if (currentPlanRank > PLAN_RANK.free) {
+              downgradeMutation.mutate('free');
+            }
+          }}
         />
       )}
 
@@ -326,6 +399,30 @@ export function BillingContent() {
                 </li>
               ))}
             </ul>
+            {canDowngrade && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {downgradePlan && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={downgradeMutation.isPending}
+                    onClick={() => downgradeMutation.mutate(downgradePlan.plan)}
+                  >
+                    {downgradeMutation.isPending ? t('changingPlan') : t('downgradePlan', { plan: downgradePlan.plan })}
+                  </Button>
+                )}
+                {!downgradePlan && currentPlanRank > PLAN_RANK.free && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={downgradeMutation.isPending}
+                    onClick={() => downgradeMutation.mutate('free')}
+                  >
+                    {downgradeMutation.isPending ? t('changingPlan') : t('downgradeToFree')}
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -338,10 +435,16 @@ export function BillingContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {showUsageDeferral && (
+            {showUsageEndpointDeferral && (
               <div className="flex gap-2 rounded-lg border border-sky-200 bg-sky-50/60 p-3 text-sm text-sky-950">
                 <Info className="mt-0.5 h-4 w-4 flex-none" />
-                <p>{usageError ? t('usageEndpointDeferredDetail') : t('usageBreakdownDeferred')}</p>
+                <p>{t('usageEndpointDeferredDetail')}</p>
+              </div>
+            )}
+            {showUsageBreakdownDeferral && (
+              <div className="flex gap-2 rounded-lg border border-sky-200 bg-sky-50/60 p-3 text-sm text-sky-950">
+                <Info className="mt-0.5 h-4 w-4 flex-none" />
+                <p>{t('usageBreakdownDeferred')}</p>
               </div>
             )}
             {usageError && (
