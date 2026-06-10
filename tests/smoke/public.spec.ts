@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectRedirectToSignin, gotoWithRetry } from './helpers';
 
 test.describe('Public Pages', () => {
   test('home page loads with key content and no console errors', async ({ page }) => {
@@ -46,12 +47,12 @@ test.describe('Public Pages', () => {
   });
 
   test('pricing page loads', async ({ page }) => {
-    await page.goto('/en/pricing');
+    await gotoWithRetry(page, '/en/pricing');
     await expect(page.getByRole('heading').first()).toBeVisible();
   });
 
   test('features page loads', async ({ page }) => {
-    await page.goto('/en/features');
+    await gotoWithRetry(page, '/en/features');
     await expect(page.getByRole('heading').first()).toBeVisible();
   });
 });
@@ -70,8 +71,8 @@ test.describe('Auth Guard — Unauthenticated Redirects', () => {
   for (const path of protectedPaths) {
     const label = path.replace('/en/', '').replace(/\//g, ' / ');
     test(`${label} redirects unauthenticated users to signin`, async ({ page }) => {
-      await page.goto(path);
-      await expect(page).toHaveURL(/\/en\/auth\/signin/);
+      await gotoWithRetry(page, path);
+      await expectRedirectToSignin(page);
     });
   }
 });
