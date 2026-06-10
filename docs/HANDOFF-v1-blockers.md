@@ -1,5 +1,17 @@
 # Handoff — the two P0 v1 blockers
 
+> **RESOLVED (2026-06-07)** — Both P0 blockers described below are closed. This file is
+> kept as a historical reference for agents who need the step-by-step context.
+>
+> | Blocker | Resolution date | PR |
+> |---|---|---|
+> | **P0-1** — Wire v2 Clean Architecture into the running server | 2026-06-07 | [#55](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/55) — `mountV2Routes(app)` in `apps/api/src/index.ts:256 |
+> | **P0-2** — Stand up the API as a Coolify app | 2026-06-07 | [#80](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/80) — `adnexus-api` live at `https://adnexus-api.apps.softblaze.net` |
+>
+> Current status: [PATH_TO_V1.md](PATH_TO_V1.md) (status date 2026-06-10).
+
+---
+
 > For the next agent picking up after PR #12 (`fix/api-test-suite-green-2026-06-02`).
 > Context: the test suite is now green and the API has a working Docker image, but
 > two things stand between this and a usable v1. Both are described in
