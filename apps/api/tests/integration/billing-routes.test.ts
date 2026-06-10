@@ -61,6 +61,7 @@ jest.mock('../../src/services/stripe', () => ({
   createStripeCustomer: (...a: unknown[]) => mockCreateStripeCustomer(...(a as [])),
   retrieveInvoices: (...a: unknown[]) => mockRetrieveInvoices(...(a as [])),
   handleWebhookEvent: jest.fn().mockResolvedValue(undefined),
+  isBillingEnabled: jest.fn().mockReturnValue(true),
   stripe: { webhooks: { constructEvent: jest.fn() } },
 }));
 
@@ -97,8 +98,8 @@ describe('GET /api/v1/billing', () => {
     mockWorkspacesFindFirst.mockResolvedValue({
       id: WS_ID,
       name: "Test Workspace",
-      plan: 'free',
-      subscriptionStatus: 'active',
+      plan: 'FREE',
+      subscriptionStatus: 'ACTIVE',
       stripeCustomerId: null,
     });
     mockCreditsFindFirst.mockResolvedValue({
@@ -115,20 +116,20 @@ describe('GET /api/v1/billing', () => {
 
     // Assert — this route returns the billing object directly (no success envelope).
     expect(response.status).toBe(200);
-    expect(response.body.plan).toBe('free');
+    expect(response.body.plan).toBe('FREE');
     expect(response.body.workspaceId).toBe(WS_ID);
     expect(response.body.credits.creativesUsed).toBe(2);
     expect(response.body.credits.aiCreditsTotal).toBe(50); // free plan AI credit limit
   });
 
-  it('should return billing details for pro plan', async () => {
+  it('should return billing details for agency plan', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', WS_ID);
     mockWorkspacesFindFirst.mockResolvedValue({
       id: WS_ID,
-      name: 'Pro Workspace',
-      plan: 'pro',
-      subscriptionStatus: 'active',
+      name: 'Agency Workspace',
+      plan: 'AGENCY',
+      subscriptionStatus: 'ACTIVE',
       stripeCustomerId: 'cus_test',
     });
     mockCreditsFindFirst.mockResolvedValue({ aiCreditsUsed: 850 });
@@ -141,14 +142,14 @@ describe('GET /api/v1/billing', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.body.plan).toBe('pro');
-    expect(response.body.credits.aiCreditsTotal).toBe(25000); // pro plan AI credit limit
+    expect(response.body.plan).toBe('AGENCY');
+    expect(response.body.credits.aiCreditsTotal).toBe(25000); // AGENCY plan AI credit limit
   });
 
   it('should default missing credit record to zero usage', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', WS_ID);
-    mockWorkspacesFindFirst.mockResolvedValue({ id: WS_ID, name: 'WS', plan: 'free' });
+    mockWorkspacesFindFirst.mockResolvedValue({ id: WS_ID, name: 'WS', plan: 'FREE' });
     mockCreditsFindFirst.mockResolvedValue(undefined);
 
     // Act
