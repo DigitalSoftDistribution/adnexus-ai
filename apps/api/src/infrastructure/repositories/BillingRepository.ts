@@ -1,4 +1,11 @@
-import type { IBillingRepository, BillingInfo, Invoice, CheckoutSession, PortalSession } from '../../domain/repositories/IBillingRepository';
+import type {
+  IBillingRepository,
+  BillingInfo,
+  BillingUsage,
+  Invoice,
+  CheckoutSession,
+  PortalSession,
+} from '../../domain/repositories/IBillingRepository';
 import type { PlanTier } from '../../domain/entities/Workspace';
 import { db } from '../../db';
 import { workspaces, workspaceCredits } from '../../db/schema';
@@ -44,6 +51,22 @@ export class BillingRepository implements IBillingRepository {
         aiCreditsUsed: creditRow?.aiCreditsUsed || 0,
         aiCreditsTotal: limits.aiCredits,
       },
+    };
+  }
+
+  async getBillingUsage(workspaceId: string): Promise<BillingUsage | null> {
+    const info = await this.getBillingInfo(workspaceId);
+    if (!info) return null;
+
+    return {
+      workspaceId: info.workspaceId,
+      plan: info.plan,
+      period: {
+        start: info.currentPeriodStart ? info.currentPeriodStart.toISOString() : null,
+        end: info.currentPeriodEnd ? info.currentPeriodEnd.toISOString() : null,
+      },
+      credits: info.credits,
+      detailedBreakdownAvailable: false,
     };
   }
 

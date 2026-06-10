@@ -388,6 +388,10 @@ export interface Messages {
     'noActiveSubscription': string;
     'usageThisPeriod': string;
     'usageDescription': string;
+    'failedToFetchUsage': string;
+    'usageEndpointDeferred': string;
+    'usageEndpointDeferredDetail': string;
+    'usageBreakdownDeferred': string;
     'creatives': string;
     'aiCredits': string;
     'invoices': string;

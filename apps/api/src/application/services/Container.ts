@@ -56,6 +56,7 @@ import { ExecuteDraftUseCase } from '../use-cases/draft/ExecuteDraftUseCase';
 import { GetWorkspaceUseCase } from '../use-cases/workspace/GetWorkspaceUseCase';
 import { InviteMemberUseCase } from '../use-cases/workspace/InviteMemberUseCase';
 import { GetBillingInfoUseCase } from '../use-cases/billing/GetBillingInfoUseCase';
+import { GetBillingUsageUseCase } from '../use-cases/billing/GetBillingUsageUseCase';
 import { CreateCheckoutSessionUseCase } from '../use-cases/billing/CreateCheckoutSessionUseCase';
 import { CreatePortalSessionUseCase } from '../use-cases/billing/CreatePortalSessionUseCase';
 import { ListInvoicesUseCase } from '../use-cases/billing/ListInvoicesUseCase';
@@ -237,6 +238,7 @@ export class Container {
   readonly getWorkspace: GetWorkspaceUseCase;
   readonly inviteMember: InviteMemberUseCase;
   readonly getBillingInfo: GetBillingInfoUseCase;
+  readonly getBillingUsage: GetBillingUsageUseCase;
   readonly createCheckoutSession: CreateCheckoutSessionUseCase;
   readonly createPortalSession: CreatePortalSessionUseCase;
   readonly listInvoices: ListInvoicesUseCase;
@@ -388,6 +390,7 @@ export class Container {
     );
 
     this.getBillingInfo = new GetBillingInfoUseCase(config.billingRepository);
+    this.getBillingUsage = new GetBillingUsageUseCase(config.billingRepository);
     this.createCheckoutSession = new CreateCheckoutSessionUseCase(config.billingRepository);
     this.createPortalSession = new CreatePortalSessionUseCase(config.billingRepository);
     this.listInvoices = new ListInvoicesUseCase(config.billingRepository);

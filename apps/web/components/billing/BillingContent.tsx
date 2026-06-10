@@ -59,6 +59,17 @@ interface BillingPlansResponse {
   message: string | null;
 }
 
+interface BillingUsage {
+  workspaceId: string;
+  plan: string;
+  period: {
+    start: string | null;
+    end: string | null;
+  };
+  credits: BillingInfo['credits'];
+  detailedBreakdownAvailable: boolean;
+}
+
 const PLAN_RANK: Record<string, number> = {
   free: 0,
   starter: 1,
@@ -90,6 +101,20 @@ function useInvoices() {
       const data = await res.json();
       return data.data ?? data;
     },
+  });
+}
+
+function useBillingUsage() {
+  const t = useTranslations('billing');
+  return useQuery({
+    queryKey: ['billing', 'usage'],
+    queryFn: async (): Promise<BillingUsage> => {
+      const res = await fetch('/api/v2/billing/usage');
+      if (!res.ok) throw new Error(t('failedToFetchUsage'));
+      const data = await res.json();
+      return data.data ?? data;
+    },
+    retry: false,
   });
 }
 
@@ -153,6 +178,7 @@ function useCreateCheckoutSession() {
 
 export function BillingContent() {
   const { data: billing, isLoading: billingLoading, isError: billingError, refetch: refetchBilling } = useBillingInfo();
+  const { data: usage, isError: usageError, refetch: refetchUsage } = useBillingUsage();
   const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesError, error: invoicesErrorValue, refetch: refetchInvoices } = useInvoices();
   const { data: billingPlans } = useBillingPlans();
   const portalMutation = useCreatePortalSession();
@@ -195,6 +221,8 @@ export function BillingContent() {
     .filter((candidate) => (PLAN_RANK[candidate.plan] ?? -1) > currentPlanRank)
     .sort((a, b) => (PLAN_RANK[a.plan] ?? 0) - (PLAN_RANK[b.plan] ?? 0))[0] ?? null;
   const canStartCheckout = Boolean(billingPlans?.billingEnabled && upgradePlan);
+  const usageCredits = usage?.credits ?? billing?.credits;
+  const showUsageDeferral = usageError || usage?.detailedBreakdownAvailable === false;
 
   return (
     <div className="space-y-6">
@@ -305,23 +333,36 @@ export function BillingContent() {
         <Card>
           <CardHeader>
             <CardTitle>{t('usageThisPeriod')}</CardTitle>
-            <CardDescription>{t('usageDescription')}</CardDescription>
+            <CardDescription>
+              {usageError ? t('usageEndpointDeferred') : t('usageDescription')}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {showUsageDeferral && (
+              <div className="flex gap-2 rounded-lg border border-sky-200 bg-sky-50/60 p-3 text-sm text-sky-950">
+                <Info className="mt-0.5 h-4 w-4 flex-none" />
+                <p>{usageError ? t('usageEndpointDeferredDetail') : t('usageBreakdownDeferred')}</p>
+              </div>
+            )}
+            {usageError && (
+              <Button variant="outline" size="sm" onClick={() => refetchUsage()}>
+                {tc('retry')}
+              </Button>
+            )}
             <UsageBar
               label={t('creatives')}
-              used={billing?.credits.creativesUsed ?? 0}
-              total={billing?.credits.creativesTotal ?? 0}
+              used={usageCredits?.creativesUsed ?? 0}
+              total={usageCredits?.creativesTotal ?? 0}
             />
             <UsageBar
               label={tc('impressions')}
-              used={billing?.credits.impressionsUsed ?? 0}
-              total={billing?.credits.impressionsTotal ?? 0}
+              used={usageCredits?.impressionsUsed ?? 0}
+              total={usageCredits?.impressionsTotal ?? 0}
             />
             <UsageBar
               label={t('aiCredits')}
-              used={billing?.credits.aiCreditsUsed ?? 0}
-              total={billing?.credits.aiCreditsTotal ?? 0}
+              used={usageCredits?.aiCreditsUsed ?? 0}
+              total={usageCredits?.aiCreditsTotal ?? 0}
             />
           </CardContent>
         </Card>

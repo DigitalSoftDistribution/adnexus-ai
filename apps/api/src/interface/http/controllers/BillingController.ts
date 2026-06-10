@@ -18,6 +18,19 @@ export function createBillingController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    getUsage: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getBillingUsage.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
     getPlans: asyncHandler<AuthenticatedRequest>(async (_req, res) => {
       res.json({
         success: true,
