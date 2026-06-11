@@ -53,8 +53,11 @@ WORKDIR /app
 # symlink tree so the runtime can resolve direct deps (e.g. express).
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=node:node /app/apps/api/migrations ./apps/api/migrations
 COPY --from=builder --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
+RUN chmod +x /app/apps/api/docker-entrypoint.sh
 COPY --from=builder --chown=node:node /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=node:node /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=builder --chown=node:node /app/packages/shared/node_modules ./packages/shared/node_modules
@@ -62,8 +65,8 @@ COPY --from=builder --chown=node:node /app/packages/shared/node_modules ./packag
 USER node
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["/app/apps/api/docker-entrypoint.sh"]
