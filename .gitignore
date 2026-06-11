@@ -42,6 +42,9 @@ logs/
 
 # Testing
 coverage/
+playwright/.auth/
+test-results/
+playwright-report/
 
 # Docker
 docker-compose.override.yml
