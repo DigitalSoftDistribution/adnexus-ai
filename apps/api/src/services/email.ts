@@ -264,7 +264,9 @@ export class EmailService {
     };
     const cpa = (spend: number, conversions: number) => (conversions > 0 ? spend / conversions : 0);
 
-    // Rank campaigns by day-over-day ROAS movement
+    // Rank campaigns by day-over-day ROAS movement. Winners must have
+    // improved and losers must have declined — on a day where everything
+    // moved one way, the other list is simply empty.
     const prevByCampaign = new Map(pRows.map((r) => [r.campaign_id, r]));
     const movements = yRows
       .map((r) => {
@@ -277,6 +279,8 @@ export class EmailService {
       })
       .filter((m) => m.change !== 0)
       .sort((a, b) => b.change - a.change);
+    const winners = movements.filter((m) => m.change > 0);
+    const losers = movements.filter((m) => m.change < 0);
 
     // Pending AI drafts double as actionable recommendations
     const { data: pendingDrafts } = await supabase
@@ -297,8 +301,8 @@ export class EmailService {
         conversions: { value: yConv, change: pctChange(yConv, pConv) },
         cpa: { value: cpa(ySpend, yConv), change: pctChange(cpa(ySpend, yConv), cpa(pSpend, pConv)) },
       },
-      topWinners: movements.slice(0, 2),
-      topLosers: movements.slice(-2).reverse(),
+      topWinners: winners.slice(0, 2),
+      topLosers: losers.slice(-2).reverse(),
       recommendations: (pendingDrafts ?? []).map((d) => ({
         id: d.id as string,
         title: (d.change_summary as string) ?? `Proposed ${d.draft_type} for ${d.campaign_name}`,

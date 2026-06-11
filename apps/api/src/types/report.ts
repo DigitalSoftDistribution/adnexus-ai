@@ -183,6 +183,8 @@ export interface ReportJobData {
 /** Report schedule configuration */
 export interface ReportSchedule {
   scheduleId: string;
+  /** Owning workspace — propagated to generated reports for workspace-scoped queries */
+  workspaceId?: string;
   name: string;
   frequency: 'daily' | 'weekly' | 'monthly';
   dayOfWeek?: number;

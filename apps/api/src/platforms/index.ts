@@ -839,16 +839,22 @@ export class PlatformManager {
   ): Promise<CrossPlatformInsights> {
     const clients = await this.getClientsForWorkspace(workspaceId);
 
-    // Gather all campaigns first
+    // Gather all campaigns first, remembering which client (ad account) each
+    // campaign came from — a workspace can hold several accounts on the same
+    // platform, so insights must be fetched with the owning account's client.
     const allCampaigns: UnifiedCampaign[] = [];
+    const clientByCampaign = new Map<UnifiedCampaign, PlatformClient>();
     const campaignFetchResults = await Promise.allSettled(
       clients.map(async ({ client }) => client.getCampaigns()),
     );
-    for (const result of campaignFetchResults) {
+    campaignFetchResults.forEach((result, i) => {
       if (result.status === 'fulfilled') {
-        allCampaigns.push(...result.value);
+        for (const campaign of result.value) {
+          allCampaigns.push(campaign);
+          clientByCampaign.set(campaign, clients[i].client);
+        }
       }
-    }
+    });
 
     // Calculate consolidated totals
     const consolidated = {
@@ -924,10 +930,6 @@ export class PlatformManager {
     // campaign, so bound the fan-out to the top-spend campaigns per platform
     // to keep platform API call volume predictable.
     const TRENDS_CAMPAIGNS_PER_PLATFORM = 10;
-    const clientByPlatform = new Map<Platform, PlatformClient>();
-    for (const { platform, client } of clients) {
-      if (!clientByPlatform.has(platform)) clientByPlatform.set(platform, client);
-    }
 
     const trendCandidates = Array.from(
       allCampaigns
@@ -944,7 +946,7 @@ export class PlatformManager {
 
     const insightResults = await Promise.allSettled(
       trendCandidates.map(async (campaign) => {
-        const client = clientByPlatform.get(campaign.platform);
+        const client = clientByCampaign.get(campaign);
         if (!client) return [];
         return client.getInsights(campaign.platformCampaignId, dateRange);
       }),

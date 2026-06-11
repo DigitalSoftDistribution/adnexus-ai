@@ -295,8 +295,18 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('Schedule is inactive', 'validation', false);
     }
 
-    // Generate the report using schedule parameters
-    const result = await this.generateReport(schedule.reportParams, job, tempManager);
+    // Generate the report using schedule parameters, threading through the
+    // schedule identity so persistence links the result to its schedule and
+    // workspace (workspace-scoped GET /reports relies on workspace_id).
+    const result = await this.generateReport(
+      {
+        ...schedule.reportParams,
+        workspaceId: schedule.workspaceId ?? schedule.reportParams.workspaceId,
+        scheduledScheduleId: scheduleId,
+      },
+      job,
+      tempManager,
+    );
 
     // Send email if recipients are configured
     if (schedule.emailRecipients && schedule.emailRecipients.length > 0) {
