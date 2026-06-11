@@ -3,6 +3,7 @@ import type { ApiKey } from '../../domain/entities/ApiKey';
 import type { WorkspaceRole } from '../../domain/entities/User';
 import { PLAN_LIMITS, type WorkspaceLimits, type PlanTier } from '../../domain/entities/Workspace';
 import { query } from '../database/connection';
+import { ensureApiKeysSchema } from '../database/ensureApiKeysSchema';
 import { createHash, randomBytes } from 'crypto';
 
 export class SettingsRepository implements ISettingsRepository {
@@ -335,6 +336,8 @@ export class SettingsRepository implements ISettingsRepository {
 
   // API Keys
   async getApiKeys(workspaceId: string): Promise<ApiKey[]> {
+    await ensureApiKeysSchema();
+
     const { rows } = await query<Record<string, unknown>>(
       `SELECT id, workspace_id, name, key_hash, key_prefix, scopes, platforms, status,
               expires_at, created_by, revoked_by, revoked_at, last_used_at,
@@ -349,6 +352,8 @@ export class SettingsRepository implements ISettingsRepository {
   }
 
   async createApiKey(workspaceId: string, name: string): Promise<ApiKey & { fullKey: string }> {
+    await ensureApiKeysSchema();
+
     const fullKey = `ak_live_${randomBytes(24).toString('base64url')}`;
     const keyHash = createHash('sha256').update(fullKey).digest('hex');
     const keyPrefix = `${fullKey.slice(0, 8)}...${fullKey.slice(-4)}`;
