@@ -196,6 +196,17 @@ export class EmailService {
     }).format(date);
   }
 
+  /** UTC instant of midnight on the given local calendar day (YYYY-MM-DD). */
+  private startOfLocalDayUtc(day: string, timeZone: string): Date {
+    const utcGuess = new Date(`${day}T00:00:00Z`);
+    // sv-SE renders as "YYYY-MM-DD HH:mm:ss" — reinterpret the zone-local
+    // wall-clock time as UTC to derive the zone offset at that instant.
+    const wallClock = utcGuess.toLocaleString('sv-SE', { timeZone });
+    const wallClockAsUtc = new Date(wallClock.replace(' ', 'T') + 'Z');
+    const offsetMs = wallClockAsUtc.getTime() - utcGuess.getTime();
+    return new Date(utcGuess.getTime() - offsetMs);
+  }
+
   private async getWorkspaceName(workspaceId: string): Promise<string> {
     const { data, error } = await supabase
       .from('workspaces')
@@ -394,7 +405,9 @@ export class EmailService {
         conversions: c.conversions,
       }));
 
-    const weekStartDate = daysAgo(7);
+    // Anchor audit counts to the same local calendar week as the metrics
+    // above, not a rolling instant from email-send time
+    const weekStartDate = this.startOfLocalDayUtc(currentStart, tz);
     const [{ count: aiActions }, { count: draftsCreated }] = await Promise.all([
       supabase
         .from('audit_log')

@@ -354,19 +354,28 @@ router.post(
     const body = schema.parse(req.body);
 
     // Enforce the workspace plan's campaign quota before drafting (mirrors
-    // the v2 CreateCampaignUseCase maxCampaigns check)
+    // the v2 CreateCampaignUseCase maxCampaigns check). Pending
+    // campaign_create drafts count against the quota too — this handler only
+    // creates a draft, so counting campaigns alone would allow unlimited
+    // queued creations.
     const { rows: planRows } = await query<{ plan: PlanTier | null }>(
       'SELECT plan FROM workspaces WHERE id = $1',
       [workspaceId],
     );
     const limits = PLAN_LIMITS[planRows[0]?.plan ?? 'free'] ?? PLAN_LIMITS.free;
     const { rows: countRows } = await query<{ count: string }>(
-      'SELECT COUNT(*)::text AS count FROM campaigns WHERE workspace_id = $1',
+      `SELECT (
+         (SELECT COUNT(*) FROM campaigns WHERE workspace_id = $1)
+         + (SELECT COUNT(*) FROM drafts
+              WHERE workspace_id = $1
+                AND draft_type = 'campaign_create'
+                AND status = 'pending')
+       )::text AS count`,
       [workspaceId],
     );
     if (parseInt(countRows[0]?.count ?? '0', 10) >= limits.maxCampaigns) {
       throw new ForbiddenError(
-        `Campaign limit reached for your plan (${limits.maxCampaigns}). Upgrade your plan to create more campaigns.`,
+        `Campaign limit reached for your plan (${limits.maxCampaigns}), including pending campaign drafts. Upgrade your plan to create more campaigns.`,
       );
     }
 
