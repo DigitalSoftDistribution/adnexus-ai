@@ -120,7 +120,7 @@ const unauthenticatedApiPaths = [
   '/api/v2/integrations',
   '/api/v2/drafts',
   '/api/v2/billing',
-  '/api/v2/settings',
+  '/api/v2/settings/workspace',
   '/api/v2/reports',
 ];
 
@@ -189,7 +189,7 @@ for (const path of unauthenticatedApiPaths) {
 }
 
 if (options.token) {
-  for (const path of ['/api/v2/campaigns/summary', '/api/v2/integrations', '/api/v2/drafts', '/api/v2/billing', '/api/v2/settings']) {
+  for (const path of ['/api/v2/campaigns/summary', '/api/v2/integrations', '/api/v2/drafts', '/api/v2/billing', '/api/v2/settings/workspace']) {
     checks.push({
       name: `api authed ${path}`,
       url: joinUrl(options.baseUrl, path),
