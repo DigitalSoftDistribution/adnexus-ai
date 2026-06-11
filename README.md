@@ -63,7 +63,14 @@ pnpm build
 
 ## Environment Variables
 
-See `apps/api/src/config/index.ts` and `apps/web/.env.example` for required variables.
+See `apps/api/.env.example` / `apps/api/src/config/index.ts` (backend) and `apps/web/.env.example` (frontend) for required variables.
+
+## Project status
+
+- **Current state (source of truth):** `docs/PATH_TO_V1.md`
+- **Honest feature inventory / what is intentionally limited:** `docs/KNOWN_LIMITATIONS.md`
+- **Security posture:** `SECURITY_AUDIT.md` (see the 2026-06 status addendum at the top)
+- Historical reports (`FINAL_STATUS.md`, `plan*.md`, `V2-ROADMAP.md`) are kept for reference and may describe older states.
 
 ## Launch readiness
 
@@ -71,4 +78,4 @@ The v1 launch safety net lives in `docs/V1_LAUNCH_READINESS.md`. Run `pnpm smoke
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
