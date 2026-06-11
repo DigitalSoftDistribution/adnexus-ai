@@ -191,4 +191,23 @@ describe('BillingContent', () => {
     expect(await screen.findByText('Plan changes are unavailable')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /upgrade to/i })).not.toBeInTheDocument();
   });
+
+  it('shows a retryable billing error when the workspace is unauthorized', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/v2/billing') {
+          return { ok: false, status: 401, json: async () => ({ error: { message: 'Unauthorized' } }) } as Response;
+        }
+        return { ok: false, json: async () => ({}) } as Response;
+      }),
+    );
+
+    renderBilling();
+
+    expect(await screen.findByText('Failed to fetch billing info')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText('free Plan')).not.toBeInTheDocument();
+  });
 });
