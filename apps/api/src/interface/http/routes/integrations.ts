@@ -8,6 +8,14 @@ export function createIntegrationRoutes(container: Container): Router {
   const controller = createIntegrationController(container);
 
   router.get('/', requireAuth, controller.list as any);
+  // Preview/dev-only QA harness: seeds fake Meta/Google accounts, campaigns, and metrics.
+  // Must be registered before /:platform param routes.
+  router.post(
+    '/mock-traffic/seed',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.seedMockTraffic as any,
+  );
   router.post(
     '/:platform/connect',
     requireAuth,
