@@ -78,5 +78,74 @@ export function createReportController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    results: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getReportResults.execute({
+        reportId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    listScheduled: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.listScheduledReports) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SCHEDULED_REPORTS_UNAVAILABLE', message: 'Scheduled reports are not configured' },
+        });
+        return;
+      }
+      const result = await container.listScheduledReports.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    createScheduled: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.createScheduledReport) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SCHEDULED_REPORTS_UNAVAILABLE', message: 'Scheduled reports are not configured' },
+        });
+        return;
+      }
+      const result = await container.createScheduledReport.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        name: req.body.name,
+        description: req.body.description,
+        reportType: req.body.reportType,
+        config: req.body.config,
+        scheduleCron: req.body.scheduleCron,
+        recipients: req.body.recipients,
+        format: req.body.format,
+      });
+      if (!result.success) throw result.error;
+      res.status(201).json({ success: true, data: result.data });
+    }),
+
+    deleteScheduled: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.deleteScheduledReport) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'SCHEDULED_REPORTS_UNAVAILABLE', message: 'Scheduled reports are not configured' },
+        });
+        return;
+      }
+      const result = await container.deleteScheduledReport.execute({
+        scheduledReportId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.status(204).send();
+    }),
   };
 }

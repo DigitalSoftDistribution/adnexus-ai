@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ListWebhookConfigsUseCase } from './ListWebhookConfigsUseCase';
 import { CreateWebhookConfigUseCase } from './CreateWebhookConfigUseCase';
+import { UpdateWebhookConfigUseCase } from './UpdateWebhookConfigUseCase';
+import { DeleteWebhookConfigUseCase } from './DeleteWebhookConfigUseCase';
+import { ListWebhookDeliveriesUseCase } from './ListWebhookDeliveriesUseCase';
 import type { IWebhookRepository } from '../../../domain/repositories/IWebhookRepository';
 import type { WebhookConfig } from '../../../domain/entities/WebhookConfig';
 
@@ -22,11 +25,14 @@ const config: WebhookConfig = {
 const makeRepo = (overrides: Partial<IWebhookRepository> = {}): IWebhookRepository =>
   ({
     listConfigs: vi.fn().mockResolvedValue([config]),
-    findConfigById: vi.fn(),
+    findConfigById: vi.fn().mockResolvedValue(config),
+    findConfigByIdAndWorkspace: vi.fn().mockResolvedValue(config),
     createConfig: vi.fn().mockResolvedValue(config),
-    updateConfig: vi.fn(),
-    deleteConfig: vi.fn(),
-    listDeliveries: vi.fn(),
+    updateConfig: vi.fn().mockResolvedValue(config),
+    deleteConfig: vi.fn().mockResolvedValue(true),
+    listDeliveries: vi.fn().mockResolvedValue([]),
+    listDeliveriesForWorkspace: vi.fn().mockResolvedValue([]),
+    recordDelivery: vi.fn(),
     ...overrides,
   }) as IWebhookRepository;
 
@@ -94,5 +100,46 @@ describe('CreateWebhookConfigUseCase', () => {
     expect(repo.createConfig).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Hook', url: 'https://x.io' }),
     );
+  });
+});
+
+describe('UpdateWebhookConfigUseCase', () => {
+  it('updates a config for an admin', async () => {
+    const repo = makeRepo();
+    const res = await new UpdateWebhookConfigUseCase(repo).execute({
+      webhookId: 'wh-1', workspaceId: 'ws-1', userRole: 'admin', name: 'Renamed',
+    });
+    expect(res.success).toBe(true);
+    expect(repo.updateConfig).toHaveBeenCalledWith('wh-1', { name: 'Renamed' });
+  });
+
+  it('denies an editor (403)', async () => {
+    const res = await new UpdateWebhookConfigUseCase(makeRepo()).execute({
+      webhookId: 'wh-1', workspaceId: 'ws-1', userRole: 'editor', name: 'Nope',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(403);
+  });
+});
+
+describe('DeleteWebhookConfigUseCase', () => {
+  it('deletes for an admin', async () => {
+    const repo = makeRepo();
+    const res = await new DeleteWebhookConfigUseCase(repo).execute({
+      webhookId: 'wh-1', workspaceId: 'ws-1', userRole: 'admin',
+    });
+    expect(res.success).toBe(true);
+    expect(repo.deleteConfig).toHaveBeenCalledWith('wh-1');
+  });
+});
+
+describe('ListWebhookDeliveriesUseCase', () => {
+  it('lists workspace deliveries for an admin', async () => {
+    const repo = makeRepo();
+    const res = await new ListWebhookDeliveriesUseCase(repo).execute({
+      workspaceId: 'ws-1', userRole: 'admin',
+    });
+    expect(res.success).toBe(true);
+    expect(repo.listDeliveriesForWorkspace).toHaveBeenCalledWith('ws-1');
   });
 });
