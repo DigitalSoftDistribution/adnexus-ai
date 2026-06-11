@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Invalid email or password",
+    "forgotPasswordTitle": "Forgot your password?",
+    "forgotPasswordSubtitle": "Enter your email address and we'll send you a link to reset your password",
+    "sendResetLink": "Send Reset Link",
+    "resetEmailSentTitle": "Check your email",
+    "resetEmailSentDescription": "If an account exists for that email address, we've sent a password reset link. The link expires in 1 hour.",
+    "resetRequestFailed": "Could not send the reset email. Please try again.",
+    "backToSignIn": "Back to sign in",
+    "resetPassword": "Reset Password",
+    "resetPasswordTitle": "Reset your password",
+    "resetPasswordSubtitle": "Enter a new password for your account",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordRequired": "Please confirm your new password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "resetPasswordSuccessTitle": "Password reset successful",
+    "resetPasswordSuccessDescription": "Your password has been updated. You can now sign in with your new password.",
+    "resetPasswordFailed": "Password reset failed. Please try again.",
+    "invalidResetTokenTitle": "Invalid or expired link",
+    "invalidResetTokenDescription": "This password reset link is invalid or has expired. Please request a new one.",
+    "requestNewLink": "Request a new link"
   },
   "dashboard": {
     "title": "Painel",
@@ -330,7 +350,9 @@
     "connectPlatform": "Conectar uma plataforma",
     "failedToSync": "Falha ao sincronizar a campanha",
     "sync": "Sincronizar",
-    "syncing": "A sincronizar..."
+    "syncing": "A sincronizar...",
+    "deleteCampaignTitle": "Delete campaign",
+    "deleteCampaignDescription": "Are you sure you want to delete “{name}”? This action cannot be undone."
   },
   "drafts": {
     "title": "Rascunhos",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Ainda não há chaves de API",
     "apiKeysPlaceholder": "Gere uma chave de API para aceder à API do AdNexus de forma programática.",
-    "created": "Criado"
+    "created": "Criado",
+    "removeMemberTitle": "Remove team member",
+    "removeMemberDescription": "Are you sure you want to remove {name} from this workspace? They will immediately lose access.",
+    "removeMemberConfirm": "Remove",
+    "revokeApiKeyTitle": "Revoke API key",
+    "revokeApiKeyDescription": "Are you sure you want to revoke the API key “{name}”? Any applications using this key will stop working immediately.",
+    "revokeApiKeyConfirm": "Revoke"
   },
   "billing": {
     "title": "Faturação",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Falha ao obter a campanha",
     "failedToFetchAdSets": "Falha ao obter os conjuntos de anúncios",
     "failedToFetchHistory": "Falha ao obter o histórico",
-    "failedToFetchAds": "Falha ao obter os anúncios"
+    "failedToFetchAds": "Falha ao obter os anúncios",
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedErrorDescription": "An unexpected error occurred. Please try again.",
+    "tryAgain": "Try again"
   },
   "notifications": {
     "title": "Notificações",

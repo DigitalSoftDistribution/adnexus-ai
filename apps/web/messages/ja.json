@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Invalid email or password",
+    "forgotPasswordTitle": "Forgot your password?",
+    "forgotPasswordSubtitle": "Enter your email address and we'll send you a link to reset your password",
+    "sendResetLink": "Send Reset Link",
+    "resetEmailSentTitle": "Check your email",
+    "resetEmailSentDescription": "If an account exists for that email address, we've sent a password reset link. The link expires in 1 hour.",
+    "resetRequestFailed": "Could not send the reset email. Please try again.",
+    "backToSignIn": "Back to sign in",
+    "resetPassword": "Reset Password",
+    "resetPasswordTitle": "Reset your password",
+    "resetPasswordSubtitle": "Enter a new password for your account",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordRequired": "Please confirm your new password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "resetPasswordSuccessTitle": "Password reset successful",
+    "resetPasswordSuccessDescription": "Your password has been updated. You can now sign in with your new password.",
+    "resetPasswordFailed": "Password reset failed. Please try again.",
+    "invalidResetTokenTitle": "Invalid or expired link",
+    "invalidResetTokenDescription": "This password reset link is invalid or has expired. Please request a new one.",
+    "requestNewLink": "Request a new link"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -330,7 +350,9 @@
     "connectPlatform": "プラットフォームを接続",
     "failedToSync": "キャンペーンの同期に失敗しました",
     "sync": "同期",
-    "syncing": "同期中..."
+    "syncing": "同期中...",
+    "deleteCampaignTitle": "Delete campaign",
+    "deleteCampaignDescription": "Are you sure you want to delete “{name}”? This action cannot be undone."
   },
   "drafts": {
     "title": "下書き",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "APIキーはまだありません",
     "apiKeysPlaceholder": "APIキーを生成して、AdNexus APIにプログラムからアクセスします。",
-    "created": "作成日"
+    "created": "作成日",
+    "removeMemberTitle": "Remove team member",
+    "removeMemberDescription": "Are you sure you want to remove {name} from this workspace? They will immediately lose access.",
+    "removeMemberConfirm": "Remove",
+    "revokeApiKeyTitle": "Revoke API key",
+    "revokeApiKeyDescription": "Are you sure you want to revoke the API key “{name}”? Any applications using this key will stop working immediately.",
+    "revokeApiKeyConfirm": "Revoke"
   },
   "billing": {
     "title": "請求",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "キャンペーンの取得に失敗しました",
     "failedToFetchAdSets": "広告セットの取得に失敗しました",
     "failedToFetchHistory": "履歴の取得に失敗しました",
-    "failedToFetchAds": "広告の取得に失敗しました"
+    "failedToFetchAds": "広告の取得に失敗しました",
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedErrorDescription": "An unexpected error occurred. Please try again.",
+    "tryAgain": "Try again"
   },
   "notifications": {
     "title": "通知",
