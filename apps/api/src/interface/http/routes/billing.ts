@@ -8,9 +8,12 @@ export function createBillingRoutes(container: Container): Router {
   const controller = createBillingController(container);
 
   router.get('/', requireAuth, controller.getInfo as any);
+  router.get('/usage', requireAuth, controller.getUsage as any);
   router.get('/plans', requireAuth, controller.getPlans as any);
   router.get('/invoices', requireAuth, controller.listInvoices as any);
   router.post('/checkout', requireAuth, requireRole('owner', 'admin') as any, controller.createCheckout as any);
+  router.post('/upgrade', requireAuth, requireRole('owner') as any, controller.upgrade as any);
+  router.post('/downgrade', requireAuth, requireRole('owner') as any, controller.downgrade as any);
   router.post('/portal', requireAuth, requireRole('owner', 'admin') as any, controller.createPortal as any);
   router.post('/cancel', requireAuth, requireRole('owner') as any, controller.cancel as any);
 
