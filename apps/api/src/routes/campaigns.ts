@@ -363,9 +363,14 @@ router.post(
       [workspaceId],
     );
     const limits = PLAN_LIMITS[planRows[0]?.plan ?? 'free'] ?? PLAN_LIMITS.free;
+    // Campaigns are workspace-scoped via their ad account (synced rows may
+    // not populate campaigns.workspace_id), so count through the same join
+    // the list endpoints use.
     const { rows: countRows } = await query<{ count: string }>(
       `SELECT (
-         (SELECT COUNT(*) FROM campaigns WHERE workspace_id = $1)
+         (SELECT COUNT(*) FROM campaigns c
+            LEFT JOIN ad_accounts a ON a.id = c.ad_account_id
+           WHERE c.workspace_id = $1 OR a.workspace_id = $1)
          + (SELECT COUNT(*) FROM drafts
               WHERE workspace_id = $1
                 AND draft_type = 'campaign_create'

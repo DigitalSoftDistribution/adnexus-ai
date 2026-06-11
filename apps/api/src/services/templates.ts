@@ -1,5 +1,15 @@
 import { MorningBriefData, WeeklySummaryData, AlertData } from './email';
 
+/** Escape user/AI-supplied text before interpolating it into email HTML. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const colors = {
   primary: '#2563EB',
   primaryHover: '#1D4ED8',
@@ -240,20 +250,21 @@ export function draftApprovalTemplate(draft: {
   /** Free-text impact estimate (drafts.impact_estimate) shown when structured numbers aren't available */
   impactSummary?: string;
 }, appUrl: string): string {
+  // Draft fields originate from user/AI free text — escape before rendering
   const changesTable = draft.changes.map((change) => `
     <tr>
-      <td style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: ${colors.gray700}; border-bottom: 1px solid ${colors.gray200}; background-color: ${colors.gray50};">${change.field}</td>
-      <td style="padding: 14px 16px; font-size: 13px; color: ${colors.danger}; border-bottom: 1px solid ${colors.gray200};"><s>${change.from}</s></td>
-      <td style="padding: 14px 16px; font-size: 13px; color: ${colors.success}; font-weight: 600; border-bottom: 1px solid ${colors.gray200};">${change.to}</td>
-      <td style="padding: 14px 16px; font-size: 12px; color: ${colors.gray500}; border-bottom: 1px solid ${colors.gray200};">${change.reason}</td>
+      <td style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: ${colors.gray700}; border-bottom: 1px solid ${colors.gray200}; background-color: ${colors.gray50};">${escapeHtml(change.field)}</td>
+      <td style="padding: 14px 16px; font-size: 13px; color: ${colors.danger}; border-bottom: 1px solid ${colors.gray200};"><s>${escapeHtml(change.from)}</s></td>
+      <td style="padding: 14px 16px; font-size: 13px; color: ${colors.success}; font-weight: 600; border-bottom: 1px solid ${colors.gray200};">${escapeHtml(change.to)}</td>
+      <td style="padding: 14px 16px; font-size: 12px; color: ${colors.gray500}; border-bottom: 1px solid ${colors.gray200};">${escapeHtml(change.reason)}</td>
     </tr>
   `).join('');
 
   const content = `
     <div style="padding: 32px 40px;">
       <p style="margin: 0 0 4px; font-size: 14px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">Approval Required</p>
-      <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: ${colors.gray900};">Draft Changes — ${draft.campaignName}</h1>
-      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">Proposed by <strong>${draft.proposedBy}</strong></p>
+      <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: ${colors.gray900};">Draft Changes — ${escapeHtml(draft.campaignName)}</h1>
+      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">Proposed by <strong>${escapeHtml(draft.proposedBy)}</strong></p>
 
       <div style="margin-bottom: 32px;">
         <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: ${colors.gray700};">Proposed Changes</h3>
@@ -290,7 +301,7 @@ export function draftApprovalTemplate(draft: {
       </div>` : draft.impactSummary ? `
       <div style="padding: 20px; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 10px; margin-bottom: 32px; text-align: center;">
         <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: ${colors.gray700};">📊 Estimated Impact</h3>
-        <p style="margin: 0; font-size: 14px; color: ${colors.gray700};">${draft.impactSummary}</p>
+        <p style="margin: 0; font-size: 14px; color: ${colors.gray700};">${escapeHtml(draft.impactSummary)}</p>
       </div>` : ''}
 
       <div style="text-align: center;">
