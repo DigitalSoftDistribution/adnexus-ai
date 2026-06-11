@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db/connection';
-import { ValidationError, NotFoundError } from '../lib/errors';
+import { ValidationError, NotFoundError, ForbiddenError } from '../lib/errors';
+import { PLAN_LIMITS, type PlanTier } from '../domain/entities/Workspace';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireRole } from '../middleware/authenticate';
 import { createDraft } from '../services/drafts-service';
@@ -351,6 +352,23 @@ router.post(
     }).strict(); // Reject unknown fields — prevents client from sending server-controlled fields like spend, status
 
     const body = schema.parse(req.body);
+
+    // Enforce the workspace plan's campaign quota before drafting (mirrors
+    // the v2 CreateCampaignUseCase maxCampaigns check)
+    const { rows: planRows } = await query<{ plan: PlanTier | null }>(
+      'SELECT plan FROM workspaces WHERE id = $1',
+      [workspaceId],
+    );
+    const limits = PLAN_LIMITS[planRows[0]?.plan ?? 'free'] ?? PLAN_LIMITS.free;
+    const { rows: countRows } = await query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM campaigns WHERE workspace_id = $1',
+      [workspaceId],
+    );
+    if (parseInt(countRows[0]?.count ?? '0', 10) >= limits.maxCampaigns) {
+      throw new ForbiddenError(
+        `Campaign limit reached for your plan (${limits.maxCampaigns}). Upgrade your plan to create more campaigns.`,
+      );
+    }
 
     // Verify ad account belongs to workspace
     const resolvedPlatform = await getAdAccountPlatform(body.adAccountId, workspaceId);

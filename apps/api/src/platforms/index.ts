@@ -122,6 +122,7 @@ import type {
   UnifiedInsight,
   AccountSummary,
   CrossPlatformInsights,
+  TrendEntry,
   DateRange,
   CampaignFilters,
   CreateCampaignInput,
@@ -156,6 +157,9 @@ import {
 
 import { MetaPlatformClient } from '../infrastructure/platform/MetaPlatformClient';
 import { connectMetaAccount } from './meta/MetaPlatformClient';
+
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('platform-manager');
 
 // ═══════════════════════════════════════════════
 //  Client Registry — maps platform → client factory
@@ -482,7 +486,7 @@ export class PlatformManager {
 
     // Log partial failures
     if (errors.length > 0 && clients.length > 1) {
-      console.warn(`[PlatformManager] getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`, errors);
+      logger.warn({ err: errors }, `[PlatformManager] getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`);
     }
 
     return filtered.slice(offset, offset + limit);
@@ -660,7 +664,7 @@ export class PlatformManager {
         try {
           return await client.getAccountSummary(dateRange);
         } catch (error) {
-          console.warn(`[PlatformManager] Account summary failed for ${platform}/${accountId}:`, error);
+          logger.warn({ err: error }, `[PlatformManager] Account summary failed for ${platform}/${accountId}:`);
           return null;
         }
       }),
@@ -807,7 +811,7 @@ export class PlatformManager {
             refreshed: true,
           });
         } catch (error) {
-          console.error(`[PlatformManager] Token refresh failed for ${account.platform}/${account.id}:`, error);
+          logger.error({ err: error }, `[PlatformManager] Token refresh failed for ${account.platform}/${account.id}:`);
           results.push({
             accountId: account.id,
             platform: account.platform,
@@ -916,13 +920,72 @@ export class PlatformManager {
         rank: i + 1,
       }));
 
+    // Aggregate daily trends across platforms. Insights are fetched per
+    // campaign, so bound the fan-out to the top-spend campaigns per platform
+    // to keep platform API call volume predictable.
+    const TRENDS_CAMPAIGNS_PER_PLATFORM = 10;
+    const clientByPlatform = new Map<Platform, PlatformClient>();
+    for (const { platform, client } of clients) {
+      if (!clientByPlatform.has(platform)) clientByPlatform.set(platform, client);
+    }
+
+    const trendCandidates = Array.from(
+      allCampaigns
+        .filter((c) => c.spend > 0)
+        .sort((a, b) => b.spend - a.spend)
+        .reduce((byPlatform, c) => {
+          const list = byPlatform.get(c.platform) ?? [];
+          if (list.length < TRENDS_CAMPAIGNS_PER_PLATFORM) list.push(c);
+          byPlatform.set(c.platform, list);
+          return byPlatform;
+        }, new Map<Platform, UnifiedCampaign[]>())
+        .values(),
+    ).flat();
+
+    const insightResults = await Promise.allSettled(
+      trendCandidates.map(async (campaign) => {
+        const client = clientByPlatform.get(campaign.platform);
+        if (!client) return [];
+        return client.getInsights(campaign.platformCampaignId, dateRange);
+      }),
+    );
+
+    // Group by (date, platform), accumulating spend/conversions and tracking
+    // conversion value so ROAS can be derived per bucket.
+    const trendBuckets = new Map<string, TrendEntry & { conversionValue: number }>();
+    for (const result of insightResults) {
+      if (result.status !== 'fulfilled') continue;
+      for (const insight of result.value) {
+        const key = `${insight.date}:${insight.platform}`;
+        const bucket = trendBuckets.get(key) ?? {
+          date: insight.date,
+          platform: insight.platform,
+          spend: 0,
+          conversions: 0,
+          roas: 0,
+          conversionValue: 0,
+        };
+        bucket.spend += insight.spend;
+        bucket.conversions += insight.conversions;
+        bucket.conversionValue += insight.conversionValue;
+        trendBuckets.set(key, bucket);
+      }
+    }
+
+    const trends: TrendEntry[] = Array.from(trendBuckets.values())
+      .map(({ conversionValue, ...entry }) => ({
+        ...entry,
+        roas: entry.spend > 0 ? conversionValue / entry.spend : 0,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
     return {
       workspaceId,
       dateRange,
       consolidated,
       platformComparison,
       topPerformers,
-      trends: [], // TODO: aggregate daily trends across platforms
+      trends,
     };
   }
 

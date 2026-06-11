@@ -41,6 +41,7 @@ import {
   ChartConfig,
 } from '../types/report';
 
+import { supabase } from '../lib/supabase';
 import { tempFileManager } from '../utils/temp-file-manager';
 type TempFileManager = typeof tempFileManager;
 import { ChartService } from '../services/chart-service';
@@ -48,6 +49,9 @@ import { PdfService } from '../services/pdf-service';
 import { ExportService } from '../services/export-service';
 import { EmailService, EmailConfig } from '../services/email-service';
 import { DataAggregationService } from '../services/data-aggregation-service';
+
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('generate-reports');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -134,7 +138,7 @@ export class ReportGenerationWorker {
    */
   start(): void {
     if (this.worker) {
-      console.warn('[ReportGenerationWorker] Worker already running');
+      logger.warn('[ReportGenerationWorker] Worker already running');
       return;
     }
 
@@ -158,17 +162,17 @@ export class ReportGenerationWorker {
 
     // Handle worker-level errors
     this.worker.on('error', (error) => {
-      console.error('[ReportGenerationWorker] Worker error:', error);
+      logger.error({ err: error }, '[ReportGenerationWorker] Worker error:');
     });
 
     // Handle stalled jobs (will be retried)
     this.worker.on('stalled', (jobId) => {
-      console.warn(`[ReportGenerationWorker] Job ${jobId} stalled and will be retried`);
+      logger.warn(`[ReportGenerationWorker] Job ${jobId} stalled and will be retried`);
     });
 
     // Log completed jobs
     this.worker.on('completed', (job) => {
-      console.log(`[ReportGenerationWorker] Job ${job.id} (${job.data.type}) completed successfully`);
+      logger.info(`[ReportGenerationWorker] Job ${job.id} (${job.data.type}) completed successfully`);
       this.activeJobs.delete(job.id || '');
     });
 
@@ -176,7 +180,7 @@ export class ReportGenerationWorker {
     this.worker.on('failed', async (job, error) => {
       if (!job) return;
 
-      console.error(`[ReportGenerationWorker] Job ${job.id} (${job.data.type}) failed:`, error.message);
+      logger.error({ err: error.message }, `[ReportGenerationWorker] Job ${job.id} (${job.data.type}) failed:`);
       this.activeJobs.delete(job.id || '');
 
       // If all retries exhausted, move to dead letter queue
@@ -185,7 +189,7 @@ export class ReportGenerationWorker {
       }
     });
 
-    console.log(`[ReportGenerationWorker] Worker started on queue "${QUEUE_NAME}" (concurrency: ${this.config.concurrency})`);
+    logger.info(`[ReportGenerationWorker] Worker started on queue "${QUEUE_NAME}" (concurrency: ${this.config.concurrency})`);
   }
 
   /**
@@ -193,12 +197,12 @@ export class ReportGenerationWorker {
    */
   async stop(timeoutMs = 30000): Promise<void> {
     this.isShuttingDown = true;
-    console.log('[ReportGenerationWorker] Shutting down gracefully...');
+    logger.info('[ReportGenerationWorker] Shutting down gracefully...');
 
     // Wait for active jobs to complete (with timeout)
     const startTime = Date.now();
     while (this.activeJobs.size > 0 && Date.now() - startTime < timeoutMs) {
-      console.log(`[ReportGenerationWorker] Waiting for ${this.activeJobs.size} active jobs...`);
+      logger.info(`[ReportGenerationWorker] Waiting for ${this.activeJobs.size} active jobs...`);
       await new Promise((r) => setTimeout(r, 1000));
     }
 
@@ -220,7 +224,7 @@ export class ReportGenerationWorker {
       await this.emailService.close();
     }
 
-    console.log('[ReportGenerationWorker] Worker stopped');
+    logger.info('[ReportGenerationWorker] Worker stopped');
   }
 
   // =========================================================================
@@ -238,7 +242,7 @@ export class ReportGenerationWorker {
     this.activeJobs.set(job.id || '', job);
 
     const { type } = job.data;
-    console.log(`[ReportGenerationWorker] Processing job ${job.id} (type: ${type}, attempt: ${job.attemptsMade + 1}/${this.config.maxRetries})`);
+    logger.info(`[ReportGenerationWorker] Processing job ${job.id} (type: ${type}, attempt: ${job.attemptsMade + 1}/${this.config.maxRetries})`);
 
     // Initialize per-job temp file manager
     const tempManager = tempFileManager;
@@ -278,7 +282,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('scheduleId is required for scheduled jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Generating scheduled report: ${scheduleId}`);
+    logger.info(`[ReportGenerationWorker] [Job ${job.id}] Generating scheduled report: ${scheduleId}`);
 
     // Fetch schedule configuration from Redis/database
     const schedule = await this.loadSchedule(scheduleId);
@@ -287,7 +291,7 @@ export class ReportGenerationWorker {
     }
 
     if (!schedule.isActive) {
-      console.log(`[ReportGenerationWorker] [Job ${job.id}] Schedule ${scheduleId} is inactive, skipping`);
+      logger.info(`[ReportGenerationWorker] [Job ${job.id}] Schedule ${scheduleId} is inactive, skipping`);
       throw new ReportGenerationError('Schedule is inactive', 'validation', false);
     }
 
@@ -318,7 +322,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('reportParams are required for on-demand jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Generating on-demand report: ${reportParams.name}`);
+    logger.info(`[ReportGenerationWorker] [Job ${job.id}] Generating on-demand report: ${reportParams.name}`);
 
     // Validate parameters
     this.validateReportParams(reportParams);
@@ -350,7 +354,7 @@ export class ReportGenerationWorker {
       throw new ReportGenerationError('format is required for export jobs', 'validation', false);
     }
 
-    console.log(`[ReportGenerationWorker] [Job ${job.id}] Exporting report ${reportId} as ${format}`);
+    logger.info(`[ReportGenerationWorker] [Job ${job.id}] Exporting report ${reportId} as ${format}`);
 
     await job.updateProgress(10);
 
@@ -426,13 +430,13 @@ export class ReportGenerationWorker {
       // Stage 1: Data Aggregation (0-30%)
       // ------------------------------------------------------------------
       await job?.updateProgress(5);
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 1: Aggregating data from ${params.platforms.length} platforms`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Stage 1: Aggregating data from ${params.platforms.length} platforms`);
 
       const platformMetrics = await this.dataAggregation.fetchAllPlatformMetrics(
         params.platforms,
         params.timeRange,
         (platformId, status, error) => {
-          console.log(`[ReportGenerationWorker] [${reportId}] Platform ${platformId}: ${status}${error ? ` (${error})` : ''}`);
+          logger.info(`[ReportGenerationWorker] [${reportId}] Platform ${platformId}: ${status}${error ? ` (${error})` : ''}`);
         }
       );
 
@@ -451,17 +455,30 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 2: Compute Summary Statistics (30-35%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 2: Computing summary statistics`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Stage 2: Computing summary statistics`);
 
-      // TODO: Fetch previous period metrics for period-over-period comparison
-      const summary = this.dataAggregation.computeReportSummary(platformMetrics);
+      // Fetch the immediately-preceding period of equal length so the summary
+      // includes period-over-period deltas. Comparison data is best-effort —
+      // a failure here must not abort the report itself.
+      let previousPeriodMetrics: typeof platformMetrics | undefined;
+      try {
+        const previousTimeRange = this.computePreviousTimeRange(params.timeRange);
+        previousPeriodMetrics = await this.dataAggregation.fetchAllPlatformMetrics(
+          params.platforms,
+          previousTimeRange,
+        );
+      } catch (error) {
+        errors.push(`Period-over-period comparison unavailable: ${(error as Error).message}`);
+      }
+
+      const summary = this.dataAggregation.computeReportSummary(platformMetrics, previousPeriodMetrics);
 
       await job?.updateProgress(35);
 
       // ------------------------------------------------------------------
       // Stage 3: Chart Generation (35-75%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 3: Generating ${params.charts.length} charts`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Stage 3: Generating ${params.charts.length} charts`);
 
       const chartService = new ChartService(tempManager, this.config.chartWidth, this.config.chartHeight);
 
@@ -474,7 +491,7 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 4: PDF Generation (75-90%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 4: Generating PDF`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Stage 4: Generating PDF`);
 
       const reportResult: ReportResult = {
         reportId,
@@ -486,6 +503,8 @@ export class ReportGenerationWorker {
         charts: chartImages,
         summary,
         errors: errors.length > 0 ? errors : undefined,
+        workspaceId: params.workspaceId,
+        scheduledReportId: params.scheduledScheduleId,
       };
 
       const pdfPath = await this.pdfService.generatePdf(reportResult, chartImages);
@@ -496,17 +515,17 @@ export class ReportGenerationWorker {
       // ------------------------------------------------------------------
       // Stage 5: Persist Report (90-95%)
       // ------------------------------------------------------------------
-      console.log(`[ReportGenerationWorker] [${reportId}] Stage 5: Persisting report`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Stage 5: Persisting report`);
 
       await this.persistReport(reportResult);
 
       await job?.updateProgress(95);
 
-      console.log(`[ReportGenerationWorker] [${reportId}] Report generation completed (${reportResult.status})`);
+      logger.info(`[ReportGenerationWorker] [${reportId}] Report generation completed (${reportResult.status})`);
 
       return reportResult;
     } catch (error) {
-      console.error(`[ReportGenerationWorker] [${reportId}] Report generation failed:`, error);
+      logger.error({ err: error }, `[ReportGenerationWorker] [${reportId}] Report generation failed:`);
 
       if (error instanceof ReportGenerationError) {
         throw error;
@@ -652,7 +671,7 @@ export class ReportGenerationWorker {
     tempManager: TempFileManager
   ): Promise<void> {
     if (!this.emailService) {
-      console.log(`[ReportGenerationWorker] Email service not configured, skipping email for ${reportId}`);
+      logger.info(`[ReportGenerationWorker] Email service not configured, skipping email for ${reportId}`);
       return;
     }
 
@@ -670,7 +689,7 @@ export class ReportGenerationWorker {
   ): Promise<void> {
     if (!this.emailService) return;
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Sending email to ${emails.join(', ')}`);
+    logger.info(`[ReportGenerationWorker] [${reportId}] Sending email to ${emails.join(', ')}`);
 
     const attachments: EmailAttachment[] = [];
 
@@ -711,7 +730,7 @@ export class ReportGenerationWorker {
       }
     );
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Email sent successfully`);
+    logger.info(`[ReportGenerationWorker] [${reportId}] Email sent successfully`);
   }
 
   /**
@@ -743,7 +762,7 @@ export class ReportGenerationWorker {
       }]
     );
 
-    console.log(`[ReportGenerationWorker] [${reportId}] Export email sent to ${emails.join(', ')}`);
+    logger.info(`[ReportGenerationWorker] [${reportId}] Export email sent to ${emails.join(', ')}`);
   }
 
   /**
@@ -774,9 +793,9 @@ export class ReportGenerationWorker {
         }
       );
 
-      console.log(`[ReportGenerationWorker] Job ${job.id} moved to dead letter queue`);
+      logger.info(`[ReportGenerationWorker] Job ${job.id} moved to dead letter queue`);
     } catch (dlqError) {
-      console.error(`[ReportGenerationWorker] Failed to move job ${job.id} to DLQ:`, dlqError);
+      logger.error({ err: dlqError }, `[ReportGenerationWorker] Failed to move job ${job.id} to DLQ:`);
     }
   }
 
@@ -882,6 +901,24 @@ export class ReportGenerationWorker {
   }
 
   /**
+   * Compute the time range of equal duration immediately preceding the given
+   * range, preserving granularity, for period-over-period comparisons.
+   */
+  private computePreviousTimeRange(
+    timeRange: import('../types/report').TimeRange
+  ): import('../types/report').TimeRange {
+    const start = new Date(timeRange.start);
+    const end = new Date(timeRange.end);
+    const durationMs = end.getTime() - start.getTime();
+
+    return {
+      ...timeRange,
+      start: new Date(start.getTime() - durationMs),
+      end: new Date(start.getTime()),
+    };
+  }
+
+  /**
    * Validate report parameters
    */
   private validateReportParams(params: ReportParams): void {
@@ -900,18 +937,18 @@ export class ReportGenerationWorker {
   }
 
   // =========================================================================
-  // Data Access (placeholder implementations - replace with actual DB calls)
+  // Data Access
   // =========================================================================
 
   /**
-   * Load a schedule configuration by ID
+   * Load a schedule configuration by ID.
+   *
+   * Schedules are enqueued via addScheduledReportJob, which stores the full
+   * ReportSchedule (including platform credentials) in Redis — the database
+   * scheduled_reports table intentionally does not hold credentials, so Redis
+   * is the system of record for executable schedule payloads.
    */
   private async loadSchedule(scheduleId: string): Promise<ReportSchedule | null> {
-    // TODO: Implement with actual database/repository call
-    // const schedule = await scheduleRepository.findById(scheduleId);
-    // return schedule;
-
-    // Placeholder: try loading from Redis
     const data = await this.redis.get(`schedule:${scheduleId}`);
     if (data) {
       return JSON.parse(data) as ReportSchedule;
@@ -920,50 +957,77 @@ export class ReportGenerationWorker {
   }
 
   /**
-   * Load a generated report by ID
+   * Load a generated report by ID — Redis cache first, then report_results.
    */
   private async loadReport(reportId: string): Promise<ReportResult | null> {
-    // TODO: Implement with actual database/repository call
-    // const report = await reportRepository.findById(reportId);
-    // return report;
-
-    // Placeholder: try loading from Redis
     const data = await this.redis.get(`report:${reportId}`);
     if (data) {
       return JSON.parse(data) as ReportResult;
     }
-    return null;
+
+    const { data: row, error } = await supabase
+      .from('report_results')
+      .select('content')
+      .eq('content->>reportId', reportId)
+      .maybeSingle();
+
+    if (error || !row?.content) {
+      return null;
+    }
+    return row.content as unknown as ReportResult;
   }
 
   /**
-   * Persist a generated report
+   * Persist a generated report to report_results (the same table the
+   * /reports API serves), with a Redis copy as a short-lived cache.
    */
   private async persistReport(report: ReportResult): Promise<void> {
-    // TODO: Implement with actual database/repository call
-    // await reportRepository.save(report);
-
-    // Placeholder: store in Redis with TTL of 7 days
+    // Cache for fast export jobs (7 days)
     await this.redis.setex(
       `report:${report.reportId}`,
       7 * 24 * 3600,
       JSON.stringify(report)
     );
 
-    console.log(`[ReportGenerationWorker] [${report.reportId}] Report persisted to storage`);
+    const { error } = await supabase.from('report_results').insert({
+      workspace_id: report.workspaceId ?? null,
+      scheduled_report_id: report.scheduledReportId ?? null,
+      content: report as unknown as Record<string, unknown>,
+      status: report.status === 'failed' ? 'failed' : 'completed',
+      created_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      // The report is still cached and exportable; surface the persistence
+      // failure rather than silently dropping it.
+      throw new ReportGenerationError(
+        `Failed to persist report ${report.reportId}: ${error.message}`,
+        'data-loading',
+        true
+      );
+    }
   }
 
   /**
-   * Update schedule's last run timestamp
+   * Update schedule's last run timestamp in both the scheduled_reports table
+   * and the Redis schedule payload.
    */
   private async updateScheduleLastRun(scheduleId: string): Promise<void> {
-    // TODO: Implement with actual database/repository call
-    // await scheduleRepository.updateLastRun(scheduleId, new Date());
+    const now = new Date();
 
-    // Placeholder: update in Redis
+    const { error } = await supabase
+      .from('scheduled_reports')
+      .update({ last_run_at: now.toISOString() })
+      .eq('id', scheduleId);
+
+    if (error) {
+      logger.warn(`[ReportGenerationWorker] Failed to update last_run_at for schedule ${scheduleId}: ${error.message}`);
+    }
+
     const data = await this.redis.get(`schedule:${scheduleId}`);
     if (data) {
       const schedule = JSON.parse(data) as ReportSchedule;
-      schedule.lastRunAt = new Date();
+      schedule.lastRunAt = now;
       await this.redis.setex(
         `schedule:${scheduleId}`,
         30 * 24 * 3600,

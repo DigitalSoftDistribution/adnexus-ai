@@ -236,7 +236,9 @@ export function draftApprovalTemplate(draft: {
   campaignName: string;
   proposedBy: string;
   changes: Array<{ field: string; from: string; to: string; reason: string }>;
-  estimatedImpact: { additionalSpend: number; projectedRoas: number; projectedConversions: number };
+  estimatedImpact?: { additionalSpend: number; projectedRoas: number; projectedConversions: number };
+  /** Free-text impact estimate (drafts.impact_estimate) shown when structured numbers aren't available */
+  impactSummary?: string;
 }, appUrl: string): string {
   const changesTable = draft.changes.map((change) => `
     <tr>
@@ -266,6 +268,7 @@ export function draftApprovalTemplate(draft: {
         </table>
       </div>
 
+      ${draft.estimatedImpact ? `
       <div style="padding: 20px; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 10px; margin-bottom: 32px; text-align: center;">
         <h3 style="margin: 0 0 16px; font-size: 14px; font-weight: 700; color: ${colors.gray700};">📊 Estimated Impact</h3>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -284,7 +287,11 @@ export function draftApprovalTemplate(draft: {
             </td>
           </tr>
         </table>
-      </div>
+      </div>` : draft.impactSummary ? `
+      <div style="padding: 20px; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 10px; margin-bottom: 32px; text-align: center;">
+        <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: ${colors.gray700};">📊 Estimated Impact</h3>
+        <p style="margin: 0; font-size: 14px; color: ${colors.gray700};">${draft.impactSummary}</p>
+      </div>` : ''}
 
       <div style="text-align: center;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">

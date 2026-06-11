@@ -77,6 +77,8 @@ export interface ReportParams {
   charts: ChartConfig[];
   emailRecipients?: string[];
   scheduledScheduleId?: string;
+  /** Owning workspace — required to persist results to report_results */
+  workspaceId?: string;
 }
 
 /** Raw aggregated metric data from a platform */
@@ -107,6 +109,10 @@ export interface ReportResult {
   summary: ReportSummary;
   dataFilePath?: string;
   errors?: string[];
+  /** Owning workspace — set when the job carried a workspaceId */
+  workspaceId?: string;
+  /** Originating schedule, when generated from a recurring schedule */
+  scheduledReportId?: string;
 }
 
 /** Rendered chart image reference */
