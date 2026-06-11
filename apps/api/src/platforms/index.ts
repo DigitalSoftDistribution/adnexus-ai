@@ -933,10 +933,13 @@ export class PlatformManager {
 
     // Dedupe by platform campaign id — the same platform campaign can be
     // visible through multiple connected ad accounts, and fetching it twice
-    // would double-count its spend/conversions in the daily buckets.
+    // would double-count its spend/conversions in the daily buckets. Sort by
+    // spend first so the highest-spend copy (and its account client) is the
+    // one kept.
     const seenPlatformCampaigns = new Set<string>();
     const trendCandidates = Array.from(
-      allCampaigns
+      [...allCampaigns]
+        .sort((a, b) => b.spend - a.spend)
         .filter((c) => {
           if (c.spend <= 0) return false;
           const key = `${c.platform}:${c.platformCampaignId}`;
@@ -944,7 +947,6 @@ export class PlatformManager {
           seenPlatformCampaigns.add(key);
           return true;
         })
-        .sort((a, b) => b.spend - a.spend)
         .reduce((byPlatform, c) => {
           const list = byPlatform.get(c.platform) ?? [];
           if (list.length < TRENDS_CAMPAIGNS_PER_PLATFORM) list.push(c);
