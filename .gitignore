@@ -56,3 +56,7 @@ docker-compose.override.yml
 apps/web/.next/
 qa-shots/
 scripts/live-qa.cjs
+
+# Binary documents
+*.docx
+*.doc
