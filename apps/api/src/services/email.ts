@@ -229,24 +229,40 @@ export class EmailService {
     start: string,
     end: string,
   ): Promise<Array<{ campaign_id: string; campaign_name: string; date: string; spend: number; roas: number; conversions: number; cpa: number; impressions: number; clicks: number }>> {
-    const { data: campaigns, error: campaignsError } = await supabase
-      .from('campaigns')
-      .select('id, name, ad_accounts!inner(workspace_id)')
-      .eq('ad_accounts.workspace_id', workspaceId);
+    // Campaigns are workspace-scoped either directly (campaigns.workspace_id)
+    // or through their ad account — cover both paths, like the campaign
+    // routes do.
+    const [viaAdAccount, direct] = await Promise.all([
+      supabase
+        .from('campaigns')
+        .select('id, name, ad_accounts!inner(workspace_id)')
+        .eq('ad_accounts.workspace_id', workspaceId),
+      supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('workspace_id', workspaceId),
+    ]);
 
-    if (campaignsError || !campaigns || campaigns.length === 0) {
-      if (campaignsError) {
-        logger.warn({ err: campaignsError, workspaceId }, 'Failed to fetch campaigns for email metrics');
-      }
-      return [];
+    if (viaAdAccount.error) {
+      logger.warn({ err: viaAdAccount.error, workspaceId }, 'Failed to fetch campaigns for email metrics');
+    }
+    if (direct.error) {
+      logger.warn({ err: direct.error, workspaceId }, 'Failed to fetch workspace campaigns for email metrics');
     }
 
-    const nameById = new Map<string, string>(campaigns.map((c) => [c.id as string, (c.name as string) ?? 'Unnamed Campaign']));
+    const nameById = new Map<string, string>();
+    for (const c of [...(viaAdAccount.data ?? []), ...(direct.data ?? [])]) {
+      nameById.set(c.id as string, (c.name as string) ?? 'Unnamed Campaign');
+    }
+
+    if (nameById.size === 0) {
+      return [];
+    }
 
     const { data: rows, error: metricsError } = await supabase
       .from('campaign_daily_metrics')
       .select('campaign_id, date, spend, roas, conversions, cpa, impressions, clicks')
-      .in('campaign_id', campaigns.map((c) => c.id as string))
+      .in('campaign_id', Array.from(nameById.keys()))
       .gte('date', start)
       .lte('date', end);
 
