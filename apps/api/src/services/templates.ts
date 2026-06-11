@@ -1,8 +1,8 @@
 import { MorningBriefData, WeeklySummaryData, AlertData } from './email';
 
 /** Escape user/AI-supplied text before interpolating it into email HTML. */
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -166,7 +166,7 @@ export function morningBriefTemplate(data: MorningBriefData, appUrl: string): st
       <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: ${colors.gray700}; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Top Winners</h3>
       ${data.topWinners.map((w) => `
         <div style="padding: 12px 16px; background-color: #ECFDF5; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${colors.success};">
-          <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${w.name}</span>
+          <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${escapeHtml(w.name)}</span>
           <span style="float: right; font-size: 13px; font-weight: 700; color: ${colors.success};">+${w.change}% ${w.metric}</span>
         </div>
       `).join('')}
@@ -177,7 +177,7 @@ export function morningBriefTemplate(data: MorningBriefData, appUrl: string): st
       <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: ${colors.gray700}; text-transform: uppercase; letter-spacing: 0.5px;">📉 Needs Attention</h3>
       ${data.topLosers.map((l) => `
         <div style="padding: 12px 16px; background-color: #FEF2F2; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${colors.danger};">
-          <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${l.name}</span>
+          <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${escapeHtml(l.name)}</span>
           <span style="float: right; font-size: 13px; font-weight: 700; color: ${colors.danger};">${l.change}% ${l.metric}</span>
         </div>
       `).join('')}
@@ -192,15 +192,15 @@ export function morningBriefTemplate(data: MorningBriefData, appUrl: string): st
             <tr>
               <td style="vertical-align: top;">
                 ${impactBadge(rec.impact)}
-                <span style="margin-left: 8px; font-size: 12px; color: ${colors.gray400};">${rec.category}</span>
+                <span style="margin-left: 8px; font-size: 12px; color: ${colors.gray400};">${escapeHtml(rec.category)}</span>
               </td>
             </tr>
             <tr><td style="height: 8px;"></td></tr>
             <tr>
               <td>
-                <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: ${colors.gray800};">${rec.title}</p>
-                <p style="margin: 0 0 16px; font-size: 13px; color: ${colors.gray500}; line-height: 1.5;">${rec.description}</p>
-                ${button('Create Draft', `${appUrl}/drafts/create?recommendation=${rec.id}`, 'primary')}
+                <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: ${colors.gray800};">${escapeHtml(rec.title)}</p>
+                <p style="margin: 0 0 16px; font-size: 13px; color: ${colors.gray500}; line-height: 1.5;">${escapeHtml(rec.description)}</p>
+                ${button('Create Draft', `${appUrl}/drafts/create?recommendation=${encodeURIComponent(rec.id)}`, 'primary')}
               </td>
             </tr>
           </table>
@@ -213,7 +213,7 @@ export function morningBriefTemplate(data: MorningBriefData, appUrl: string): st
       <h3 style="margin: 0 0 16px; font-size: 14px; font-weight: 700; color: ${colors.gray700}; text-transform: uppercase; letter-spacing: 0.5px;">💡 Insights</h3>
       ${data.insights.map((insight) => `
         <div style="padding: 12px 16px; background-color: #EFF6FF; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${colors.primary};">
-          <span style="font-size: 13px; color: ${colors.gray600}; line-height: 1.5;">${insight}</span>
+          <span style="font-size: 13px; color: ${colors.gray600}; line-height: 1.5;">${escapeHtml(insight)}</span>
         </div>
       `).join('')}
     </div>` : '';
@@ -222,7 +222,7 @@ export function morningBriefTemplate(data: MorningBriefData, appUrl: string): st
     <div style="padding: 32px 40px;">
       <p style="margin: 0 0 4px; font-size: 14px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">Daily Brief</p>
       <h1 class="header-title" style="margin: 0 0 8px; font-size: 26px; font-weight: 700; color: ${colors.gray900}; letter-spacing: -0.5px;">${data.date}</h1>
-      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">${data.workspaceName}</p>
+      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">${escapeHtml(data.workspaceName)}</p>
 
       ${kpiCards}
       ${winnersSection}
@@ -338,12 +338,12 @@ export function alertTemplate(alert: AlertData, appUrl: string): string {
         ${typeBadge(alert.type)}
       </div>
 
-      <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: ${colors.gray900}; text-align: center;">${alert.title}</h1>
-      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500}; text-align: center; line-height: 1.6;">${alert.message}</p>
+      <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: ${colors.gray900}; text-align: center;">${escapeHtml(alert.title)}</h1>
+      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500}; text-align: center; line-height: 1.6;">${escapeHtml(alert.message)}</p>
 
       ${alert.metric ? `
         <div style="padding: 24px; background-color: ${sc.bg}; border-radius: 10px; margin-bottom: 24px; text-align: center; border: 1px solid ${sc.border}30;">
-          <p style="margin: 0 0 8px; font-size: 12px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">${alert.metric}</p>
+          <p style="margin: 0 0 8px; font-size: 12px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">${escapeHtml(alert.metric)}</p>
           <p style="margin: 0 0 4px; font-size: 36px; font-weight: 800; color: ${colors.gray900};">${alert.value !== undefined ? alert.value.toLocaleString() : 'N/A'}</p>
           ${alert.threshold ? `<p style="margin: 0; font-size: 13px; color: ${colors.gray500};">Threshold: ${alert.threshold.toLocaleString()}</p>` : ''}
         </div>
@@ -352,7 +352,7 @@ export function alertTemplate(alert: AlertData, appUrl: string): string {
       ${alert.campaignId ? `
         <div style="text-align: center; margin-bottom: 24px;">
           <p style="margin: 0 0 12px; font-size: 13px; color: ${colors.gray500};">
-            Campaign: <strong>${alert.campaignName || 'Unknown'}</strong>
+            Campaign: <strong>${escapeHtml(alert.campaignName || 'Unknown')}</strong>
           </p>
           ${button('View Campaign', `${appUrl}/campaigns/${alert.campaignId}`, 'primary')}
         </div>
@@ -389,7 +389,7 @@ export function weeklySummaryTemplate(data: WeeklySummaryData, appUrl: string): 
     <div style="padding: 32px 40px;">
       <p style="margin: 0 0 4px; font-size: 14px; color: ${colors.gray400}; text-transform: uppercase; letter-spacing: 1px;">Weekly Report</p>
       <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: ${colors.gray900};">${data.weekRange}</h1>
-      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">${data.workspaceName}</p>
+      <p style="margin: 0 0 24px; font-size: 14px; color: ${colors.gray500};">${escapeHtml(data.workspaceName)}</p>
 
       <div style="margin-bottom: 32px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse: collapse; border-radius: 8px; overflow: hidden; border: 1px solid ${colors.gray200};">
@@ -433,7 +433,7 @@ export function weeklySummaryTemplate(data: WeeklySummaryData, appUrl: string): 
           <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: ${colors.gray700};">🏆 Top Performing Campaigns</h3>
           ${data.topCampaigns.map((camp) => `
             <div style="padding: 14px 16px; background-color: ${colors.gray50}; border-radius: 8px; margin-bottom: 8px; border: 1px solid ${colors.gray200};">
-              <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${camp.name}</span>
+              <span style="font-size: 14px; font-weight: 600; color: ${colors.gray800};">${escapeHtml(camp.name)}</span>
               <span style="float: right; font-size: 13px; color: ${colors.gray500};">
                 $${camp.spend.toLocaleString()} spend · ${camp.roas}x ROAS · ${camp.conversions} conv
               </span>
@@ -458,7 +458,7 @@ export function welcomeTemplate(user: { name: string; email: string; workspaceNa
     <div style="padding: 32px 40px;">
       <div style="text-align: center; margin-bottom: 32px;">
         <div style="font-size: 48px; margin-bottom: 8px;">🚀</div>
-        <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 700; color: ${colors.gray900};">Welcome to AdNexus AI, ${user.name}!</h1>
+        <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 700; color: ${colors.gray900};">Welcome to AdNexus AI, ${escapeHtml(user.name)}!</h1>
         <p style="margin: 0; font-size: 15px; color: ${colors.gray500}; line-height: 1.5;">Your autonomous advertising intelligence platform is ready.</p>
       </div>
 
@@ -660,14 +660,14 @@ export function teamInviteTemplate(data: { inviterName: string; workspaceName: s
       <div style="text-align: center; margin-bottom: 32px;">
         <div style="font-size: 48px; margin-bottom: 8px;">👋</div>
         <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: ${colors.gray900};">You've Been Invited!</h1>
-        <p style="margin: 0; font-size: 14px; color: ${colors.gray500};">${data.inviterName} wants you to join their team.</p>
+        <p style="margin: 0; font-size: 14px; color: ${colors.gray500};">${escapeHtml(data.inviterName)} wants you to join their team.</p>
       </div>
 
       <div style="padding: 24px; background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 10px; margin-bottom: 24px; text-align: center;">
         <p style="margin: 0 0 8px; font-size: 14px; color: ${colors.gray500};">Workspace</p>
-        <p style="margin: 0 0 20px; font-size: 22px; font-weight: 700; color: ${colors.gray900};">${data.workspaceName}</p>
+        <p style="margin: 0 0 20px; font-size: 22px; font-weight: 700; color: ${colors.gray900};">${escapeHtml(data.workspaceName)}</p>
         <p style="margin: 0 0 20px; font-size: 14px; color: ${colors.gray600}; line-height: 1.5;">
-          Join ${data.workspaceName} on AdNexus AI to collaborate on advertising campaigns, review AI-generated insights, and optimize performance together.
+          Join ${escapeHtml(data.workspaceName)} on AdNexus AI to collaborate on advertising campaigns, review AI-generated insights, and optimize performance together.
         </p>
         ${button('Accept Invitation', inviteUrl, 'primary')}
       </div>

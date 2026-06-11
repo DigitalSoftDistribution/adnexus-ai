@@ -85,6 +85,22 @@ export interface EmailJobData {
   data?: MorningBriefData | WeeklySummaryData;
 }
 
+/**
+ * drafts.impact_estimate may be plain text or a JSONB object depending on the
+ * writer — normalize it to a human-readable string (or undefined).
+ */
+function formatImpactEstimate(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'string') return value || undefined;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const parts = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v != null && typeof v !== 'object')
+      .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v)}`);
+    return parts.length > 0 ? parts.join(' · ') : undefined;
+  }
+  return String(value);
+}
+
 export class EmailService {
   private transporter: Transporter;
   private emailQueue: Queue;
@@ -535,7 +551,7 @@ export class EmailService {
           reason,
         },
       ],
-      impactSummary: (row.impact_estimate as string) ?? undefined,
+      impactSummary: formatImpactEstimate(row.impact_estimate),
     };
 
     const html = draftApprovalTemplate(draft, this.appUrl);
