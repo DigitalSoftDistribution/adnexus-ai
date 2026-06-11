@@ -83,5 +83,25 @@ export function createAlertController(container: Container) {
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });
     }),
+
+    test: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.testAlert.execute({
+        alertId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    stats: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getAlertStats.execute({
+        alertId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

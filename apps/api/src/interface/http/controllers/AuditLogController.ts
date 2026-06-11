@@ -37,5 +37,40 @@ export function createAuditLogController(container: Container) {
 
       res.json({ success: true, data: result.data });
     }),
+
+    getById: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getAuditLogById.execute({
+        entryId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    export: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const format = (req.query.format as 'csv' | 'json' | undefined) ?? 'csv';
+      const result = await container.exportAuditLog.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        format,
+        dateFrom: req.query.dateFrom as string | undefined,
+        dateTo: req.query.dateTo as string | undefined,
+        actionCategory: req.query.actionCategory as string | undefined,
+        entityType: req.query.entityType as string | undefined,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      const contentType = result.data.format === 'csv' ? 'text/csv' : 'application/json';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(result.data.data);
+    }),
   };
 }

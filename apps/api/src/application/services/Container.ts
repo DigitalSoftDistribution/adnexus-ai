@@ -27,6 +27,8 @@ import type { IAutomationRuleRepository } from '../../domain/repositories/IAutom
 import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRepository';
 import type { IExportRepository } from '../../domain/repositories/IExportRepository';
 import type { IAssetRepository } from '../../domain/repositories/IAssetRepository';
+import type { ICommentRepository } from '../../domain/repositories/ICommentRepository';
+import type { IAdminOpsRepository } from '../../domain/repositories/IAdminOpsRepository';
 import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
 import type { IScheduledReportRepository } from '../../domain/repositories/IScheduledReportRepository';
 import type { ISyncJobRepository } from '../../domain/repositories/ISyncJobRepository';
@@ -69,6 +71,8 @@ import { ListAdsUseCase } from '../use-cases/ad/ListAdsUseCase';
 import { GetAdByIdUseCase } from '../use-cases/ad/GetAdByIdUseCase';
 import { GetAdPerformanceUseCase } from '../use-cases/ad/GetAdPerformanceUseCase';
 import { GetAdCreativePerformanceUseCase } from '../use-cases/ad/GetAdCreativePerformanceUseCase';
+import { UpdateAdUseCase } from '../use-cases/ad/UpdateAdUseCase';
+import { DuplicateAdUseCase } from '../use-cases/ad/DuplicateAdUseCase';
 import { GetWorkspaceSettingsUseCase } from '../use-cases/settings/GetWorkspaceSettingsUseCase';
 import { UpdateWorkspaceSettingsUseCase } from '../use-cases/settings/UpdateWorkspaceSettingsUseCase';
 import { GetTeamMembersUseCase } from '../use-cases/settings/GetTeamMembersUseCase';
@@ -108,6 +112,8 @@ import { UpdateAlertUseCase } from '../use-cases/alert/UpdateAlertUseCase';
 import { DeleteAlertUseCase } from '../use-cases/alert/DeleteAlertUseCase';
 import { ToggleAlertUseCase } from '../use-cases/alert/ToggleAlertUseCase';
 import { GetAlertHistoryUseCase } from '../use-cases/alert/GetAlertHistoryUseCase';
+import { TestAlertUseCase } from '../use-cases/alert/TestAlertUseCase';
+import { GetAlertStatsUseCase } from '../use-cases/alert/GetAlertStatsUseCase';
 import { SearchUseCase } from '../use-cases/search/SearchUseCase';
 import { GetSuggestionsUseCase } from '../use-cases/search/GetSuggestionsUseCase';
 import { ListNotificationsUseCase } from '../use-cases/notification/ListNotificationsUseCase';
@@ -166,10 +172,13 @@ import {
 } from '../use-cases/onboarding/OnboardingUseCases';
 import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
 import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
+import { GetAuditLogByIdUseCase } from '../use-cases/audit-log/GetAuditLogByIdUseCase';
+import { ExportAuditLogUseCase } from '../use-cases/audit-log/ExportAuditLogUseCase';
 import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
 import { GetExportByIdUseCase } from '../use-cases/export/GetExportByIdUseCase';
 import { CreateExportUseCase } from '../use-cases/export/CreateExportUseCase';
 import { DeleteExportUseCase } from '../use-cases/export/DeleteExportUseCase';
+import { DownloadExportUseCase } from '../use-cases/export/DownloadExportUseCase';
 import { ListAssetsUseCase } from '../use-cases/asset/ListAssetsUseCase';
 import { GetAssetByIdUseCase } from '../use-cases/asset/GetAssetByIdUseCase';
 import { CreateAssetUseCase } from '../use-cases/asset/CreateAssetUseCase';
@@ -179,6 +188,13 @@ import { GetAdminStatsUseCase } from '../use-cases/admin/GetAdminStatsUseCase';
 import { ListAllWorkspacesUseCase } from '../use-cases/admin/ListAllWorkspacesUseCase';
 import { ListAllUsersUseCase } from '../use-cases/admin/ListAllUsersUseCase';
 import { ImpersonateUserUseCase } from '../use-cases/admin/ImpersonateUserUseCase';
+import { ListAdminErrorsUseCase } from '../use-cases/admin/ListAdminErrorsUseCase';
+import { GetAdminApiUsageUseCase } from '../use-cases/admin/GetAdminApiUsageUseCase';
+import { GetFeatureFlagsUseCase } from '../use-cases/admin/GetFeatureFlagsUseCase';
+import { UpdateFeatureFlagUseCase } from '../use-cases/admin/UpdateFeatureFlagUseCase';
+import { ListCommentsUseCase } from '../use-cases/comment/ListCommentsUseCase';
+import { CreateCommentUseCase } from '../use-cases/comment/CreateCommentUseCase';
+import { GetCommentByIdUseCase, DeleteCommentUseCase } from '../use-cases/comment/CommentUseCases';
 import { ListAutomationRulesUseCase } from '../use-cases/agent/ListAutomationRulesUseCase';
 import { GetAutomationRuleByIdUseCase } from '../use-cases/agent/GetAutomationRuleByIdUseCase';
 import { CreateAutomationRuleUseCase } from '../use-cases/agent/CreateAutomationRuleUseCase';
@@ -209,6 +225,8 @@ export interface ContainerConfig {
   auditLogRepository: IAuditLogRepository;
   exportRepository: IExportRepository;
   assetRepository: IAssetRepository;
+  commentRepository: ICommentRepository;
+  adminOpsRepository: IAdminOpsRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -273,6 +291,8 @@ export class Container {
   readonly getAdById: GetAdByIdUseCase;
   readonly getAdPerformance: GetAdPerformanceUseCase;
   readonly getAdCreativePerformance: GetAdCreativePerformanceUseCase;
+  readonly updateAd: UpdateAdUseCase;
+  readonly duplicateAd: DuplicateAdUseCase;
   readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
   readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
   readonly getProfile: GetProfileUseCase;
@@ -310,6 +330,8 @@ export class Container {
   readonly deleteAlert: DeleteAlertUseCase;
   readonly toggleAlert: ToggleAlertUseCase;
   readonly getAlertHistory: GetAlertHistoryUseCase;
+  readonly testAlert: TestAlertUseCase;
+  readonly getAlertStats: GetAlertStatsUseCase;
   readonly search: SearchUseCase;
   readonly searchSuggestions: GetSuggestionsUseCase;
   readonly listNotifications: ListNotificationsUseCase;
@@ -371,10 +393,13 @@ export class Container {
   readonly toggleAutomationRule: ToggleAutomationRuleUseCase;
   readonly listAuditLog: ListAuditLogUseCase;
   readonly getAuditLogSummary: GetAuditLogSummaryUseCase;
+  readonly getAuditLogById: GetAuditLogByIdUseCase;
+  readonly exportAuditLog: ExportAuditLogUseCase;
   readonly listExports: ListExportsUseCase;
   readonly getExportById: GetExportByIdUseCase;
   readonly createExport: CreateExportUseCase;
   readonly deleteExport: DeleteExportUseCase;
+  readonly downloadExport: DownloadExportUseCase;
   readonly listAssets: ListAssetsUseCase;
   readonly getAssetById: GetAssetByIdUseCase;
   readonly createAsset: CreateAssetUseCase;
@@ -384,6 +409,14 @@ export class Container {
   readonly listAllWorkspaces: ListAllWorkspacesUseCase;
   readonly listAllUsers: ListAllUsersUseCase;
   readonly impersonateUser: ImpersonateUserUseCase;
+  readonly listAdminErrors: ListAdminErrorsUseCase;
+  readonly getAdminApiUsage: GetAdminApiUsageUseCase;
+  readonly getFeatureFlags: GetFeatureFlagsUseCase;
+  readonly updateFeatureFlag: UpdateFeatureFlagUseCase;
+  readonly listComments: ListCommentsUseCase;
+  readonly createComment: CreateCommentUseCase;
+  readonly getCommentById: GetCommentByIdUseCase;
+  readonly deleteComment: DeleteCommentUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -443,6 +476,8 @@ export class Container {
     this.getAdById = new GetAdByIdUseCase(config.adRepository);
     this.getAdPerformance = new GetAdPerformanceUseCase(config.adRepository);
     this.getAdCreativePerformance = new GetAdCreativePerformanceUseCase(config.adRepository);
+    this.updateAd = new UpdateAdUseCase(config.adRepository);
+    this.duplicateAd = new DuplicateAdUseCase(config.adRepository);
 
     this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
     this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);
@@ -487,6 +522,8 @@ export class Container {
     this.deleteAlert = new DeleteAlertUseCase(config.alertRepository);
     this.toggleAlert = new ToggleAlertUseCase(config.alertRepository);
     this.getAlertHistory = new GetAlertHistoryUseCase(config.alertRepository);
+    this.testAlert = new TestAlertUseCase(config.alertRepository, config.notificationService);
+    this.getAlertStats = new GetAlertStatsUseCase(config.alertRepository);
 
     this.search = new SearchUseCase(config.searchRepository);
     this.searchSuggestions = new GetSuggestionsUseCase(config.searchRepository);
@@ -618,11 +655,14 @@ export class Container {
 
     this.listAuditLog = new ListAuditLogUseCase(config.auditLogRepository);
     this.getAuditLogSummary = new GetAuditLogSummaryUseCase(config.auditLogRepository);
+    this.getAuditLogById = new GetAuditLogByIdUseCase(config.auditLogRepository);
+    this.exportAuditLog = new ExportAuditLogUseCase(config.auditLogRepository);
 
     this.listExports = new ListExportsUseCase(config.exportRepository);
     this.getExportById = new GetExportByIdUseCase(config.exportRepository);
     this.createExport = new CreateExportUseCase(config.exportRepository);
     this.deleteExport = new DeleteExportUseCase(config.exportRepository);
+    this.downloadExport = new DownloadExportUseCase(config.exportRepository);
 
     this.listAssets = new ListAssetsUseCase(config.assetRepository);
     this.getAssetById = new GetAssetByIdUseCase(config.assetRepository);
@@ -638,5 +678,14 @@ export class Container {
     this.listAllWorkspaces = new ListAllWorkspacesUseCase(config.workspaceRepository);
     this.listAllUsers = new ListAllUsersUseCase(config.userRepository);
     this.impersonateUser = new ImpersonateUserUseCase(config.userRepository);
+    this.listAdminErrors = new ListAdminErrorsUseCase(config.adminOpsRepository);
+    this.getAdminApiUsage = new GetAdminApiUsageUseCase(config.adminOpsRepository);
+    this.getFeatureFlags = new GetFeatureFlagsUseCase(config.adminOpsRepository);
+    this.updateFeatureFlag = new UpdateFeatureFlagUseCase(config.adminOpsRepository);
+
+    this.listComments = new ListCommentsUseCase(config.commentRepository, config.draftRepository);
+    this.createComment = new CreateCommentUseCase(config.commentRepository, config.draftRepository);
+    this.getCommentById = new GetCommentByIdUseCase(config.commentRepository, config.draftRepository);
+    this.deleteComment = new DeleteCommentUseCase(config.commentRepository, config.draftRepository);
   }
 }

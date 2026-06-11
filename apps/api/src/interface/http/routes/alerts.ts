@@ -13,7 +13,9 @@ export function createAlertRoutes(container: Container): Router {
   router.put('/:id', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.update as any);
   router.delete('/:id', requireAuth, requireRole('owner', 'admin') as any, controller.delete as any);
   router.post('/:id/toggle', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.toggle as any);
+  router.post('/:id/test', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.test as any);
   router.get('/:id/history', requireAuth, controller.history as any);
+  router.get('/:id/stats', requireAuth, controller.stats as any);
 
   return router;
 }

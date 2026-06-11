@@ -65,5 +65,20 @@ export function createExportController(container: Container) {
 
       res.status(204).send();
     }),
+
+    download: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.downloadExport.execute({
+        exportId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.setHeader('Content-Type', result.data.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`);
+      res.send(result.data.data);
+    }),
   };
 }
