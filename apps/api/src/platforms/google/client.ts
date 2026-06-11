@@ -58,6 +58,9 @@ import {
   hasPartialFailure,
   DEFAULT_RETRY_CONFIG,
 } from "./error-handler";
+import { getModuleLogger } from "../../lib/logger";
+
+const logger = getModuleLogger("google-client");
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -311,11 +314,11 @@ export class GoogleAdsClient {
         if (partialFailure && hasPartialFailure(data)) {
           const failures = ErrorParser.parsePartialFailure(data);
           if (failures && failures.length > 0) {
-            console.warn(
-              `[GoogleAdsClient] Partial failure in mutate: ${failures.length}/${operations.length} operations failed`
+            logger.warn(
+              `Partial failure in mutate: ${failures.length}/${operations.length} operations failed`
             );
             for (const f of failures) {
-              console.warn(`  [Op ${f.operationIndex}] ${f.error.message}`);
+              logger.warn(`  [Op ${f.operationIndex}] ${f.error.message}`);
             }
           }
         }

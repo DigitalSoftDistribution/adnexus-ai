@@ -12,6 +12,9 @@ import {
   decryptOAuthTokenFromStorage,
   encryptOAuthTokenForStorage,
 } from '../security/oauth-token-crypto';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('metrics-sync');
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -107,7 +110,7 @@ export const metricsSyncWorker = new Worker(
   'metrics-sync',
   async (job: Job<SyncJobData>) => {
     const { workspaceId, syncType } = job.data;
-    console.log(`[Metrics Sync] ${syncType} sync started for workspace ${workspaceId}`);
+    logger.info(`${syncType} sync started for workspace ${workspaceId}`);
 
     const summary: SyncSummary = {
       accountsSynced: 0,
@@ -130,7 +133,7 @@ export const metricsSyncWorker = new Worker(
       }
 
       if (!accounts || accounts.length === 0) {
-        console.log(`[Metrics Sync] No connected accounts found for workspace ${workspaceId}`);
+        logger.info(`No connected accounts found for workspace ${workspaceId}`);
         await logAuditEvent(workspaceId, 'metrics_sync_complete', 'system', {
           sync_type: syncType,
           accounts_found: 0,
@@ -139,7 +142,7 @@ export const metricsSyncWorker = new Worker(
         return summary;
       }
 
-      console.log(`[Metrics Sync] Found ${accounts.length} account(s) for workspace ${workspaceId}`);
+      logger.info(`Found ${accounts.length} account(s) for workspace ${workspaceId}`);
 
       // 2. Sync each account
       for (const account of accounts) {
@@ -163,14 +166,14 @@ export const metricsSyncWorker = new Worker(
             .eq('id', account.id);
 
           if (updateError) {
-            console.error(`[Metrics Sync] Failed to update ad_account ${account.id}:`, updateError.message);
+            logger.error({ err: updateError }, `Failed to update ad_account ${account.id}`);
           }
 
           // Rate limit breathing room between accounts
           await sleep(500);
         } catch (accountErr) {
           const errMsg = accountErr instanceof Error ? accountErr.message : String(accountErr);
-          console.error(`[Metrics Sync] Error syncing account ${account.id} (${account.platform}):`, errMsg);
+          logger.error({ err: accountErr }, `Error syncing account ${account.id} (${account.platform})`);
           summary.errors.push(`[${account.platform}] ${account.account_id}: ${errMsg}`);
 
           // Mark account as error if token refresh fails
@@ -194,8 +197,8 @@ export const metricsSyncWorker = new Worker(
         success: summary.errors.length === 0,
       });
 
-      console.log(
-        `[Metrics Sync] ${syncType} sync complete for workspace ${workspaceId}: ` +
+      logger.info(
+        `${syncType} sync complete for workspace ${workspaceId}: ` +
         `${summary.accountsSynced} accounts, ${summary.campaignsUpdated} campaigns, ` +
         `${summary.adsetsUpdated} adsets, ${summary.adsUpdated} ads`,
       );
@@ -203,7 +206,7 @@ export const metricsSyncWorker = new Worker(
       return summary;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[Metrics Sync] Sync failed for workspace ${workspaceId}:`, errMsg);
+      logger.error({ err }, `Sync failed for workspace ${workspaceId}`);
       summary.errors.push(errMsg);
 
       await logAuditEvent(workspaceId, 'metrics_sync_failed', 'system', {
@@ -224,8 +227,8 @@ export const metricsSyncWorker = new Worker(
 
 metricsSyncWorker.on('completed', (job) => {
   const result = job.returnvalue as SyncSummary | undefined;
-  console.log(
-    `[Metrics Sync] Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
+  logger.info(
+    `Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
     `${result?.accountsSynced ?? 0} accounts synced`,
   );
 });
@@ -233,7 +236,7 @@ metricsSyncWorker.on('completed', (job) => {
 metricsSyncWorker.on('failed', (job, err) => {
   const jobId = job?.id ?? 'unknown';
   const workspaceId = job?.data?.workspaceId ?? 'unknown';
-  console.error(`[Metrics Sync] Job ${jobId} failed for workspace ${workspaceId}:`, err.message);
+  logger.error({ err }, `Job ${jobId} failed for workspace ${workspaceId}`);
 });
 
 // ─── Job Trigger ─────────────────────────────────────────────
@@ -247,14 +250,14 @@ export async function triggerMetricsSync(
     { workspaceId, syncType },
     { jobId: `sync-${workspaceId}-${Date.now()}` },
   );
-  console.log(`[Metrics Sync] Queued ${syncType} sync for workspace ${workspaceId}, job ${job.id}`);
+  logger.info(`Queued ${syncType} sync for workspace ${workspaceId}, job ${job.id}`);
   return job.id as string;
 }
 
 // ─── Scheduled Sync ──────────────────────────────────────────
 
 export async function scheduleMetricsSync(): Promise<void> {
-  console.log('[Metrics Sync] Running scheduled sync for all active workspaces');
+  logger.info('Running scheduled sync for all active workspaces');
 
   try {
     // Get all workspaces that have at least one connected ad account
@@ -269,14 +272,14 @@ export async function scheduleMetricsSync(): Promise<void> {
     }
 
     if (!workspaces || workspaces.length === 0) {
-      console.log('[Metrics Sync] No active workspaces found');
+      logger.info('No active workspaces found');
       return;
     }
 
     // Deduplicate workspace IDs
     const uniqueWorkspaceIds = [...new Set(workspaces.map((w) => w.workspace_id as string))];
 
-    console.log(`[Metrics Sync] Queuing incremental sync for ${uniqueWorkspaceIds.length} workspace(s)`);
+    logger.info(`Queuing incremental sync for ${uniqueWorkspaceIds.length} workspace(s)`);
 
     // Queue incremental sync jobs for each workspace
     for (const workspaceId of uniqueWorkspaceIds) {
@@ -284,14 +287,14 @@ export async function scheduleMetricsSync(): Promise<void> {
         await triggerMetricsSync(workspaceId, 'incremental');
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[Metrics Sync] Failed to queue sync for workspace ${workspaceId}:`, errMsg);
+        logger.error({ err }, `Failed to queue sync for workspace ${workspaceId}`);
       }
     }
 
-    console.log('[Metrics Sync] Scheduled sync complete');
+    logger.info('Scheduled sync complete');
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error('[Metrics Sync] Scheduled sync failed:', errMsg);
+    logger.error({ err }, 'Scheduled sync failed');
     throw err;
   }
 }
@@ -299,7 +302,7 @@ export async function scheduleMetricsSync(): Promise<void> {
 // ─── Account Router ──────────────────────────────────────────
 
 async function syncAccount(account: AdAccount): Promise<SyncResult> {
-  console.log(`[Metrics Sync] Syncing ${account.platform} account ${account.account_id}`);
+  logger.info(`Syncing ${account.platform} account ${account.account_id}`);
 
   switch (account.platform) {
     case 'meta':
@@ -346,7 +349,7 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
 
     // b. Fetch campaigns from Meta
     const metaCampaigns = await metaApi.getMetaCampaigns(account.account_id, accessToken, 'all');
-    console.log(`[Meta] Fetched ${metaCampaigns.length} campaigns for account ${account.account_id}`);
+    logger.info(`[Meta] Fetched ${metaCampaigns.length} campaigns for account ${account.account_id}`);
 
     if (metaCampaigns.length === 0) {
       return result;
@@ -421,7 +424,7 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
           .single();
 
         if (campaignError) {
-          console.error(`[Meta] Failed to upsert campaign ${mc.id}:`, campaignError.message);
+          logger.error({ err: campaignError }, `[Meta] Failed to upsert campaign ${mc.id}`);
           result.errors.push(`Campaign ${mc.id}: ${campaignError.message}`);
           continue;
         }
@@ -461,19 +464,19 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
         await sleep(200);
       } catch (campaignErr) {
         const msg = campaignErr instanceof Error ? campaignErr.message : String(campaignErr);
-        console.error(`[Meta] Error processing campaign ${mc.id}:`, msg);
+        logger.error({ err: campaignErr }, `[Meta] Error processing campaign ${mc.id}`);
         result.errors.push(`Campaign ${mc.id}: ${msg}`);
       }
     }
 
     if (result.errors.length > 0) {
-      console.warn(`[Meta] Account ${account.account_id} sync completed with ${result.errors.length} error(s)`);
+      logger.warn(`[Meta] Account ${account.account_id} sync completed with ${result.errors.length} error(s)`);
     }
 
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Meta] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -502,7 +505,7 @@ export async function syncGoogleAccount(account: AdAccount): Promise<SyncResult>
 
     // Fetch campaigns
     const campaigns = await googleApi.fetchGoogleCampaigns(account.account_id, accessToken, { status: 'all' });
-    console.log(`[Google] Fetched ${campaigns.length} campaigns for account ${account.account_id}`);
+    logger.info(`[Google] Fetched ${campaigns.length} campaigns for account ${account.account_id}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -647,7 +650,7 @@ export async function syncGoogleAccount(account: AdAccount): Promise<SyncResult>
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Google] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Google] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -677,7 +680,7 @@ export async function syncTikTokAccount(account: AdAccount): Promise<SyncResult>
 
     // Fetch campaigns
     const campaigns = await tiktokApi.fetchTikTokCampaigns(advertiserId, accessToken, { status: 'all' });
-    console.log(`[TikTok] Fetched ${campaigns.length} campaigns for advertiser ${advertiserId}`);
+    logger.info(`[TikTok] Fetched ${campaigns.length} campaigns for advertiser ${advertiserId}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -816,7 +819,7 @@ export async function syncTikTokAccount(account: AdAccount): Promise<SyncResult>
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[TikTok] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[TikTok] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -846,7 +849,7 @@ export async function syncSnapAccount(account: AdAccount): Promise<SyncResult> {
 
     // Fetch campaigns
     const campaigns = await snapApi.fetchSnapCampaigns(adAccountId, accessToken, { status: 'all' });
-    console.log(`[Snap] Fetched ${campaigns.length} campaigns for account ${adAccountId}`);
+    logger.info(`[Snap] Fetched ${campaigns.length} campaigns for account ${adAccountId}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -985,7 +988,7 @@ export async function syncSnapAccount(account: AdAccount): Promise<SyncResult> {
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Snap] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Snap] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -1091,7 +1094,7 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
   }
 
   // Token is expired or about to expire — refresh it
-  console.log(`[Metrics Sync] Refreshing token for ${account.platform} account ${account.account_id}`);
+  logger.info(`Refreshing token for ${account.platform} account ${account.account_id}`);
 
   try {
     let newToken: string;
@@ -1164,14 +1167,14 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
       .eq('id', account.id);
 
     if (updateError) {
-      console.error(`[Metrics Sync] Failed to store refreshed token for account ${account.id}:`, updateError.message);
+      logger.error({ err: updateError }, `Failed to store refreshed token for account ${account.id}`);
     }
 
-    console.log(`[Metrics Sync] Token refreshed for ${account.platform} account ${account.account_id}`);
+    logger.info(`Token refreshed for ${account.platform} account ${account.account_id}`);
     return newToken;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Metrics Sync] Token refresh failed for ${account.platform} account ${account.account_id}:`, msg);
+    logger.error({ err }, `Token refresh failed for ${account.platform} account ${account.account_id}`);
     throw new PlatformError(account.platform, `Token refresh failed: ${msg}`);
   }
 }
@@ -1180,17 +1183,17 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
 
 export async function handleRateLimit(platform: string, retryAfter?: number): Promise<void> {
   const delayMs = retryAfter ? retryAfter * 1000 : 60000; // Default 60 seconds
-  console.log(`[Metrics Sync] Rate limited by ${platform}. Sleeping for ${delayMs}ms`);
+  logger.info(`Rate limited by ${platform}. Sleeping for ${delayMs}ms`);
   await sleep(delayMs);
 }
 
 // ─── Graceful Shutdown ───────────────────────────────────────
 
 export async function shutdownMetricsSync(): Promise<void> {
-  console.log('[Metrics Sync] Shutting down worker...');
+  logger.info('Shutting down worker...');
   await metricsSyncWorker.close();
   await metricsSyncQueue.close();
-  console.log('[Metrics Sync] Worker shut down complete');
+  logger.info('Worker shut down complete');
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -1212,10 +1215,10 @@ async function logAuditEvent(
     });
 
     if (error) {
-      console.error('[Metrics Sync] Failed to log audit event:', error.message);
+      logger.error({ err: error }, 'Failed to log audit event');
     }
   } catch (err) {
-    console.error('[Metrics Sync] Audit log error:', err);
+    logger.error({ err }, 'Audit log error');
   }
 }
 
@@ -1262,7 +1265,7 @@ async function fetchMetaAdSets(campaignId: string, accessToken: string): Promise
     return { data: data.data ?? [] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Failed to fetch adsets for campaign ${campaignId}:`, msg);
+    logger.error({ err }, `[Meta] Failed to fetch adsets for campaign ${campaignId}`);
     return { data: [] };
   }
 }
@@ -1283,7 +1286,7 @@ async function fetchMetaAds(campaignId: string, accessToken: string): Promise<{ 
     return { data: data.data ?? [] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Failed to fetch ads for campaign ${campaignId}:`, msg);
+    logger.error({ err }, `[Meta] Failed to fetch ads for campaign ${campaignId}`);
     return { data: [] };
   }
 }
@@ -1318,7 +1321,7 @@ async function upsertAd(campaignId: string, ad: MetaAd): Promise<void> {
     .single();
 
   if (adsetError || !adsetRecord) {
-    console.warn(`[Meta] Adset not found for ad ${ad.id}, campaign ${campaignId}`);
+    logger.warn(`[Meta] Adset not found for ad ${ad.id}, campaign ${campaignId}`);
     return;
   }
 

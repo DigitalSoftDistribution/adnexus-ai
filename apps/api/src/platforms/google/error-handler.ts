@@ -16,6 +16,9 @@ import {
   RateLimitState,
   MutateResponse,
 } from "./types";
+import { getModuleLogger } from "../../lib/logger";
+
+const logger = getModuleLogger("google-error-handler");
 
 // ---------------------------------------------------------------------------
 // Default Configurations
@@ -307,8 +310,8 @@ export class RetryHandler {
 
         const delay = this.calculateDelay(attempt, error);
 
-        console.warn(
-          `[GoogleAdsAPI] ${operationName} failed (attempt ${attempt + 1}/${this.config.maxRetries + 1}). ` +
+        logger.warn(
+          `${operationName} failed (attempt ${attempt + 1}/${this.config.maxRetries + 1}). ` +
             `Retrying in ${delay}ms... Error: ${(error as Error).message}`
         );
 

@@ -18,6 +18,9 @@ import {
   GAQLSegmentsField,
   DateRange,
 } from "./types";
+import { getModuleLogger } from "../../lib/logger";
+
+const logger = getModuleLogger("gaql-builder");
 
 // ---------------------------------------------------------------------------
 // Field registry for validation
@@ -460,7 +463,7 @@ export class GAQLBuilder {
     if (!this.validated) {
       const { warnings } = this.validate();
       for (const w of warnings) {
-        console.warn(`[GAQLBuilder] ${w}`);
+        logger.warn(w);
       }
     }
 

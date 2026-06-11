@@ -29,7 +29,10 @@ const Chart = class {
 import { createCanvas } from 'canvas';
 import { ChartConfig, ChartImage, ChartOptions } from '../types/report';
 import { tempFileManager } from '../utils/temp-file-manager';
+import { getModuleLogger } from '../lib/logger';
 type TempFileManager = typeof tempFileManager;
+
+const logger = getModuleLogger('chart-service');
 
 /** Service for generating chart images from Chart.js configurations */
 export class ChartService {
@@ -90,7 +93,7 @@ export class ChartService {
   async renderCharts(configs: ChartConfig[], jobId?: string): Promise<ChartImage[]> {
     const promises = configs.map((config, index) =>
       this.renderChart(config, jobId).catch(error => {
-        console.error(`[ChartService] Failed to render chart "${config.title}":`, error);
+        logger.error({ err: error }, `Failed to render chart "${config.title}"`);
         throw new ChartRenderError(`Chart "${config.title}" failed: ${(error as Error).message}`);
       })
     );

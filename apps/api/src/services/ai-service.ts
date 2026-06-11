@@ -4,6 +4,9 @@ import { AppError, ValidationError } from '../lib/errors';
 import { ragService } from './rag-service';
 import type { UnifiedCampaign, UnifiedAd, Platform, PerformanceGoal } from '../types';
 
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('ai-service');
+
 // ─── Type Definitions (AI Service Specific) ──────────────────
 
 export interface DateRange {
@@ -233,7 +236,7 @@ async function callAI(prompt: string, options: AICompletionOptions = {}): Promis
       if (content) return content;
     } catch (err) {
       const error = err as AxiosError;
-      console.error(`[AI] OpenAI call failed (${model}):`, error.message);
+      logger.error({ err: error.message }, `[AI] OpenAI call failed (${model}):`);
       // Fall through to Anthropic
     }
   }
@@ -265,7 +268,7 @@ async function callAI(prompt: string, options: AICompletionOptions = {}): Promis
       if (content) return content;
     } catch (err) {
       const error = err as AxiosError;
-      console.error(`[AI] Anthropic fallback failed (${FALLBACK_MODEL}):`, error.message);
+      logger.error({ err: error.message }, `[AI] Anthropic fallback failed (${FALLBACK_MODEL}):`);
     }
   }
 
@@ -769,7 +772,7 @@ export async function generateMorningBrief(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error(`[AI] Morning brief generation failed for workspace ${workspaceId}:`, err);
+    logger.error({ err: err }, `[AI] Morning brief generation failed for workspace ${workspaceId}:`);
     // Graceful fallback
     return {
       headline: 'Performance data temporarily unavailable',
@@ -825,7 +828,7 @@ export async function analyzeCreative(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error(`[AI] Creative analysis failed for ad ${ad.id}:`, err);
+    logger.error({ err: err }, `[AI] Creative analysis failed for ad ${ad.id}:`);
     // Graceful fallback
     return {
       fatigueRisk: 'medium',
@@ -882,7 +885,7 @@ export async function generateRecommendations(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error(`[AI] Recommendations generation failed for workspace ${workspaceId}:`, err);
+    logger.error({ err: err }, `[AI] Recommendations generation failed for workspace ${workspaceId}:`);
     return [];
   } finally {
     releaseSlot(workspaceId);
@@ -942,7 +945,7 @@ export async function optimizeBudgetAllocation(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error('[AI] Budget optimization failed:', err);
+    logger.error({ err: err }, '[AI] Budget optimization failed:');
     // Graceful fallback: split evenly
     const perCampaign = campaigns.length > 0 ? totalBudget / campaigns.length : 0;
     return {
@@ -1000,7 +1003,7 @@ export async function analyzeABTest(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error('[AI] A/B test analysis failed:', err);
+    logger.error({ err: err }, '[AI] A/B test analysis failed:');
     // Statistical fallback without AI
     const ctrA = variantA.metrics.ctr;
     const ctrB = variantB.metrics.ctr;
@@ -1063,7 +1066,7 @@ export async function generateCreativeBrief(
     if (err instanceof AppError && err.code === 'INSUFFICIENT_CREDITS') throw err;
     if (err instanceof AppError && err.code === 'RATE_LIMIT') throw err;
 
-    console.error('[AI] Creative brief generation failed:', err);
+    logger.error({ err: err }, '[AI] Creative brief generation failed:');
     return {
       concept: `A campaign focused on ${campaignObjective} targeting ${targetAudience} on ${platform}. (AI generation unavailable — please refine manually)`,
       headlines: [`${campaignObjective} — Just for You`, 'Discover the Difference', 'Your Journey Starts Here'],

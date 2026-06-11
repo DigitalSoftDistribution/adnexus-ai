@@ -25,6 +25,9 @@ import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { Redis } from "ioredis";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger("onboarding-emails");
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Configuration
@@ -310,7 +313,7 @@ export async function enqueueOnboardingSequence(params: {
 
   await Promise.all(addPromises);
 
-  console.log(`[Onboarding] Enqueued ${jobs.length} emails for user ${userId} (${email})`);
+  logger.info(`Enqueued ${jobs.length} emails for user ${userId} (${email})`);
 }
 
 /**
@@ -337,7 +340,7 @@ export async function cancelOnboardingSequence(userId: string): Promise<void> {
 
   await Promise.all(removals);
 
-  console.log(`[Onboarding] Cancelled all pending emails for user ${userId}`);
+  logger.info(`Cancelled all pending emails for user ${userId}`);
 }
 
 /**
@@ -349,7 +352,7 @@ export async function unsubscribeFromOnboarding(userId: string): Promise<void> {
 
   await cancelOnboardingSequence(userId);
 
-  console.log(`[Onboarding] User ${userId} unsubscribed from onboarding emails`);
+  logger.info(`User ${userId} unsubscribed from onboarding emails`);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -361,12 +364,12 @@ const worker = new Worker(
   async (job: Job<OnboardingEmailJob>) => {
     const { userId, userName, email, template } = job.data;
 
-    console.log(`[Onboarding] Processing ${job.name} for ${email} (attempt ${job.attemptsMade + 1})`);
+    logger.info(`Processing ${job.name} for ${email} (attempt ${job.attemptsMade + 1})`);
 
     // 1. Check if user is unsubscribed
     const userState = await fetchUserState(userId);
     if (userState.unsubscribedFromOnboarding) {
-      console.log(`[Onboarding] Skipping ${template} — user ${userId} unsubscribed`);
+      logger.info(`Skipping ${template} — user ${userId} unsubscribed`);
       return { skipped: true, reason: "unsubscribed" };
     }
 
@@ -377,7 +380,7 @@ const worker = new Worker(
     }
 
     if (!templateData.shouldSend(userState)) {
-      console.log(`[Onboarding] Skipping ${template} — action already completed or prerequisite not met`);
+      logger.info(`Skipping ${template} — action already completed or prerequisite not met`);
       return { skipped: true, reason: "action_already_completed" };
     }
 
@@ -412,7 +415,7 @@ const worker = new Worker(
       },
     });
 
-    console.log(`[Onboarding] Sent ${template} to ${email}`);
+    logger.info(`Sent ${template} to ${email}`);
 
     return { sent: true, template, recipient: email };
   },
@@ -432,14 +435,14 @@ const worker = new Worker(
 
 worker.on("completed", (job, result) => {
   if (result?.skipped) {
-    console.log(`[Onboarding] Job ${job.id} skipped: ${result.reason}`);
+    logger.info(`Job ${job.id} skipped: ${result.reason}`);
   } else {
-    console.log(`[Onboarding] Job ${job.id} completed: sent ${result?.template}`);
+    logger.info(`Job ${job.id} completed: sent ${result?.template}`);
   }
 });
 
 worker.on("failed", (job, err) => {
-  console.error(`[Onboarding] Job ${job?.id} failed:`, err.message);
+  logger.error({ err }, `Job ${job?.id} failed`);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -447,11 +450,11 @@ worker.on("failed", (job, err) => {
 // ──────────────────────────────────────────────────────────────────────────────
 
 async function shutdown(signal: string): Promise<void> {
-  console.log(`[Onboarding] Received ${signal}, shutting down gracefully...`);
+  logger.info(`Received ${signal}, shutting down gracefully...`);
   await worker.close();
   await onboardingQueue.close();
   await redisConnection.quit();
-  console.log("[Onboarding] Worker and queue closed. Exiting.");
+  logger.info("Worker and queue closed. Exiting.");
   process.exit(0);
 }
 
@@ -463,7 +466,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 // ──────────────────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
-  console.log("[Onboarding] Email worker started. Waiting for jobs...");
+  logger.info("Email worker started. Waiting for jobs...");
 }
 
 // Export the worker for testability

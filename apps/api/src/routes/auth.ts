@@ -11,7 +11,11 @@ import {
 } from '../services/refresh-token-service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
+import { bruteForceProtection } from '../security/hardening';
 import type { TokenResponse, User, Workspace, WorkspaceRole } from '../types';
+
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('auth-route');
 
 const router = Router();
 
@@ -268,6 +272,7 @@ router.post(
  */
 router.post(
   '/signin',
+  bruteForceProtection,
   asyncHandler(async (req, res) => {
     const body = signinSchema.parse(req.body);
 
@@ -278,6 +283,7 @@ router.post(
     });
 
     if (signInError || !signInData.user) {
+      (req as unknown as { recordFailedAttempt?: () => void }).recordFailedAttempt?.();
       throw new UnauthorizedError('Invalid email or password');
     }
 
@@ -328,6 +334,7 @@ router.post(
     const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
 
     // ── 6. Log audit event ──
+    (req as unknown as { recordSuccessfulAttempt?: () => void }).recordSuccessfulAttempt?.();
     await supabase.from('audit_log').insert({
       workspace_id: workspace.id,
       actor_type: 'user',
@@ -530,7 +537,7 @@ router.post(
 
     if (error) {
       // Still return the same message; log the actual error internally
-      console.error('[auth] Supabase resetPasswordForEmail failed:', error.message);
+      logger.error({ err: error.message }, '[auth] Supabase resetPasswordForEmail failed:');
     }
 
     res.json({

@@ -1,5 +1,8 @@
 import Redis from 'ioredis';
 import { config } from '../config';
+import { getModuleLogger } from './logger';
+
+const logger = getModuleLogger('redis');
 
 let redisClient: Redis | null = null;
 
@@ -11,8 +14,8 @@ export function getRedisClient(): Redis | null {
       enableReadyCheck: true,
       retryStrategy: (times) => Math.min(times * 50, 2000),
     });
-    redisClient.on('error', (err) => console.error('Redis error:', err.message));
-    redisClient.on('connect', () => console.log('Redis connected'));
+    redisClient.on('error', (err) => logger.error({ err }, 'Redis error'));
+    redisClient.on('connect', () => logger.info('Redis connected'));
   }
   return redisClient;
 }

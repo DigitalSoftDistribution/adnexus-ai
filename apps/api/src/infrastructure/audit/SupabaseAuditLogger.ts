@@ -1,5 +1,8 @@
 import type { IAuditLogger, AuditLogEntry } from '../../application/ports/IAuditLogger';
 import { supabase } from '../../lib/supabase';
+import { getModuleLogger } from '../../lib/logger';
+
+const logger = getModuleLogger('audit-logger');
 
 export class SupabaseAuditLogger implements IAuditLogger {
   async log(entry: AuditLogEntry): Promise<void> {
@@ -24,7 +27,7 @@ export class SupabaseAuditLogger implements IAuditLogger {
     } catch {
       // Audit logging should never fail the main operation
       // In production, send to a fallback (e.g., stdout, Sentry)
-      console.error('Audit log failed:', entry);
+      logger.error({ entry }, 'Audit log failed');
     }
   }
 
@@ -52,7 +55,7 @@ export class SupabaseAuditLogger implements IAuditLogger {
 
       await supabase.from('audit_log').insert(rows);
     } catch {
-      console.error('Batch audit log failed:', entries);
+      logger.error({ entries }, 'Batch audit log failed');
     }
   }
 }

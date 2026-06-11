@@ -14,6 +14,9 @@ import {
   AuthUrlOptions,
   GoogleAdsClientConfig,
 } from "./types";
+import { getModuleLogger } from "../../lib/logger";
+
+const logger = getModuleLogger("google-auth");
 
 const DEFAULT_SCOPES = [
   "https://www.googleapis.com/auth/adwords",
@@ -334,7 +337,7 @@ export class GoogleAdsAuth {
       try {
         await callback(tokens);
       } catch (err) {
-        console.error("Token refresh callback error:", err);
+        logger.error({ err }, "Token refresh callback error");
       }
     }
   }
@@ -357,7 +360,7 @@ export class GoogleAdsAuth {
         body: new URLSearchParams({ token: this.tokens.access_token }),
       });
     } catch (err) {
-      console.warn("Token revocation request failed:", err);
+      logger.warn({ err }, "Token revocation request failed");
     }
 
     this.tokens = null;
