@@ -476,11 +476,17 @@ export function bruteForceProtection(
     const remainingMs = entry.blockedUntil - now;
     const remainingMin = Math.ceil(remainingMs / 60000);
 
+    // Match the API's standard error envelope ({ success, error: { code,
+    // message } }) so clients surface the lockout message instead of a
+    // generic failure.
+    res.setHeader("Retry-After", Math.ceil(remainingMs / 1000));
     res.status(429).json({
-      error: "Too many failed attempts",
-      code: "ACCOUNT_LOCKED",
-      message: `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
-      retryAfter: Math.ceil(remainingMs / 1000),
+      success: false,
+      error: {
+        code: "ACCOUNT_LOCKED",
+        message: `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
+        details: { retryAfter: Math.ceil(remainingMs / 1000) },
+      },
     });
     return;
   }

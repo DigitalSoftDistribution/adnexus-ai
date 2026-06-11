@@ -173,6 +173,29 @@ export class EmailService {
     return data?.email ?? null;
   }
 
+  /** User's preferred timezone from user_settings, defaulting to UTC. */
+  private async getUserTimezone(userId: string, workspaceId: string): Promise<string> {
+    const { data } = await supabase
+      .from('user_settings')
+      .select('timezone')
+      .eq('user_id', userId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+
+    return (data?.timezone as string) || 'UTC';
+  }
+
+  /** Calendar day (YYYY-MM-DD) of the given instant in the given timezone. */
+  private localDay(date: Date, timeZone: string): string {
+    // en-CA formats as YYYY-MM-DD
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  }
+
   private async getWorkspaceName(workspaceId: string): Promise<string> {
     const { data, error } = await supabase
       .from('workspaces')
@@ -236,17 +259,20 @@ export class EmailService {
 
   private async getMorningBriefData(userId: string, workspaceId: string): Promise<MorningBriefData> {
     const now = new Date();
-    const isoDay = (d: Date) => d.toISOString().slice(0, 10);
-    const yesterday = new Date(now.getTime() - 86400000);
-    const dayBefore = new Date(now.getTime() - 2 * 86400000);
+    const tz = await this.getUserTimezone(userId, workspaceId);
+    // Calendar days are computed in the user's timezone so "yesterday" lines
+    // up with the dates stored in campaign_daily_metrics.
+    const dayAgo = (n: number) => this.localDay(new Date(now.getTime() - n * 86400000), tz);
+    const yesterday = dayAgo(1);
+    const dayBefore = dayAgo(2);
 
     const [workspaceName, rows] = await Promise.all([
       this.getWorkspaceName(workspaceId),
-      this.fetchDailyMetrics(workspaceId, isoDay(dayBefore), isoDay(yesterday)),
+      this.fetchDailyMetrics(workspaceId, dayBefore, yesterday),
     ]);
 
-    const yRows = rows.filter((r) => r.date === isoDay(yesterday));
-    const pRows = rows.filter((r) => r.date === isoDay(dayBefore));
+    const yRows = rows.filter((r) => r.date === yesterday);
+    const pRows = rows.filter((r) => r.date === dayBefore);
 
     const sum = (xs: typeof rows, key: 'spend' | 'conversions' | 'impressions' | 'clicks') =>
       xs.reduce((acc, r) => acc + r[key], 0);
@@ -293,7 +319,7 @@ export class EmailService {
       .limit(3);
 
     return {
-      date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz }),
       workspaceName,
       kpis: {
         spend: { value: ySpend, change: pctChange(ySpend, pSpend) },
@@ -316,13 +342,15 @@ export class EmailService {
 
   private async getWeeklySummaryData(userId: string, workspaceId: string): Promise<WeeklySummaryData> {
     const now = new Date();
-    const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+    const tz = await this.getUserTimezone(userId, workspaceId);
     const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000);
+    // Week boundaries in the user's timezone, matching campaign_daily_metrics dates
+    const localDayAgo = (n: number) => this.localDay(daysAgo(n), tz);
 
-    const currentStart = isoDay(daysAgo(7));
-    const currentEnd = isoDay(daysAgo(1));
-    const previousStart = isoDay(daysAgo(14));
-    const previousEnd = isoDay(daysAgo(8));
+    const currentStart = localDayAgo(7);
+    const currentEnd = localDayAgo(1);
+    const previousStart = localDayAgo(14);
+    const previousEnd = localDayAgo(8);
 
     const [workspaceName, rows] = await Promise.all([
       this.getWorkspaceName(workspaceId),
@@ -384,7 +412,7 @@ export class EmailService {
     const spendM = metric('spend');
     const convM = metric('conversions');
 
-    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: tz });
 
     return {
       weekRange: `${fmt(daysAgo(7))} - ${fmt(daysAgo(1))}, ${now.getFullYear()}`,
@@ -634,7 +662,8 @@ export class EmailService {
    */
   async sendPasswordReset(email: string, token: string): Promise<void> {
     const html = passwordResetTemplate(token, this.appUrl);
-    const resetUrl = `${this.appUrl}/reset-password?token=${token}`;
+    // Must match the URL in passwordResetTemplate — the web app's reset page
+    const resetUrl = `${this.appUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'password_reset',
