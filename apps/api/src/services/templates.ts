@@ -606,7 +606,7 @@ export function onboardingDay7Template(appUrl: string): string {
 // PASSWORD RESET TEMPLATE
 // ─────────────────────────────────────────────────────────────────────────────
 export function passwordResetTemplate(token: string, appUrl: string): string {
-  const resetUrl = `${appUrl}/reset-password?token=${token}`;
+  const resetUrl = `${appUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
 
   const content = `
     <div style="padding: 32px 40px;">

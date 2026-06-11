@@ -748,7 +748,25 @@ export class EmailService {
   }
 }
 
-export const emailService = new EmailService();
+// Lazy singleton: the constructor opens Redis/BullMQ connections, which must
+// not happen as an import side effect (route modules import this service, and
+// tests/CLI tools import routes without a Redis available).
+let _emailService: EmailService | null = null;
+
+export function getEmailService(): EmailService {
+  if (!_emailService) {
+    _emailService = new EmailService();
+  }
+  return _emailService;
+}
+
+export const emailService: EmailService = new Proxy({} as EmailService, {
+  get(_target, prop, receiver) {
+    const instance = getEmailService();
+    const value = Reflect.get(instance, prop, instance);
+    return typeof value === 'function' ? value.bind(instance) : value;
+  },
+});
 
 /** Standalone sendEmail helper for notifications */
 export async function sendEmail(params: { to: string; subject: string; body: string }): Promise<void> {
