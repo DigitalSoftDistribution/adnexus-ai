@@ -155,6 +155,7 @@ import {
 } from './account-store';
 
 import { MetaPlatformClient } from '../infrastructure/platform/MetaPlatformClient';
+import { connectMetaAccount } from './meta/MetaPlatformClient';
 
 // ═══════════════════════════════════════════════
 //  Client Registry — maps platform → client factory
@@ -695,7 +696,18 @@ export class PlatformManager {
     workspaceId: string,
     platform: Platform,
     code: string,
+    redirectUri?: string,
   ): Promise<AdAccount> {
+    const trimmedCode = code?.trim();
+    if (!trimmedCode) {
+      throw new PlatformAPIError(
+        platform,
+        'VALIDATION_MISSING_FIELD',
+        'OAuth authorization code is required.',
+        false,
+      );
+    }
+
     const factory = clientRegistry.get(platform);
     if (!factory) {
       throw new PlatformAPIError(
@@ -706,29 +718,46 @@ export class PlatformManager {
       );
     }
 
-    // TODO: Implement OAuth token exchange
-    // This is a stub — each platform module will implement its own
-    // token exchange via the PlatformClient interface.
+    let account: AdAccount;
+    let client: PlatformClient;
 
-    // Placeholder: create a dummy account record for now
-    const account: AdAccount = {
-      id: `${platform}_${Date.now()}`,
-      workspaceId,
-      platform,
-      platformAccountId: 'placeholder',
-      name: `${platform} Account`,
-      currency: 'USD',
-      timezone: 'America/New_York',
-      status: 'active',
-      accessToken: 'placeholder_token',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (platform === 'meta') {
+      const connected = await connectMetaAccount(trimmedCode, workspaceId, redirectUri);
+      account = connected.account;
+      client = connected.client;
+    } else {
+      throw new PlatformAPIError(
+        platform,
+        'UNKNOWN_ERROR',
+        `OAuth account connection for '${platform}' must be completed via the platform auth callback routes.`,
+        false,
+      );
+    }
 
-    // Cache the account in memory
+    const accessToken = account.accessToken?.trim();
+    if (!accessToken || accessToken === 'placeholder_token') {
+      throw new PlatformAPIError(
+        platform,
+        'AUTH_TOKEN_INVALID',
+        'OAuth token exchange did not return a valid access token.',
+        false,
+      );
+    }
+
+    const platformAccountId = account.platformAccountId?.trim();
+    if (!platformAccountId || platformAccountId === 'placeholder') {
+      throw new PlatformAPIError(
+        platform,
+        'VALIDATION_MISSING_FIELD',
+        'OAuth token exchange did not resolve a platform account ID.',
+        false,
+      );
+    }
+
     const existing = this.workspaceAccounts.get(workspaceId) || [];
     existing.push(account);
     this.workspaceAccounts.set(workspaceId, existing);
+    this.clientCache.set(this.cacheKey(platform, platformAccountId), client);
 
     return account;
   }
