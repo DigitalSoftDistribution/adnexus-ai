@@ -14,6 +14,7 @@ import { logger } from "../../lib/logger";
 import axios from "axios";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
 import { consumeOAuthStateNonce, createOAuthState, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from "./oauthState";
+import { oauthTokensForDbWrite, decryptOAuthTokenFromStorage } from "../../security/oauth-token-crypto";
 
 const router = Router();
 const META_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth";
@@ -174,6 +175,7 @@ router.get("/callback", async (req: Request, res: Response) => {
     }
     const expiresIn = (llRes.data.expires_in as number) || 5184000; // default 60 days
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    const storedTokens = oauthTokensForDbWrite(accessToken, accessToken);
 
     // Step 3: Fetch ad accounts
     logger.info({ workspaceId }, "Fetching Meta ad accounts");
@@ -202,8 +204,7 @@ router.get("/callback", async (req: Request, res: Response) => {
         const { error: updateErr } = await supabase
           .from("ad_accounts")
           .update({
-            oauth_token: accessToken,
-            refresh_token: accessToken, // Meta uses same token refreshed
+            ...storedTokens,
             token_expires_at: expiresAt,
             scopes: REQUIRED_SCOPES,
             status: "active",
@@ -234,8 +235,7 @@ router.get("/callback", async (req: Request, res: Response) => {
           const { error: updateErr } = await supabase
             .from("ad_accounts")
             .update({
-              oauth_token: accessToken,
-              refresh_token: accessToken,
+              ...storedTokens,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
               status: "active",
@@ -261,8 +261,7 @@ router.get("/callback", async (req: Request, res: Response) => {
               platform_account_id: acc.id,
               name: acc.name || `Meta Ads Account ${acc.id}`,
               status: acc.account_status === 1 ? "active" : "error",
-              oauth_token: accessToken,
-              refresh_token: accessToken,
+              ...storedTokens,
               token_expires_at: expiresAt,
               scopes: REQUIRED_SCOPES,
               is_active: acc.account_status === 1,
@@ -334,13 +333,16 @@ router.post("/disconnect", requireAuth, requireAdmin, async (req: Request, res: 
       .single();
 
     if (account?.oauth_token) {
-      // Revoke with Meta
-      try {
-        await axios.delete(`${META_GRAPH_URL}/me/permissions`, {
-          params: { access_token: account.oauth_token },
-        });
-      } catch {
-        // Token may already be invalid; continue with DB cleanup
+      const accessToken = decryptOAuthTokenFromStorage(account.oauth_token);
+      if (accessToken) {
+        // Revoke with Meta
+        try {
+          await axios.delete(`${META_GRAPH_URL}/me/permissions`, {
+            params: { access_token: accessToken },
+          });
+        } catch {
+          // Token may already be invalid; continue with DB cleanup
+        }
       }
     }
 

@@ -8,6 +8,8 @@ import {
   fetchGoogleInsights,
   refreshGoogleToken,
 } from '../../src/services/google-api';
+import { isEncrypted } from '../../src/security/encryption';
+import { decryptOAuthTokenFromStorage } from '../../src/security/oauth-token-crypto';
 
 jest.mock('../../src/infrastructure/database/connection', () => ({
   query: jest.fn(),
@@ -161,9 +163,10 @@ describe('GooglePlatformSyncService', () => {
 
     expect(mockRefreshToken).toHaveBeenCalledWith('refresh-token');
     expect(mockFetchCampaigns).toHaveBeenCalledWith('1234567890', 'new-access-token', { status: 'all' });
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE ad_accounts'),
-      expect.arrayContaining(['account-uuid', 'new-access-token']),
-    );
+    const updateCall = mockQuery.mock.calls.find((c) => (c[0] as string).includes('UPDATE ad_accounts'));
+    expect(updateCall).toBeDefined();
+    const storedToken = (updateCall![1] as unknown[])[1] as string;
+    expect(isEncrypted(storedToken)).toBe(true);
+    expect(decryptOAuthTokenFromStorage(storedToken)).toBe('new-access-token');
   });
 });

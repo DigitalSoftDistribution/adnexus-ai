@@ -246,6 +246,8 @@ export async function getDraftStats(workspaceId: string): Promise<DraftStats> {
   };
 }
 
+import { decryptOAuthTokenFromStorage } from '../security/oauth-token-crypto';
+
 // ─── Apply Draft Change (internal) ───────────────────────────
 
 async function applyDraftChange(draft: Draft): Promise<void> {
@@ -258,7 +260,8 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     .limit(1)
     .single();
 
-  if (!account?.oauth_token) {
+  const oauthToken = decryptOAuthTokenFromStorage(account?.oauth_token);
+  if (!oauthToken) {
     throw new Error(`No connected ${draft.platform} account found`);
   }
 
@@ -269,7 +272,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
       // detail has: name, objective, daily_budget
       await createMetaCampaign(
         '', // account ID would come from ad_accounts
-        account.oauth_token,
+        oauthToken,
         {
           name: detail.name as string,
           objective: detail.objective as string,
@@ -282,7 +285,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     case 'budget_change': {
       const campaignPid = detail.platform_campaign_id as string;
       if (campaignPid) {
-        await updateMetaCampaign(campaignPid, account.oauth_token, {
+        await updateMetaCampaign(campaignPid, oauthToken, {
           [detail.field === 'lifetime_budget' ? 'lifetime_budget' : 'daily_budget']:
             Math.round((detail.new_value as number) * 100),
         });
@@ -292,7 +295,7 @@ async function applyDraftChange(draft: Draft): Promise<void> {
     case 'status_change': {
       const campaignPid = detail.platform_campaign_id as string;
       if (campaignPid) {
-        await updateMetaCampaign(campaignPid, account.oauth_token, {
+        await updateMetaCampaign(campaignPid, oauthToken, {
           status: detail.new_status as string,
         });
       }
