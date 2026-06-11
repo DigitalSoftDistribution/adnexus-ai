@@ -931,9 +931,19 @@ export class PlatformManager {
     // to keep platform API call volume predictable.
     const TRENDS_CAMPAIGNS_PER_PLATFORM = 10;
 
+    // Dedupe by platform campaign id — the same platform campaign can be
+    // visible through multiple connected ad accounts, and fetching it twice
+    // would double-count its spend/conversions in the daily buckets.
+    const seenPlatformCampaigns = new Set<string>();
     const trendCandidates = Array.from(
       allCampaigns
-        .filter((c) => c.spend > 0)
+        .filter((c) => {
+          if (c.spend <= 0) return false;
+          const key = `${c.platform}:${c.platformCampaignId}`;
+          if (seenPlatformCampaigns.has(key)) return false;
+          seenPlatformCampaigns.add(key);
+          return true;
+        })
         .sort((a, b) => b.spend - a.spend)
         .reduce((byPlatform, c) => {
           const list = byPlatform.get(c.platform) ?? [];
