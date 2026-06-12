@@ -17,6 +17,9 @@ declare global {
       apiKeyId?: string;
       /** API key platforms restriction, set by API key auth middleware */
       apiKeyPlatforms?: string[];
+      /** Exact raw request body bytes, captured by the JSON body-parser verify
+       *  hook — used for provider webhook signature verification. */
+      rawBody?: Buffer;
     }
   }
 }

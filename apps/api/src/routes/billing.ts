@@ -13,6 +13,7 @@ import {
   isStripeSecretConfigured,
 } from "../services/stripe";
 import { db } from "../db";
+import { query } from "../db/connection";
 import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { HttpError } from "../utils/errors";
@@ -323,7 +324,60 @@ router.post("/webhook", async (req, res, next) => {
       "Stripe webhook received",
     );
 
-    await handleWebhookEvent(event);
+    // ── Idempotency ──────────────────────────────────────────
+    // Stripe delivers at-least-once and retries on non-2xx. The unique row is
+    // an atomic lock: concurrent deliveries of the same event can't both enter
+    // the handler. The conflict path only re-claims a row that was started but
+    // never finished (processed_at IS NULL) AND is older than the stale window,
+    // so a crashed attempt is eventually retried without races re-processing a
+    // freshly-claimed (in-flight) or already-completed event.
+    const { rows: claim } = await query<{ id: string }>(
+      `INSERT INTO stripe_webhook_events (id, type)
+         VALUES ($1, $2)
+         ON CONFLICT (id) DO UPDATE
+           SET received_at = NOW()
+           WHERE stripe_webhook_events.processed_at IS NULL
+             AND stripe_webhook_events.received_at < NOW() - INTERVAL '10 minutes'
+       RETURNING id`,
+      [event.id, event.type],
+    );
+    if (claim.length === 0) {
+      // Already processed, or another delivery is actively processing it.
+      logger.info(
+        { eventType: event.type, eventId: event.id },
+        "Duplicate or in-flight Stripe webhook ignored",
+      );
+      return res.json({ received: true, eventId: event.id });
+    }
+
+    try {
+      await handleWebhookEvent(event);
+    } catch (procErr) {
+      // The handler failed *before* committing side effects we can rely on, so
+      // release our claim and let Stripe's retry re-process from scratch.
+      await query(
+        "DELETE FROM stripe_webhook_events WHERE id = $1 AND processed_at IS NULL",
+        [event.id],
+      ).catch(() => undefined);
+      throw procErr;
+    }
+
+    // Handler succeeded — side effects are committed. Marking processed is a
+    // best-effort finalization: if it fails we must NOT delete the claim (that
+    // would let a retry double-apply). Worst case the row stays unmarked and is
+    // only re-eligible after the stale window; handlers are idempotent upserts,
+    // so the residual risk is a rare, benign re-apply rather than a double spend.
+    try {
+      await query(
+        "UPDATE stripe_webhook_events SET processed_at = NOW() WHERE id = $1",
+        [event.id],
+      );
+    } catch (markErr) {
+      logger.error(
+        { error: markErr, eventId: event.id, eventType: event.type },
+        "Stripe webhook side effects applied but marking processed failed",
+      );
+    }
 
     // Log the webhook for audit trail
     try {
