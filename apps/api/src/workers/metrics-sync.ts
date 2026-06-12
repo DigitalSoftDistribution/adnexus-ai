@@ -1534,10 +1534,10 @@ function mapMetaStatus(status: string): 'active' | 'paused' | 'draft' | 'error' 
 if (require.main === module) {
   void startMetricsSyncWorker().then((status) => {
     if (status.status !== 'running') {
-      console.log(`[Metrics Sync] Worker not started: ${status.reason ?? status.status}`);
+      logger.info(`Worker not started: ${status.reason ?? status.status}`);
       process.exit(0);
     }
-    console.log('[Metrics Sync] Worker started. Waiting for jobs...');
+    logger.info('Worker started. Waiting for jobs...');
   });
 }
 

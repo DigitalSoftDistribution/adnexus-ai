@@ -652,8 +652,13 @@ export function passwordResetTemplate(token: string, appUrl: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 // TEAM INVITE TEMPLATE
 // ─────────────────────────────────────────────────────────────────────────────
-export function teamInviteTemplate(data: { inviterName: string; workspaceName: string; email: string }, appUrl: string): string {
-  const inviteUrl = `${appUrl}/accept-invite?email=${encodeURIComponent(data.email)}`;
+export function teamInviteTemplate(
+  data: { inviterName: string; workspaceName: string; email: string; token: string },
+  appUrl: string,
+): string {
+  // Query param (not a path segment) so the JWT's dots don't bypass the web
+  // app's locale middleware — see the invite page comment.
+  const inviteUrl = `${appUrl}/auth/invite?token=${encodeURIComponent(data.token)}`;
 
   const content = `
     <div style="padding: 32px 40px;">

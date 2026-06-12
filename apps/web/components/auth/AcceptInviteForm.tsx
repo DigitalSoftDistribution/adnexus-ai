@@ -8,40 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+
+const MIN_PASSWORD_LENGTH = 8;
 
 interface FieldErrors {
   name?: string;
-  email?: string;
   password?: string;
 }
 
-type FieldName = 'name' | 'email' | 'password';
-
-const MIN_PASSWORD_LENGTH = 8;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function getFieldErrors(
   name: string,
-  email: string,
   password: string,
   t: ReturnType<typeof useTranslations<'auth'>>,
-  touchedFields: Record<FieldName, boolean>,
+  touchedFields: { name: boolean; password: boolean },
 ): FieldErrors {
   const errors: FieldErrors = {};
 
   if (touchedFields.name && !name.trim()) {
     errors.name = t('nameRequired');
-  }
-
-  if (touchedFields.email) {
-    // Validate the same normalized value the submit handler sends
-    const normalizedEmail = email.trim();
-    if (!normalizedEmail) {
-      errors.email = t('emailRequired');
-    } else if (!EMAIL_REGEX.test(normalizedEmail)) {
-      errors.email = t('invalidEmail');
-    }
   }
 
   if (touchedFields.password) {
@@ -57,7 +42,6 @@ function getFieldErrors(
 
 function getFullFieldErrors(
   name: string,
-  email: string,
   password: string,
   t: ReturnType<typeof useTranslations<'auth'>>,
 ): FieldErrors {
@@ -65,13 +49,6 @@ function getFullFieldErrors(
 
   if (!name.trim()) {
     errors.name = t('nameRequired');
-  }
-
-  const normalizedEmail = email.trim();
-  if (!normalizedEmail) {
-    errors.email = t('emailRequired');
-  } else if (!EMAIL_REGEX.test(normalizedEmail)) {
-    errors.email = t('invalidEmail');
   }
 
   if (!password) {
@@ -83,42 +60,37 @@ function getFullFieldErrors(
   return errors;
 }
 
-export function SignUpForm() {
+export function AcceptInviteForm({ token }: { token: string }) {
   const locale = useLocale();
   const t = useTranslations('auth');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const touchedRef = useRef<Record<FieldName, boolean>>({
-    name: false,
-    email: false,
-    password: false,
-  });
+  const [success, setSuccess] = useState(false);
+  const touchedRef = useRef({ name: false, password: false });
 
   const updateFieldErrors = useCallback(
-    (newName: string, newEmail: string, newPassword: string) => {
-      setFieldErrors(getFieldErrors(newName, newEmail, newPassword, t, touchedRef.current));
+    (newName: string, newPassword: string) => {
+      setFieldErrors(getFieldErrors(newName, newPassword, t, touchedRef.current));
     },
     [t],
   );
 
   const handleBlur = useCallback(
-    (field: FieldName) => {
+    (field: 'name' | 'password') => {
       touchedRef.current = { ...touchedRef.current, [field]: true };
-      updateFieldErrors(name, email, password);
+      updateFieldErrors(name, password);
     },
-    [name, email, password, updateFieldErrors],
+    [name, password, updateFieldErrors],
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Mark all fields as touched and run full validation (parity with SignInForm)
-    touchedRef.current = { name: true, email: true, password: true };
-    const errors = getFullFieldErrors(name, email, password, t);
+    touchedRef.current = { name: true, password: true };
+    const errors = getFullFieldErrors(name, password, t);
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -129,33 +101,81 @@ export function SignUpForm() {
     setError('');
 
     try {
-      const res = await fetch('/api/v1/auth/signup', {
+      const res = await fetch('/api/v1/auth/accept-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        body: JSON.stringify({ token, name: name.trim(), password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setError(data.error?.message ?? t('signUpFailed'));
+        setError(data?.error?.message ?? t('acceptInviteFailed'));
         return;
       }
 
-      // The API wraps the payload: { success, data: { token, ... } }.
-      const token = data?.data?.token ?? data?.token;
-      if (!token) {
-        setError(t('signUpFailed'));
+      const accessToken = data?.data?.token ?? data?.token;
+      if (accessToken) {
+        localStorage.setItem('adnexus_token', accessToken);
+        window.location.assign(`/${locale}/dashboard`);
         return;
       }
-      localStorage.setItem('adnexus_token', token);
-      window.location.assign(`/${locale}/onboarding`);
+
+      setSuccess(true);
     } catch {
       setError(t('unexpectedError'));
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!token) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">{t('invalidInviteTokenTitle')}</CardTitle>
+          <CardDescription className="text-center">
+            {t('invalidInviteTokenDescription')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-sm text-muted-foreground">
+            <Link href="/auth/signin" className="text-primary hover:underline">
+              {t('backToSignIn')}
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (success) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">{t('acceptInviteSuccessTitle')}</CardTitle>
+          <CardDescription className="text-center">
+            {t('acceptInviteSuccessDescription')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/auth/signin">{t('signIn')}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md">
@@ -165,10 +185,8 @@ export function SignUpForm() {
             <span className="text-primary-foreground text-xl font-bold">A</span>
           </div>
         </div>
-        <CardTitle className="text-2xl text-center">{t('createAccount')}</CardTitle>
-        <CardDescription className="text-center">
-          {t('signUpSubtitle')}
-        </CardDescription>
+        <CardTitle className="text-2xl text-center">{t('acceptInviteTitle')}</CardTitle>
+        <CardDescription className="text-center">{t('acceptInviteSubtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -191,7 +209,7 @@ export function SignUpForm() {
               onChange={(e) => {
                 const newVal = e.target.value;
                 setName(newVal);
-                updateFieldErrors(newVal, email, password);
+                updateFieldErrors(newVal, password);
               }}
               onBlur={() => handleBlur('name')}
               aria-invalid={!!fieldErrors.name}
@@ -204,28 +222,6 @@ export function SignUpForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">{t('email')}</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder={t('emailPlaceholder')}
-              value={email}
-              onChange={(e) => {
-                const newVal = e.target.value;
-                setEmail(newVal);
-                updateFieldErrors(name, newVal, password);
-              }}
-              onBlur={() => handleBlur('email')}
-              aria-invalid={!!fieldErrors.email}
-              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-            />
-            {fieldErrors.email && (
-              <p id="email-error" className="text-sm text-destructive" role="alert">
-                {fieldErrors.email}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="password">{t('password')}</Label>
             <Input
               id="password"
@@ -234,7 +230,7 @@ export function SignUpForm() {
               onChange={(e) => {
                 const newVal = e.target.value;
                 setPassword(newVal);
-                updateFieldErrors(name, email, newVal);
+                updateFieldErrors(name, newVal);
               }}
               onBlur={() => handleBlur('password')}
               aria-invalid={!!fieldErrors.password}
@@ -248,7 +244,7 @@ export function SignUpForm() {
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
-            {t('signUp')}
+            {t('acceptInvite')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm text-muted-foreground">

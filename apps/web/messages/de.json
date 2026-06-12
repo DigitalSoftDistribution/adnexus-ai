@@ -118,7 +118,9 @@
     "changes": "Änderung(en)",
     "active": "Aktiv",
     "paused": "Pausiert",
-    "budgetType": "Budgettyp"
+    "budgetType": "Budgettyp",
+    "noData": "Keine Daten",
+    "noDataHint": "Es gibt noch nichts anzuzeigen."
   },
   "auth": {
     "signIn": "Anmelden",
@@ -165,7 +167,15 @@
     "resetPasswordFailed": "Das Zurücksetzen des Passworts ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "invalidResetTokenTitle": "Ungültiger oder abgelaufener Link",
     "invalidResetTokenDescription": "Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.",
-    "requestNewLink": "Neuen Link anfordern"
+    "requestNewLink": "Neuen Link anfordern",
+    "acceptInvite": "Accept invitation",
+    "acceptInviteTitle": "Accept your invitation",
+    "acceptInviteSubtitle": "Create your account to join the workspace",
+    "acceptInviteFailed": "Could not accept the invitation. The link may be invalid or expired.",
+    "acceptInviteSuccessTitle": "Welcome to the team",
+    "acceptInviteSuccessDescription": "Your account is ready. Sign in to open the dashboard.",
+    "invalidInviteTokenTitle": "Invalid or expired invitation",
+    "invalidInviteTokenDescription": "This invitation link is invalid or has expired. Ask your workspace admin to send a new invite."
   },
   "dashboard": {
     "title": "Dashboard",

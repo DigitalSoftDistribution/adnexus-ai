@@ -1,6 +1,6 @@
 # Known Limitations
 
-> Last updated: 2026-06-11. This document is the honest, single-source inventory
+> Last updated: 2026-06-12. This document is the honest, single-source inventory
 > of functionality that is intentionally restricted, mocked, or incomplete in
 > the current release. Read it together with `PATH_TO_V1.md` (launch
 > status) and `../V2-ROADMAP.md` (planned work).
@@ -35,12 +35,11 @@
   verification can fail (or pass incorrectly) when parser reformatting changes
   the byte stream. Fixing this requires capturing the raw body via the JSON
   body-parser's `verify` hook and threading it to the handlers.
-- The Google webhook route validates the per-workspace secret but the handler
-  re-resolves the tenant from payload IDs; campaign/adset resolution inside
-  `webhook-handler.ts` matches on platform-native IDs without a platform
-  predicate. Workspaces that link the same ad account in multiple workspaces
-  could route an event to the wrong tenant. TikTok/Snap webhooks are mock-only
-  (see Platform execution above), which bounds the practical impact today.
+- The Google webhook route validates the per-workspace secret; campaign
+  resolution inside `webhook-handler.ts` scopes workspace/campaign lookup by
+  `ad_accounts.platform` (fixed 2026-06-12, PR #159). **Adset** resolution
+  remains unscoped because `adsets.platform` is not populated by metrics-sync;
+  cross-platform `platform_adset_id` collisions are rare but documented here.
 
 ## Billing
 

@@ -272,7 +272,8 @@ async function resolveWorkspaceFromCampaign(
 ): Promise<string | null> {
   const { data, error } = await supabase
     .from('campaigns')
-    .select('ad_accounts!inner(workspace_id)')
+    .select('ad_accounts!inner(workspace_id, platform)')
+    .eq('ad_accounts.platform', platform)
     .eq('platform_campaign_id', platformCampaignId)
     .limit(1);
 
@@ -1092,9 +1093,12 @@ async function resolveCampaignId(
   platform: 'meta' | 'google' | 'tiktok' | 'snap',
   platformCampaignId: string,
 ): Promise<string | undefined> {
+  // Scope by the ad account's platform (reliably set) rather than
+  // campaigns.platform, which metrics-sync upserts leave unset.
   const { data, error } = await supabase
     .from('campaigns')
-    .select('id')
+    .select('id, ad_accounts!inner(platform)')
+    .eq('ad_accounts.platform', platform)
     .eq('platform_campaign_id', platformCampaignId)
     .limit(1);
 
@@ -1111,6 +1115,10 @@ async function resolveAdsetId(
   platform: 'meta' | 'google' | 'tiktok' | 'snap',
   platformAdsetId: string,
 ): Promise<string | undefined> {
+  // NOTE: not platform-scoped. adsets.platform isn't populated by metrics-sync,
+  // and a 2-level campaigns→ad_accounts embedded filter is fragile; platform_adset_id
+  // collisions across platforms are negligible. Scope here once adsets carry a
+  // reliable platform (or via a tested nested filter) — see KNOWN_LIMITATIONS #4.
   const { data, error } = await supabase
     .from('adsets')
     .select('id')

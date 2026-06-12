@@ -26,6 +26,7 @@ import {
   webhookRateLimiter,
   aiRateLimiter,
 } from './middleware/rateLimiter';
+import { validateEncryptionEnv } from './security/encryption';
 import { authenticate } from './middleware/authenticate';
 import { authenticateToken, requireAdmin } from './middleware/auth';
 import { requireResourceAccess } from './middleware/scopeCheck';
@@ -353,6 +354,17 @@ const PORT = config.port;
 // ephemeral listener. Binding a fixed port here would cause EADDRINUSE across
 // suites and register process-wide signal handlers, so we skip startup entirely.
 const isTestEnv = config.nodeEnv === 'test';
+
+// The hard requirement (ENCRYPTION_MASTER_KEY present and valid) is already
+// enforced at module-load time: importing security/encryption constructs the
+// KeyManager singleton, which throws a descriptive error and aborts startup if
+// the key is missing or malformed. Here we only surface the *softer* warnings
+// (weak/short key, missing HMAC_SECRET) that don't by themselves prevent boot.
+if (!isTestEnv) {
+  for (const w of validateEncryptionEnv().warnings) {
+    logger.warn({ scope: 'encryption-env' }, w);
+  }
+}
 
 const server = isTestEnv
   ? undefined

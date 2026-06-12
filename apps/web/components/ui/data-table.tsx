@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { EmptyState } from './empty-state';
 
@@ -33,6 +34,7 @@ type SortState = { id: string; dir: 'asc' | 'desc' } | null;
  * the primitive simple and reusable across campaigns/drafts/audiences.
  */
 export function DataTable<T>({ columns, data, rowKey, onRowClick, empty, className }: DataTableProps<T>) {
+  const t = useTranslations('common');
   const [sort, setSort] = React.useState<SortState>(null);
 
   const sorted = React.useMemo(() => {
@@ -59,7 +61,7 @@ export function DataTable<T>({ columns, data, rowKey, onRowClick, empty, classNa
 
   if (data.length === 0) {
     return (
-      <>{empty ?? <EmptyState title="No data" description="There is nothing to show yet." />}</>
+      <>{empty ?? <EmptyState title={t('noData')} description={t('noDataHint')} />}</>
     );
   }
 
