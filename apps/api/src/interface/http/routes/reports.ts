@@ -8,6 +8,7 @@ export function createReportRoutes(container: Container): Router {
   const controller = createReportController(container);
 
   router.get('/', requireAuth, controller.list as any);
+  router.get('/templates', requireAuth, controller.templates as any);
   router.get('/dashboard', requireAuth, controller.dashboard as any);
   router.get('/scheduled', requireAuth, controller.listScheduled as any);
   router.post('/scheduled', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.createScheduled as any);
