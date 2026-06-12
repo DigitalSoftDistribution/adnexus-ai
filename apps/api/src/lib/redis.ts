@@ -30,3 +30,25 @@ export async function closeRedis(): Promise<void> {
 export function isRedisAvailable(): boolean {
   return redisClient?.status === 'ready';
 }
+
+/**
+ * Run callback once the shared Redis client is ready.
+ * If Redis is not configured, or already ready, invokes synchronously or immediately.
+ */
+export function whenRedisReady(callback: () => void): void {
+  if (!config.redis?.url) {
+    return;
+  }
+
+  const client = getRedisClient();
+  if (!client) {
+    return;
+  }
+
+  if (client.status === 'ready') {
+    callback();
+    return;
+  }
+
+  client.once('ready', callback);
+}

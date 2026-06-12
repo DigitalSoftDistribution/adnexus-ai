@@ -32,7 +32,7 @@ import { authenticateToken, requireAdmin } from './middleware/auth';
 import { requireResourceAccess } from './middleware/scopeCheck';
 import { errorHandler } from './middleware/errorHandler';
 import { supabase } from './lib/supabase';
-import { isRedisAvailable, closeRedis } from './lib/redis';
+import { isRedisAvailable, closeRedis, whenRedisReady } from './lib/redis';
 import { register, getMetrics } from './lib/monitoring';
 
 // ─── Route imports ───────────────────────────────────────────
@@ -374,23 +374,35 @@ const server = isTestEnv
         'AdNexus API server started',
       );
 
-      // Metrics sync worker — gated by BACKGROUND_JOBS_ENABLED + BACKGROUND_METRICS_SYNC_ENABLED
-      // (same default-off pattern as evaluate-rules, PR #121 / metrics-sync PR #117)
-      if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+      // Background workers require Redis. The shared client connects asynchronously,
+      // so defer startup until the "ready" event instead of evaluating once at listen time.
+      const startMetricsSyncWorkerIfEnabled = async (): Promise<void> => {
+        if (!config.backgroundJobs.enabled || !config.backgroundJobs.metricsSyncEnabled) {
+          return;
+        }
+
         try {
           const { startMetricsSyncWorker } = await import('./workers/metrics-sync');
           const status = await startMetricsSyncWorker();
+          const message =
+            status.status === 'running'
+              ? 'Metrics sync worker started'
+              : 'Metrics sync worker startup evaluated';
           loggerApp.info(
             { worker: 'metrics-sync', status: status.status, reason: status.reason },
-            'Metrics sync worker startup evaluated',
+            message,
           );
         } catch (err) {
           loggerApp.error({ err }, 'Failed to start metrics sync worker');
         }
-      }
+      };
 
-      // Morning brief — legacy path; full scheduler gating lands in PR #79
-      if (isRedisAvailable()) {
+      const startMorningBriefSchedulerIfEnabled = async (): Promise<void> => {
+        if (!isRedisAvailable()) {
+          loggerApp.info('Redis not available, skipping morning brief scheduler');
+          return;
+        }
+
         try {
           const { startMorningBriefScheduler } = await import('./workers/morning-brief');
           await startMorningBriefScheduler();
@@ -398,9 +410,12 @@ const server = isTestEnv
         } catch (err) {
           loggerApp.error({ err }, 'Failed to start morning brief scheduler');
         }
-      } else {
-        loggerApp.info('Redis not available, skipping morning brief scheduler');
-      }
+      };
+
+      whenRedisReady(() => {
+        void startMetricsSyncWorkerIfEnabled();
+        void startMorningBriefSchedulerIfEnabled();
+      });
     });
 
 // ─── Graceful Shutdown ───────────────────────────────────────
