@@ -739,8 +739,12 @@ export class EmailService {
     workspaceName: string,
     token: string,
   ): Promise<void> {
-    const html = teamInviteTemplate({ inviterName, workspaceName, email, token }, this.appUrl);
-    const inviteUrl = `${this.appUrl}/auth/invite/${encodeURIComponent(token)}`;
+    // Invite links must target the validated frontend host (FRONTEND_URL) —
+    // same as password reset. APP_URL may be unset or point elsewhere in
+    // local/staging deployments.
+    const frontendUrl = config.frontend.url;
+    const html = teamInviteTemplate({ inviterName, workspaceName, email, token }, frontendUrl);
+    const inviteUrl = `${frontendUrl}/auth/invite/${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'team_invite',
