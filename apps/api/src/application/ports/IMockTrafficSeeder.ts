@@ -1,4 +1,4 @@
-export type MockTrafficPlatform = 'meta' | 'google';
+export type MockTrafficPlatform = 'meta' | 'google' | 'tiktok' | 'snap';
 
 export interface MockTrafficSeedOptions {
   workspaceId: string;
@@ -11,9 +11,13 @@ export interface MockTrafficSeedResult {
   workspaceId: string;
   accountsSeeded: number;
   campaignsSeeded: number;
+  adSetsSeeded: number;
+  adsSeeded: number;
   metricsSeeded: number;
   platforms: MockTrafficPlatform[];
   accountIds: string[];
+  /** Distinct campaign status values present after seeding. */
+  campaignStatuses: string[];
 }
 
 export interface IMockTrafficSeeder {

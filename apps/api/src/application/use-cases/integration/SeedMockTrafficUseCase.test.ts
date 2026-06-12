@@ -5,11 +5,14 @@ import type { IMockTrafficSeeder } from '../../ports/IMockTrafficSeeder';
 const makeSeeder = (): IMockTrafficSeeder => ({
   seed: vi.fn().mockResolvedValue({
     workspaceId: 'ws-1',
-    accountsSeeded: 2,
-    campaignsSeeded: 4,
-    metricsSeeded: 56,
-    platforms: ['meta', 'google'],
-    accountIds: ['acc-meta', 'acc-google'],
+    accountsSeeded: 4,
+    campaignsSeeded: 8,
+    adSetsSeeded: 16,
+    adsSeeded: 48,
+    metricsSeeded: 112,
+    platforms: ['meta', 'google', 'tiktok', 'snap'],
+    accountIds: ['acc-meta', 'acc-google', 'acc-tiktok', 'acc-snap'],
+    campaignStatuses: ['active', 'paused'],
   }),
 });
 
@@ -28,7 +31,7 @@ const enabledEnv = {
 } as NodeJS.ProcessEnv;
 
 describe('SeedMockTrafficUseCase', () => {
-  it('seeds default Meta and Google mock traffic when safely gated', async () => {
+  it('seeds default Meta, Google, TikTok, and Snap mock traffic when safely gated', async () => {
     const seeder = makeSeeder();
     const result = await new SeedMockTrafficUseCase(seeder, enabledEnv).execute(baseInput);
 
@@ -36,7 +39,7 @@ describe('SeedMockTrafficUseCase', () => {
     expect(seeder.seed).toHaveBeenCalledWith({
       workspaceId: 'ws-1',
       userId: 'u-1',
-      platforms: ['meta', 'google'],
+      platforms: ['meta', 'google', 'tiktok', 'snap'],
       variant: 'baseline',
     });
   });
