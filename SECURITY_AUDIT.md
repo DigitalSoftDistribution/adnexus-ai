@@ -8,7 +8,7 @@
 
 ---
 
-## Status Addendum — 2026-06-11
+## Status Addendum — 2026-06-12
 
 The findings below reflect the January 2025 audit. The following have since
 been re-verified against the current codebase; the original sections are kept

@@ -1,6 +1,6 @@
 # AdNexus AI — Path to v1
 
-> Status date: 2026-06-10
+> Status date: 2026-06-12
 > Branch where the original audit landed: `fix/api-test-suite-green-2026-06-02`
 > Supersedes the "Phases 1-5 COMPLETE" claims in [V2-ROADMAP.md](../V2-ROADMAP.md)
 > (those were aspirational at the time — the test suite was red and v2 was not yet served).
