@@ -1,5 +1,8 @@
 # AdNexus AI — Phase 3 Build Plan
 
+> ⚠️ **HISTORICAL DOCUMENT** — superseded by [docs/PATH_TO_V1.md](docs/PATH_TO_V1.md)
+> and [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md). Kept for reference only.
+
 ## Gap Analysis (Roadmap Tiers 3 & 4 not yet covered)
 
 ### Tier 3 — Proactive Agent Layer (Weeks 8-11) Gaps:

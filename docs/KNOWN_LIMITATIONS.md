@@ -24,7 +24,11 @@
 - AI features (morning brief, creative analysis, recommendations, etc.) call
   OpenAI (`gpt-4o`) with an Anthropic fallback and require `OPENAI_API_KEY`
   and/or `ANTHROPIC_API_KEY`. Credits are flat-rate per feature, pre-checked
-  and deducted per call; there is no token-level metering.
+  and deducted per call (`deductCredits` returns HTTP 402 when exhausted);
+  there is no token-level metering.
+- Monthly creative quotas are enforced on ad/creative draft creation
+  (`assertCreativeQuota` in `apps/api/src/services/plan-limits.ts`), counting
+  pending `creative_upload` drafts against `ai_credits.creatives_total`.
 - The Python MCP server (`apps/mcp`) is functional over stdio/SSE. The Node
   API does not yet expose a production Streamable HTTP MCP endpoint.
 
@@ -47,8 +51,9 @@
   when `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PRICE_*` are
   configured. Without them billing endpoints respond with a clear
   "billing not configured" state.
-- Plan quotas are enforced for campaigns (v1 route and v2 use case), team
-  size, and API keys. Impression-volume limits are not metered.
+- Plan quotas are enforced for campaigns (v1 route and v2 use case), creatives
+  (monthly `ai_credits` + pending uploads), team size, and API keys.
+  Impression-volume limits are not metered.
 
 ## Email
 
@@ -59,6 +64,8 @@
 ## Scheduled reports
 
 - On-demand report generation, export (PDF/CSV/XLSX), and persistence to
-  `report_results` work. Recurring schedule payloads executed by the worker
-  are stored in Redis (credentials are intentionally not persisted to the
-  `scheduled_reports` table); a Redis flush drops pending worker schedules.
+  `report_results` work. Performance summaries include period-over-period KPI
+  trends when prior-period campaign data is available. Recurring schedule
+  payloads executed by the worker are stored in Redis (credentials are
+  intentionally not persisted to the `scheduled_reports` table); a Redis flush
+  drops pending worker schedules.

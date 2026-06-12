@@ -1,5 +1,8 @@
 # AdNexus AI — Next Phases (7-12)
 
+> ⚠️ **HISTORICAL DOCUMENT** — superseded by [docs/PATH_TO_V1.md](docs/PATH_TO_V1.md)
+> and [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md). Kept for reference only.
+
 ## Phase 7: Backend Production Deployment
 **Goal**: Get the backend API running in production with Docker, Supabase, and proper configuration.
 

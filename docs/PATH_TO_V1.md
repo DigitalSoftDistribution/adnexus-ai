@@ -146,3 +146,12 @@ docker build -t adnexus-web .                          # web image
 - P0-2 mostly closed: `adnexus-api` Coolify app live; preview round-trips work ([#80](https://github.com/DigitalSoftDistribution/adnexus-ai/pull/80)).
 - v2 integration tests added; use-case test count grew to ~30 files; Playwright smoke on `main`.
 - See [HANDOFF-v1-blockers.md](HANDOFF-v1-blockers.md) for the historical handoff (now resolved at top).
+
+## Documentation map (sale-readiness consolidation)
+
+| Document | Role |
+|---|---|
+| **This file (`PATH_TO_V1.md`)** | Launch status — what is done vs broken |
+| **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)** | Honest buyer-facing feature inventory |
+| **[SECURITY_AUDIT.md](../SECURITY_AUDIT.md)** | Security posture + 2026-06 addendum |
+| `FINAL_STATUS.md`, `plan.md`, `plan-phase*.md`, `V2-ROADMAP.md`, `info.md`, `qa-report.md` | **Historical** — kept for reference; do not treat as current truth |
