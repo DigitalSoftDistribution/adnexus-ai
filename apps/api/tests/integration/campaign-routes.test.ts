@@ -292,6 +292,27 @@ describe('POST /api/v1/campaigns', () => {
     expect(response.body.message).toContain('drafted');
   });
 
+  it('should reject campaign creation when the plan quota is exhausted', async () => {
+    const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);
+
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ plan: 'free' }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [{ count: '5' }], rowCount: 1 });
+
+    const response = await request(app)
+      .post('/api/v1/campaigns')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        adAccountId: UUIDS.metaAccount,
+        platform: 'meta',
+        name: 'Over Limit Campaign',
+        objective: 'CONVERSIONS',
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toMatch(/Campaign limit reached/i);
+  });
+
   it('should validate required fields', async () => {
     // Arrange
     const token = generateToken(UUIDS.owner, 'owner', mockWorkspaces.free.id);

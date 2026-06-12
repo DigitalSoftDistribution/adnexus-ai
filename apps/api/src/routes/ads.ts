@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { ValidationError, NotFoundError } from '../lib/errors';
 import { asyncHandler } from '../middleware/errorHandler';
 import { createDraft } from '../services/drafts-service';
+import { assertCreativeQuota } from '../services/plan-limits';
 import type { UnifiedAd, Platform } from '../types';
 
 const router = Router();
@@ -201,6 +202,8 @@ router.post(
 
     const campaign = (adset.campaigns ?? {}) as unknown as Record<string, unknown>;
     const platform = (campaign.platform as Platform) ?? 'meta';
+
+    await assertCreativeQuota(workspaceId);
 
     // Create a DRAFT instead of creating directly — this is the core differentiator
     const draft = await createDraft({
