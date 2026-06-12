@@ -33,7 +33,7 @@ const router = Router();
 router.post(
   '/meta',
   asyncHandler(async (req, res) => {
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = req.rawBody?.toString('utf8');
     const signature = (req.headers['x-hub-signature-256'] as string) ?? '';
 
     if (!signature) {
@@ -46,7 +46,7 @@ router.post(
     // Async processing (fire-and-forget)
     (async () => {
       try {
-        await handleMetaWebhook(req.body, signature);
+        await handleMetaWebhook(req.body, signature, rawBody);
       } catch (err) {
         logger.error({ err }, 'Meta processing error');
       }
@@ -107,6 +107,7 @@ router.post(
   '/tiktok',
   asyncHandler(async (req, res) => {
     const signature = (req.headers['x-signature'] as string) ?? '';
+    const rawBody = req.rawBody?.toString('utf8');
 
     if (!signature) {
       throw new ValidationError('Missing X-Signature header');
@@ -118,7 +119,7 @@ router.post(
     // Async processing (fire-and-forget)
     (async () => {
       try {
-        await handleTikTokWebhook(req.body, signature);
+        await handleTikTokWebhook(req.body, signature, rawBody);
       } catch (err) {
         logger.error({ err }, 'TikTok processing error');
       }

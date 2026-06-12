@@ -160,7 +160,19 @@ app.post(
   },
 );
 
-app.use(express.json({ limit: '10mb' }));
+// Capture the exact raw request bytes so webhook handlers can verify provider
+// HMAC signatures against what was actually sent (Meta/TikTok sign the raw body;
+// re-serializing the parsed JSON can change bytes and break verification).
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      if (buf && buf.length) {
+        (req as typeof req & { rawBody?: Buffer }).rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ─── Request Logging (with correlation ID) ──────────────────
