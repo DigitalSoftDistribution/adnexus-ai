@@ -569,7 +569,6 @@ const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
           '[auth] Failed to revoke refresh tokens after password reset',
         );
       }
->>>>>>> origin/main
 
 
       res.json({
