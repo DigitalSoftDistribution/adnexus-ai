@@ -36,8 +36,8 @@
   the byte stream. Fixing this requires capturing the raw body via the JSON
   body-parser's `verify` hook and threading it to the handlers.
 - The Google webhook route validates the per-workspace secret but the handler
-  re-resolves the tenant from payload ids; campaign/adset resolution inside
-  `webhook-handler.ts` matches on platform-native ids without a platform
+  re-resolves the tenant from payload IDs; campaign/adset resolution inside
+  `webhook-handler.ts` matches on platform-native IDs without a platform
   predicate. Workspaces that link the same ad account in multiple workspaces
   could route an event to the wrong tenant. TikTok/Snap webhooks are mock-only
   (see Platform execution above), which bounds the practical impact today.

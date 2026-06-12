@@ -416,6 +416,7 @@ router.get('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, res
       data,
     });
   } catch (err: any) {
+    logger.error({ err }, 'Unexpected error');
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -540,6 +541,7 @@ router.patch('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, r
       .single();
 
     if (error) {
+      logger.error({ err: error }, 'Database update error');
       return res.status(500).json({
         success: false,
         message: 'Failed to update upload',
@@ -553,6 +555,7 @@ router.patch('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, r
       data,
     });
   } catch (err: any) {
+    logger.error({ err }, 'Unexpected error');
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
