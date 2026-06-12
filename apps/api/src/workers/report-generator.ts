@@ -478,6 +478,29 @@ export function resolveDateRange(reportConfig: ReportConfig): { start: string; e
   return { start: fmt(start), end: fmt(now) };
 }
 
+/** Previous period of equal length for period-over-period KPI trends. */
+export function computePreviousDateRange(dateRange: { start: string; end: string }): { start: string; end: string } {
+  const start = new Date(`${dateRange.start}T00:00:00.000Z`);
+  const end = new Date(`${dateRange.end}T00:00:00.000Z`);
+  const inclusiveDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  const previousEnd = new Date(start.getTime() - 86400000);
+  const previousStart = new Date(previousEnd.getTime() - (inclusiveDays - 1) * 86400000);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: fmt(previousStart), end: fmt(previousEnd) };
+}
+
+function computeTrendPercent(current: number, previous: number): number | null {
+  if (previous === 0) return current === 0 ? null : 100;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function sumCampaignMetric(
+  campaigns: Array<Record<string, unknown>>,
+  field: 'spend' | 'impressions' | 'clicks' | 'conversions' | 'roas',
+): number {
+  return campaigns.reduce((total, campaign) => total + ((campaign[field] as number) ?? 0), 0);
+}
+
 // ─── Worker job processor ────────────────────────────────────
 
 async function processReportGeneratorJob(job: Job<ReportGeneratorJobData>): Promise<Record<string, unknown>> {
@@ -770,10 +793,24 @@ export async function generateReport(reportConfig: ScheduledReport): Promise<Gen
       })
     : campaignList;
 
+  const previousDateRange = computePreviousDateRange(dateRange);
+  const { data: previousCampaigns } = await supabase
+    .from('campaigns')
+    .select('*')
+    .in('ad_account_id', accountIds.length > 0 ? accountIds : ['no-accounts'])
+    .gte('start_date', previousDateRange.start)
+    .lte('start_date', previousDateRange.end);
+  const filteredPreviousCampaigns = platformsFilter.length > 0
+    ? (previousCampaigns ?? []).filter((c) => {
+        const acct = accountMap.get(c.ad_account_id);
+        return acct && platformsFilter.includes(acct.platform as Platform);
+      })
+    : (previousCampaigns ?? []);
+
   // Build report based on type
   switch (reportConfig.type) {
     case 'performance_summary':
-      return buildPerformanceSummary(reportConfig, filteredCampaigns, accountMap, dateRange);
+      return buildPerformanceSummary(reportConfig, filteredCampaigns, accountMap, dateRange, filteredPreviousCampaigns);
     case 'campaign_comparison':
       return buildCampaignComparison(reportConfig, filteredCampaigns, accountMap, dateRange);
     case 'platform_breakdown':
@@ -787,7 +824,7 @@ export async function generateReport(reportConfig: ScheduledReport): Promise<Gen
     case 'custom':
       return buildCustomReport(reportConfig, filteredCampaigns, adsList, goalsList, accountMap, dateRange);
     default:
-      return buildPerformanceSummary(reportConfig, filteredCampaigns, accountMap, dateRange);
+      return buildPerformanceSummary(reportConfig, filteredCampaigns, accountMap, dateRange, filteredPreviousCampaigns);
   }
 }
 
@@ -798,14 +835,23 @@ function buildPerformanceSummary(
   campaigns: Array<Record<string, unknown>>,
   accountMap: Map<string, Record<string, unknown>>,
   dateRange: { start: string; end: string },
+  previousCampaigns: Array<Record<string, unknown>> = [],
 ): GeneratedReport {
-  const totalSpend = campaigns.reduce((s, c) => s + ((c.spend as number) ?? 0), 0);
-  const totalImpressions = campaigns.reduce((s, c) => s + ((c.impressions as number) ?? 0), 0);
-  const totalClicks = campaigns.reduce((s, c) => s + ((c.clicks as number) ?? 0), 0);
-  const totalConversions = campaigns.reduce((s, c) => s + ((c.conversions as number) ?? 0), 0);
-  const avgRoas = campaigns.length > 0 ? campaigns.reduce((s, c) => s + ((c.roas as number) ?? 0), 0) / campaigns.length : 0;
+  const totalSpend = sumCampaignMetric(campaigns, 'spend');
+  const totalImpressions = sumCampaignMetric(campaigns, 'impressions');
+  const totalClicks = sumCampaignMetric(campaigns, 'clicks');
+  const totalConversions = sumCampaignMetric(campaigns, 'conversions');
+  const avgRoas = campaigns.length > 0 ? sumCampaignMetric(campaigns, 'roas') / campaigns.length : 0;
   const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
   const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+
+  const prevSpend = sumCampaignMetric(previousCampaigns, 'spend');
+  const prevImpressions = sumCampaignMetric(previousCampaigns, 'impressions');
+  const prevClicks = sumCampaignMetric(previousCampaigns, 'clicks');
+  const prevConversions = sumCampaignMetric(previousCampaigns, 'conversions');
+  const prevAvgRoas = previousCampaigns.length > 0 ? sumCampaignMetric(previousCampaigns, 'roas') / previousCampaigns.length : 0;
+  const prevAvgCpa = prevConversions > 0 ? prevSpend / prevConversions : 0;
+  const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
 
   // Platform breakdown for summary
   const byPlatform = new Map<string, { spend: number; conversions: number; roas: number; count: number }>();
@@ -844,13 +890,13 @@ function buildPerformanceSummary(
       title: 'Key Metrics',
       type: 'metrics',
       data: [
-        { label: 'Total Spend', value: `$${formatNumber(totalSpend)}`, trend: null },
-        { label: 'Impressions', value: formatNumber(totalImpressions), trend: null },
-        { label: 'Clicks', value: formatNumber(totalClicks), trend: null },
-        { label: 'CTR', value: `${ctr.toFixed(2)}%`, trend: null },
-        { label: 'Conversions', value: formatNumber(totalConversions), trend: null },
-        { label: 'Avg ROAS', value: `${avgRoas.toFixed(2)}x`, trend: null },
-        { label: 'Avg CPA', value: `$${avgCpa.toFixed(2)}`, trend: null },
+        { label: 'Total Spend', value: `$${formatNumber(totalSpend)}`, trend: computeTrendPercent(totalSpend, prevSpend) },
+        { label: 'Impressions', value: formatNumber(totalImpressions), trend: computeTrendPercent(totalImpressions, prevImpressions) },
+        { label: 'Clicks', value: formatNumber(totalClicks), trend: computeTrendPercent(totalClicks, prevClicks) },
+        { label: 'CTR', value: `${ctr.toFixed(2)}%`, trend: computeTrendPercent(ctr, prevCtr) },
+        { label: 'Conversions', value: formatNumber(totalConversions), trend: computeTrendPercent(totalConversions, prevConversions) },
+        { label: 'Avg ROAS', value: `${avgRoas.toFixed(2)}x`, trend: computeTrendPercent(avgRoas, prevAvgRoas) },
+        { label: 'Avg CPA', value: `$${avgCpa.toFixed(2)}`, trend: computeTrendPercent(avgCpa, prevAvgCpa) },
       ],
     },
     {

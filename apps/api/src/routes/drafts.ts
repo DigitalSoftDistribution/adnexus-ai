@@ -34,6 +34,7 @@ import {
   PlatformAPIError,
 } from '../lib/errors';
 import { getModuleLogger } from '../lib/logger';
+import { assertCreativeQuota } from '../services/plan-limits';
 import { EventPublisher } from '../realtime/EventPublisher';
 import {
   DraftExecutionEngine,
@@ -1258,6 +1259,10 @@ router.post(
     const actorName = actorType === 'ai'
       ? 'AI Agent'
       : req.user?.email ?? 'Unknown';
+
+    if (body.type === 'creative_upload') {
+      await assertCreativeQuota(workspaceId);
+    }
 
     const { data: draft, error } = await supabase
       .from('drafts')
