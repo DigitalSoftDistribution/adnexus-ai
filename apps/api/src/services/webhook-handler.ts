@@ -273,6 +273,7 @@ async function resolveWorkspaceFromCampaign(
   const { data, error } = await supabase
     .from('campaigns')
     .select('ad_accounts!inner(workspace_id)')
+    .eq('platform', platform)
     .eq('platform_campaign_id', platformCampaignId)
     .limit(1);
 
@@ -1090,6 +1091,7 @@ async function resolveCampaignId(
   const { data, error } = await supabase
     .from('campaigns')
     .select('id')
+    .eq('platform', platform)
     .eq('platform_campaign_id', platformCampaignId)
     .limit(1);
 
@@ -1109,6 +1111,7 @@ async function resolveAdsetId(
   const { data, error } = await supabase
     .from('adsets')
     .select('id')
+    .eq('platform', platform)
     .eq('platform_adset_id', platformAdsetId)
     .limit(1);
 
