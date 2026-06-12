@@ -31,10 +31,6 @@ export class DowngradePlanUseCase {
       return err(new ValidationError('Billing checkout is not configured'));
     }
 
-    if (targetPlan !== 'free' && !getPriceForPlan(targetPlan)) {
-      return err(new ValidationError(`Unknown or unconfigured plan: ${targetPlan}`));
-    }
-
     const billingInfo = await this.billingRepo.getBillingInfo(input.workspaceId);
     if (!billingInfo) {
       return err(new ValidationError('Workspace billing record not found'));
@@ -47,6 +43,12 @@ export class DowngradePlanUseCase {
 
     if (comparePlans(currentPlan, targetPlan) >= 0) {
       return err(new ValidationError(`Cannot downgrade from ${currentPlan} to ${targetPlan}`));
+    }
+
+    // Direction is validated before price configuration — "cannot downgrade"
+    // is the accurate error when the target sits above the current plan
+    if (targetPlan !== 'free' && !getPriceForPlan(targetPlan)) {
+      return err(new ValidationError(`Unknown or unconfigured plan: ${targetPlan}`));
     }
 
     const result = await this.billingRepo.downgradePlan(input.workspaceId, targetPlan);
