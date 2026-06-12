@@ -76,7 +76,6 @@ import {
   // Auth types
   MetaTokenResponse,
   MetaLongLivedTokenResponse,
-  MetaStoredToken,
   MetaAuthState,
   TokenRefreshResult,
   // Error types
