@@ -12,20 +12,63 @@
  * overwhelmingly common cases and is cheap to apply at validation time.
  */
 
-/** Returns true if the IPv4 string is in a private/reserved/loopback range. */
-function isPrivateIPv4(host: string): boolean {
-  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!m) return false;
-  const [a, b] = [Number(m[1]), Number(m[2])];
-  if (a > 255 || b > 255 || Number(m[3]) > 255 || Number(m[4]) > 255) return true;
-  if (a === 10) return true; // 10.0.0.0/8
-  if (a === 127) return true; // loopback
-  if (a === 0) return true; // 0.0.0.0/8
-  if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-  if (a === 192 && b === 168) return true; // 192.168.0.0/16
-  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
-  return false;
+/**
+ * Parse an IPv4 host in any of the encodings the C `inet_aton`/many HTTP
+ * clients accept — dotted-quad, shorthand (`127.1`), single decimal
+ * (`2130706433`), hex (`0x7f000001`), and octal (`0177.0.0.1`) — into a 32-bit
+ * unsigned integer. Returns null if the host is not a parseable IPv4 literal.
+ */
+function ipv4ToLong(host: string): number | null {
+  const parts = host.split('.');
+  if (parts.length === 0 || parts.length > 4) return null;
+
+  const nums: number[] = [];
+  for (const p of parts) {
+    if (p === '') return null;
+    let n: number;
+    if (/^0x[0-9a-f]+$/i.test(p)) n = parseInt(p, 16);
+    else if (/^0[0-7]+$/.test(p)) n = parseInt(p, 8);
+    else if (/^[0-9]+$/.test(p)) n = parseInt(p, 10);
+    else return null;
+    if (!Number.isInteger(n) || n < 0) return null;
+    nums.push(n);
+  }
+
+  // inet_aton: the final part fills all remaining low-order bytes.
+  let value: number;
+  switch (nums.length) {
+    case 1:
+      value = nums[0];
+      break;
+    case 2:
+      if (nums[0] > 0xff || nums[1] > 0xffffff) return null;
+      value = nums[0] * 0x1000000 + nums[1];
+      break;
+    case 3:
+      if (nums[0] > 0xff || nums[1] > 0xff || nums[2] > 0xffff) return null;
+      value = nums[0] * 0x1000000 + nums[1] * 0x10000 + nums[2];
+      break;
+    default: // 4
+      if (nums.some((n) => n > 0xff)) return null;
+      value = nums[0] * 0x1000000 + nums[1] * 0x10000 + nums[2] * 0x100 + nums[3];
+  }
+
+  if (value < 0 || value > 0xffffffff) return null;
+  return value >>> 0;
+}
+
+/** True if a 32-bit IPv4 value falls in a private/reserved/loopback range. */
+function isPrivateIPv4Long(v: number): boolean {
+  const inRange = (a: number, b: number) => v >= a && v <= b;
+  return (
+    inRange(0x00000000, 0x00ffffff) || // 0.0.0.0/8
+    inRange(0x0a000000, 0x0affffff) || // 10.0.0.0/8
+    inRange(0x64400000, 0x647fffff) || // 100.64.0.0/10 (CGNAT)
+    inRange(0x7f000000, 0x7fffffff) || // 127.0.0.0/8 (loopback)
+    inRange(0xa9fe0000, 0xa9feffff) || // 169.254.0.0/16 (link-local incl. metadata)
+    inRange(0xac100000, 0xac1fffff) || // 172.16.0.0/12
+    inRange(0xc0a80000, 0xc0a8ffff)    // 192.168.0.0/16
+  );
 }
 
 /** Returns true if the IPv6 string is loopback/link-local/unique-local. */
@@ -36,7 +79,10 @@ function isPrivateIPv6(host: string): boolean {
   if (h.startsWith('fc') || h.startsWith('fd')) return true; // unique-local fc00::/7
   // IPv4-mapped (::ffff:10.0.0.1)
   const mapped = h.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
-  if (mapped) return isPrivateIPv4(mapped[1]);
+  if (mapped) {
+    const l = ipv4ToLong(mapped[1]);
+    return l !== null && isPrivateIPv4Long(l);
+  }
   return false;
 }
 
@@ -58,8 +104,20 @@ export function isSafePublicHttpUrl(raw: string): boolean {
   if (!host) return false;
   if (host === 'localhost' || host.endsWith('.localhost')) return false;
   if (host.endsWith('.local') || host.endsWith('.internal')) return false;
-  if (isPrivateIPv4(host)) return false;
-  if (host.includes(':') || host.startsWith('[')) return isPrivateIPv6(host) ? false : true;
+
+  // IPv6 literal (URL.hostname keeps the brackets for IPv6).
+  if (host.includes(':') || host.startsWith('[')) {
+    return !isPrivateIPv6(host);
+  }
+
+  // IPv4 in any encoding (dotted-quad, shorthand, decimal, hex, octal).
+  const asLong = ipv4ToLong(host);
+  if (asLong !== null) {
+    return !isPrivateIPv4Long(asLong);
+  }
+  // A purely numeric/hex host that does not parse to a valid IPv4 is suspicious
+  // (ambiguous to resolvers) — fail closed rather than allow it through.
+  if (/^[0-9a-fx]+$/i.test(host)) return false;
 
   return true;
 }
