@@ -118,7 +118,9 @@
     "changes": "Änderung(en)",
     "active": "Aktiv",
     "paused": "Pausiert",
-    "budgetType": "Budgettyp"
+    "budgetType": "Budgettyp",
+    "noData": "Keine Daten",
+    "noDataHint": "Es gibt noch nichts anzuzeigen."
   },
   "auth": {
     "signIn": "Anmelden",

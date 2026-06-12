@@ -118,7 +118,9 @@
     "changes": "modification(s)",
     "active": "Actif",
     "paused": "En pause",
-    "budgetType": "Type de budget"
+    "budgetType": "Type de budget",
+    "noData": "Aucune donnée",
+    "noDataHint": "Il n'y a rien à afficher pour le moment."
   },
   "auth": {
     "signIn": "Se connecter",

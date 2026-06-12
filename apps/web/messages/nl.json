@@ -118,7 +118,9 @@
     "changes": "wijziging(en)",
     "active": "Actief",
     "paused": "Gepauzeerd",
-    "budgetType": "Budgettype"
+    "budgetType": "Budgettype",
+    "noData": "Geen gegevens",
+    "noDataHint": "Er is nog niets om weer te geven."
   },
   "auth": {
     "signIn": "Aanmelden",

@@ -118,7 +118,9 @@
     "changes": "件の変更",
     "active": "有効",
     "paused": "一時停止",
-    "budgetType": "予算タイプ"
+    "budgetType": "予算タイプ",
+    "noData": "データがありません",
+    "noDataHint": "まだ表示するものがありません。"
   },
   "auth": {
     "signIn": "サインイン",
