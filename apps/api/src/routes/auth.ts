@@ -784,6 +784,7 @@ router.post(
       supabase.from('users').select('name').eq('id', invitedByUserId).maybeSingle(),
     ]);
 
+    let emailQueued = true;
     try {
       await emailService.sendTeamInvite(
         body.email.toLowerCase(),
@@ -792,9 +793,13 @@ router.post(
         inviteToken,
       );
     } catch (emailErr) {
+      emailQueued = false;
       logger.warn({ err: emailErr, email: body.email }, 'Failed to queue team invite email');
     }
 
+    // The invitation row was created (and is in the audit log), so report 201 —
+    // but reflect the real delivery status instead of always claiming success,
+    // so the UI can prompt to share the link manually or retry.
     res.status(201).json({
       success: true,
       data: {
@@ -805,7 +810,10 @@ router.post(
           status: invitation.status,
           expiresAt: invitation.expires_at,
         },
-        message: 'Invitation sent successfully',
+        emailQueued,
+        message: emailQueued
+          ? 'Invitation sent successfully'
+          : 'Invitation created, but the email could not be sent. Share the invite link manually or retry.',
       },
     });
   }),

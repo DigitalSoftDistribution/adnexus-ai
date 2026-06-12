@@ -656,7 +656,9 @@ export function teamInviteTemplate(
   data: { inviterName: string; workspaceName: string; email: string; token: string },
   appUrl: string,
 ): string {
-  const inviteUrl = `${appUrl}/auth/invite/${encodeURIComponent(data.token)}`;
+  // Query param (not a path segment) so the JWT's dots don't bypass the web
+  // app's locale middleware — see the invite page comment.
+  const inviteUrl = `${appUrl}/auth/invite?token=${encodeURIComponent(data.token)}`;
 
   const content = `
     <div style="padding: 32px 40px;">

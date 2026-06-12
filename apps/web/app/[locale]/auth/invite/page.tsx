@@ -13,15 +13,19 @@ export async function generateMetadata({
   };
 }
 
+// Token is passed as a query param (?token=<jwt>) rather than a path segment:
+// invite tokens are JWTs containing dots, and the next-intl middleware matcher
+// skips dotted paths, so a `/auth/invite/<jwt>` path would never get locale
+// routing and would 404. This mirrors the working password-reset flow.
 export default async function AcceptInvitePage({
-  params,
+  searchParams,
 }: {
-  params: Promise<{ token: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
-  const { token } = await params;
+  const { token } = await searchParams;
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <AcceptInviteForm token={decodeURIComponent(token)} />
+      <AcceptInviteForm token={token ?? ''} />
     </div>
   );
 }

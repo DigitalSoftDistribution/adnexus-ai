@@ -744,7 +744,7 @@ export class EmailService {
     // local/staging deployments.
     const frontendUrl = config.frontend.url;
     const html = teamInviteTemplate({ inviterName, workspaceName, email, token }, frontendUrl);
-    const inviteUrl = `${frontendUrl}/auth/invite/${encodeURIComponent(token)}`;
+    const inviteUrl = `${frontendUrl}/auth/invite?token=${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'team_invite',
