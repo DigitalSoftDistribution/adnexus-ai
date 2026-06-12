@@ -3,7 +3,6 @@ import type { Ad, AdPerformance, AdCreativePerformance } from '../../domain/enti
 import { db } from '../../db';
 import { eq, and, ilike, desc, sql } from 'drizzle-orm';
 import { ads, adsets, campaigns, ad_accounts } from '../../db/schema';
-import type { PgTable } from 'drizzle-orm/pg-core';
 
 export class AdRepository implements IAdRepository {
   async findById(id: string): Promise<Ad | null> {

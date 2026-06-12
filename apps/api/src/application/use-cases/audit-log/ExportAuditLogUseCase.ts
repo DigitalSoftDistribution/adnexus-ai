@@ -1,4 +1,4 @@
-import type { IAuditLogRepository, AuditLogListResult } from '../../../domain/repositories/IAuditLogRepository';
+import type { IAuditLogRepository } from '../../../domain/repositories/IAuditLogRepository';
 import { Result, ok, err, ForbiddenError } from '../../../domain/value-objects/Result';
 
 export interface ExportAuditLogInput {

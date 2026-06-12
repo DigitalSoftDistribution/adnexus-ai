@@ -928,7 +928,10 @@ export class PlatformManager {
 
     // Aggregate daily trends across platforms. Insights are fetched per
     // campaign, so bound the fan-out to the top-spend campaigns per platform
-    // to keep platform API call volume predictable.
+    // to keep platform API call volume predictable. Selection uses the
+    // campaign snapshot's cumulative spend as a proxy for in-range activity —
+    // ranking by in-range spend would itself require an insights call per
+    // campaign, which is the unbounded fan-out this cap avoids.
     const TRENDS_CAMPAIGNS_PER_PLATFORM = 10;
 
     // Dedupe by platform campaign id — the same platform campaign can be
