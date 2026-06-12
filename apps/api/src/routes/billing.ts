@@ -352,17 +352,31 @@ router.post("/webhook", async (req, res, next) => {
 
     try {
       await handleWebhookEvent(event);
-      await query(
-        "UPDATE stripe_webhook_events SET processed_at = NOW() WHERE id = $1",
-        [event.id],
-      );
     } catch (procErr) {
-      // Release our claim so Stripe's retry can re-attempt immediately.
+      // The handler failed *before* committing side effects we can rely on, so
+      // release our claim and let Stripe's retry re-process from scratch.
       await query(
         "DELETE FROM stripe_webhook_events WHERE id = $1 AND processed_at IS NULL",
         [event.id],
       ).catch(() => undefined);
       throw procErr;
+    }
+
+    // Handler succeeded — side effects are committed. Marking processed is a
+    // best-effort finalization: if it fails we must NOT delete the claim (that
+    // would let a retry double-apply). Worst case the row stays unmarked and is
+    // only re-eligible after the stale window; handlers are idempotent upserts,
+    // so the residual risk is a rare, benign re-apply rather than a double spend.
+    try {
+      await query(
+        "UPDATE stripe_webhook_events SET processed_at = NOW() WHERE id = $1",
+        [event.id],
+      );
+    } catch (markErr) {
+      logger.error(
+        { error: markErr, eventId: event.id, eventType: event.type },
+        "Stripe webhook side effects applied but marking processed failed",
+      );
     }
 
     // Log the webhook for audit trail
