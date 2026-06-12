@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
-import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
+import { formatCurrency, formatNumber, formatDate, formatCtr } from '@/lib/utils';
 import { platformLabel } from '@/lib/platforms';
 import { Search, Plus, Megaphone } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
@@ -127,7 +127,7 @@ export function CampaignsContent() {
       id: 'ctr',
       header: tc('ctr'),
       align: 'right',
-      accessor: (c) => (c.ctr ? `${(c.ctr * 100).toFixed(2)}%` : '-'),
+      accessor: (c) => (c.ctr != null ? formatCtr(c.ctr) : '-'),
       sortValue: (c) => c.ctr ?? 0,
     },
     {

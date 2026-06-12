@@ -20,7 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCurrency, formatNumber, formatPercent, formatDate } from '@/lib/utils';
+import { formatCurrency, formatNumber, formatCtr, formatDate } from '@/lib/utils';
+import { ChartCard } from '@/components/charts/ChartCard';
 import {
   ArrowLeft, Edit, Pause, Play, BarChart3, Users, Calendar,
   History, Megaphone, TrendingUp, MousePointer, Target, Copy, Trash2, MoreHorizontal,
@@ -49,6 +50,20 @@ interface Campaign {
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
+}
+
+function useCampaignInsights(campaignId: string) {
+  return useQuery({
+    queryKey: ['campaign', campaignId, 'insights'],
+    queryFn: async () => {
+      const res = await fetch(`/api/v2/campaigns/${campaignId}/insights`);
+      if (!res.ok) throw new Error('Failed to fetch campaign insights');
+      const json = await res.json();
+      return json.data as {
+        dailyBreakdown: Array<{ date: string; spend: number; clicks: number; impressions: number }>;
+      };
+    },
+  });
 }
 
 function useCampaign(id: string) {
@@ -210,6 +225,7 @@ export function CampaignDetailContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { data: campaign, isLoading } = useCampaign(id);
+  const { data: insights, isLoading: insightsLoading } = useCampaignInsights(id);
   const actions = useCampaignActions(id);
   const t = useTranslations('campaigns');
   const tc = useTranslations('common');
@@ -363,7 +379,7 @@ export function CampaignDetailContent() {
           icon={MousePointer}
           label={tc('clicks')}
           value={formatNumber(campaign.clicks)}
-          subtext={campaign.ctr ? `CTR: ${formatPercent(campaign.ctr)}` : undefined}
+          subtext={campaign.ctr ? `CTR: ${formatCtr(campaign.ctr)}` : undefined}
         />
         <MetricCard
           icon={Target}
@@ -423,9 +439,28 @@ export function CampaignDetailContent() {
               <CardDescription>{t('spendOverTime')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
-                {tc('noResults')}
-              </div>
+              {insightsLoading ? (
+                <div className="flex h-[300px] items-center justify-center">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : (insights?.dailyBreakdown?.length ?? 0) > 0 ? (
+                <ChartCard
+                  bare
+                  type="area"
+                  height={300}
+                  xKey="name"
+                  data={insights!.dailyBreakdown.map((row) => ({
+                    name: row.date.slice(5),
+                    spend: row.spend,
+                  }))}
+                  series={[{ key: 'spend', label: tc('spend') }]}
+                  valueFormatter={(v) => formatCurrency(v)}
+                />
+              ) : (
+                <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+                  {tc('noResults')}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -545,7 +580,7 @@ function CampaignAdsTab({ campaignId }: { campaignId: string }) {
                     <span>{tc('spend')}: {formatCurrency(ad.spend)}</span>
                     <span>{tc('impressions')}: {formatNumber(ad.impressions)}</span>
                     <span>{tc('clicks')}: {formatNumber(ad.clicks)}</span>
-                    {ad.ctr && <span>CTR: {formatPercent(ad.ctr)}</span>}
+                    {ad.ctr != null && <span>CTR: {formatCtr(ad.ctr)}</span>}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" asChild>
@@ -618,7 +653,7 @@ function CampaignAdSetsTab({ campaignId }: { campaignId: string }) {
                     <span>{tc('spend')}: {formatCurrency(adSet.spend)}</span>
                     <span>{tc('impressions')}: {formatNumber(adSet.impressions)}</span>
                     <span>{tc('clicks')}: {formatNumber(adSet.clicks)}</span>
-                    {adSet.ctr && <span>CTR: {formatPercent(adSet.ctr)}</span>}
+                    {adSet.ctr != null && <span>CTR: {formatCtr(adSet.ctr)}</span>}
                     {adSet.budget && <span>{tc('budget')}: {formatCurrency(adSet.budget)}</span>}
                   </div>
                 </div>
