@@ -15,6 +15,22 @@ const createCommentSchema = z.object({
 });
 
 // ── Helpers ─────────────────────────────────────────────────
+/**
+ * Authorization guard: confirm a draft exists AND belongs to the caller's
+ * workspace. Prevents cross-tenant access to comments (IDOR) — any valid JWT
+ * must not be able to read/write comments on drafts in another workspace.
+ */
+async function draftBelongsToWorkspace(
+  draftId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const { rows } = await query(
+    'SELECT 1 FROM drafts WHERE id = $1 AND workspace_id = $2',
+    [draftId, workspaceId],
+  );
+  return rows.length > 0;
+}
+
 function timeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - new Date(date).getTime();
@@ -35,8 +51,13 @@ function timeAgo(date: Date): string {
 // List all comments for a draft, threaded by parent_id
 router.get('/drafts/:id/comments', authenticate, async (req, res) => {
   const draftId = req.params.id;
+  const workspaceId = req.workspaceId;
 
   try {
+    if (!workspaceId || !(await draftBelongsToWorkspace(draftId, workspaceId))) {
+      return res.status(404).json({ error: 'Draft not found' });
+    }
+
     const { rows } = await query(
       `
         SELECT
@@ -135,8 +156,13 @@ router.post(
     }
 
     const { text, parentId } = parse.data;
+    const workspaceId = req.workspaceId;
 
     try {
+      if (!workspaceId || !(await draftBelongsToWorkspace(draftId, workspaceId))) {
+        return res.status(404).json({ error: 'Draft not found' });
+      }
+
       // If replying, validate parent belongs to same draft
       if (parentId) {
         const { rows: parentCheck } = await query(
@@ -208,15 +234,19 @@ router.post(
 router.delete('/comments/:id', requireAuth, async (req, res) => {
   const commentId = req.params.id;
   const userId = req.user!.sub;
-  const isAdmin = req.user!.role === 'admin';
+  const isAdmin = req.user!.role === 'admin' || req.user!.role === 'owner';
 
   try {
     const { rows: [existing] } = await query(
-      'SELECT user_id FROM comments WHERE id = $1',
+      `SELECT c.user_id, d.workspace_id
+         FROM comments c
+         JOIN drafts d ON d.id = c.draft_id
+        WHERE c.id = $1`,
       [commentId]
     );
 
-    if (!existing) {
+    // 404 (not 403) on cross-workspace access to avoid leaking existence
+    if (!existing || existing.workspace_id !== req.workspaceId) {
       return res.status(404).json({ error: 'Comment not found' });
     }
 

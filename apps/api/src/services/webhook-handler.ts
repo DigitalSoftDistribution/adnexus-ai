@@ -584,9 +584,12 @@ function normalizeStatus(status: string): 'active' | 'paused' | 'ended' | 'error
 export async function handleMetaWebhook(
   payload: MetaWebhookPayload,
   signature: string,
+  rawBody?: string,
 ): Promise<void> {
-  // Verify signature
-  const rawPayload = JSON.stringify(payload);
+  // Verify signature against the exact bytes received. Providers sign the raw
+  // request body, so re-serializing the parsed JSON can change the byte stream
+  // and break verification — only fall back to that if the raw body is absent.
+  const rawPayload = rawBody ?? JSON.stringify(payload);
   if (!verifyMetaSignature(rawPayload, signature, config.meta.appSecret)) {
     throw new ValidationError('Invalid Meta webhook signature');
   }
@@ -826,9 +829,11 @@ export async function handleGoogleWebhook(payload: GoogleWebhookPayload): Promis
 export async function handleTikTokWebhook(
   payload: TikTokWebhookPayload,
   signature: string,
+  rawBody?: string,
 ): Promise<void> {
-  // Verify signature
-  const rawPayload = JSON.stringify(payload);
+  // Verify against the exact bytes received (see handleMetaWebhook) rather than
+  // a re-serialization of the parsed payload.
+  const rawPayload = rawBody ?? JSON.stringify(payload);
   if (!verifyTikTokSignature(rawPayload, signature, config.tiktok.appSecret)) {
     throw new ValidationError('Invalid TikTok webhook signature');
   }

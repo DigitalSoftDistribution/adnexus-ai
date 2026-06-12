@@ -76,7 +76,6 @@ import {
   // Auth types
   MetaTokenResponse,
   MetaLongLivedTokenResponse,
-  MetaStoredToken,
   MetaAuthState,
   TokenRefreshResult,
   // Error types
@@ -2230,27 +2229,6 @@ export function createClientFromEnv(logger?: MetaApiLogger): MetaApiClient {
     },
     logger
   );
-}
-
-/**
- * Decrypt a stored token for use with the client.
- * This is a placeholder — integrate with your actual encryption service.
- *
- * @param encryptedToken - Token data from database
- * @returns Decrypted token data
- */
-export function decryptStoredToken(encryptedToken: MetaStoredToken): {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt: number;
-} {
-  // TODO: Integrate with your encryption service (e.g., AWS KMS, HashiCorp Vault)
-  // This example assumes tokens are stored with reversible encryption
-  return {
-    accessToken: encryptedToken.accessToken,
-    refreshToken: encryptedToken.refreshToken,
-    expiresAt: encryptedToken.expiresAt,
-  };
 }
 
 /** Default export */
