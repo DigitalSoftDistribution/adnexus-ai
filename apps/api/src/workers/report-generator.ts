@@ -211,7 +211,7 @@ async function deliverReportEmail(
 ): Promise<void> {
   const emailService = getReportEmailService();
   if (!emailService) {
-    console.log('[Report Generator] SMTP not configured; skipping email delivery');
+    logger.warn('[Report Generator] SMTP not configured; skipping email delivery');
     return;
   }
 
@@ -663,7 +663,7 @@ export async function stopReportGeneratorWorker(): Promise<void> {
 export async function triggerReportGeneration(reportId: string, workspaceId: string): Promise<string | null> {
   const disableReason = getReportGeneratorDisableReason();
   if (disableReason) {
-    console.log(`[Report Generator] Skipping enqueue: ${disableReason}`);
+    logger.info(`[Report Generator] Skipping enqueue: ${disableReason}`);
     return null;
   }
 
@@ -686,7 +686,7 @@ export async function triggerReportGeneration(reportId: string, workspaceId: str
 export async function checkScheduledReports(): Promise<void> {
   const disableReason = getReportGeneratorDisableReason();
   if (disableReason) {
-    console.log(`[Report Generator] Skipping scheduled report check: ${disableReason}`);
+    logger.info(`[Report Generator] Skipping scheduled report check: ${disableReason}`);
     return;
   }
 
@@ -1456,10 +1456,10 @@ export async function shutdownReportGenerator(): Promise<void> {
 if (require.main === module) {
   void startReportGeneratorWorker().then((status) => {
     if (status.status !== 'running') {
-      console.log(`[Report Generator] Worker not started: ${status.reason ?? status.status}`);
+      logger.info(`[Report Generator] Worker not started: ${status.reason ?? status.status}`);
       process.exit(0);
     }
-    console.log('[Report Generator] Worker started. Waiting for jobs...');
+    logger.info('[Report Generator] Worker started. Waiting for jobs...');
   });
 }
 
