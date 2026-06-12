@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 
+/** Backend clients use PostgREST + Auth admin only — no Supabase Realtime subscriptions. */
 const serviceClientOptions = {
   auth: { autoRefreshToken: false, persistSession: false },
 };
