@@ -24,6 +24,7 @@ import {
   authenticatedRateLimiter,
   unauthenticatedRateLimiter,
   webhookRateLimiter,
+  aiRateLimiter,
 } from './middleware/rateLimiter';
 import { authenticate } from './middleware/authenticate';
 import { authenticateToken, requireAdmin } from './middleware/auth';
@@ -159,7 +160,19 @@ app.post(
   },
 );
 
-app.use(express.json({ limit: '10mb' }));
+// Capture the exact raw request bytes so webhook handlers can verify provider
+// HMAC signatures against what was actually sent (Meta/TikTok sign the raw body;
+// re-serializing the parsed JSON can change bytes and break verification).
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      if (buf && buf.length) {
+        (req as typeof req & { rawBody?: Buffer }).rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ─── Request Logging (with correlation ID) ──────────────────
@@ -279,7 +292,7 @@ app.use(authenticatedRateLimiter);
 app.use('/api/v1/campaigns', requireResourceAccess('campaigns'), campaignRoutes);
 app.use('/api/v1/ads', requireResourceAccess('ads'), adRoutes);
 app.use('/api/v1/drafts', requireResourceAccess('drafts'), draftRoutes);
-app.use('/api/v1/agent', requireResourceAccess('agent'), agentRoutes);
+app.use('/api/v1/agent', requireResourceAccess('agent'), aiRateLimiter, agentRoutes);
 app.use('/api/v1/reports', requireResourceAccess('reports'), reportRoutes);
 app.use('/api/v1/audiences', requireResourceAccess('audiences'), audienceRoutes);
 app.use('/api/v1/settings', requireResourceAccess('settings'), settingsRoutes);
@@ -288,7 +301,7 @@ app.use('/api/v1/billing', requireResourceAccess('billing'), billingRoutes);
 app.use('/api/v1/goals', requireResourceAccess('goals'), goalRoutes);
 app.use('/api/v1/exports', requireResourceAccess('exports'), exportRoutes);
 app.use('/api/v1/search', requireResourceAccess('search'), searchRoutes);
-app.use('/api/v1/rag', requireResourceAccess('rag'), ragRoutes);
+app.use('/api/v1/rag', requireResourceAccess('rag'), aiRateLimiter, ragRoutes);
 app.use('/api/v1/webhooks', requireResourceAccess('webhooks'), webhooksConfigRoutes);
 app.use('/api/v1/audit-log', requireResourceAccess('audit-log'), auditLogRoutes);
 app.use('/api/v1/admin', requireResourceAccess('settings'), adminRoutes);
@@ -349,7 +362,22 @@ const server = isTestEnv
         'AdNexus API server started',
       );
 
-      // Start background workers when Redis is available
+      // Metrics sync worker — gated by BACKGROUND_JOBS_ENABLED + BACKGROUND_METRICS_SYNC_ENABLED
+      // (same default-off pattern as evaluate-rules, PR #121 / metrics-sync PR #117)
+      if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+        try {
+          const { startMetricsSyncWorker } = await import('./workers/metrics-sync');
+          const status = await startMetricsSyncWorker();
+          loggerApp.info(
+            { worker: 'metrics-sync', status: status.status, reason: status.reason },
+            'Metrics sync worker startup evaluated',
+          );
+        } catch (err) {
+          loggerApp.error({ err }, 'Failed to start metrics sync worker');
+        }
+      }
+
+      // Morning brief — legacy path; full scheduler gating lands in PR #79
       if (isRedisAvailable()) {
         try {
           const { startMorningBriefScheduler } = await import('./workers/morning-brief');
@@ -359,7 +387,7 @@ const server = isTestEnv
           loggerApp.error({ err }, 'Failed to start morning brief scheduler');
         }
       } else {
-        loggerApp.info('Redis not available, skipping background workers');
+        loggerApp.info('Redis not available, skipping morning brief scheduler');
       }
     });
 
@@ -388,6 +416,16 @@ function gracefulShutdown(signal: string): void {
   // Stop accepting new HTTP connections
   const onClosed = async () => {
     loggerApp.info('HTTP server closed, cleaning up resources...');
+
+    if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+      try {
+        const { shutdownMetricsSync } = await import('./workers/metrics-sync');
+        await shutdownMetricsSync();
+        loggerApp.info('Metrics sync worker stopped');
+      } catch (err) {
+        loggerApp.error({ err }, 'Error stopping metrics sync worker');
+      }
+    }
 
     try {
       await closeRedis();

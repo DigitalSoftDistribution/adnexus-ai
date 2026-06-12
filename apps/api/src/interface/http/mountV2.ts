@@ -17,7 +17,7 @@
 
 import type { Express } from 'express';
 import { Router as createRouter } from 'express';
-import { authenticatedRateLimiter, unauthenticatedRateLimiter } from '../../middleware/rateLimiter';
+import { authenticatedRateLimiter, unauthenticatedRateLimiter, aiRateLimiter } from '../../middleware/rateLimiter';
 import { expressErrorHandler } from './middleware/errorHandler';
 
 // Infrastructure
@@ -43,6 +43,8 @@ import { AutomationRuleRepository } from '../../infrastructure/repositories/Auto
 import { AuditLogRepository } from '../../infrastructure/repositories/AuditLogRepository';
 import { ExportRepository } from '../../infrastructure/repositories/ExportRepository';
 import { AssetRepository } from '../../infrastructure/repositories/AssetRepository';
+import { CommentRepository } from '../../infrastructure/repositories/CommentRepository';
+import { AdminOpsRepository } from '../../infrastructure/repositories/AdminOpsRepository';
 import { InMemoryEventBus } from '../../domain/events/EventBus';
 import { SupabaseAuditLogger } from '../../infrastructure/audit/SupabaseAuditLogger';
 import { NotificationService } from '../../infrastructure/notification/NotificationService';
@@ -54,6 +56,7 @@ import { MockSocialPlatformSyncService } from '../../infrastructure/platform/Moc
 import { MetaPlatformWriteService } from '../../infrastructure/platform/MetaPlatformWriteService';
 import { MockTrafficSeeder } from '../../infrastructure/platform/MockTrafficSeeder';
 import { AdAccountRepository } from '../../infrastructure/repositories/AdAccountRepository';
+import { ScheduledReportRepository } from '../../infrastructure/repositories/ScheduledReportRepository';
 import { SyncJobRepository } from '../../infrastructure/repositories/SyncJobRepository';
 import { writeCampaignMetrics, stampAccountSynced, writeAdSets } from '../../infrastructure/platform/syncPersistence';
 import { registerAllPlatformClients } from '../../platforms/register';
@@ -85,13 +88,14 @@ import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
 import { createMcpRoutes } from './routes/mcp';
 import { createOnboardingRoutes } from './routes/onboarding';
+import { createCommentRoutes } from './routes/comments';
 
 // OpenAPI
 import { generateOpenAPIDocument } from '../../openapi/generator';
 
 // Realtime
 import { EventBus, createSSEHandler } from '../../realtime';
-import { requireAuthQuery } from './middleware/requireAuth';
+import { requireAuth, requireAuthQuery } from './middleware/requireAuth';
 
 /**
  * Build the v2 dependency-injection Container with concrete Supabase-backed
@@ -130,6 +134,8 @@ export function buildContainer(): Container {
     auditLogRepository: new AuditLogRepository(),
     exportRepository: new ExportRepository(),
     assetRepository: new AssetRepository(),
+    commentRepository: new CommentRepository(),
+    adminOpsRepository: new AdminOpsRepository(),
     eventBus: domainEventBus,
     auditLogger,
     notificationService,
@@ -138,6 +144,7 @@ export function buildContainer(): Container {
     platformWriteService: new MetaPlatformWriteService(),
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
+    scheduledReportRepository: new ScheduledReportRepository(),
     mockTrafficSeeder: new MockTrafficSeeder(),
     writeCampaignMetrics,
     stampAccountSynced,
@@ -193,11 +200,13 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/webhooks', authenticatedRateLimiter, createWebhookRoutes(container));
   v2.use('/campaigns/:campaignId/adsets', authenticatedRateLimiter, createAdSetRoutes(container));
   v2.use('/goals', authenticatedRateLimiter, createGoalRoutes(container));
-  v2.use('/agent', authenticatedRateLimiter, createAgentRoutes(container));
+  // requireAuth before aiRateLimiter so the AI tier keys by user, not IP.
+  v2.use('/agent', authenticatedRateLimiter, requireAuth, aiRateLimiter, createAgentRoutes(container));
   v2.use('/audit-log', authenticatedRateLimiter, createAuditLogRoutes(container));
   v2.use('/exports', authenticatedRateLimiter, createExportRoutes(container));
   v2.use('/assets', authenticatedRateLimiter, createAssetRoutes(container));
   v2.use('/admin', authenticatedRateLimiter, createAdminRoutes(container));
+  v2.use('/comments', authenticatedRateLimiter, createCommentRoutes(container));
 
   // Realtime SSE endpoint. EventSource can't send an Authorization header, so
   // the token arrives as a ?token= query param — requireAuthQuery handles both.

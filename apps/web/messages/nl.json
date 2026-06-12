@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Ongeldig e-mailadres of wachtwoord",
+    "forgotPasswordTitle": "Wachtwoord vergeten?",
+    "forgotPasswordSubtitle": "Voer je e-mailadres in en we sturen je een link om je wachtwoord opnieuw in te stellen",
+    "sendResetLink": "Herstellink versturen",
+    "resetEmailSentTitle": "Controleer je e-mail",
+    "resetEmailSentDescription": "Als er een account bestaat voor dat e-mailadres, hebben we een link gestuurd om het wachtwoord opnieuw in te stellen. De link verloopt over 1 uur.",
+    "resetRequestFailed": "De herstel-e-mail kon niet worden verzonden. Probeer het opnieuw.",
+    "backToSignIn": "Terug naar inloggen",
+    "resetPassword": "Wachtwoord opnieuw instellen",
+    "resetPasswordTitle": "Stel je wachtwoord opnieuw in",
+    "resetPasswordSubtitle": "Voer een nieuw wachtwoord in voor je account",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmPassword": "Bevestig wachtwoord",
+    "confirmPasswordRequired": "Bevestig je nieuwe wachtwoord",
+    "passwordsDoNotMatch": "De wachtwoorden komen niet overeen",
+    "resetPasswordSuccessTitle": "Wachtwoord succesvol opnieuw ingesteld",
+    "resetPasswordSuccessDescription": "Je wachtwoord is bijgewerkt. Je kunt nu inloggen met je nieuwe wachtwoord.",
+    "resetPasswordFailed": "Het opnieuw instellen van het wachtwoord is mislukt. Probeer het opnieuw.",
+    "invalidResetTokenTitle": "Ongeldige of verlopen link",
+    "invalidResetTokenDescription": "Deze link om het wachtwoord opnieuw in te stellen is ongeldig of verlopen. Vraag een nieuwe aan.",
+    "requestNewLink": "Nieuwe link aanvragen"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -330,7 +350,9 @@
     "connectPlatform": "Platform verbinden",
     "failedToSync": "Synchroniseren van campagne mislukt",
     "sync": "Synchroniseren",
-    "syncing": "Synchroniseren..."
+    "syncing": "Synchroniseren...",
+    "deleteCampaignTitle": "Campagne verwijderen",
+    "deleteCampaignDescription": "Weet je zeker dat je “{name}” wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
   },
   "drafts": {
     "title": "Concepten",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Nog geen API-sleutels",
     "apiKeysPlaceholder": "Genereer een API-sleutel om programmatisch toegang te krijgen tot de AdNexus-API.",
-    "created": "Aangemaakt"
+    "created": "Aangemaakt",
+    "removeMemberTitle": "Teamlid verwijderen",
+    "removeMemberDescription": "Weet je zeker dat je {name} uit deze workspace wilt verwijderen? De toegang vervalt direct.",
+    "removeMemberConfirm": "Verwijderen",
+    "revokeApiKeyTitle": "API-sleutel intrekken",
+    "revokeApiKeyDescription": "Weet je zeker dat je de API-sleutel “{name}” wilt intrekken? Applicaties die deze sleutel gebruiken, stoppen direct met werken.",
+    "revokeApiKeyConfirm": "Intrekken"
   },
   "billing": {
     "title": "Facturering",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Ophalen van campagne mislukt",
     "failedToFetchAdSets": "Ophalen van advertentiesets mislukt",
     "failedToFetchHistory": "Ophalen van geschiedenis mislukt",
-    "failedToFetchAds": "Ophalen van advertenties mislukt"
+    "failedToFetchAds": "Ophalen van advertenties mislukt",
+    "somethingWentWrong": "Er is iets misgegaan",
+    "unexpectedErrorDescription": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
+    "tryAgain": "Opnieuw proberen"
   },
   "notifications": {
     "title": "Meldingen",

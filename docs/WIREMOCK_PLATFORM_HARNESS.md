@@ -60,6 +60,18 @@ MOCK_TRAFFIC_HARNESS_KEY=<private random value>
 
 Only enable those three values in branch previews or test environments. Do not set `MOCK_TRAFFIC_HARNESS_CONTEXT=preview` on live production. The seed endpoint still requires an authenticated owner/admin and the private harness key.
 
+Seed the database (owner/admin JWT + harness key):
+
+```bash
+curl -X POST "$API_BASE/api/v2/integrations/mock-traffic/seed" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "x-mock-traffic-key: $MOCK_TRAFFIC_HARNESS_KEY" \
+  -d '{}'
+```
+
+`x-mock-traffic-harness-key` is accepted as an alias for the same value. You can also pass `harnessKey` in the JSON body.
+
 ## Scenario variants
 
 WireMock has a first low-ROAS Meta insight variant via `?mock_variant=low_roas`. The current service clients do not pass scenario selectors yet, so full dashboard scenario switching should be a follow-up. Prefer a single internal scenario header/query convention across all platform streams, for example `X-AdNexus-Mock-Scenario` or `mock_variant`.

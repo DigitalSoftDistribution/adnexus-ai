@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "E-mail ou senha inválidos",
+    "forgotPasswordTitle": "Esqueceu sua senha?",
+    "forgotPasswordSubtitle": "Digite seu endereço de e-mail e enviaremos um link para redefinir sua senha",
+    "sendResetLink": "Enviar link de redefinição",
+    "resetEmailSentTitle": "Verifique seu e-mail",
+    "resetEmailSentDescription": "Se existir uma conta com esse endereço de e-mail, enviamos um link para redefinir a senha. O link expira em 1 hora.",
+    "resetRequestFailed": "Não foi possível enviar o e-mail de redefinição. Tente novamente.",
+    "backToSignIn": "Voltar ao login",
+    "resetPassword": "Redefinir senha",
+    "resetPasswordTitle": "Redefina sua senha",
+    "resetPasswordSubtitle": "Digite uma nova senha para sua conta",
+    "newPassword": "Nova senha",
+    "confirmPassword": "Confirmar senha",
+    "confirmPasswordRequired": "Confirme sua nova senha",
+    "passwordsDoNotMatch": "As senhas não coincidem",
+    "resetPasswordSuccessTitle": "Senha redefinida com sucesso",
+    "resetPasswordSuccessDescription": "Sua senha foi atualizada. Agora você pode entrar com sua nova senha.",
+    "resetPasswordFailed": "Falha ao redefinir a senha. Tente novamente.",
+    "invalidResetTokenTitle": "Link inválido ou expirado",
+    "invalidResetTokenDescription": "Este link de redefinição de senha é inválido ou expirou. Solicite um novo.",
+    "requestNewLink": "Solicitar um novo link"
   },
   "dashboard": {
     "title": "Painel",
@@ -330,7 +350,9 @@
     "connectPlatform": "Conectar uma plataforma",
     "failedToSync": "Falha ao sincronizar a campanha",
     "sync": "Sincronizar",
-    "syncing": "A sincronizar..."
+    "syncing": "A sincronizar...",
+    "deleteCampaignTitle": "Excluir campanha",
+    "deleteCampaignDescription": "Tem certeza de que deseja excluir “{name}”? Esta ação não pode ser desfeita."
   },
   "drafts": {
     "title": "Rascunhos",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Ainda não há chaves de API",
     "apiKeysPlaceholder": "Gere uma chave de API para aceder à API do AdNexus de forma programática.",
-    "created": "Criado"
+    "created": "Criado",
+    "removeMemberTitle": "Remover membro da equipe",
+    "removeMemberDescription": "Tem certeza de que deseja remover {name} deste workspace? O acesso será revogado imediatamente.",
+    "removeMemberConfirm": "Remover",
+    "revokeApiKeyTitle": "Revogar chave de API",
+    "revokeApiKeyDescription": "Tem certeza de que deseja revogar a chave de API “{name}”? Os aplicativos que usam esta chave deixarão de funcionar imediatamente.",
+    "revokeApiKeyConfirm": "Revogar"
   },
   "billing": {
     "title": "Faturação",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Falha ao obter a campanha",
     "failedToFetchAdSets": "Falha ao obter os conjuntos de anúncios",
     "failedToFetchHistory": "Falha ao obter o histórico",
-    "failedToFetchAds": "Falha ao obter os anúncios"
+    "failedToFetchAds": "Falha ao obter os anúncios",
+    "somethingWentWrong": "Algo deu errado",
+    "unexpectedErrorDescription": "Ocorreu um erro inesperado. Tente novamente.",
+    "tryAgain": "Tentar novamente"
   },
   "notifications": {
     "title": "Notificações",

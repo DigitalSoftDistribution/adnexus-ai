@@ -7,6 +7,7 @@
 
 import { query } from '../infrastructure/database/connection';
 import type { AdAccount, Platform } from './types';
+import { decryptOAuthTokenFromStorage, encryptOAuthTokenForStorage } from '../security/oauth-token-crypto';
 
 interface AdAccountRow {
   id: string;
@@ -34,8 +35,8 @@ function mapRow(row: AdAccountRow): AdAccount {
     currency: (meta.currency as string) ?? 'USD',
     timezone: (meta.timezone as string) ?? 'UTC',
     status: (row.status === 'active' ? 'active' : 'disconnected') as AdAccount['status'],
-    accessToken: row.oauth_token ?? '',
-    refreshToken: row.refresh_token ?? undefined,
+    accessToken: decryptOAuthTokenFromStorage(row.oauth_token) ?? '',
+    refreshToken: decryptOAuthTokenFromStorage(row.refresh_token) ?? undefined,
     tokenExpiresAt: row.token_expires_at ?? undefined,
     metadata: meta,
     createdAt: row.created_at,
@@ -45,6 +46,17 @@ function mapRow(row: AdAccountRow): AdAccount {
 
 const SELECT_COLS = `id, workspace_id, platform, platform_account_id, name,
   oauth_token, refresh_token, token_expires_at, status, metadata, created_at, updated_at`;
+
+/** Load a single active ad account by its internal id. */
+export async function loadAdAccountById(accountId: string): Promise<AdAccount | null> {
+  const { rows } = await query<AdAccountRow>(
+    `SELECT ${SELECT_COLS} FROM ad_accounts
+     WHERE id = $1 AND is_active = true
+     LIMIT 1`,
+    [accountId],
+  );
+  return rows[0] ? mapRow(rows[0]) : null;
+}
 
 /** Load all active ad accounts for a workspace. */
 export async function loadWorkspaceAccounts(workspaceId: string): Promise<AdAccount[]> {
@@ -67,7 +79,7 @@ export async function persistRefreshedToken(
     `UPDATE ad_accounts
      SET oauth_token = $2, token_expires_at = $3, updated_at = NOW()
      WHERE id = $1`,
-    [accountId, accessToken, tokenExpiresAt ?? null],
+    [accountId, encryptOAuthTokenForStorage(accessToken), tokenExpiresAt ?? null],
   );
 }
 

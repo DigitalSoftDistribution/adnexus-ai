@@ -1,6 +1,14 @@
-// @ts-nocheck — unported worker, token types mismatch
+/**
+ * AdNexus Metrics Sync Worker
+ *
+ * Worker startup is gated by BACKGROUND_JOBS_ENABLED and
+ * BACKGROUND_METRICS_SYNC_ENABLED (default-off, PR #79 pattern).
+ */
+
 import { Worker, Queue, Job } from 'bullmq';
+import { Redis } from 'ioredis';
 import { config } from '../config';
+import { getRedisClient } from '../lib/redis';
 import { supabase } from '../lib/supabase';
 import { PlatformError } from '../lib/errors';
 import type { Platform, AdAccount } from '../types';
@@ -8,6 +16,24 @@ import * as metaApi from '../services/meta-api';
 import * as googleApi from '../services/google-api';
 import * as tiktokApi from '../services/tiktok-api';
 import * as snapApi from '../services/snap-api';
+import {
+  decryptOAuthTokenFromStorage,
+  encryptOAuthTokenForStorage,
+} from '../security/oauth-token-crypto';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('metrics-sync');
+
+export const METRICS_SYNC_QUEUE_NAME = 'metrics-sync';
+
+export type MetricsSyncWorkerStatus = 'disabled' | 'starting' | 'running' | 'stopped' | 'error';
+
+export interface MetricsSyncWorkerSnapshot {
+  status: MetricsSyncWorkerStatus;
+  enabled: boolean;
+  reason?: string;
+  startedAt?: string;
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -76,34 +102,116 @@ interface SyncSummary {
   errors: string[];
 }
 
-// ─── Redis Connection ────────────────────────────────────────
+let workerRedis: Redis | null = null;
+let metricsSyncQueue: Queue<SyncJobData> | null = null;
+let metricsSyncWorker: Worker<SyncJobData> | null = null;
+let workerSnapshot: MetricsSyncWorkerSnapshot = {
+  status: 'disabled',
+  enabled: false,
+};
 
-function getRedisConnection() {
-  if (config.redis.url) {
-    return { url: config.redis.url };
+export function getMetricsSyncDisableReason(): string | null {
+  if (!config.backgroundJobs.enabled) {
+    return 'BACKGROUND_JOBS_ENABLED is not true';
   }
-  return { host: 'localhost', port: 6379 };
+  if (!config.backgroundJobs.metricsSyncEnabled) {
+    return 'BACKGROUND_METRICS_SYNC_ENABLED is not true';
+  }
+  if (!config.redis.url) {
+    return 'REDIS_URL is not configured';
+  }
+
+  const redis = getRedisClient();
+  if (!redis || redis.status !== 'ready') {
+    return `Redis is not ready: ${redis?.status ?? 'disconnected'}`;
+  }
+
+  return null;
 }
 
-// ─── Queue ───────────────────────────────────────────────────
+export function getMetricsSyncWorkerStatus(): MetricsSyncWorkerSnapshot {
+  return { ...workerSnapshot };
+}
 
-export const metricsSyncQueue = new Queue('metrics-sync', {
-  connection: getRedisConnection(),
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 15000 },
-    removeOnComplete: 100,
-    removeOnFail: 50,
-  },
-});
+export function buildMetricsSyncJobId(workspaceId: string, timestamp = Date.now()): string {
+  return `sync-${workspaceId}-${timestamp}`;
+}
 
-// ─── Worker ──────────────────────────────────────────────────
+export function getMetricsSyncLookbackDays(syncType: SyncType): number {
+  return syncType === 'full' ? 30 : 7;
+}
 
-export const metricsSyncWorker = new Worker(
-  'metrics-sync',
-  async (job: Job<SyncJobData>) => {
+export function getMetricsSyncDateRange(
+  syncType: SyncType,
+  now = new Date(),
+): { dateStart: string; dateEnd: string } {
+  const lookbackDays = getMetricsSyncLookbackDays(syncType);
+  const dateEnd = now.toISOString().slice(0, 10);
+  const dateStart = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return { dateStart, dateEnd };
+}
+
+export function shouldMarkAccountRefreshNeeded(errorMessage: string): boolean {
+  const normalized = errorMessage.toLowerCase();
+  return (
+    normalized.includes('token refresh') ||
+    normalized.includes('unauthorized') ||
+    normalized.includes('invalid')
+  );
+}
+
+export function evaluateTokenExpiry(
+  expiresAt: string | null | undefined,
+  now = new Date(),
+  bufferMs = 5 * 60 * 1000,
+): { valid: boolean; expiresAt: Date | null } {
+  const parsedExpiry = expiresAt ? new Date(expiresAt) : null;
+  if (!parsedExpiry || Number.isNaN(parsedExpiry.getTime())) {
+    return { valid: false, expiresAt: null };
+  }
+
+  return {
+    valid: parsedExpiry.getTime() >= now.getTime() + bufferMs,
+    expiresAt: parsedExpiry,
+  };
+}
+
+export function dedupeWorkspaceIds(
+  rows: ReadonlyArray<{ workspace_id: string }>,
+): string[] {
+  return [...new Set(rows.map((row) => row.workspace_id))];
+}
+
+function getWorkerRedis(): Redis {
+  if (!workerRedis) {
+    workerRedis = new Redis(config.redis.url ?? 'redis://localhost:6379', {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  }
+  return workerRedis;
+}
+
+function getMetricsSyncQueue(): Queue<SyncJobData> {
+  if (!metricsSyncQueue) {
+    metricsSyncQueue = new Queue<SyncJobData>(METRICS_SYNC_QUEUE_NAME, {
+      connection: getWorkerRedis(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 15000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    });
+  }
+  return metricsSyncQueue;
+}
+
+async function processMetricsSyncJob(job: Job<SyncJobData>): Promise<SyncSummary> {
     const { workspaceId, syncType } = job.data;
-    console.log(`[Metrics Sync] ${syncType} sync started for workspace ${workspaceId}`);
+    logger.info(`${syncType} sync started for workspace ${workspaceId}`);
 
     const summary: SyncSummary = {
       accountsSynced: 0,
@@ -126,7 +234,7 @@ export const metricsSyncWorker = new Worker(
       }
 
       if (!accounts || accounts.length === 0) {
-        console.log(`[Metrics Sync] No connected accounts found for workspace ${workspaceId}`);
+        logger.info(`No connected accounts found for workspace ${workspaceId}`);
         await logAuditEvent(workspaceId, 'metrics_sync_complete', 'system', {
           sync_type: syncType,
           accounts_found: 0,
@@ -135,7 +243,7 @@ export const metricsSyncWorker = new Worker(
         return summary;
       }
 
-      console.log(`[Metrics Sync] Found ${accounts.length} account(s) for workspace ${workspaceId}`);
+      logger.info(`Found ${accounts.length} account(s) for workspace ${workspaceId}`);
 
       // 2. Sync each account
       for (const account of accounts) {
@@ -159,18 +267,18 @@ export const metricsSyncWorker = new Worker(
             .eq('id', account.id);
 
           if (updateError) {
-            console.error(`[Metrics Sync] Failed to update ad_account ${account.id}:`, updateError.message);
+            logger.error({ err: updateError }, `Failed to update ad_account ${account.id}`);
           }
 
           // Rate limit breathing room between accounts
           await sleep(500);
         } catch (accountErr) {
           const errMsg = accountErr instanceof Error ? accountErr.message : String(accountErr);
-          console.error(`[Metrics Sync] Error syncing account ${account.id} (${account.platform}):`, errMsg);
+          logger.error({ err: accountErr }, `Error syncing account ${account.id} (${account.platform})`);
           summary.errors.push(`[${account.platform}] ${account.account_id}: ${errMsg}`);
 
           // Mark account as error if token refresh fails
-          if (errMsg.includes('Token refresh') || errMsg.includes('unauthorized') || errMsg.includes('invalid')) {
+          if (shouldMarkAccountRefreshNeeded(errMsg)) {
             await supabase
               .from('ad_accounts')
               .update({ status: 'refresh_needed', updated_at: new Date().toISOString() })
@@ -190,8 +298,8 @@ export const metricsSyncWorker = new Worker(
         success: summary.errors.length === 0,
       });
 
-      console.log(
-        `[Metrics Sync] ${syncType} sync complete for workspace ${workspaceId}: ` +
+      logger.info(
+        `${syncType} sync complete for workspace ${workspaceId}: ` +
         `${summary.accountsSynced} accounts, ${summary.campaignsUpdated} campaigns, ` +
         `${summary.adsetsUpdated} adsets, ${summary.adsUpdated} ads`,
       );
@@ -199,7 +307,7 @@ export const metricsSyncWorker = new Worker(
       return summary;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[Metrics Sync] Sync failed for workspace ${workspaceId}:`, errMsg);
+      logger.error({ err }, `Sync failed for workspace ${workspaceId}`);
       summary.errors.push(errMsg);
 
       await logAuditEvent(workspaceId, 'metrics_sync_failed', 'system', {
@@ -209,48 +317,124 @@ export const metricsSyncWorker = new Worker(
 
       throw err;
     }
-  },
-  {
-    connection: getRedisConnection(),
-    concurrency: 3,
-  },
-);
+}
 
-// ─── Event Handlers ──────────────────────────────────────────
+export async function startMetricsSyncWorker(): Promise<MetricsSyncWorkerSnapshot> {
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    workerSnapshot = {
+      status: 'disabled',
+      enabled: false,
+      reason: disableReason,
+    };
+    return getMetricsSyncWorkerStatus();
+  }
 
-metricsSyncWorker.on('completed', (job) => {
-  const result = job.returnvalue as SyncSummary | undefined;
-  console.log(
-    `[Metrics Sync] Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
-    `${result?.accountsSynced ?? 0} accounts synced`,
-  );
-});
+  if (metricsSyncWorker) {
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: workerSnapshot.startedAt,
+    };
+    return getMetricsSyncWorkerStatus();
+  }
 
-metricsSyncWorker.on('failed', (job, err) => {
-  const jobId = job?.id ?? 'unknown';
-  const workspaceId = job?.data?.workspaceId ?? 'unknown';
-  console.error(`[Metrics Sync] Job ${jobId} failed for workspace ${workspaceId}:`, err.message);
-});
+  workerSnapshot = { status: 'starting', enabled: true };
+
+  try {
+    const activeWorker = new Worker<SyncJobData>(
+      METRICS_SYNC_QUEUE_NAME,
+      processMetricsSyncJob,
+      {
+        connection: getWorkerRedis(),
+        concurrency: 3,
+      },
+    );
+
+    activeWorker.on('completed', (job) => {
+      const result = job.returnvalue as SyncSummary | undefined;
+      logger.info(
+        `Job ${job.id} completed for workspace ${job.data.workspaceId}: ` +
+          `${result?.accountsSynced ?? 0} accounts synced`,
+      );
+    });
+
+    activeWorker.on('failed', (job, err) => {
+      const jobId = job?.id ?? 'unknown';
+      const workspaceId = job?.data?.workspaceId ?? 'unknown';
+      logger.error({ err }, `Job ${jobId} failed for workspace ${workspaceId}`);
+    });
+
+    metricsSyncWorker = activeWorker;
+    workerSnapshot = {
+      status: 'running',
+      enabled: true,
+      startedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    workerSnapshot = {
+      status: 'error',
+      enabled: true,
+      reason: message,
+    };
+  }
+
+  return getMetricsSyncWorkerStatus();
+}
+
+export async function stopMetricsSyncWorker(): Promise<void> {
+  if (metricsSyncWorker) {
+    await metricsSyncWorker.close();
+    metricsSyncWorker = null;
+  }
+  if (metricsSyncQueue) {
+    await metricsSyncQueue.close();
+    metricsSyncQueue = null;
+  }
+  if (workerRedis) {
+    await workerRedis.quit();
+    workerRedis = null;
+  }
+
+  workerSnapshot = {
+    status: 'stopped',
+    enabled: false,
+  };
+}
 
 // ─── Job Trigger ─────────────────────────────────────────────
 
 export async function triggerMetricsSync(
   workspaceId: string,
   syncType: SyncType = 'incremental',
-): Promise<string> {
-  const job = await metricsSyncQueue.add(
-    'metrics-sync',
+): Promise<string | null> {
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    logger.info(`Skipping enqueue: ${disableReason}`);
+    return null;
+  }
+
+  const queue = getMetricsSyncQueue();
+  const job = await queue.add(
+    METRICS_SYNC_QUEUE_NAME,
     { workspaceId, syncType },
-    { jobId: `sync-${workspaceId}-${Date.now()}` },
+    { jobId: buildMetricsSyncJobId(workspaceId) },
   );
-  console.log(`[Metrics Sync] Queued ${syncType} sync for workspace ${workspaceId}, job ${job.id}`);
-  return job.id as string;
+  logger.info(`Queued ${syncType} sync for workspace ${workspaceId}, job ${job.id}`);
+  return job.id ?? null;
 }
 
 // ─── Scheduled Sync ──────────────────────────────────────────
 
 export async function scheduleMetricsSync(): Promise<void> {
-  console.log('[Metrics Sync] Running scheduled sync for all active workspaces');
+  const disableReason = getMetricsSyncDisableReason();
+  if (disableReason) {
+    logger.info(`Skipping scheduled sync: ${disableReason}`);
+    return;
+  }
+
+  logger.info('Running scheduled sync for all active workspaces');
 
   try {
     // Get all workspaces that have at least one connected ad account
@@ -265,14 +449,14 @@ export async function scheduleMetricsSync(): Promise<void> {
     }
 
     if (!workspaces || workspaces.length === 0) {
-      console.log('[Metrics Sync] No active workspaces found');
+      logger.info('No active workspaces found');
       return;
     }
 
     // Deduplicate workspace IDs
-    const uniqueWorkspaceIds = [...new Set(workspaces.map((w) => w.workspace_id as string))];
+    const uniqueWorkspaceIds = dedupeWorkspaceIds(workspaces);
 
-    console.log(`[Metrics Sync] Queuing incremental sync for ${uniqueWorkspaceIds.length} workspace(s)`);
+    logger.info(`Queuing incremental sync for ${uniqueWorkspaceIds.length} workspace(s)`);
 
     // Queue incremental sync jobs for each workspace
     for (const workspaceId of uniqueWorkspaceIds) {
@@ -280,14 +464,14 @@ export async function scheduleMetricsSync(): Promise<void> {
         await triggerMetricsSync(workspaceId, 'incremental');
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[Metrics Sync] Failed to queue sync for workspace ${workspaceId}:`, errMsg);
+        logger.error({ err }, `Failed to queue sync for workspace ${workspaceId}`);
       }
     }
 
-    console.log('[Metrics Sync] Scheduled sync complete');
+    logger.info('Scheduled sync complete');
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error('[Metrics Sync] Scheduled sync failed:', errMsg);
+    logger.error({ err }, 'Scheduled sync failed');
     throw err;
   }
 }
@@ -295,7 +479,7 @@ export async function scheduleMetricsSync(): Promise<void> {
 // ─── Account Router ──────────────────────────────────────────
 
 async function syncAccount(account: AdAccount): Promise<SyncResult> {
-  console.log(`[Metrics Sync] Syncing ${account.platform} account ${account.account_id}`);
+  logger.info(`Syncing ${account.platform} account ${account.account_id}`);
 
   switch (account.platform) {
     case 'meta':
@@ -342,7 +526,7 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
 
     // b. Fetch campaigns from Meta
     const metaCampaigns = await metaApi.getMetaCampaigns(account.account_id, accessToken, 'all');
-    console.log(`[Meta] Fetched ${metaCampaigns.length} campaigns for account ${account.account_id}`);
+    logger.info(`[Meta] Fetched ${metaCampaigns.length} campaigns for account ${account.account_id}`);
 
     if (metaCampaigns.length === 0) {
       return result;
@@ -417,7 +601,7 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
           .single();
 
         if (campaignError) {
-          console.error(`[Meta] Failed to upsert campaign ${mc.id}:`, campaignError.message);
+          logger.error({ err: campaignError }, `[Meta] Failed to upsert campaign ${mc.id}`);
           result.errors.push(`Campaign ${mc.id}: ${campaignError.message}`);
           continue;
         }
@@ -457,19 +641,19 @@ export async function syncMetaAccount(account: AdAccount): Promise<SyncResult> {
         await sleep(200);
       } catch (campaignErr) {
         const msg = campaignErr instanceof Error ? campaignErr.message : String(campaignErr);
-        console.error(`[Meta] Error processing campaign ${mc.id}:`, msg);
+        logger.error({ err: campaignErr }, `[Meta] Error processing campaign ${mc.id}`);
         result.errors.push(`Campaign ${mc.id}: ${msg}`);
       }
     }
 
     if (result.errors.length > 0) {
-      console.warn(`[Meta] Account ${account.account_id} sync completed with ${result.errors.length} error(s)`);
+      logger.warn(`[Meta] Account ${account.account_id} sync completed with ${result.errors.length} error(s)`);
     }
 
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Meta] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -498,7 +682,7 @@ export async function syncGoogleAccount(account: AdAccount): Promise<SyncResult>
 
     // Fetch campaigns
     const campaigns = await googleApi.fetchGoogleCampaigns(account.account_id, accessToken, { status: 'all' });
-    console.log(`[Google] Fetched ${campaigns.length} campaigns for account ${account.account_id}`);
+    logger.info(`[Google] Fetched ${campaigns.length} campaigns for account ${account.account_id}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -643,7 +827,7 @@ export async function syncGoogleAccount(account: AdAccount): Promise<SyncResult>
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Google] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Google] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -673,7 +857,7 @@ export async function syncTikTokAccount(account: AdAccount): Promise<SyncResult>
 
     // Fetch campaigns
     const campaigns = await tiktokApi.fetchTikTokCampaigns(advertiserId, accessToken, { status: 'all' });
-    console.log(`[TikTok] Fetched ${campaigns.length} campaigns for advertiser ${advertiserId}`);
+    logger.info(`[TikTok] Fetched ${campaigns.length} campaigns for advertiser ${advertiserId}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -812,7 +996,7 @@ export async function syncTikTokAccount(account: AdAccount): Promise<SyncResult>
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[TikTok] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[TikTok] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -842,7 +1026,7 @@ export async function syncSnapAccount(account: AdAccount): Promise<SyncResult> {
 
     // Fetch campaigns
     const campaigns = await snapApi.fetchSnapCampaigns(adAccountId, accessToken, { status: 'all' });
-    console.log(`[Snap] Fetched ${campaigns.length} campaigns for account ${adAccountId}`);
+    logger.info(`[Snap] Fetched ${campaigns.length} campaigns for account ${adAccountId}`);
 
     if (campaigns.length === 0) {
       return result;
@@ -981,7 +1165,7 @@ export async function syncSnapAccount(account: AdAccount): Promise<SyncResult> {
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Snap] Account ${account.account_id} sync failed:`, msg);
+    logger.error({ err }, `[Snap] Account ${account.account_id} sync failed`);
     result.errors.push(msg);
     result.success = false;
     return result;
@@ -1076,15 +1260,17 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
     throw new PlatformError(account.platform, `Failed to fetch token for account ${account.id}: ${error?.message}`);
   }
 
-  const expiresAt = accountData.token_expires_at ? new Date(accountData.token_expires_at) : null;
-  const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000; // 5-minute buffer
+  const tokenExpiry = evaluateTokenExpiry(accountData.token_expires_at);
 
-  if (!isExpired && accountData.oauth_token) {
-    return accountData.oauth_token;
+  const oauthToken = decryptOAuthTokenFromStorage(accountData.oauth_token);
+  const refreshToken = decryptOAuthTokenFromStorage(accountData.refresh_token);
+
+  if (tokenExpiry.valid && oauthToken) {
+    return oauthToken;
   }
 
   // Token is expired or about to expire — refresh it
-  console.log(`[Metrics Sync] Refreshing token for ${account.platform} account ${account.account_id}`);
+  logger.info(`Refreshing token for ${account.platform} account ${account.account_id}`);
 
   try {
     let newToken: string;
@@ -1093,22 +1279,21 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
 
     switch (account.platform) {
       case 'meta': {
-        if (!accountData.refresh_token) {
+        if (!refreshToken) {
           throw new PlatformError('meta', 'No refresh token available');
         }
-        const refreshed = await metaApi.refreshMetaToken(accountData.refresh_token);
+        const refreshed = await metaApi.refreshMetaToken(refreshToken);
         newToken = refreshed.access_token;
         newExpiresAt = new Date(Date.now() + (refreshed.expires_in ?? 3600) * 1000);
         break;
       }
       case 'google': {
-        if (!accountData.refresh_token) {
+        if (!refreshToken) {
           throw new PlatformError('google', 'No refresh token available');
         }
-        const tokenData = await googleApi.handleGoogleCallback(accountData.refresh_token, account.workspace_id);
-        newToken = (tokenData as unknown as Record<string, unknown>).metadata?.access_token as string ?? '';
-        newRefreshToken = (tokenData as unknown as Record<string, unknown>).metadata?.refresh_token as string | undefined;
-        newExpiresAt = (tokenData as unknown as Record<string, unknown>).token_expires_at ? new Date((tokenData as unknown as Record<string, unknown>).token_expires_at as string) : new Date(Date.now() + 3600 * 1000);
+        const googleRefreshed = await googleApi.refreshGoogleToken(refreshToken ?? '');
+        newToken = googleRefreshed.accessToken;
+        newExpiresAt = googleRefreshed.expiresAt;
         break;
       }
       case 'tiktok': {
@@ -1135,14 +1320,20 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
         throw new PlatformError(account.platform, `Token refresh not implemented for platform: ${account.platform}`);
     }
 
-    // Store the new token
+    // Store the new token (encrypted at rest for Meta/Google)
     const updateData: Record<string, unknown> = {
-      oauth_token: newToken,
+      oauth_token:
+        account.platform === 'meta' || account.platform === 'google'
+          ? encryptOAuthTokenForStorage(newToken)
+          : newToken,
       token_expires_at: newExpiresAt.toISOString(),
       updated_at: new Date().toISOString(),
     };
     if (newRefreshToken) {
-      updateData.refresh_token = newRefreshToken;
+      updateData.refresh_token =
+        account.platform === 'meta' || account.platform === 'google'
+          ? encryptOAuthTokenForStorage(newRefreshToken)
+          : newRefreshToken;
     }
 
     const { error: updateError } = await supabase
@@ -1151,14 +1342,14 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
       .eq('id', account.id);
 
     if (updateError) {
-      console.error(`[Metrics Sync] Failed to store refreshed token for account ${account.id}:`, updateError.message);
+      logger.error({ err: updateError }, `Failed to store refreshed token for account ${account.id}`);
     }
 
-    console.log(`[Metrics Sync] Token refreshed for ${account.platform} account ${account.account_id}`);
+    logger.info(`Token refreshed for ${account.platform} account ${account.account_id}`);
     return newToken;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Metrics Sync] Token refresh failed for ${account.platform} account ${account.account_id}:`, msg);
+    logger.error({ err }, `Token refresh failed for ${account.platform} account ${account.account_id}`);
     throw new PlatformError(account.platform, `Token refresh failed: ${msg}`);
   }
 }
@@ -1167,17 +1358,16 @@ export async function ensureValidToken(account: AdAccount): Promise<string> {
 
 export async function handleRateLimit(platform: string, retryAfter?: number): Promise<void> {
   const delayMs = retryAfter ? retryAfter * 1000 : 60000; // Default 60 seconds
-  console.log(`[Metrics Sync] Rate limited by ${platform}. Sleeping for ${delayMs}ms`);
+  logger.info(`Rate limited by ${platform}. Sleeping for ${delayMs}ms`);
   await sleep(delayMs);
 }
 
 // ─── Graceful Shutdown ───────────────────────────────────────
 
 export async function shutdownMetricsSync(): Promise<void> {
-  console.log('[Metrics Sync] Shutting down worker...');
-  await metricsSyncWorker.close();
-  await metricsSyncQueue.close();
-  console.log('[Metrics Sync] Worker shut down complete');
+  logger.info('Shutting down worker...');
+  await stopMetricsSyncWorker();
+  logger.info('Worker shut down complete');
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -1199,10 +1389,10 @@ async function logAuditEvent(
     });
 
     if (error) {
-      console.error('[Metrics Sync] Failed to log audit event:', error.message);
+      logger.error({ err: error }, 'Failed to log audit event');
     }
   } catch (err) {
-    console.error('[Metrics Sync] Audit log error:', err);
+    logger.error({ err }, 'Audit log error');
   }
 }
 
@@ -1249,7 +1439,7 @@ async function fetchMetaAdSets(campaignId: string, accessToken: string): Promise
     return { data: data.data ?? [] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Failed to fetch adsets for campaign ${campaignId}:`, msg);
+    logger.error({ err }, `[Meta] Failed to fetch adsets for campaign ${campaignId}`);
     return { data: [] };
   }
 }
@@ -1270,7 +1460,7 @@ async function fetchMetaAds(campaignId: string, accessToken: string): Promise<{ 
     return { data: data.data ?? [] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Meta] Failed to fetch ads for campaign ${campaignId}:`, msg);
+    logger.error({ err }, `[Meta] Failed to fetch ads for campaign ${campaignId}`);
     return { data: [] };
   }
 }
@@ -1305,7 +1495,7 @@ async function upsertAd(campaignId: string, ad: MetaAd): Promise<void> {
     .single();
 
   if (adsetError || !adsetRecord) {
-    console.warn(`[Meta] Adset not found for ad ${ad.id}, campaign ${campaignId}`);
+    logger.warn(`[Meta] Adset not found for ad ${ad.id}, campaign ${campaignId}`);
     return;
   }
 
@@ -1340,3 +1530,15 @@ function mapMetaStatus(status: string): 'active' | 'paused' | 'draft' | 'error' 
   };
   return statusMap[status] ?? 'paused';
 }
+
+if (require.main === module) {
+  void startMetricsSyncWorker().then((status) => {
+    if (status.status !== 'running') {
+      console.log(`[Metrics Sync] Worker not started: ${status.reason ?? status.status}`);
+      process.exit(0);
+    }
+    console.log('[Metrics Sync] Worker started. Waiting for jobs...');
+  });
+}
+
+export { metricsSyncWorker, metricsSyncQueue };

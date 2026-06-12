@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db/connection';
 import { authenticate, requireMember as requireAuth } from '../middleware/authenticate';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('comments-route');
 
 const router = Router();
 
@@ -12,6 +15,22 @@ const createCommentSchema = z.object({
 });
 
 // ── Helpers ─────────────────────────────────────────────────
+/**
+ * Authorization guard: confirm a draft exists AND belongs to the caller's
+ * workspace. Prevents cross-tenant access to comments (IDOR) — any valid JWT
+ * must not be able to read/write comments on drafts in another workspace.
+ */
+async function draftBelongsToWorkspace(
+  draftId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const { rows } = await query(
+    'SELECT 1 FROM drafts WHERE id = $1 AND workspace_id = $2',
+    [draftId, workspaceId],
+  );
+  return rows.length > 0;
+}
+
 function timeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - new Date(date).getTime();
@@ -32,8 +51,13 @@ function timeAgo(date: Date): string {
 // List all comments for a draft, threaded by parent_id
 router.get('/drafts/:id/comments', authenticate, async (req, res) => {
   const draftId = req.params.id;
+  const workspaceId = req.workspaceId;
 
   try {
+    if (!workspaceId || !(await draftBelongsToWorkspace(draftId, workspaceId))) {
+      return res.status(404).json({ error: 'Draft not found' });
+    }
+
     const { rows } = await query(
       `
         SELECT
@@ -112,7 +136,7 @@ router.get('/drafts/:id/comments', authenticate, async (req, res) => {
 
     res.json({ draftId, comments });
   } catch (err) {
-    console.error('[GET /drafts/:id/comments]', err);
+    logger.error({ err }, 'GET /drafts/:id/comments');
     res.status(500).json({ error: 'Failed to load comments' });
   }
 });
@@ -132,22 +156,27 @@ router.post(
     }
 
     const { text, parentId } = parse.data;
-
-    // If replying, validate parent belongs to same draft
-    if (parentId) {
-      const { rows: parentCheck } = await query(
-        'SELECT draft_id FROM comments WHERE id = $1',
-        [parentId]
-      );
-      if (parentCheck.length === 0) {
-        return res.status(404).json({ error: 'Parent comment not found' });
-      }
-      if (parentCheck[0].draft_id !== draftId) {
-        return res.status(400).json({ error: 'Parent belongs to a different draft' });
-      }
-    }
+    const workspaceId = req.workspaceId;
 
     try {
+      if (!workspaceId || !(await draftBelongsToWorkspace(draftId, workspaceId))) {
+        return res.status(404).json({ error: 'Draft not found' });
+      }
+
+      // If replying, validate parent belongs to same draft
+      if (parentId) {
+        const { rows: parentCheck } = await query(
+          'SELECT draft_id FROM comments WHERE id = $1',
+          [parentId]
+        );
+        if (parentCheck.length === 0) {
+          return res.status(404).json({ error: 'Parent comment not found' });
+        }
+        if (parentCheck[0].draft_id !== draftId) {
+          return res.status(400).json({ error: 'Parent belongs to a different draft' });
+        }
+      }
+
       const { rows: [newComment] } = await query(
         `
           INSERT INTO comments (draft_id, user_id, text, parent_id)
@@ -194,7 +223,7 @@ router.post(
         },
       });
     } catch (err) {
-      console.error('[POST /drafts/:id/comments]', err);
+      logger.error({ err }, 'POST /drafts/:id/comments');
       res.status(500).json({ error: 'Failed to create comment' });
     }
   }
@@ -205,15 +234,19 @@ router.post(
 router.delete('/comments/:id', requireAuth, async (req, res) => {
   const commentId = req.params.id;
   const userId = req.user!.sub;
-  const isAdmin = req.user!.role === 'admin';
+  const isAdmin = req.user!.role === 'admin' || req.user!.role === 'owner';
 
   try {
     const { rows: [existing] } = await query(
-      'SELECT user_id FROM comments WHERE id = $1',
+      `SELECT c.user_id, d.workspace_id
+         FROM comments c
+         JOIN drafts d ON d.id = c.draft_id
+        WHERE c.id = $1`,
       [commentId]
     );
 
-    if (!existing) {
+    // 404 (not 403) on cross-workspace access to avoid leaking existence
+    if (!existing || existing.workspace_id !== req.workspaceId) {
       return res.status(404).json({ error: 'Comment not found' });
     }
 
@@ -225,7 +258,7 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 
     res.json({ success: true, deletedId: commentId });
   } catch (err) {
-    console.error('[DELETE /comments/:id]', err);
+    logger.error({ err }, 'DELETE /comments/:id');
     res.status(500).json({ error: 'Failed to delete comment' });
   }
 });

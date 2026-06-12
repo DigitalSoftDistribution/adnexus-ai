@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+    "forgotPasswordTitle": "パスワードをお忘れですか？",
+    "forgotPasswordSubtitle": "メールアドレスを入力すると、パスワード再設定用のリンクをお送りします",
+    "sendResetLink": "再設定リンクを送信",
+    "resetEmailSentTitle": "メールをご確認ください",
+    "resetEmailSentDescription": "そのメールアドレスのアカウントが存在する場合、パスワード再設定リンクを送信しました。リンクの有効期限は1時間です。",
+    "resetRequestFailed": "再設定メールを送信できませんでした。もう一度お試しください。",
+    "backToSignIn": "サインインに戻る",
+    "resetPassword": "パスワードを再設定",
+    "resetPasswordTitle": "パスワードの再設定",
+    "resetPasswordSubtitle": "アカウントの新しいパスワードを入力してください",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "パスワードの確認",
+    "confirmPasswordRequired": "新しいパスワードを確認してください",
+    "passwordsDoNotMatch": "パスワードが一致しません",
+    "resetPasswordSuccessTitle": "パスワードを再設定しました",
+    "resetPasswordSuccessDescription": "パスワードが更新されました。新しいパスワードでサインインできます。",
+    "resetPasswordFailed": "パスワードの再設定に失敗しました。もう一度お試しください。",
+    "invalidResetTokenTitle": "無効または期限切れのリンク",
+    "invalidResetTokenDescription": "このパスワード再設定リンクは無効か、有効期限が切れています。新しいリンクをリクエストしてください。",
+    "requestNewLink": "新しいリンクをリクエスト"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -330,7 +350,9 @@
     "connectPlatform": "プラットフォームを接続",
     "failedToSync": "キャンペーンの同期に失敗しました",
     "sync": "同期",
-    "syncing": "同期中..."
+    "syncing": "同期中...",
+    "deleteCampaignTitle": "キャンペーンを削除",
+    "deleteCampaignDescription": "「{name}」を削除してもよろしいですか？この操作は元に戻せません。"
   },
   "drafts": {
     "title": "下書き",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "APIキーはまだありません",
     "apiKeysPlaceholder": "APIキーを生成して、AdNexus APIにプログラムからアクセスします。",
-    "created": "作成日"
+    "created": "作成日",
+    "removeMemberTitle": "チームメンバーを削除",
+    "removeMemberDescription": "{name} をこのワークスペースから削除してもよろしいですか？すぐにアクセスできなくなります。",
+    "removeMemberConfirm": "削除",
+    "revokeApiKeyTitle": "APIキーを無効化",
+    "revokeApiKeyDescription": "APIキー「{name}」を無効化してもよろしいですか？このキーを使用しているアプリケーションは直ちに動作しなくなります。",
+    "revokeApiKeyConfirm": "無効化"
   },
   "billing": {
     "title": "請求",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "キャンペーンの取得に失敗しました",
     "failedToFetchAdSets": "広告セットの取得に失敗しました",
     "failedToFetchHistory": "履歴の取得に失敗しました",
-    "failedToFetchAds": "広告の取得に失敗しました"
+    "failedToFetchAds": "広告の取得に失敗しました",
+    "somethingWentWrong": "問題が発生しました",
+    "unexpectedErrorDescription": "予期しないエラーが発生しました。もう一度お試しください。",
+    "tryAgain": "再試行"
   },
   "notifications": {
     "title": "通知",

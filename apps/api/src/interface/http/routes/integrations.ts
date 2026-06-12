@@ -8,8 +8,29 @@ export function createIntegrationRoutes(container: Container): Router {
   const controller = createIntegrationController(container);
 
   router.get('/', requireAuth, controller.list as any);
-  router.get('/:platform', requireAuth, controller.get as any);
+  // Preview/dev-only QA harness: seeds fake Meta/Google accounts, campaigns, and metrics.
+  // Must be registered before /:platform param routes.
+  router.post(
+    '/mock-traffic/seed',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.seedMockTraffic as any,
+  );
+  router.post(
+    '/:platform/connect',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.connect as any,
+  );
+  router.get('/:platform/accounts', requireAuth, controller.listAccounts as any);
+  router.post(
+    '/:platform/accounts/:accountId/select',
+    requireAuth,
+    requireRole('owner', 'admin') as any,
+    controller.selectAccount as any,
+  );
   router.get('/:platform/health', requireAuth, controller.health as any);
+  router.get('/:platform', requireAuth, controller.get as any);
   router.post(
     '/:platform/disconnect',
     requireAuth,
@@ -25,13 +46,6 @@ export function createIntegrationRoutes(container: Container): Router {
   );
   // Sync-job history for an ad account.
   router.get('/accounts/:accountId/sync-jobs', requireAuth, controller.syncJobs as any);
-  // Preview/dev-only QA harness: seeds fake Meta/Google accounts, campaigns, and metrics.
-  router.post(
-    '/mock-traffic/seed',
-    requireAuth,
-    requireRole('owner', 'admin') as any,
-    controller.seedMockTraffic as any,
-  );
 
   return router;
 }

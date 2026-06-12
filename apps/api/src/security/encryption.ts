@@ -5,7 +5,7 @@
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, createHmac, timingSafeEqual } from "crypto";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // ── Constants ──────────────────────────────────────────────
 
@@ -162,9 +162,9 @@ export function encrypt(plaintext: string): string {
   const { version: keyVersion, key } = keyManager.getCurrentKey();
 
   const iv = randomBytes(AES_IV_SIZE);
-  const salt = randomBytes(KEY_DERIVATION_SALT_SIZE);
+  // Fixed zero salt — must match decrypt(); changing this breaks existing ciphertext.
+  const salt = Buffer.alloc(KEY_DERIVATION_SALT_SIZE);
 
-  // Derive a per-encryption key using HKDF-like approach
   const derivedKey = createHmac(HMAC_ALGORITHM, key).update(salt).digest();
 
   const cipher = createCipheriv(AES_ALGORITHM, derivedKey.slice(0, AES_KEY_SIZE), iv);

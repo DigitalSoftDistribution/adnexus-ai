@@ -1,5 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { v4 as uuidv4 } from "uuid";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger("alerts-route");
 
 const router = Router();
 
@@ -784,19 +787,19 @@ async function sendTestNotification(
   switch (channel) {
     case "email":
       /* placeholder — integrate with email service */
-      console.log(`[EMAIL TEST] to: admin@adnexus.com — ${message}`);
+      logger.info(`[EMAIL TEST] to: admin@adnexus.com — ${message}`);
       /* await sendEmail({ to: "admin@adnexus.com", subject: `[TEST] ${alert.name}`, body: message }); */
       break;
 
     case "slack":
       /* placeholder — integrate with Slack webhook */
-      console.log(`[SLACK TEST] webhook — ${message}`);
+      logger.info(`[SLACK TEST] webhook — ${message}`);
       /* await sendSlackWebhook({ text: message }); */
       break;
 
     case "in-app":
       /* placeholder — store in-app notification */
-      console.log(`[IN-APP TEST] user notification — ${message}`);
+      logger.info(`[IN-APP TEST] user notification — ${message}`);
       /* await createNotification({ userId: "*", message, severity: alert.severity }); */
       break;
 

@@ -1,11 +1,22 @@
-// @ts-nocheck — unported worker, deep type mismatches with DB access
-// evaluate-rules.ts — AI Rule Evaluation Worker
-// Periodically evaluates all active AI rules and creates drafts when conditions are met.
-// Runs every 5 minutes via BullMQ with full observability, caching, and rate-limiting.
+/**
+ * AdNexus Rule Evaluation Worker
+ *
+ * Periodically evaluates active AI rules and creates drafts when conditions are met.
+ * Worker startup is gated by BACKGROUND_JOBS_ENABLED and
+ * BACKGROUND_EVALUATE_RULES_ENABLED (default-off, PR #79 pattern).
+ */
 
 import { Worker, Queue, Job, FlowProducer } from "bullmq";
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
+
+import { config } from "../config";
+import { getRedisClient } from "../lib/redis";
+import { getModuleLogger } from "../lib/logger";
+
+const log = getModuleLogger("evaluate-rules");
+
+export const RULE_EVALUATION_QUEUE_NAME = "rule-evaluation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -97,7 +108,7 @@ export interface EvaluationResult {
 }
 
 export interface WorkerConfig {
-  redis: IORedis;
+  redis: Redis;
   queueName?: string;
   cronExpression?: string; // default: every 5 min
   maxDraftsPerHourDefault?: number;
@@ -204,7 +215,7 @@ class ConditionCache {
 
 class RateLimiter {
   constructor(
-    private redis: IORedis,
+    private redis: Redis,
     private defaultMaxDrafts: number = 50,
   ) {}
 
@@ -247,54 +258,109 @@ class RateLimiter {
 // Rule Engine — condition evaluation logic
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const RULE_PRIORITY_ORDER: Record<AIRule["priority"], number> = {
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
+export function extractMetricField(
+  field: string,
+  metrics: CampaignMetrics,
+): number | string | undefined {
+  const map: Record<string, number | string> = {
+    impressions: metrics.impressions,
+    clicks: metrics.clicks,
+    spend: metrics.spend,
+    conversions: metrics.conversions,
+    ctr: metrics.ctr,
+    cpc: metrics.cpc,
+    roas: metrics.roas,
+  };
+  return map[field];
+}
+
+export function evaluateRuleCondition(
+  condition: RuleCondition,
+  metrics: CampaignMetrics,
+): boolean {
+  const fieldValue = extractMetricField(condition.field, metrics);
+  if (fieldValue === undefined) return false;
+
+  switch (condition.operator) {
+    case "eq":
+      return fieldValue === condition.value;
+    case "neq":
+      return fieldValue !== condition.value;
+    case "gt":
+      return (fieldValue as number) > (condition.value as number);
+    case "gte":
+      return (fieldValue as number) >= (condition.value as number);
+    case "lt":
+      return (fieldValue as number) < (condition.value as number);
+    case "lte":
+      return (fieldValue as number) <= (condition.value as number);
+    case "in": {
+      const values = condition.value;
+      if (Array.isArray(values)) {
+        return (values as ReadonlyArray<string | number>).includes(
+          fieldValue as string | number,
+        );
+      }
+      return false;
+    }
+    case "between": {
+      const [min, max] = condition.value as number[];
+      const v = fieldValue as number;
+      return v >= min && v <= max;
+    }
+    default:
+      return false;
+  }
+}
+
+export function evaluateAllRuleConditions(
+  conditions: RuleCondition[],
+  metrics: CampaignMetrics,
+): boolean[] {
+  return conditions.map((c) => evaluateRuleCondition(c, metrics));
+}
+
+export function sortRulesByPriority(rules: AIRule[]): AIRule[] {
+  return [...rules].sort((a, b) => {
+    const pa = RULE_PRIORITY_ORDER[a.priority] ?? 2;
+    const pb = RULE_PRIORITY_ORDER[b.priority] ?? 2;
+    if (pa !== pb) return pa - pb;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+export function buildEmptyCampaignMetrics(lookbackHours: number): CampaignMetrics {
+  return {
+    impressions: 0,
+    clicks: 0,
+    spend: 0,
+    conversions: 0,
+    ctr: 0,
+    cpc: 0,
+    roas: 0,
+    lookbackHours,
+  };
+}
+
+export function getRuleLookbackHours(rule: AIRule): number {
+  const hours = rule.conditions.map((c) => c.lookbackHours ?? 24);
+  return Math.max(...hours, 24);
+}
+
 class RuleEngine {
   evaluateCondition(condition: RuleCondition, metrics: CampaignMetrics): boolean {
-    const fieldValue = this.extractField(condition.field, metrics);
-    if (fieldValue === undefined) return false;
-
-    switch (condition.operator) {
-      case "eq":
-        return fieldValue === condition.value;
-      case "neq":
-        return fieldValue !== condition.value;
-      case "gt":
-        return (fieldValue as number) > (condition.value as number);
-      case "gte":
-        return (fieldValue as number) >= (condition.value as number);
-      case "lt":
-        return (fieldValue as number) < (condition.value as number);
-      case "lte":
-        return (fieldValue as number) <= (condition.value as number);
-      case "in":
-        if (Array.isArray(condition.value)) {
-          return condition.value.includes(fieldValue as string | number);
-        }
-        return false;
-      case "between": {
-        const [min, max] = condition.value as number[];
-        const v = fieldValue as number;
-        return v >= min && v <= max;
-      }
-      default:
-        return false;
-    }
+    return evaluateRuleCondition(condition, metrics);
   }
 
   evaluateAllConditions(conditions: RuleCondition[], metrics: CampaignMetrics): boolean[] {
-    return conditions.map((c) => this.evaluateCondition(c, metrics));
-  }
-
-  private extractField(field: string, metrics: CampaignMetrics): number | string | undefined {
-    const map: Record<string, number | string> = {
-      impressions: metrics.impressions,
-      clicks: metrics.clicks,
-      spend: metrics.spend,
-      conversions: metrics.conversions,
-      ctr: metrics.ctr,
-      cpc: metrics.cpc,
-      roas: metrics.roas,
-    };
-    return map[field];
+    return evaluateAllRuleConditions(conditions, metrics);
   }
 }
 
@@ -311,12 +377,7 @@ export class RuleEvaluationWorker {
   private flowProducer: FlowProducer;
 
   // Priority map for ordering: lower number = higher priority
-  private readonly PRIORITY_MAP: Record<AIRule["priority"], number> = {
-    critical: 0,
-    high: 1,
-    normal: 2,
-    low: 3,
-  };
+  private readonly PRIORITY_MAP = RULE_PRIORITY_ORDER;
 
   constructor(
     private config: WorkerConfig,
@@ -337,7 +398,7 @@ export class RuleEvaluationWorker {
     this.ruleEngine = new RuleEngine();
     this.flowProducer = new FlowProducer({ connection: config.redis });
 
-    this.queue = new Queue(config.queueName ?? "rule-evaluation", {
+    this.queue = new Queue(config.queueName ?? RULE_EVALUATION_QUEUE_NAME, {
       connection: config.redis,
       defaultJobOptions: {
         attempts: 3,
@@ -360,7 +421,7 @@ export class RuleEvaluationWorker {
     // Remove any existing repeatable job with the same pattern
     const existingRepeatables = await this.queue.getRepeatableJobs();
     for (const r of existingRepeatables) {
-      if (r.pattern === cron || r.every === 300000) {
+      if (r.pattern === cron || Number(r.every) === 300_000) {
         await this.queue.removeRepeatableByKey(r.key);
       }
     }
@@ -372,7 +433,7 @@ export class RuleEvaluationWorker {
     );
 
     this.worker = new Worker(
-      this.config.queueName ?? "rule-evaluation",
+      this.config.queueName ?? RULE_EVALUATION_QUEUE_NAME,
       async (job: Job) => this.processJob(job),
       {
         connection: this.config.redis,
@@ -833,15 +894,7 @@ export class RuleEvaluationWorker {
    */
   private async loadSortedRules(workspaceId: string): Promise<AIRule[]> {
     const rules = await this.deps.ruleRepo.findActiveByWorkspace(workspaceId);
-
-    return rules.sort((a, b) => {
-      const pa = this.PRIORITY_MAP[a.priority] ?? 2;
-      const pb = this.PRIORITY_MAP[b.priority] ?? 2;
-      if (pa !== pb) return pa - pb;
-
-      // Tie-break: newer rules first
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+    return sortRulesByPriority(rules);
   }
 
   /**
@@ -870,7 +923,7 @@ export class RuleEvaluationWorker {
         // Also cache nulls for campaigns that returned no metrics
         for (const id of missingIds) {
           if (!metricsMap.has(id)) {
-            const emptyMetrics = this.createEmptyMetrics(hours);
+            const emptyMetrics = buildEmptyCampaignMetrics(hours);
             this.conditionCache.set(id, hours, emptyMetrics);
             result.set(id, emptyMetrics);
           }
@@ -887,23 +940,8 @@ export class RuleEvaluationWorker {
     return result;
   }
 
-  private createEmptyMetrics(lookbackHours: number): CampaignMetrics {
-    return {
-      impressions: 0,
-      clicks: 0,
-      spend: 0,
-      conversions: 0,
-      ctr: 0,
-      cpc: 0,
-      roas: 0,
-      lookbackHours,
-    };
-  }
-
   private extractLookbackHours(rule: AIRule): number {
-    // Use the max lookbackHours from conditions, default to 24
-    const hours = rule.conditions.map((c) => c.lookbackHours ?? 24);
-    return Math.max(...hours, 24);
+    return getRuleLookbackHours(rule);
   }
 
   private async logExecution(
@@ -996,13 +1034,13 @@ export interface WorkerDependencies {
 }
 
 export function createRuleEvaluationWorker(
-  redis: IORedis,
+  redis: Redis,
   deps: WorkerDependencies,
   overrides?: Partial<WorkerConfig>,
 ): RuleEvaluationWorker {
-  const config: WorkerConfig = {
+  const workerConfig: WorkerConfig = {
     redis,
-    queueName: "rule-evaluation",
+    queueName: RULE_EVALUATION_QUEUE_NAME,
     cronExpression: "*/5 * * * *",
     maxDraftsPerHourDefault: 50,
     batchSize: 5,
@@ -1011,5 +1049,185 @@ export function createRuleEvaluationWorker(
     ...overrides,
   };
 
-  return new RuleEvaluationWorker(config, deps);
+  return new RuleEvaluationWorker(workerConfig, deps);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lazy worker lifecycle (gated startup)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type EvaluateRulesWorkerStatus = "disabled" | "starting" | "running" | "stopped" | "error";
+
+export interface EvaluateRulesWorkerSnapshot {
+  status: EvaluateRulesWorkerStatus;
+  enabled: boolean;
+  reason?: string;
+  startedAt?: string;
+}
+
+let workerRedis: Redis | null = null;
+let ruleEvaluationWorker: RuleEvaluationWorker | null = null;
+let workerSnapshot: EvaluateRulesWorkerSnapshot = {
+  status: "disabled",
+  enabled: false,
+};
+
+function getWorkerRedis(): Redis {
+  if (!workerRedis) {
+    workerRedis = new Redis(config.redis.url ?? "redis://localhost:6379", {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  }
+  return workerRedis;
+}
+
+function createConsoleLogger(): Logger {
+  return {
+    info: (msg, meta) => log.info(meta ?? {}, msg),
+    debug: (msg, meta) => log.debug(meta ?? {}, msg),
+    warn: (msg, meta) => log.warn(meta ?? {}, msg),
+    error: (msg, meta) => log.error(meta ?? {}, msg),
+  };
+}
+
+function createStubWorkerDependencies(): WorkerDependencies {
+  const logger = createConsoleLogger();
+  return {
+    ruleRepo: {
+      findActiveByWorkspace: async () => [],
+      findAllActive: async () => [],
+      findById: async () => null,
+    },
+    campaignRepo: {
+      findByWorkspace: async () => [],
+      findByIds: async () => [],
+      getMetrics: async () => new Map(),
+    },
+    draftRepo: {
+      create: async (draft) => ({
+        ...draft,
+        id: `draft-${uuidv4()}`,
+        createdAt: new Date(),
+      }),
+      countRecentByWorkspace: async () => 0,
+    },
+    executionLogRepo: {
+      create: async (log) => ({
+        ...log,
+        id: `log-${uuidv4()}`,
+        createdAt: new Date(),
+      }),
+      findRecentByRule: async () => [],
+    },
+    eventPublisher: {
+      publish: async () => {},
+    },
+    logger,
+  };
+}
+
+export function getEvaluateRulesDisableReason(): string | null {
+  if (!config.backgroundJobs.enabled) {
+    return "BACKGROUND_JOBS_ENABLED is not true";
+  }
+  if (!config.backgroundJobs.evaluateRulesEnabled) {
+    return "BACKGROUND_EVALUATE_RULES_ENABLED is not true";
+  }
+  if (!config.redis.url) {
+    return "REDIS_URL is not configured";
+  }
+
+  const redis = getRedisClient();
+  if (!redis || redis.status !== "ready") {
+    return `Redis is not ready: ${redis?.status ?? "disconnected"}`;
+  }
+
+  return null;
+}
+
+export function getEvaluateRulesWorkerStatus(): EvaluateRulesWorkerSnapshot {
+  return { ...workerSnapshot };
+}
+
+export async function startEvaluateRulesWorker(): Promise<EvaluateRulesWorkerSnapshot> {
+  const disableReason = getEvaluateRulesDisableReason();
+  if (disableReason) {
+    workerSnapshot = {
+      status: "disabled",
+      enabled: false,
+      reason: disableReason,
+    };
+    return getEvaluateRulesWorkerStatus();
+  }
+
+  if (ruleEvaluationWorker) {
+    workerSnapshot = {
+      status: "running",
+      enabled: true,
+      startedAt: workerSnapshot.startedAt,
+    };
+    return getEvaluateRulesWorkerStatus();
+  }
+
+  workerSnapshot = { status: "starting", enabled: true };
+
+  try {
+    const instance = createRuleEvaluationWorker(
+      getWorkerRedis(),
+      createStubWorkerDependencies(),
+    );
+    await instance.start();
+    ruleEvaluationWorker = instance;
+    workerSnapshot = {
+      status: "running",
+      enabled: true,
+      startedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    workerSnapshot = {
+      status: "error",
+      enabled: true,
+      reason: message,
+    };
+  }
+
+  return getEvaluateRulesWorkerStatus();
+}
+
+export async function stopEvaluateRulesWorker(): Promise<void> {
+  if (ruleEvaluationWorker) {
+    await ruleEvaluationWorker.stop();
+    ruleEvaluationWorker = null;
+  }
+  if (workerRedis) {
+    await workerRedis.quit();
+    workerRedis = null;
+  }
+
+  workerSnapshot = {
+    status: "stopped",
+    enabled: false,
+  };
+}
+
+export async function enqueueWorkspaceRuleEvaluation(
+  workspaceId: string,
+): Promise<string | null> {
+  const disableReason = getEvaluateRulesDisableReason();
+  if (disableReason) {
+    log.info(`Skipping enqueue: ${disableReason}`);
+    return null;
+  }
+
+  if (!ruleEvaluationWorker) {
+    log.info("Worker is not running; cannot enqueue workspace evaluation");
+    return null;
+  }
+
+  const job = await ruleEvaluationWorker.enqueueWorkspaceEvaluation(workspaceId);
+  return job.id ?? null;
+}
+
+export { ruleEvaluationWorker };

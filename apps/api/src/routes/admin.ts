@@ -116,8 +116,9 @@ router.get('/stats', async (_req: Request, res: Response) => {
 
 router.get('/users', async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    // Clamp pagination to prevent unbounded scans / negative offsets
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const search = (req.query.search as string) || '';
     const offset = (page - 1) * limit;
 
@@ -166,8 +167,8 @@ router.get('/users', async (req: Request, res: Response) => {
 
 router.get('/workspaces', async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const offset = (page - 1) * limit;
 
     const { data, error, count } = await supabase
@@ -234,7 +235,7 @@ router.get('/workspaces', async (req: Request, res: Response) => {
 
 router.get('/errors', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
 
     const { data, error } = await supabase
       .from('error_logs')

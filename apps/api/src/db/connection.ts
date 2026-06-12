@@ -61,7 +61,7 @@ function setupPoolListeners(p: Pool): void {
     logger.debug("[DB] New client connected to pool");
   });
   p.on("error", (err: Error) => {
-    logger.error("[DB] Unexpected pool error", { error: err.message });
+    logger.error({ err }, "[DB] Unexpected pool error");
   });
   p.on("acquire", () => {
     const { totalCount, idleCount, waitingCount } = p;
@@ -106,25 +106,23 @@ export async function query<T extends Record<string, unknown> = Record<string, u
     const duration = Date.now() - start;
 
     if (duration > 1000) {
-      logger.warn(`[DB] Slow query (${duration}ms): ${queryName}`, {
-        query: sql.slice(0, 200),
-        duration,
-        rows: result.rowCount,
-      });
+      logger.warn(
+        { query: sql.slice(0, 200), duration, rows: result.rowCount },
+        `[DB] Slow query (${duration}ms): ${queryName}`,
+      );
     } else {
-      logger.debug(`[DB] Query OK (${duration}ms): ${queryName}`, {
-        rows: result.rowCount,
-      });
+      logger.debug({ rows: result.rowCount }, `[DB] Query OK (${duration}ms): ${queryName}`);
     }
 
     return result;
   } catch (error) {
     const duration = Date.now() - start;
-    logger.error(`[DB] Query failed (${duration}ms): ${queryName}`, {
-      query: sql.slice(0, 200),
-      params: params?.map((p, i) => `$${i + 1}=${JSON.stringify(p)}`),
-      error: (error as Error).message,
-    });
+    // NOTE: params are intentionally not logged — they can contain
+    // credentials, tokens, and other user PII.
+    logger.error(
+      { err: error, query: sql.slice(0, 200) },
+      `[DB] Query failed (${duration}ms): ${queryName}`,
+    );
     throw error;
   }
 }
@@ -160,9 +158,7 @@ export async function transaction<T>(
     return result;
   } catch (error) {
     await client.query("ROLLBACK");
-    logger.error("[DB] Transaction ROLLBACK", {
-      error: (error as Error).message,
-    });
+    logger.error({ err: error }, "[DB] Transaction ROLLBACK");
     throw error;
   } finally {
     client.release();

@@ -249,4 +249,24 @@ export class AdRepository implements IAdRepository {
       updatedAt: ad.updated_at ? new Date(ad.updated_at) : new Date(),
     };
   }
+
+  async update(id: string, updates: Partial<Ad>): Promise<Ad | null> {
+    const data: Record<string, unknown> = {};
+    if (updates.name !== undefined) data.name = updates.name;
+    if (updates.status !== undefined) data.status = updates.status;
+    if (updates.creativeType !== undefined) data.creative_type = updates.creativeType;
+    if (updates.creativeUrl !== undefined) data.creative_url = updates.creativeUrl;
+    if (updates.creativeText !== undefined) data.creative_text = updates.creativeText;
+    if (updates.headline !== undefined) data.headline = updates.headline;
+    if (updates.body !== undefined) data.body = updates.body;
+    if (updates.callToAction !== undefined) data.call_to_action = updates.callToAction;
+    if (updates.landingPageUrl !== undefined) data.landing_page_url = updates.landingPageUrl;
+    data.updated_at = new Date();
+
+    if (Object.keys(data).length <= 1) return this.findById(id);
+
+    const [updated] = await db.update(ads).set(data as any).where(eq(ads.id, id)).returning();
+    if (!updated) return null;
+    return this.findById(id);
+  }
 }

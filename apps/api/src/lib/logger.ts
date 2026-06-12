@@ -1,5 +1,13 @@
 import pino from 'pino';
-import { config, isProduction, isDevelopment } from '../config';
+
+// The logger intentionally reads the environment directly instead of
+// importing ../config: config performs strict env validation at import time,
+// and the logger must be safe to import from any module (including tests and
+// CLI tools) without requiring a fully configured environment.
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+const logLevel = process.env.LOG_LEVEL ?? (nodeEnv === 'test' ? 'silent' : 'info');
+const isProduction = nodeEnv === 'production';
+const isDevelopment = nodeEnv === 'development';
 
 /**
  * Create the base pino logger instance.
@@ -7,10 +15,10 @@ import { config, isProduction, isDevelopment } from '../config';
  * - Development: pretty-printed with colours
  */
 const baseLogger = pino({
-  level: config.logLevel,
+  level: logLevel,
   base: {
     pid: process.pid,
-    env: config.nodeEnv,
+    env: nodeEnv,
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
@@ -20,7 +28,7 @@ const baseLogger = pino({
     bindings(bindings: Record<string, unknown>): Record<string, unknown> {
       // Omit hostname in production for cleaner logs
       if (isProduction) {
-        return { pid: bindings.pid, env: config.nodeEnv };
+        return { pid: bindings.pid, env: nodeEnv };
       }
       return bindings;
     },
@@ -50,6 +58,17 @@ const baseLogger = pino({
             'req.body.secret',
             'res.body.token',
             'res.body.jwt',
+            '*.password',
+            '*.secret',
+            '*.token',
+            '*.apiKey',
+            '*.api_key',
+            '*.accessToken',
+            '*.access_token',
+            '*.refreshToken',
+            '*.refresh_token',
+            '*.clientSecret',
+            '*.client_secret',
           ],
           censor: '[REDACTED]',
         },

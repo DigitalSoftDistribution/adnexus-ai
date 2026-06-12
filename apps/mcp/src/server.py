@@ -15,6 +15,8 @@ New in v2:
 - Structured logging with timing
 - Graceful error handling
 - JWT authentication
+- Draft-first safety: tools classified as read / draft / execute
+- Risky writes routed through create_optimization_draft (no direct live mutations)
 
 Environment Variables
 ---------------------
@@ -118,6 +120,71 @@ class ToolCache:
 
 tool_cache = ToolCache(CACHE_TTL)
 
+# ---------------------------------------------------------------------------
+# Draft-first tool safety model (SB-3113)
+# ---------------------------------------------------------------------------
+ToolSafety = Literal["read", "draft", "execute"]
+
+MCP_SAFETY_MODEL = {
+    "default_write_mode": "draft_first",
+    "direct_platform_writes_from_mcp": False,
+    "approval_required_for_writes": True,
+}
+
+TOOL_SAFETY: dict[str, ToolSafety] = {
+    # Read — no workspace mutations
+    "list_campaigns": "read",
+    "get_campaign": "read",
+    "get_campaign_summary": "read",
+    "list_drafts": "read",
+    "get_draft_details": "read",
+    "analyze_audience": "read",
+    "forecast_budget": "read",
+    "list_mcp_tools": "read",
+    "cache_control": "read",
+    # Draft — stage changes for human review (canonical write path)
+    "create_optimization_draft": "draft",
+    "create_draft": "draft",
+    "create_campaign": "draft",
+    "update_campaign": "draft",
+    "generate_creative": "draft",
+    "batch_operations": "draft",
+    # Execute — human approval actions that may apply approved drafts
+    "approve_draft": "execute",
+    "reject_draft": "execute",
+}
+
+VALID_DRAFT_TYPES = frozenset({
+    "budget_change",
+    "status_change",
+    "bid_adjustment",
+    "targeting_edit",
+    "creative_upload",
+    "campaign_create",
+    "campaign_duplicate",
+    "campaign_delete",
+    "ab_test_create",
+    "budget_reallocation",
+    "rule_based",
+    "audience_edit",
+    "schedule_change",
+    "name_change",
+})
+
+
+def _safety_for(tool_name: str) -> ToolSafety:
+    return TOOL_SAFETY.get(tool_name, "draft")
+
+
+def _infer_draft_type_from_update(fields: dict[str, Any]) -> str:
+    if "status" in fields:
+        return "status_change"
+    if "daily_budget" in fields or "lifetime_budget" in fields:
+        return "budget_change"
+    if "name" in fields:
+        return "name_change"
+    return "rule_based"
+
 
 # ---------------------------------------------------------------------------
 # Request context for logging / tracing
@@ -156,10 +223,17 @@ def _err(message: str, code: str = "ERROR", meta: dict | None = None) -> str:
 
 
 def _tool_result(ctx: _ReqCtx, result: Any, formatter=None) -> str:
+    safety = _safety_for(ctx.tool_name)
+    meta = {
+        "trace_id": ctx.trace_id,
+        "elapsed_ms": round(ctx.elapsed_ms(), 2),
+        "tool_safety": safety,
+        "draft_first": safety == "draft",
+    }
     if isinstance(result, dict) and "error" in result:
-        return _err(result["error"], meta={"trace_id": ctx.trace_id})
+        return _err(result["error"], meta=meta)
     data = formatter(result) if formatter else result
-    return _ok(data, meta={"trace_id": ctx.trace_id, "elapsed_ms": round(ctx.elapsed_ms(), 2)})
+    return _ok(data, meta=meta)
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +294,45 @@ async def _api_call(
     return {"error": "Max retries exceeded"}
 
 
+async def _submit_optimization_draft(
+    ctx: _ReqCtx,
+    *,
+    workspace_id: str,
+    platform: str,
+    change_type: str,
+    parameters: dict[str, Any],
+    justification: str,
+    campaign_id: str | None = None,
+    impact_estimate: str | None = None,
+) -> Any:
+    """Stage a proposed change via POST /drafts — never mutates live campaigns."""
+    if change_type not in VALID_DRAFT_TYPES:
+        return {"error": f"Unsupported change_type: {change_type}"}
+
+    title = justification.strip()[:500] if justification.strip() else f"Proposed {change_type}"
+    payload: dict[str, Any] = {
+        "campaignId": campaign_id,
+        "type": change_type,
+        "title": title,
+        "description": justification,
+        "proposedChanges": parameters,
+        "createdBy": "ai",
+        "platform": platform,
+    }
+    if impact_estimate:
+        payload["description"] = f"{justification}\n\nImpact: {impact_estimate}"
+
+    result = await _api_call(
+        "POST",
+        "/drafts",
+        params={"workspace_id": workspace_id},
+        json_data=payload,
+        ctx=ctx,
+    )
+    tool_cache.invalidate("/drafts")
+    return result
+
+
 # ---------------------------------------------------------------------------
 # MCP Server
 # ---------------------------------------------------------------------------
@@ -277,6 +390,16 @@ class ListDraftsInput(BaseModel):
     limit: int = Field(20, ge=1, le=100)
 
 
+class CreateOptimizationDraftInput(BaseModel):
+    workspace_id: str = Field(..., description="Workspace UUID")
+    campaign_id: Optional[str] = Field(None, description="Campaign UUID (optional for campaign_create)")
+    platform: str = Field("meta", description="Platform: meta, google, tiktok, snap, or all")
+    change_type: str = Field(..., description="Draft type, e.g. budget_change, status_change, campaign_create")
+    parameters: dict = Field(default_factory=dict, description="Proposed field changes")
+    justification: str = Field(..., min_length=5, max_length=2000, description="Why this change is recommended")
+    impact_estimate: Optional[str] = Field(None, description="Optional impact summary for reviewers")
+
+
 class CreateDraftInput(BaseModel):
     workspace_id: str = Field(..., description="Workspace UUID")
     platform: str = Field(..., description="Platform or 'all'")
@@ -286,6 +409,10 @@ class CreateDraftInput(BaseModel):
     change_detail: dict = Field(default_factory=dict)
     ai_reasoning: Optional[str] = Field(None)
     impact_estimate: Optional[str] = Field(None)
+
+
+class ListMcpToolsInput(BaseModel):
+    safety: Optional[str] = Field(None, description="Filter by safety class: read, draft, or execute")
 
 
 class ApproveDraftInput(BaseModel):
@@ -340,7 +467,7 @@ class CacheControlInput(BaseModel):
 # ===========================================================================
 @mcp.tool()
 async def list_campaigns(input: ListCampaignsInput) -> str:
-    """List campaigns for a workspace with optional filters."""
+    """[safety:read] List campaigns for a workspace with optional filters."""
     ctx = _ReqCtx("list_campaigns")
     params = {
         "workspace_id": input.workspace_id,
@@ -360,7 +487,7 @@ async def list_campaigns(input: ListCampaignsInput) -> str:
 
 @mcp.tool()
 async def get_campaign(input: GetCampaignInput) -> str:
-    """Get detailed information about a specific campaign."""
+    """[safety:read] Get detailed information about a specific campaign."""
     ctx = _ReqCtx("get_campaign")
     result = await _api_call(
         "GET", f"/campaigns/{input.campaign_id}", params={"workspace_id": input.workspace_id}, ctx=ctx, use_cache=True
@@ -370,31 +497,46 @@ async def get_campaign(input: GetCampaignInput) -> str:
 
 @mcp.tool()
 async def create_campaign(input: CreateCampaignInput) -> str:
-    """Create a new advertising campaign."""
+    """[safety:draft] Stage a new campaign for approval — does not publish live."""
     ctx = _ReqCtx("create_campaign")
-    payload = input.model_dump(exclude_none=True)
-    result = await _api_call("POST", "/campaigns", json_data=payload, ctx=ctx)
-    tool_cache.invalidate("/campaigns")
+    parameters = input.model_dump(exclude_none=True, exclude={"workspace_id"})
+    result = await _submit_optimization_draft(
+        ctx,
+        workspace_id=input.workspace_id,
+        platform=input.platform,
+        campaign_id=None,
+        change_type="campaign_create",
+        parameters=parameters,
+        justification=f'Create campaign "{input.name}"',
+    )
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
 async def update_campaign(input: UpdateCampaignInput) -> str:
-    """Update an existing campaign."""
+    """[safety:draft] Stage campaign changes for approval — does not mutate live campaigns."""
     ctx = _ReqCtx("update_campaign")
-    payload = input.model_dump(exclude_none=True)
-    del payload["campaign_id"]
-    del payload["workspace_id"]
-    result = await _api_call(
-        "PATCH", f"/campaigns/{input.campaign_id}", json_data=payload, ctx=ctx
+    changes = input.model_dump(exclude_none=True, exclude={"campaign_id", "workspace_id"})
+    if not changes:
+        return _err("No fields to update", meta={"trace_id": ctx.trace_id, "tool_safety": "draft"})
+
+    change_type = _infer_draft_type_from_update(changes)
+    summary_parts = [f"{key} update" for key in changes]
+    result = await _submit_optimization_draft(
+        ctx,
+        workspace_id=input.workspace_id,
+        platform="all",
+        campaign_id=input.campaign_id,
+        change_type=change_type,
+        parameters=changes,
+        justification=f"Proposed campaign update: {', '.join(summary_parts)}",
     )
-    tool_cache.invalidate(f"/campaigns/{input.campaign_id}")
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
 async def get_campaign_summary(input: GetCampaignSummaryInput) -> str:
-    """Get aggregate campaign statistics for a workspace."""
+    """[safety:read] Get aggregate campaign statistics for a workspace."""
     ctx = _ReqCtx("get_campaign_summary")
     result = await _api_call(
         "GET", "/campaigns/summary", params={"workspace_id": input.workspace_id}, ctx=ctx, use_cache=True
@@ -407,7 +549,7 @@ async def get_campaign_summary(input: GetCampaignSummaryInput) -> str:
 # ===========================================================================
 @mcp.tool()
 async def list_drafts(input: ListDraftsInput) -> str:
-    """List optimization drafts for a workspace."""
+    """[safety:read] List optimization drafts for a workspace."""
     ctx = _ReqCtx("list_drafts")
     params = {
         "workspace_id": input.workspace_id,
@@ -422,18 +564,47 @@ async def list_drafts(input: ListDraftsInput) -> str:
 
 
 @mcp.tool()
+async def create_optimization_draft(input: CreateOptimizationDraftInput) -> str:
+    """[safety:draft] Canonical draft-first write path for AI assistants.
+
+    Stages spend- or status-impacting changes for human review. Nothing goes live
+    until a person approves the draft in AdNexus.
+    """
+    ctx = _ReqCtx("create_optimization_draft")
+    result = await _submit_optimization_draft(
+        ctx,
+        workspace_id=input.workspace_id,
+        platform=input.platform,
+        campaign_id=input.campaign_id,
+        change_type=input.change_type,
+        parameters=input.parameters,
+        justification=input.justification,
+        impact_estimate=input.impact_estimate,
+    )
+    return _tool_result(ctx, result)
+
+
+@mcp.tool()
 async def create_draft(input: CreateDraftInput) -> str:
-    """Create an optimization draft for review."""
+    """[safety:draft] Create an optimization draft (alias of create_optimization_draft)."""
     ctx = _ReqCtx("create_draft")
-    payload = input.model_dump(exclude_none=True)
-    result = await _api_call("POST", "/drafts", json_data=payload, ctx=ctx)
-    tool_cache.invalidate("/drafts")
+    justification = input.ai_reasoning or input.change_summary
+    result = await _submit_optimization_draft(
+        ctx,
+        workspace_id=input.workspace_id,
+        platform=input.platform,
+        campaign_id=input.campaign_id,
+        change_type=input.draft_type,
+        parameters=input.change_detail,
+        justification=justification,
+        impact_estimate=input.impact_estimate,
+    )
     return _tool_result(ctx, result)
 
 
 @mcp.tool()
 async def approve_draft(input: ApproveDraftInput) -> str:
-    """Approve a pending optimization draft."""
+    """[safety:execute] Approve a pending draft — may apply the staged change after review."""
     ctx = _ReqCtx("approve_draft")
     result = await _api_call(
         "POST", f"/drafts/{input.draft_id}/approve", json_data={"workspace_id": input.workspace_id}, ctx=ctx
@@ -445,7 +616,7 @@ async def approve_draft(input: ApproveDraftInput) -> str:
 
 @mcp.tool()
 async def reject_draft(input: RejectDraftInput) -> str:
-    """Reject a pending optimization draft."""
+    """[safety:execute] Reject a pending draft with optional feedback for the AI loop."""
     ctx = _ReqCtx("reject_draft")
     payload = {"workspace_id": input.workspace_id}
     if input.rejection_reason:
@@ -458,7 +629,7 @@ async def reject_draft(input: RejectDraftInput) -> str:
 
 @mcp.tool()
 async def get_draft_details(input: GetDraftDetailsInput) -> str:
-    """Get full details of a draft including change diff."""
+    """[safety:read] Get full details of a draft including change diff."""
     ctx = _ReqCtx("get_draft_details")
     result = await _api_call(
         "GET", f"/drafts/{input.draft_id}", params={"workspace_id": input.workspace_id}, ctx=ctx, use_cache=True
@@ -471,7 +642,7 @@ async def get_draft_details(input: GetDraftDetailsInput) -> str:
 # ===========================================================================
 @mcp.tool()
 async def generate_creative(input: GenerateCreativeInput) -> str:
-    """Generate ad creative variants using AI.
+    """[safety:draft] Generate ad creative variants for review (not auto-published).
 
     Creates multiple creative variants based on a prompt/brief.
     Returns generated assets with metadata for review.
@@ -486,7 +657,7 @@ async def generate_creative(input: GenerateCreativeInput) -> str:
 
 @mcp.tool()
 async def analyze_audience(input: AnalyzeAudienceInput) -> str:
-    """Analyze audience performance and suggest optimizations.
+    """[safety:read] Analyze audience performance and suggest optimizations.
 
     Provides insights on audience segments, demographics, and targeting
     effectiveness with actionable recommendations.
@@ -504,7 +675,7 @@ async def analyze_audience(input: AnalyzeAudienceInput) -> str:
 
 @mcp.tool()
 async def forecast_budget(input: ForecastBudgetInput) -> str:
-    """Forecast campaign performance under different budget scenarios.
+    """[safety:read] Forecast campaign performance under different budget scenarios.
 
     Runs predictive models to estimate spend, conversions, and ROAS
     across multiple budget multiplier scenarios.
@@ -521,10 +692,11 @@ async def forecast_budget(input: ForecastBudgetInput) -> str:
 # ===========================================================================
 @mcp.tool()
 async def batch_operations(input: BatchOperationInput) -> str:
-    """Execute multiple operations in a single batch request.
+    """[safety:draft] Run multiple draft-safe operations in one request.
 
     Each operation should have: {tool: string, input: object}
-    Returns results for all operations with individual success/failure status.
+    Write tools are routed through create_optimization_draft; execute tools
+    (approve/reject) require explicit human intent.
     """
     ctx = _ReqCtx("batch_operations")
     results = []
@@ -533,23 +705,76 @@ async def batch_operations(input: BatchOperationInput) -> str:
         op_ctx = _ReqCtx(f"batch_op_{idx}")
         tool_name = op.get("tool", "unknown")
         tool_input = op.get("input", {})
+        safety = _safety_for(tool_name)
 
         try:
-            # Route to appropriate tool
-            if tool_name == "create_draft":
-                result = await _api_call("POST", "/drafts", json_data=tool_input, ctx=op_ctx)
+            if tool_name in ("create_optimization_draft", "create_draft"):
+                result = await _submit_optimization_draft(
+                    op_ctx,
+                    workspace_id=tool_input["workspace_id"],
+                    platform=tool_input.get("platform", "all"),
+                    campaign_id=tool_input.get("campaign_id"),
+                    change_type=tool_input.get("change_type") or tool_input.get("draft_type"),
+                    parameters=tool_input.get("parameters") or tool_input.get("change_detail", {}),
+                    justification=tool_input.get("justification")
+                    or tool_input.get("change_summary")
+                    or tool_input.get("ai_reasoning", "Batch draft"),
+                    impact_estimate=tool_input.get("impact_estimate"),
+                )
+            elif tool_name == "update_campaign":
+                workspace_id = tool_input["workspace_id"]
+                campaign_id = tool_input["campaign_id"]
+                changes = {
+                    k: v
+                    for k, v in tool_input.items()
+                    if k not in {"workspace_id", "campaign_id"} and v is not None
+                }
+                result = await _submit_optimization_draft(
+                    op_ctx,
+                    workspace_id=workspace_id,
+                    platform=tool_input.get("platform", "all"),
+                    campaign_id=campaign_id,
+                    change_type=_infer_draft_type_from_update(changes),
+                    parameters=changes,
+                    justification=tool_input.get("justification", "Batch campaign update"),
+                )
+            elif tool_name == "create_campaign":
+                workspace_id = tool_input["workspace_id"]
+                platform = tool_input.get("platform", "meta")
+                name = tool_input.get("name", "New campaign")
+                params = {k: v for k, v in tool_input.items() if k != "workspace_id" and v is not None}
+                result = await _submit_optimization_draft(
+                    op_ctx,
+                    workspace_id=workspace_id,
+                    platform=platform,
+                    campaign_id=None,
+                    change_type="campaign_create",
+                    parameters=params,
+                    justification=f'Create campaign "{name}"',
+                )
             elif tool_name == "approve_draft":
                 draft_id = tool_input.get("draft_id")
-                result = await _api_call("POST", f"/drafts/{draft_id}/approve", json_data=tool_input, ctx=op_ctx)
-            elif tool_name == "update_campaign":
-                campaign_id = tool_input.get("campaign_id")
-                result = await _api_call("PATCH", f"/campaigns/{campaign_id}", json_data=tool_input, ctx=op_ctx)
+                result = await _api_call(
+                    "POST",
+                    f"/drafts/{draft_id}/approve",
+                    json_data={"workspace_id": tool_input.get("workspace_id")},
+                    ctx=op_ctx,
+                )
+                tool_cache.invalidate("/drafts")
+            elif tool_name == "reject_draft":
+                draft_id = tool_input.get("draft_id")
+                payload = {"workspace_id": tool_input.get("workspace_id")}
+                if tool_input.get("rejection_reason"):
+                    payload["rejection_reason"] = tool_input["rejection_reason"]
+                result = await _api_call("POST", f"/drafts/{draft_id}/reject", json_data=payload, ctx=op_ctx)
+                tool_cache.invalidate("/drafts")
             else:
-                result = {"error": f"Unknown tool: {tool_name}"}
+                result = {"error": f"Unknown or unsupported batch tool: {tool_name}"}
 
             results.append({
                 "index": idx,
                 "tool": tool_name,
+                "tool_safety": safety,
                 "success": "error" not in result,
                 "data": result,
             })
@@ -557,6 +782,7 @@ async def batch_operations(input: BatchOperationInput) -> str:
             results.append({
                 "index": idx,
                 "tool": tool_name,
+                "tool_safety": safety,
                 "success": False,
                 "error": str(e),
             })
@@ -566,7 +792,37 @@ async def batch_operations(input: BatchOperationInput) -> str:
         "successful": sum(1 for r in results if r["success"]),
         "failed": sum(1 for r in results if not r["success"]),
         "results": results,
-    }, meta={"trace_id": ctx.trace_id, "elapsed_ms": round(ctx.elapsed_ms(), 2)})
+    }, meta={
+        "trace_id": ctx.trace_id,
+        "elapsed_ms": round(ctx.elapsed_ms(), 2),
+        "tool_safety": "draft",
+        "draft_first": True,
+    })
+
+
+# ===========================================================================
+# Tool catalog (read-only)
+# ===========================================================================
+@mcp.tool()
+async def list_mcp_tools(input: ListMcpToolsInput) -> str:
+    """[safety:read] List MCP tools with read/draft/execute safety classification."""
+    ctx = _ReqCtx("list_mcp_tools")
+    tools = [
+        {"name": name, "safety": safety}
+        for name, safety in sorted(TOOL_SAFETY.items())
+    ]
+    if input.safety:
+        tools = [tool for tool in tools if tool["safety"] == input.safety]
+
+    return _ok({
+        "safety_model": MCP_SAFETY_MODEL,
+        "tools": tools,
+        "counts": {
+            "read": sum(1 for t in tools if t["safety"] == "read"),
+            "draft": sum(1 for t in tools if t["safety"] == "draft"),
+            "execute": sum(1 for t in tools if t["safety"] == "execute"),
+        },
+    }, meta={"trace_id": ctx.trace_id, "tool_safety": "read"})
 
 
 # ===========================================================================
@@ -574,7 +830,7 @@ async def batch_operations(input: BatchOperationInput) -> str:
 # ===========================================================================
 @mcp.tool()
 async def cache_control(input: CacheControlInput) -> str:
-    """Manage the MCP tool result cache.
+    """[safety:read] Manage the MCP tool result cache.
 
     Actions:
       - clear: Clear all cached results or those matching a pattern

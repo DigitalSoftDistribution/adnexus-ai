@@ -7,6 +7,9 @@ import { Router, Request, Response } from "express";
 import { Pool } from "pg";
 import { Redis } from "ioredis";
 import axios from "axios";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger("health");
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -278,27 +281,27 @@ export async function gracefulShutdown(
   server?: { close: (cb?: () => void) => void },
   timeoutMs: number = 30000
 ): Promise<void> {
-  console.log("[health] Starting graceful shutdown...");
+  logger.info("Starting graceful shutdown...");
 
   const shutdownPromise = new Promise<void>((resolve) => {
     // Stop accepting new connections
     if (server) {
       server.close(() => {
-        console.log("[health] HTTP server closed");
+        logger.info("HTTP server closed");
       });
     }
 
     // Close database connections
     dbPool
       .end()
-      .then(() => console.log("[health] Database pool drained"))
-      .catch((err) => console.error("[health] DB pool drain error:", err))
+      .then(() => logger.info("Database pool drained"))
+      .catch((err) => logger.error({ err }, "DB pool drain error"))
       .finally(() => {
         // Disconnect Redis
         redis
           .quit()
-          .then(() => console.log("[health] Redis disconnected"))
-          .catch((err) => console.error("[health] Redis disconnect error:", err))
+          .then(() => logger.info("Redis disconnected"))
+          .catch((err) => logger.error({ err }, "Redis disconnect error"))
           .finally(resolve);
       });
   });
@@ -312,9 +315,9 @@ export async function gracefulShutdown(
 
   try {
     await Promise.race([shutdownPromise, timeoutPromise]);
-    console.log("[health] Graceful shutdown complete");
+    logger.info("Graceful shutdown complete");
   } catch (err) {
-    console.error("[health] Graceful shutdown failed:", err);
+    logger.error({ err }, "Graceful shutdown failed");
     process.exit(1);
   }
 }

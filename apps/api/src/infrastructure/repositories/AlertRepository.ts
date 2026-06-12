@@ -1,4 +1,4 @@
-import type { IAlertRepository, Alert, AlertFilters, AlertListResult, AlertHistoryEntry } from '../../domain/repositories/IAlertRepository';
+import type { IAlertRepository, Alert, AlertFilters, AlertListResult, AlertHistoryEntry, AlertStats } from '../../domain/repositories/IAlertRepository';
 import { query } from '../database/connection';
 
 export class AlertRepository implements IAlertRepository {
@@ -121,5 +121,44 @@ export class AlertRepository implements IAlertRepository {
       [entry.alertId, entry.triggeredAt, entry.metricValue, entry.message, entry.acknowledged],
     );
     return rows[0];
+  }
+
+  async getStats(workspaceId: string): Promise<AlertStats> {
+    const { rows: all } = await query<{ total: string; enabled: string; type: string; cnt: string }>(
+      `SELECT
+         COUNT(*)::text as total,
+         COUNT(*) FILTER (WHERE enabled = true)::text as enabled,
+         type,
+         COUNT(*)::text as cnt
+       FROM alerts
+       WHERE workspace_id = $1
+       GROUP BY type`,
+      [workspaceId],
+    );
+
+    const { rows: triggered24h } = await query<{ cnt: string }>(
+      `SELECT COUNT(*)::text as cnt
+       FROM alert_history h
+       JOIN alerts a ON a.id = h.alert_id
+       WHERE a.workspace_id = $1 AND h.triggered_at >= NOW() - INTERVAL '24 hours'`,
+      [workspaceId],
+    );
+
+    const byType: Record<string, number> = {};
+    let total = 0;
+    let enabled = 0;
+
+    for (const row of all) {
+      byType[row.type] = parseInt(row.cnt, 10);
+      total += parseInt(row.cnt, 10);
+      enabled += parseInt(row.enabled ?? '0', 10);
+    }
+
+    return {
+      total,
+      enabled,
+      triggered24h: parseInt(triggered24h[0]?.cnt ?? '0', 10),
+      byType,
+    };
   }
 }

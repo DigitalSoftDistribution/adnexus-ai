@@ -18,6 +18,19 @@ export function createBillingController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    getUsage: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.getBillingUsage.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
     getPlans: asyncHandler<AuthenticatedRequest>(async (_req, res) => {
       res.json({
         success: true,
@@ -94,6 +107,38 @@ export function createBillingController(container: Container) {
       }
 
       res.status(204).send();
+    }),
+
+    upgrade: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.upgradePlan.execute({
+        workspaceId: req.user!.workspaceId,
+        userId: req.user!.id,
+        userEmail: req.user!.email,
+        userRole: req.user!.role,
+        plan: req.body.plan,
+        successUrl: req.body.successUrl,
+        cancelUrl: req.body.cancelUrl,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    downgrade: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.downgradePlan.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        plan: req.body.plan,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
     }),
   };
 }

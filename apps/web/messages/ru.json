@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Неверный адрес электронной почты или пароль",
+    "forgotPasswordTitle": "Забыли пароль?",
+    "forgotPasswordSubtitle": "Введите адрес электронной почты, и мы отправим вам ссылку для сброса пароля",
+    "sendResetLink": "Отправить ссылку для сброса",
+    "resetEmailSentTitle": "Проверьте почту",
+    "resetEmailSentDescription": "Если аккаунт с этим адресом существует, мы отправили ссылку для сброса пароля. Ссылка действительна 1 час.",
+    "resetRequestFailed": "Не удалось отправить письмо для сброса пароля. Попробуйте ещё раз.",
+    "backToSignIn": "Вернуться ко входу",
+    "resetPassword": "Сбросить пароль",
+    "resetPasswordTitle": "Сброс пароля",
+    "resetPasswordSubtitle": "Введите новый пароль для вашего аккаунта",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "confirmPasswordRequired": "Подтвердите новый пароль",
+    "passwordsDoNotMatch": "Пароли не совпадают",
+    "resetPasswordSuccessTitle": "Пароль успешно сброшен",
+    "resetPasswordSuccessDescription": "Ваш пароль обновлён. Теперь вы можете войти с новым паролем.",
+    "resetPasswordFailed": "Не удалось сбросить пароль. Попробуйте ещё раз.",
+    "invalidResetTokenTitle": "Недействительная или просроченная ссылка",
+    "invalidResetTokenDescription": "Эта ссылка для сброса пароля недействительна или истекла. Запросите новую.",
+    "requestNewLink": "Запросить новую ссылку"
   },
   "dashboard": {
     "title": "Панель",
@@ -330,7 +350,9 @@
     "connectPlatform": "Подключить платформу",
     "failedToSync": "Не удалось синхронизировать кампанию",
     "sync": "Синхронизировать",
-    "syncing": "Синхронизация..."
+    "syncing": "Синхронизация...",
+    "deleteCampaignTitle": "Удалить кампанию",
+    "deleteCampaignDescription": "Вы уверены, что хотите удалить «{name}»? Это действие нельзя отменить."
   },
   "drafts": {
     "title": "Черновики",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "API-ключей пока нет",
     "apiKeysPlaceholder": "Сгенерируйте API-ключ для программного доступа к API AdNexus.",
-    "created": "Создано"
+    "created": "Создано",
+    "removeMemberTitle": "Удалить участника команды",
+    "removeMemberDescription": "Вы уверены, что хотите удалить {name} из этого рабочего пространства? Доступ будет немедленно отозван.",
+    "removeMemberConfirm": "Удалить",
+    "revokeApiKeyTitle": "Отозвать API-ключ",
+    "revokeApiKeyDescription": "Вы уверены, что хотите отозвать API-ключ «{name}»? Все приложения, использующие этот ключ, немедленно перестанут работать.",
+    "revokeApiKeyConfirm": "Отозвать"
   },
   "billing": {
     "title": "Оплата",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Не удалось загрузить кампанию",
     "failedToFetchAdSets": "Не удалось загрузить группы объявлений",
     "failedToFetchHistory": "Не удалось загрузить историю",
-    "failedToFetchAds": "Не удалось загрузить объявления"
+    "failedToFetchAds": "Не удалось загрузить объявления",
+    "somethingWentWrong": "Что-то пошло не так",
+    "unexpectedErrorDescription": "Произошла непредвиденная ошибка. Попробуйте ещё раз.",
+    "tryAgain": "Повторить"
   },
   "notifications": {
     "title": "Уведомления",

@@ -1,4 +1,12 @@
-import type { IBillingRepository, BillingInfo, Invoice, CheckoutSession, PortalSession } from '../../domain/repositories/IBillingRepository';
+import type {
+  IBillingRepository,
+  BillingInfo,
+  BillingUsage,
+  Invoice,
+  CheckoutSession,
+  PortalSession,
+  PlanChangeResult,
+} from '../../domain/repositories/IBillingRepository';
 import type { PlanTier } from '../../domain/entities/Workspace';
 import { db } from '../../db';
 import { workspaces, workspaceCredits } from '../../db/schema';
@@ -8,7 +16,11 @@ import {
   createCheckoutSession,
   createPortalSession,
   retrieveInvoices,
+  changeSubscriptionPlan,
+  scheduleSubscriptionCancellation,
+  applyWorkspaceSubscriptionSnapshot,
   PLAN_LIMITS,
+  getPriceForPlan,
 } from '../../services/stripe';
 
 export class BillingRepository implements IBillingRepository {
@@ -44,6 +56,22 @@ export class BillingRepository implements IBillingRepository {
         aiCreditsUsed: creditRow?.aiCreditsUsed || 0,
         aiCreditsTotal: limits.aiCredits,
       },
+    };
+  }
+
+  async getBillingUsage(workspaceId: string): Promise<BillingUsage | null> {
+    const info = await this.getBillingInfo(workspaceId);
+    if (!info) return null;
+
+    return {
+      workspaceId: info.workspaceId,
+      plan: info.plan,
+      period: {
+        start: info.currentPeriodStart ? info.currentPeriodStart.toISOString() : null,
+        end: info.currentPeriodEnd ? info.currentPeriodEnd.toISOString() : null,
+      },
+      credits: info.credits,
+      detailedBreakdownAvailable: false,
     };
   }
 
@@ -140,6 +168,131 @@ export class BillingRepository implements IBillingRepository {
     });
 
     return { url: session.url };
+  }
+
+  async upgradePlan(
+    workspaceId: string,
+    userId: string,
+    email: string,
+    targetPlan: string,
+    successUrl: string,
+    cancelUrl: string,
+  ): Promise<PlanChangeResult> {
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, workspaceId),
+    });
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    const previousPlan = (workspace.plan || 'free').toLowerCase();
+    const normalizedTarget = targetPlan.toLowerCase();
+    const priceId = getPriceForPlan(normalizedTarget);
+
+    if (!priceId) {
+      throw new Error(`Plan ${targetPlan} is not configured for billing`);
+    }
+
+    if (!workspace.stripeSubscriptionId) {
+      const checkout = await this.createCheckoutSession(
+        workspaceId,
+        userId,
+        email,
+        priceId,
+        successUrl,
+        cancelUrl,
+      );
+
+      return {
+        previousPlan,
+        plan: normalizedTarget,
+        priceId,
+        subscriptionId: null,
+        checkoutUrl: checkout.url,
+        effective: 'immediate',
+      };
+    }
+
+    const subscription = await changeSubscriptionPlan({
+      subscriptionId: workspace.stripeSubscriptionId,
+      newPriceId: priceId,
+      prorationBehavior: 'create_prorations',
+    });
+
+    await applyWorkspaceSubscriptionSnapshot(workspaceId, subscription);
+
+    return {
+      previousPlan,
+      plan: normalizedTarget,
+      priceId,
+      subscriptionId: subscription.id,
+      checkoutUrl: null,
+      effective: 'immediate',
+    };
+  }
+
+  async downgradePlan(workspaceId: string, targetPlan: string): Promise<PlanChangeResult> {
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, workspaceId),
+    });
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    if (!workspace.stripeSubscriptionId) {
+      throw new Error('No active subscription to downgrade');
+    }
+
+    const previousPlan = (workspace.plan || 'free').toLowerCase();
+    const normalizedTarget = targetPlan.toLowerCase();
+
+    if (normalizedTarget === 'free') {
+      const subscription = await scheduleSubscriptionCancellation(workspace.stripeSubscriptionId);
+
+      await db
+        .update(workspaces)
+        .set({
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          updated_at: new Date(),
+        })
+        .where(eq(workspaces.id, workspaceId));
+
+      return {
+        previousPlan,
+        plan: previousPlan,
+        priceId: null,
+        subscriptionId: subscription.id,
+        checkoutUrl: null,
+        effective: 'period_end',
+        cancelAtPeriodEnd: true,
+      };
+    }
+
+    const priceId = getPriceForPlan(normalizedTarget);
+    if (!priceId) {
+      throw new Error(`Plan ${targetPlan} is not configured for billing`);
+    }
+
+    const subscription = await changeSubscriptionPlan({
+      subscriptionId: workspace.stripeSubscriptionId,
+      newPriceId: priceId,
+      prorationBehavior: 'none',
+    });
+
+    await applyWorkspaceSubscriptionSnapshot(workspaceId, subscription);
+
+    return {
+      previousPlan,
+      plan: normalizedTarget,
+      priceId,
+      subscriptionId: subscription.id,
+      checkoutUrl: null,
+      effective: 'immediate',
+      cancelAtPeriodEnd: false,
+    };
   }
 
   async updatePlan(workspaceId: string, plan: PlanTier): Promise<void> {

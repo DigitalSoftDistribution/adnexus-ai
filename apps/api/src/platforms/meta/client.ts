@@ -76,7 +76,6 @@ import {
   // Auth types
   MetaTokenResponse,
   MetaLongLivedTokenResponse,
-  MetaStoredToken,
   MetaAuthState,
   TokenRefreshResult,
   // Error types
@@ -90,6 +89,9 @@ import {
   MetaClientConfig,
   RequestContext,
 } from "./types";
+import { getModuleLogger } from "../../lib/logger";
+
+const log = getModuleLogger("meta-client");
 
 // Re-export all types for consumers
 export * from "./types";
@@ -396,10 +398,10 @@ export interface MetaApiLogger {
 
 /** Default console-based logger */
 const defaultLogger: MetaApiLogger = {
-  debug: (msg, meta) => console.debug(`[MetaAPI:DEBUG] ${msg}`, meta || ""),
-  info: (msg, meta) => console.info(`[MetaAPI:INFO] ${msg}`, meta || ""),
-  warn: (msg, meta) => console.warn(`[MetaAPI:WARN] ${msg}`, meta || ""),
-  error: (msg, meta) => console.error(`[MetaAPI:ERROR] ${msg}`, meta || ""),
+  debug: (msg, meta) => log.debug({ ...meta }, msg),
+  info: (msg, meta) => log.info({ ...meta }, msg),
+  warn: (msg, meta) => log.warn({ ...meta }, msg),
+  error: (msg, meta) => log.error({ ...meta }, msg),
 };
 
 // ============================================================================
@@ -2227,27 +2229,6 @@ export function createClientFromEnv(logger?: MetaApiLogger): MetaApiClient {
     },
     logger
   );
-}
-
-/**
- * Decrypt a stored token for use with the client.
- * This is a placeholder — integrate with your actual encryption service.
- *
- * @param encryptedToken - Token data from database
- * @returns Decrypted token data
- */
-export function decryptStoredToken(encryptedToken: MetaStoredToken): {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt: number;
-} {
-  // TODO: Integrate with your encryption service (e.g., AWS KMS, HashiCorp Vault)
-  // This example assumes tokens are stored with reversible encryption
-  return {
-    accessToken: encryptedToken.accessToken,
-    refreshToken: encryptedToken.refreshToken,
-    expiresAt: encryptedToken.expiresAt,
-  };
 }
 
 /** Default export */

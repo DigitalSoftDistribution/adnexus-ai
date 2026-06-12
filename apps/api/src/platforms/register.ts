@@ -32,6 +32,9 @@ import type {
   TokenRefreshResult,
   RateLimitStatus,
 } from './types';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('platform-registry');
 
 const PLATFORMS: Platform[] = ['meta', 'google', 'tiktok', 'snap'];
 
@@ -110,7 +113,7 @@ class PlatformClientAdapter implements PlatformClient {
           };
         }
       } catch (e) {
-        console.warn('[PlatformClientAdapter] Google token refresh failed:', (e as Error).message);
+        logger.warn({ err: e }, 'Google token refresh failed');
       }
     }
     return {

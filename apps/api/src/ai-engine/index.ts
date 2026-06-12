@@ -17,6 +17,7 @@
 
 import { supabase } from '../lib/supabase';
 import { createDraft } from '../services/drafts-service';
+import { getModuleLogger } from '../lib/logger';
 import type {
   AutomationRule,
   CampaignStatus,
@@ -26,6 +27,8 @@ import type {
   UnifiedAd,
   UnifiedCampaign,
 } from '../types';
+
+const logger = getModuleLogger('ai-engine');
 
 // ═══════════════════════════════════════════════════════════════
 // SECTION 1: Internal Types
@@ -742,7 +745,7 @@ export class RuleEvaluator {
         const result = await this.evaluateSingleRule(workspaceId, rule);
         results.push(result);
       } catch (err) {
-        console.error(`[RuleEvaluator] Rule ${rule.id} failed:`, err);
+        logger.error({ err }, `Rule ${rule.id} failed`);
         results.push({
           ruleId: rule.id,
           ruleName: rule.name,
@@ -2432,7 +2435,7 @@ export class DraftCreator {
         const draft = await this.createDraftFromRecommendation(rec, workspaceId);
         drafts.push(draft);
       } catch (err) {
-        console.error(`[DraftCreator] Failed to create draft for recommendation ${rec.id}:`, err);
+        logger.error({ err }, `Failed to create draft for recommendation ${rec.id}`);
       }
     }
 
@@ -2569,15 +2572,15 @@ export class AIEngine {
     // Run independent analyses in parallel
     const [ruleResults, fatigueScores, budgetAllocations] = await Promise.all([
       this.ruleEvaluator.evaluateRules(workspaceId).catch((err) => {
-        console.error('[AIEngine] Rule evaluation failed:', err);
+        logger.error({ err }, 'Rule evaluation failed');
         return [] as RuleEvaluationResult[];
       }),
       this.creativeFatigueDetector.calculateFatigueScores(workspaceId).catch((err) => {
-        console.error('[AIEngine] Fatigue detection failed:', err);
+        logger.error({ err }, 'Fatigue detection failed');
         return [] as FatigueScore[];
       }),
       this.budgetOptimizer.optimizeBudgetAllocation(workspaceId).catch((err) => {
-        console.error('[AIEngine] Budget optimization failed:', err);
+        logger.error({ err }, 'Budget optimization failed');
         return [] as BudgetAllocation[];
       }),
     ]);
@@ -2608,7 +2611,7 @@ export class AIEngine {
     const recommendations = await this.recommendationGenerator
       .generateRecommendations(workspaceId)
       .catch((err) => {
-        console.error('[AIEngine] Recommendation generation failed:', err);
+        logger.error({ err }, 'Recommendation generation failed');
         return [] as Recommendation[];
       });
 
@@ -2617,7 +2620,7 @@ export class AIEngine {
     const drafts = await this.draftCreator
       .createDraftsBatch(highPriorityRecs, workspaceId)
       .catch((err) => {
-        console.error('[AIEngine] Draft creation failed:', err);
+        logger.error({ err }, 'Draft creation failed');
         return [] as Draft[];
       });
 

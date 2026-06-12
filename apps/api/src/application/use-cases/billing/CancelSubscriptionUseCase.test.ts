@@ -5,9 +5,12 @@ import type { IBillingRepository } from '../../../domain/repositories/IBillingRe
 const makeRepo = (overrides: Partial<IBillingRepository> = {}): IBillingRepository =>
   ({
     getBillingInfo: vi.fn(),
+    getBillingUsage: vi.fn(),
     getInvoices: vi.fn(),
     createCheckoutSession: vi.fn(),
     createPortalSession: vi.fn(),
+    upgradePlan: vi.fn(),
+    downgradePlan: vi.fn(),
     updatePlan: vi.fn(),
     cancelSubscription: vi.fn().mockResolvedValue(undefined),
     ...overrides,

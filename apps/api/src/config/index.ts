@@ -37,6 +37,14 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string().url().optional(),
 
+  // Background jobs (default-off; see PR #79 scheduler gating pattern)
+  BACKGROUND_JOBS_ENABLED: z.string().default('false'),
+  BACKGROUND_EVALUATE_RULES_ENABLED: z.string().default('false'),
+  BACKGROUND_METRICS_SYNC_ENABLED: z.string().default('false'),
+  BACKGROUND_REPORT_GENERATOR_ENABLED: z.string().default('false'),
+  BACKGROUND_ONBOARDING_EMAILS_ENABLED: z.string().default('false'),
+  BACKGROUND_DETECT_FATIGUE_ENABLED: z.string().default('false'),
+
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
 
@@ -184,6 +192,15 @@ export const config = {
 
   redis: {
     url: env.REDIS_URL,
+  },
+
+  backgroundJobs: {
+    enabled: env.BACKGROUND_JOBS_ENABLED === 'true',
+    evaluateRulesEnabled: env.BACKGROUND_EVALUATE_RULES_ENABLED === 'true',
+    metricsSyncEnabled: env.BACKGROUND_METRICS_SYNC_ENABLED === 'true',
+    reportGeneratorEnabled: env.BACKGROUND_REPORT_GENERATOR_ENABLED === 'true',
+    onboardingEmailsEnabled: env.BACKGROUND_ONBOARDING_EMAILS_ENABLED === 'true',
+    detectFatigueEnabled: env.BACKGROUND_DETECT_FATIGUE_ENABLED === 'true',
   },
 
   cors: {

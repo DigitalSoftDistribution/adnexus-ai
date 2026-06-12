@@ -1,4 +1,4 @@
-export type PlanTier = 'free' | 'starter' | 'pro' | 'enterprise';
+export type PlanTier = 'free' | 'starter' | 'growth' | 'pro' | 'enterprise';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid';
 
 export interface Workspace {
@@ -30,6 +30,7 @@ export interface WorkspaceLimits {
 export const PLAN_LIMITS: Record<PlanTier, WorkspaceLimits> = {
   free: { maxCampaigns: 5, maxAdAccounts: 2, maxUsers: 3, maxAutomations: 3, maxApiKeys: 1 },
   starter: { maxCampaigns: 20, maxAdAccounts: 5, maxUsers: 10, maxAutomations: 10, maxApiKeys: 3 },
+  growth: { maxCampaigns: 50, maxAdAccounts: 10, maxUsers: 25, maxAutomations: 25, maxApiKeys: 5 },
   pro: { maxCampaigns: 100, maxAdAccounts: 20, maxUsers: 50, maxAutomations: 50, maxApiKeys: 10 },
   enterprise: { maxCampaigns: 1000, maxAdAccounts: 100, maxUsers: 500, maxAutomations: 200, maxApiKeys: 50 },
 };

@@ -132,6 +132,17 @@ describe('ConnectAdAccountUseCase', () => {
     expect(repo.create).not.toHaveBeenCalled();
   });
 
+  it('rejects literal placeholder_token values', async () => {
+    const repo = makeAdAccountRepo();
+    const res = await new ConnectAdAccountUseCase(repo, makeWorkspaceRepo(), makeBus(), makeAudit()).execute({
+      ...base,
+      oauthToken: 'placeholder_token',
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) expect(status(res)).toBe(400);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
   it('denies editors before duplicate or limit checks', async () => {
     const repo = makeAdAccountRepo();
     const workspaceRepo = makeWorkspaceRepo();

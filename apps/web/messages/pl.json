@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Nieprawidłowy adres e-mail lub hasło",
+    "forgotPasswordTitle": "Nie pamiętasz hasła?",
+    "forgotPasswordSubtitle": "Podaj swój adres e-mail, a wyślemy Ci link do zresetowania hasła",
+    "sendResetLink": "Wyślij link resetujący",
+    "resetEmailSentTitle": "Sprawdź swoją skrzynkę",
+    "resetEmailSentDescription": "Jeśli konto z tym adresem e-mail istnieje, wysłaliśmy link do zresetowania hasła. Link wygasa za 1 godzinę.",
+    "resetRequestFailed": "Nie udało się wysłać wiadomości resetującej. Spróbuj ponownie.",
+    "backToSignIn": "Wróć do logowania",
+    "resetPassword": "Zresetuj hasło",
+    "resetPasswordTitle": "Zresetuj swoje hasło",
+    "resetPasswordSubtitle": "Wprowadź nowe hasło do swojego konta",
+    "newPassword": "Nowe hasło",
+    "confirmPassword": "Potwierdź hasło",
+    "confirmPasswordRequired": "Potwierdź swoje nowe hasło",
+    "passwordsDoNotMatch": "Hasła nie są zgodne",
+    "resetPasswordSuccessTitle": "Hasło zostało zresetowane",
+    "resetPasswordSuccessDescription": "Twoje hasło zostało zaktualizowane. Możesz teraz zalogować się nowym hasłem.",
+    "resetPasswordFailed": "Resetowanie hasła nie powiodło się. Spróbuj ponownie.",
+    "invalidResetTokenTitle": "Nieprawidłowy lub wygasły link",
+    "invalidResetTokenDescription": "Ten link do resetowania hasła jest nieprawidłowy lub wygasł. Poproś o nowy.",
+    "requestNewLink": "Poproś o nowy link"
   },
   "dashboard": {
     "title": "Pulpit",
@@ -330,7 +350,9 @@
     "connectPlatform": "Połącz platformę",
     "failedToSync": "Nie udało się zsynchronizować kampanii",
     "sync": "Synchronizuj",
-    "syncing": "Synchronizacja..."
+    "syncing": "Synchronizacja...",
+    "deleteCampaignTitle": "Usuń kampanię",
+    "deleteCampaignDescription": "Czy na pewno chcesz usunąć „{name}”? Tej operacji nie można cofnąć."
   },
   "drafts": {
     "title": "Wersje robocze",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Brak kluczy API",
     "apiKeysPlaceholder": "Wygeneruj klucz API, aby programowo uzyskać dostęp do API AdNexus.",
-    "created": "Utworzono"
+    "created": "Utworzono",
+    "removeMemberTitle": "Usuń członka zespołu",
+    "removeMemberDescription": "Czy na pewno chcesz usunąć {name} z tej przestrzeni roboczej? Dostęp zostanie natychmiast odebrany.",
+    "removeMemberConfirm": "Usuń",
+    "revokeApiKeyTitle": "Unieważnij klucz API",
+    "revokeApiKeyDescription": "Czy na pewno chcesz unieważnić klucz API „{name}”? Aplikacje korzystające z tego klucza natychmiast przestaną działać.",
+    "revokeApiKeyConfirm": "Unieważnij"
   },
   "billing": {
     "title": "Rozliczenia",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Nie udało się pobrać kampanii",
     "failedToFetchAdSets": "Nie udało się pobrać zestawów reklam",
     "failedToFetchHistory": "Nie udało się pobrać historii",
-    "failedToFetchAds": "Nie udało się pobrać reklam"
+    "failedToFetchAds": "Nie udało się pobrać reklam",
+    "somethingWentWrong": "Coś poszło nie tak",
+    "unexpectedErrorDescription": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+    "tryAgain": "Spróbuj ponownie"
   },
   "notifications": {
     "title": "Powiadomienia",

@@ -13,6 +13,51 @@ export function createIntegrationController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    connect: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.connectPlatform.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    listAccounts: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.listIntegrationAccounts) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'ACCOUNTS_UNAVAILABLE', message: 'Integration accounts are not configured' },
+        });
+        return;
+      }
+      const result = await container.listIntegrationAccounts.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
+    selectAccount: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.selectIntegrationAccount) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'ACCOUNTS_UNAVAILABLE', message: 'Integration accounts are not configured' },
+        });
+        return;
+      }
+      const result = await container.selectIntegrationAccount.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        platform: req.params.platform,
+        accountId: req.params.accountId,
+      });
+      if (!result.success) throw result.error;
+      res.json({ success: true, data: result.data });
+    }),
+
     get: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.getIntegration.execute({
         workspaceId: req.user!.workspaceId,
@@ -101,7 +146,10 @@ export function createIntegrationController(container: Container) {
         userRole: req.user!.role,
         platforms: body.platforms,
         variant: body.variant,
-        harnessKey: body.harnessKey ?? (req.headers['x-mock-traffic-key'] as string | undefined),
+        harnessKey:
+          body.harnessKey
+          ?? (req.headers['x-mock-traffic-key'] as string | undefined)
+          ?? (req.headers['x-mock-traffic-harness-key'] as string | undefined),
       });
       if (!result.success) throw result.error;
       res.json({ success: true, data: result.data });

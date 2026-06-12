@@ -38,7 +38,8 @@ export class ConnectAdAccountUseCase {
       return err(new ValidationError('Platform account ID and name are required'));
     }
 
-    if (!input.oauthToken?.trim()) {
+    const oauthToken = input.oauthToken?.trim();
+    if (!oauthToken || oauthToken === 'placeholder_token') {
       return err(new ValidationError('A real OAuth token is required to connect an ad account'));
     }
 
@@ -61,7 +62,7 @@ export class ConnectAdAccountUseCase {
       platformAccountId: input.platformAccountId,
       name: input.name.trim(),
       status: 'active' as AdAccountStatus,
-      oauthToken: input.oauthToken.trim(),
+      oauthToken,
       refreshToken: input.refreshToken?.trim() || null,
       tokenExpiresAt: input.tokenExpiresAt ?? null,
       isActive: true,

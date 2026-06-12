@@ -55,6 +55,15 @@ async function insertRefreshToken(
   return rows[0].id;
 }
 
+/**
+ * Revoke every active refresh token for a user (e.g. after a password reset).
+ */
+export async function revokeAllRefreshTokensForUser(userId: string): Promise<void> {
+  await transaction(async (client) => {
+    await revokeAllUserRefreshTokens(client, userId);
+  });
+}
+
 async function revokeAllUserRefreshTokens(client: PoolClient, userId: string): Promise<void> {
   await client.query(
     `UPDATE refresh_tokens

@@ -8,6 +8,7 @@ export function createExportRoutes(container: Container): Router {
   const controller = createExportController(container);
 
   router.get('/', requireAuth, controller.list as any);
+  router.get('/:id/download', requireAuth, controller.download as any);
   router.get('/:id', requireAuth, controller.getById as any);
   router.post('/', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.create as any);
   router.delete('/:id', requireAuth, requireRole('owner', 'admin') as any, controller.delete as any);

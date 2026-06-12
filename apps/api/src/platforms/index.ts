@@ -122,6 +122,7 @@ import type {
   UnifiedInsight,
   AccountSummary,
   CrossPlatformInsights,
+  TrendEntry,
   DateRange,
   CampaignFilters,
   CreateCampaignInput,
@@ -149,9 +150,16 @@ import {
 
 import {
   loadWorkspaceAccounts,
+  loadAdAccountById,
   persistRefreshedToken,
   markAccountDisconnected,
 } from './account-store';
+
+import { MetaPlatformClient } from '../infrastructure/platform/MetaPlatformClient';
+import { connectMetaAccount } from './meta/MetaPlatformClient';
+
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('platform-manager');
 
 // ═══════════════════════════════════════════════
 //  Client Registry — maps platform → client factory
@@ -478,7 +486,7 @@ export class PlatformManager {
 
     // Log partial failures
     if (errors.length > 0 && clients.length > 1) {
-      console.warn(`[PlatformManager] getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`, errors);
+      logger.warn({ err: errors }, `[PlatformManager] getCampaigns partial failure: ${errors.length}/${clients.length} platforms failed`);
     }
 
     return filtered.slice(offset, offset + limit);
@@ -656,7 +664,7 @@ export class PlatformManager {
         try {
           return await client.getAccountSummary(dateRange);
         } catch (error) {
-          console.warn(`[PlatformManager] Account summary failed for ${platform}/${accountId}:`, error);
+          logger.warn({ err: error }, `[PlatformManager] Account summary failed for ${platform}/${accountId}:`);
           return null;
         }
       }),
@@ -692,7 +700,18 @@ export class PlatformManager {
     workspaceId: string,
     platform: Platform,
     code: string,
+    redirectUri?: string,
   ): Promise<AdAccount> {
+    const trimmedCode = code?.trim();
+    if (!trimmedCode) {
+      throw new PlatformAPIError(
+        platform,
+        'VALIDATION_MISSING_FIELD',
+        'OAuth authorization code is required.',
+        false,
+      );
+    }
+
     const factory = clientRegistry.get(platform);
     if (!factory) {
       throw new PlatformAPIError(
@@ -703,29 +722,46 @@ export class PlatformManager {
       );
     }
 
-    // TODO: Implement OAuth token exchange
-    // This is a stub — each platform module will implement its own
-    // token exchange via the PlatformClient interface.
+    let account: AdAccount;
+    let client: PlatformClient;
 
-    // Placeholder: create a dummy account record for now
-    const account: AdAccount = {
-      id: `${platform}_${Date.now()}`,
-      workspaceId,
-      platform,
-      platformAccountId: 'placeholder',
-      name: `${platform} Account`,
-      currency: 'USD',
-      timezone: 'America/New_York',
-      status: 'active',
-      accessToken: 'placeholder_token',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (platform === 'meta') {
+      const connected = await connectMetaAccount(trimmedCode, workspaceId, redirectUri);
+      account = connected.account;
+      client = connected.client;
+    } else {
+      throw new PlatformAPIError(
+        platform,
+        'UNKNOWN_ERROR',
+        `OAuth account connection for '${platform}' must be completed via the platform auth callback routes.`,
+        false,
+      );
+    }
 
-    // Cache the account in memory
+    const accessToken = account.accessToken?.trim();
+    if (!accessToken || accessToken === 'placeholder_token') {
+      throw new PlatformAPIError(
+        platform,
+        'AUTH_TOKEN_INVALID',
+        'OAuth token exchange did not return a valid access token.',
+        false,
+      );
+    }
+
+    const platformAccountId = account.platformAccountId?.trim();
+    if (!platformAccountId || platformAccountId === 'placeholder') {
+      throw new PlatformAPIError(
+        platform,
+        'VALIDATION_MISSING_FIELD',
+        'OAuth token exchange did not resolve a platform account ID.',
+        false,
+      );
+    }
+
     const existing = this.workspaceAccounts.get(workspaceId) || [];
     existing.push(account);
     this.workspaceAccounts.set(workspaceId, existing);
+    this.clientCache.set(this.cacheKey(platform, platformAccountId), client);
 
     return account;
   }
@@ -775,7 +811,7 @@ export class PlatformManager {
             refreshed: true,
           });
         } catch (error) {
-          console.error(`[PlatformManager] Token refresh failed for ${account.platform}/${account.id}:`, error);
+          logger.error({ err: error }, `[PlatformManager] Token refresh failed for ${account.platform}/${account.id}:`);
           results.push({
             accountId: account.id,
             platform: account.platform,
@@ -803,16 +839,28 @@ export class PlatformManager {
   ): Promise<CrossPlatformInsights> {
     const clients = await this.getClientsForWorkspace(workspaceId);
 
-    // Gather all campaigns first
+    // Gather all campaigns first, remembering which client (ad account) each
+    // campaign came from — a workspace can hold several accounts on the same
+    // platform, so insights must be fetched with the owning account's client.
     const allCampaigns: UnifiedCampaign[] = [];
+    const clientByCampaign = new Map<UnifiedCampaign, PlatformClient>();
     const campaignFetchResults = await Promise.allSettled(
       clients.map(async ({ client }) => client.getCampaigns()),
     );
-    for (const result of campaignFetchResults) {
+    campaignFetchResults.forEach((result, i) => {
       if (result.status === 'fulfilled') {
-        allCampaigns.push(...result.value);
+        for (const campaign of result.value) {
+          allCampaigns.push(campaign);
+          clientByCampaign.set(campaign, clients[i].client);
+        }
+      } else {
+        // Surface partial data instead of silently pretending completeness
+        logger.warn(
+          { err: result.reason, platform: clients[i].platform },
+          '[PlatformManager] Campaign fetch failed for one account; cross-platform insights will be partial',
+        );
       }
-    }
+    });
 
     // Calculate consolidated totals
     const consolidated = {
@@ -884,13 +932,90 @@ export class PlatformManager {
         rank: i + 1,
       }));
 
+    // Aggregate daily trends across platforms. Insights are fetched per
+    // campaign, so bound the fan-out to the top-spend campaigns per platform
+    // to keep platform API call volume predictable. Selection uses the
+    // campaign snapshot's cumulative spend as a proxy for in-range activity —
+    // ranking by in-range spend would itself require an insights call per
+    // campaign, which is the unbounded fan-out this cap avoids.
+    const TRENDS_CAMPAIGNS_PER_PLATFORM = 10;
+
+    // Dedupe by platform campaign id — the same platform campaign can be
+    // visible through multiple connected ad accounts, and fetching it twice
+    // would double-count its spend/conversions in the daily buckets. Sort by
+    // spend first so the highest-spend copy (and its account client) is the
+    // one kept.
+    const seenPlatformCampaigns = new Set<string>();
+    const trendCandidates = Array.from(
+      [...allCampaigns]
+        .sort((a, b) => b.spend - a.spend)
+        .filter((c) => {
+          if (c.spend <= 0) return false;
+          const key = `${c.platform}:${c.platformCampaignId}`;
+          if (seenPlatformCampaigns.has(key)) return false;
+          seenPlatformCampaigns.add(key);
+          return true;
+        })
+        .reduce((byPlatform, c) => {
+          const list = byPlatform.get(c.platform) ?? [];
+          if (list.length < TRENDS_CAMPAIGNS_PER_PLATFORM) list.push(c);
+          byPlatform.set(c.platform, list);
+          return byPlatform;
+        }, new Map<Platform, UnifiedCampaign[]>())
+        .values(),
+    ).flat();
+
+    const insightResults = await Promise.allSettled(
+      trendCandidates.map(async (campaign) => {
+        const client = clientByCampaign.get(campaign);
+        if (!client) return [];
+        return client.getInsights(campaign.platformCampaignId, dateRange);
+      }),
+    );
+
+    // Group by (date, platform), accumulating spend/conversions and tracking
+    // conversion value so ROAS can be derived per bucket.
+    const trendBuckets = new Map<string, TrendEntry & { conversionValue: number }>();
+    const failedInsightFetches = insightResults.filter((r) => r.status === 'rejected').length;
+    if (failedInsightFetches > 0) {
+      logger.warn(
+        { failedInsightFetches, total: insightResults.length },
+        '[PlatformManager] Some campaign insight fetches failed; daily trends will be partial',
+      );
+    }
+    for (const result of insightResults) {
+      if (result.status !== 'fulfilled') continue;
+      for (const insight of result.value) {
+        const key = `${insight.date}:${insight.platform}`;
+        const bucket = trendBuckets.get(key) ?? {
+          date: insight.date,
+          platform: insight.platform,
+          spend: 0,
+          conversions: 0,
+          roas: 0,
+          conversionValue: 0,
+        };
+        bucket.spend += insight.spend;
+        bucket.conversions += insight.conversions;
+        bucket.conversionValue += insight.conversionValue;
+        trendBuckets.set(key, bucket);
+      }
+    }
+
+    const trends: TrendEntry[] = Array.from(trendBuckets.values())
+      .map(({ conversionValue, ...entry }) => ({
+        ...entry,
+        roas: entry.spend > 0 ? conversionValue / entry.spend : 0,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
     return {
       workspaceId,
       dateRange,
       consolidated,
       platformComparison,
       topPerformers,
-      trends: [], // TODO: aggregate daily trends across platforms
+      trends,
     };
   }
 
@@ -1213,4 +1338,26 @@ export function createPlatformManagerWithConfig(
     defaults: { ...PLATFORM_CONFIG.defaults, ...overrides.defaults },
   };
   return new PlatformManager(merged);
+}
+
+// ═══════════════════════════════════════════════
+//  Meta platform client factory (per-workspace OAuth)
+// ═══════════════════════════════════════════════
+
+export { loadAdAccountById };
+
+/**
+ * Create a MetaPlatformClient for a workspace-connected ad account.
+ * Returns null when the account is missing, inactive, or not a Meta account
+ * in the given workspace.
+ */
+export async function createMetaPlatformClientForWorkspace(
+  workspaceId: string,
+  adAccountId: string,
+): Promise<MetaPlatformClient | null> {
+  const account = await loadAdAccountById(adAccountId);
+  if (!account || account.workspaceId !== workspaceId || account.platform !== 'meta') {
+    return null;
+  }
+  return new MetaPlatformClient(account.id);
 }

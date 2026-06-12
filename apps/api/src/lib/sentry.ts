@@ -6,6 +6,9 @@
  */
 
 import { config, isProduction } from '../config';
+import { getModuleLogger } from './logger';
+
+const logger = getModuleLogger('sentry');
 
 // Lazy-load Sentry to avoid type errors when package is missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +23,7 @@ try {
 
 export function initSentry(): void {
   if (!Sentry || !config.sentryDsn) {
-    console.log('Sentry not configured — error tracking disabled');
+    logger.info('Sentry not configured — error tracking disabled');
     return;
   }
 

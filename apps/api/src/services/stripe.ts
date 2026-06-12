@@ -87,6 +87,22 @@ export function isBillingCheckoutConfigured(): boolean {
   return isStripeSecretConfigured() && Object.keys(PRICE_TO_PLAN).length > 0;
 }
 
+export const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  growth: 2,
+  pro: 3,
+  enterprise: 4,
+};
+
+export function getPlanRank(plan: string): number {
+  return PLAN_RANK[plan.toLowerCase()] ?? -1;
+}
+
+export function comparePlans(fromPlan: string, toPlan: string): number {
+  return getPlanRank(toPlan) - getPlanRank(fromPlan);
+}
+
 function assertStripeConfigured(operation: string): void {
   if (!isStripeSecretConfigured()) {
     throw new Error(`Stripe is not configured; cannot ${operation}`);
@@ -189,6 +205,52 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
   );
 
   return session;
+}
+
+// ─── Change subscription plan (existing subscriber) ───
+export async function changeSubscriptionPlan(params: {
+  subscriptionId: string;
+  newPriceId: string;
+  prorationBehavior?: Stripe.SubscriptionUpdateParams.ProrationBehavior;
+}) {
+  assertStripeConfigured("change subscription plan");
+  assertKnownPrice(params.newPriceId);
+
+  const subscription = await stripe.subscriptions.retrieve(params.subscriptionId);
+  const itemId = subscription.items.data[0]?.id;
+  if (!itemId) {
+    throw new Error("Subscription has no billable items");
+  }
+
+  return stripe.subscriptions.update(params.subscriptionId, {
+    items: [{ id: itemId, price: params.newPriceId }],
+    proration_behavior: params.prorationBehavior ?? "create_prorations",
+    metadata: subscription.metadata,
+  });
+}
+
+export async function scheduleSubscriptionCancellation(subscriptionId: string) {
+  assertStripeConfigured("schedule subscription cancellation");
+  return stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: true,
+  });
+}
+
+export async function applyWorkspaceSubscriptionSnapshot(
+  workspaceId: string,
+  subscription: Stripe.Subscription,
+): Promise<void> {
+  const priceId = subscription.items.data[0]?.price.id;
+  const planName = assertKnownPrice(priceId);
+
+  await updateWorkspacePlan(workspaceId, {
+    plan: planName,
+    status: subscription.status,
+    stripeSubscriptionId: subscription.id,
+    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
 }
 
 // ─── Create Customer Portal Session ───

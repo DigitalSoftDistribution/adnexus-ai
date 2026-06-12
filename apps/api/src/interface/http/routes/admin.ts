@@ -10,6 +10,10 @@ export function createAdminRoutes(container: Container): Router {
   router.get('/stats', requireAuth, requireRole('admin') as any, controller.getStats as any);
   router.get('/workspaces', requireAuth, requireRole('admin') as any, controller.listWorkspaces as any);
   router.get('/users', requireAuth, requireRole('admin') as any, controller.listUsers as any);
+  router.get('/errors', requireAuth, requireRole('admin') as any, controller.getErrors as any);
+  router.get('/api-usage', requireAuth, requireRole('admin') as any, controller.getApiUsage as any);
+  router.get('/feature-flags', requireAuth, requireRole('admin') as any, controller.getFeatureFlags as any);
+  router.post('/feature-flags', requireAuth, requireRole('admin') as any, controller.updateFeatureFlag as any);
   router.post('/impersonate/:userId', requireAuth, requireRole('admin') as any, controller.impersonateUser as any);
 
   return router;

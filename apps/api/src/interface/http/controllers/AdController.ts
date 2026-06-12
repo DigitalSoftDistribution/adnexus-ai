@@ -67,5 +67,34 @@ export function createAdController(container: Container) {
 
       res.json({ success: true, data: result.data });
     }),
+
+    update: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.updateAd.execute({
+        adId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        updates: req.body,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
+    duplicate: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.duplicateAd.execute({
+        adId: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
   };
 }

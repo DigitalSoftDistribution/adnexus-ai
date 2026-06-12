@@ -11,6 +11,9 @@ import {
   registerWebhook,
 } from '../services/webhook-handler';
 import axios from 'axios';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('webhooks-route');
 
 const router = Router();
 
@@ -30,7 +33,7 @@ const router = Router();
 router.post(
   '/meta',
   asyncHandler(async (req, res) => {
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = req.rawBody?.toString('utf8');
     const signature = (req.headers['x-hub-signature-256'] as string) ?? '';
 
     if (!signature) {
@@ -43,9 +46,9 @@ router.post(
     // Async processing (fire-and-forget)
     (async () => {
       try {
-        await handleMetaWebhook(req.body, signature);
+        await handleMetaWebhook(req.body, signature, rawBody);
       } catch (err) {
-        console.error('[webhook] Meta processing error:', (err as Error).message);
+        logger.error({ err }, 'Meta processing error');
       }
     })();
   }),
@@ -88,7 +91,7 @@ router.post(
       try {
         await handleGoogleWebhook(req.body);
       } catch (err) {
-        console.error('[webhook] Google processing error:', (err as Error).message);
+        logger.error({ err }, 'Google processing error');
       }
     })();
   }),
@@ -104,6 +107,7 @@ router.post(
   '/tiktok',
   asyncHandler(async (req, res) => {
     const signature = (req.headers['x-signature'] as string) ?? '';
+    const rawBody = req.rawBody?.toString('utf8');
 
     if (!signature) {
       throw new ValidationError('Missing X-Signature header');
@@ -115,9 +119,9 @@ router.post(
     // Async processing (fire-and-forget)
     (async () => {
       try {
-        await handleTikTokWebhook(req.body, signature);
+        await handleTikTokWebhook(req.body, signature, rawBody);
       } catch (err) {
-        console.error('[webhook] TikTok processing error:', (err as Error).message);
+        logger.error({ err }, 'TikTok processing error');
       }
     })();
   }),
@@ -157,7 +161,7 @@ router.post(
       try {
         await handleSnapWebhook(req.body);
       } catch (err) {
-        console.error('[webhook] Snap processing error:', (err as Error).message);
+        logger.error({ err }, 'Snap processing error');
       }
     })();
   }),
@@ -219,7 +223,7 @@ router.post(
     });
 
     if (storeError) {
-      console.error(`[webhook] Failed to store custom payload for workspace ${workspaceId}:`, storeError.message);
+      logger.error({ err: storeError }, `Failed to store custom payload for workspace ${workspaceId}`);
     }
 
     // Respond immediately
@@ -247,10 +251,7 @@ router.post(
             validateStatus: () => true, // Don't throw on non-2xx
           });
         } catch (err) {
-          console.error(
-            `[webhook] Custom forward failed for workspace ${workspaceId}:`,
-            (err as Error).message,
-          );
+          logger.error({ err }, `Custom forward failed for workspace ${workspaceId}`);
         }
       })();
     }

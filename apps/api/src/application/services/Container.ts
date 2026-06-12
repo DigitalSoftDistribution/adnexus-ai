@@ -27,7 +27,10 @@ import type { IAutomationRuleRepository } from '../../domain/repositories/IAutom
 import type { IAuditLogRepository } from '../../domain/repositories/IAuditLogRepository';
 import type { IExportRepository } from '../../domain/repositories/IExportRepository';
 import type { IAssetRepository } from '../../domain/repositories/IAssetRepository';
+import type { ICommentRepository } from '../../domain/repositories/ICommentRepository';
+import type { IAdminOpsRepository } from '../../domain/repositories/IAdminOpsRepository';
 import type { IAdAccountRepository } from '../../domain/repositories/IAdAccountRepository';
+import type { IScheduledReportRepository } from '../../domain/repositories/IScheduledReportRepository';
 import type { ISyncJobRepository } from '../../domain/repositories/ISyncJobRepository';
 import type { IEventBus } from '../../domain/events/EventBus';
 import type { IAuditLogger } from '../ports/IAuditLogger';
@@ -57,14 +60,19 @@ import { ExecuteDraftUseCase } from '../use-cases/draft/ExecuteDraftUseCase';
 import { GetWorkspaceUseCase } from '../use-cases/workspace/GetWorkspaceUseCase';
 import { InviteMemberUseCase } from '../use-cases/workspace/InviteMemberUseCase';
 import { GetBillingInfoUseCase } from '../use-cases/billing/GetBillingInfoUseCase';
+import { GetBillingUsageUseCase } from '../use-cases/billing/GetBillingUsageUseCase';
 import { CreateCheckoutSessionUseCase } from '../use-cases/billing/CreateCheckoutSessionUseCase';
 import { CreatePortalSessionUseCase } from '../use-cases/billing/CreatePortalSessionUseCase';
 import { ListInvoicesUseCase } from '../use-cases/billing/ListInvoicesUseCase';
 import { CancelSubscriptionUseCase } from '../use-cases/billing/CancelSubscriptionUseCase';
+import { UpgradePlanUseCase } from '../use-cases/billing/UpgradePlanUseCase';
+import { DowngradePlanUseCase } from '../use-cases/billing/DowngradePlanUseCase';
 import { ListAdsUseCase } from '../use-cases/ad/ListAdsUseCase';
 import { GetAdByIdUseCase } from '../use-cases/ad/GetAdByIdUseCase';
 import { GetAdPerformanceUseCase } from '../use-cases/ad/GetAdPerformanceUseCase';
 import { GetAdCreativePerformanceUseCase } from '../use-cases/ad/GetAdCreativePerformanceUseCase';
+import { UpdateAdUseCase } from '../use-cases/ad/UpdateAdUseCase';
+import { DuplicateAdUseCase } from '../use-cases/ad/DuplicateAdUseCase';
 import { GetWorkspaceSettingsUseCase } from '../use-cases/settings/GetWorkspaceSettingsUseCase';
 import { UpdateWorkspaceSettingsUseCase } from '../use-cases/settings/UpdateWorkspaceSettingsUseCase';
 import { GetTeamMembersUseCase } from '../use-cases/settings/GetTeamMembersUseCase';
@@ -74,6 +82,8 @@ import { RemoveTeamMemberUseCase } from '../use-cases/settings/RemoveTeamMemberU
 import { GetIntegrationsUseCase } from '../use-cases/settings/GetIntegrationsUseCase';
 import { GetNotificationPreferencesUseCase } from '../use-cases/settings/GetNotificationPreferencesUseCase';
 import { UpdateNotificationPreferencesUseCase } from '../use-cases/settings/UpdateNotificationPreferencesUseCase';
+import { GetProfileUseCase } from '../use-cases/settings/GetProfileUseCase';
+import { UpdateProfileUseCase } from '../use-cases/settings/UpdateProfileUseCase';
 import { GetApiKeysUseCase } from '../use-cases/settings/GetApiKeysUseCase';
 import { CreateApiKeyUseCase } from '../use-cases/settings/CreateApiKeyUseCase';
 import { RevokeApiKeyUseCase } from '../use-cases/settings/RevokeApiKeyUseCase';
@@ -89,6 +99,12 @@ import { CreateReportUseCase } from '../use-cases/report/CreateReportUseCase';
 import { UpdateReportUseCase } from '../use-cases/report/UpdateReportUseCase';
 import { DeleteReportUseCase } from '../use-cases/report/DeleteReportUseCase';
 import { RunReportUseCase } from '../use-cases/report/RunReportUseCase';
+import { GetReportResultsUseCase } from '../use-cases/report/GetReportResultsUseCase';
+import {
+  ListScheduledReportsUseCase,
+  CreateScheduledReportUseCase,
+  DeleteScheduledReportUseCase,
+} from '../use-cases/report/ScheduledReportUseCases';
 import { ListAlertsUseCase } from '../use-cases/alert/ListAlertsUseCase';
 import { GetAlertByIdUseCase } from '../use-cases/alert/GetAlertByIdUseCase';
 import { CreateAlertUseCase } from '../use-cases/alert/CreateAlertUseCase';
@@ -96,6 +112,8 @@ import { UpdateAlertUseCase } from '../use-cases/alert/UpdateAlertUseCase';
 import { DeleteAlertUseCase } from '../use-cases/alert/DeleteAlertUseCase';
 import { ToggleAlertUseCase } from '../use-cases/alert/ToggleAlertUseCase';
 import { GetAlertHistoryUseCase } from '../use-cases/alert/GetAlertHistoryUseCase';
+import { TestAlertUseCase } from '../use-cases/alert/TestAlertUseCase';
+import { GetAlertStatsUseCase } from '../use-cases/alert/GetAlertStatsUseCase';
 import { SearchUseCase } from '../use-cases/search/SearchUseCase';
 import { GetSuggestionsUseCase } from '../use-cases/search/GetSuggestionsUseCase';
 import { ListNotificationsUseCase } from '../use-cases/notification/ListNotificationsUseCase';
@@ -103,6 +121,10 @@ import { MarkNotificationReadUseCase } from '../use-cases/notification/MarkNotif
 import { MarkAllNotificationsReadUseCase } from '../use-cases/notification/MarkAllNotificationsReadUseCase';
 import { ListWebhookConfigsUseCase } from '../use-cases/webhook/ListWebhookConfigsUseCase';
 import { CreateWebhookConfigUseCase } from '../use-cases/webhook/CreateWebhookConfigUseCase';
+import { UpdateWebhookConfigUseCase } from '../use-cases/webhook/UpdateWebhookConfigUseCase';
+import { DeleteWebhookConfigUseCase } from '../use-cases/webhook/DeleteWebhookConfigUseCase';
+import { TestWebhookConfigUseCase } from '../use-cases/webhook/TestWebhookConfigUseCase';
+import { ListWebhookDeliveriesUseCase } from '../use-cases/webhook/ListWebhookDeliveriesUseCase';
 import { ListDraftCommentsUseCase } from '../use-cases/draft/ListDraftCommentsUseCase';
 import { AddDraftCommentUseCase } from '../use-cases/draft/AddDraftCommentUseCase';
 import { DeleteDraftCommentUseCase } from '../use-cases/draft/DeleteDraftCommentUseCase';
@@ -140,6 +162,9 @@ import {
   DisconnectIntegrationUseCase,
   GetIntegrationHealthUseCase,
 } from '../use-cases/integration/IntegrationUseCases';
+import { ConnectPlatformUseCase } from '../use-cases/integration/ConnectPlatformUseCase';
+import { ListIntegrationAccountsUseCase } from '../use-cases/integration/ListIntegrationAccountsUseCase';
+import { SelectIntegrationAccountUseCase } from '../use-cases/integration/SelectIntegrationAccountUseCase';
 import {
   GetOnboardingStatusUseCase,
   SetOnboardingStepUseCase,
@@ -147,10 +172,13 @@ import {
 } from '../use-cases/onboarding/OnboardingUseCases';
 import { ListAuditLogUseCase } from '../use-cases/audit-log/ListAuditLogUseCase';
 import { GetAuditLogSummaryUseCase } from '../use-cases/audit-log/GetAuditLogSummaryUseCase';
+import { GetAuditLogByIdUseCase } from '../use-cases/audit-log/GetAuditLogByIdUseCase';
+import { ExportAuditLogUseCase } from '../use-cases/audit-log/ExportAuditLogUseCase';
 import { ListExportsUseCase } from '../use-cases/export/ListExportsUseCase';
 import { GetExportByIdUseCase } from '../use-cases/export/GetExportByIdUseCase';
 import { CreateExportUseCase } from '../use-cases/export/CreateExportUseCase';
 import { DeleteExportUseCase } from '../use-cases/export/DeleteExportUseCase';
+import { DownloadExportUseCase } from '../use-cases/export/DownloadExportUseCase';
 import { ListAssetsUseCase } from '../use-cases/asset/ListAssetsUseCase';
 import { GetAssetByIdUseCase } from '../use-cases/asset/GetAssetByIdUseCase';
 import { CreateAssetUseCase } from '../use-cases/asset/CreateAssetUseCase';
@@ -160,6 +188,13 @@ import { GetAdminStatsUseCase } from '../use-cases/admin/GetAdminStatsUseCase';
 import { ListAllWorkspacesUseCase } from '../use-cases/admin/ListAllWorkspacesUseCase';
 import { ListAllUsersUseCase } from '../use-cases/admin/ListAllUsersUseCase';
 import { ImpersonateUserUseCase } from '../use-cases/admin/ImpersonateUserUseCase';
+import { ListAdminErrorsUseCase } from '../use-cases/admin/ListAdminErrorsUseCase';
+import { GetAdminApiUsageUseCase } from '../use-cases/admin/GetAdminApiUsageUseCase';
+import { GetFeatureFlagsUseCase } from '../use-cases/admin/GetFeatureFlagsUseCase';
+import { UpdateFeatureFlagUseCase } from '../use-cases/admin/UpdateFeatureFlagUseCase';
+import { ListCommentsUseCase } from '../use-cases/comment/ListCommentsUseCase';
+import { CreateCommentUseCase } from '../use-cases/comment/CreateCommentUseCase';
+import { GetCommentByIdUseCase, DeleteCommentUseCase } from '../use-cases/comment/CommentUseCases';
 import { ListAutomationRulesUseCase } from '../use-cases/agent/ListAutomationRulesUseCase';
 import { GetAutomationRuleByIdUseCase } from '../use-cases/agent/GetAutomationRuleByIdUseCase';
 import { CreateAutomationRuleUseCase } from '../use-cases/agent/CreateAutomationRuleUseCase';
@@ -190,6 +225,8 @@ export interface ContainerConfig {
   auditLogRepository: IAuditLogRepository;
   exportRepository: IExportRepository;
   assetRepository: IAssetRepository;
+  commentRepository: ICommentRepository;
+  adminOpsRepository: IAdminOpsRepository;
   eventBus: IEventBus;
   auditLogger: IAuditLogger;
   notificationService: INotificationService;
@@ -203,6 +240,8 @@ export interface ContainerConfig {
   /** Optional account-sync deps; required to expose the account sync use-case. */
   adAccountRepository?: IAdAccountRepository;
   syncJobRepository?: ISyncJobRepository;
+  /** Optional scheduled-report CRUD deps. */
+  scheduledReportRepository?: IScheduledReportRepository;
   /** Writes a per-day campaign_metrics row (infra-supplied). */
   writeCampaignMetrics?: (
     campaignId: string,
@@ -241,16 +280,23 @@ export class Container {
   readonly getWorkspace: GetWorkspaceUseCase;
   readonly inviteMember: InviteMemberUseCase;
   readonly getBillingInfo: GetBillingInfoUseCase;
+  readonly getBillingUsage: GetBillingUsageUseCase;
   readonly createCheckoutSession: CreateCheckoutSessionUseCase;
   readonly createPortalSession: CreatePortalSessionUseCase;
   readonly listInvoices: ListInvoicesUseCase;
   readonly cancelSubscription: CancelSubscriptionUseCase;
+  readonly upgradePlan: UpgradePlanUseCase;
+  readonly downgradePlan: DowngradePlanUseCase;
   readonly listAds: ListAdsUseCase;
   readonly getAdById: GetAdByIdUseCase;
   readonly getAdPerformance: GetAdPerformanceUseCase;
   readonly getAdCreativePerformance: GetAdCreativePerformanceUseCase;
+  readonly updateAd: UpdateAdUseCase;
+  readonly duplicateAd: DuplicateAdUseCase;
   readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
   readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
+  readonly getProfile: GetProfileUseCase;
+  readonly updateProfile: UpdateProfileUseCase;
   readonly getTeamMembers: GetTeamMembersUseCase;
   readonly inviteTeamMember: InviteTeamMemberUseCase;
   readonly updateTeamMemberRole: UpdateTeamMemberRoleUseCase;
@@ -273,6 +319,10 @@ export class Container {
   readonly updateReport: UpdateReportUseCase;
   readonly deleteReport: DeleteReportUseCase;
   readonly runReport: RunReportUseCase;
+  readonly getReportResults: GetReportResultsUseCase;
+  readonly listScheduledReports?: ListScheduledReportsUseCase;
+  readonly createScheduledReport?: CreateScheduledReportUseCase;
+  readonly deleteScheduledReport?: DeleteScheduledReportUseCase;
   readonly listAlerts: ListAlertsUseCase;
   readonly getAlertById: GetAlertByIdUseCase;
   readonly createAlert: CreateAlertUseCase;
@@ -280,6 +330,8 @@ export class Container {
   readonly deleteAlert: DeleteAlertUseCase;
   readonly toggleAlert: ToggleAlertUseCase;
   readonly getAlertHistory: GetAlertHistoryUseCase;
+  readonly testAlert: TestAlertUseCase;
+  readonly getAlertStats: GetAlertStatsUseCase;
   readonly search: SearchUseCase;
   readonly searchSuggestions: GetSuggestionsUseCase;
   readonly listNotifications: ListNotificationsUseCase;
@@ -287,6 +339,10 @@ export class Container {
   readonly markAllNotificationsRead: MarkAllNotificationsReadUseCase;
   readonly listWebhookConfigs: ListWebhookConfigsUseCase;
   readonly createWebhookConfig: CreateWebhookConfigUseCase;
+  readonly updateWebhookConfig: UpdateWebhookConfigUseCase;
+  readonly deleteWebhookConfig: DeleteWebhookConfigUseCase;
+  readonly testWebhookConfig: TestWebhookConfigUseCase;
+  readonly listWebhookDeliveries: ListWebhookDeliveriesUseCase;
   readonly listDraftComments: ListDraftCommentsUseCase;
   readonly addDraftComment: AddDraftCommentUseCase;
   readonly deleteDraftComment: DeleteDraftCommentUseCase;
@@ -323,6 +379,9 @@ export class Container {
   readonly getIntegration: GetIntegrationUseCase;
   readonly disconnectIntegration: DisconnectIntegrationUseCase;
   readonly getIntegrationHealth: GetIntegrationHealthUseCase;
+  readonly connectPlatform: ConnectPlatformUseCase;
+  readonly listIntegrationAccounts?: ListIntegrationAccountsUseCase;
+  readonly selectIntegrationAccount?: SelectIntegrationAccountUseCase;
   readonly getOnboardingStatus: GetOnboardingStatusUseCase;
   readonly setOnboardingStep: SetOnboardingStepUseCase;
   readonly completeOnboarding: CompleteOnboardingUseCase;
@@ -334,10 +393,13 @@ export class Container {
   readonly toggleAutomationRule: ToggleAutomationRuleUseCase;
   readonly listAuditLog: ListAuditLogUseCase;
   readonly getAuditLogSummary: GetAuditLogSummaryUseCase;
+  readonly getAuditLogById: GetAuditLogByIdUseCase;
+  readonly exportAuditLog: ExportAuditLogUseCase;
   readonly listExports: ListExportsUseCase;
   readonly getExportById: GetExportByIdUseCase;
   readonly createExport: CreateExportUseCase;
   readonly deleteExport: DeleteExportUseCase;
+  readonly downloadExport: DownloadExportUseCase;
   readonly listAssets: ListAssetsUseCase;
   readonly getAssetById: GetAssetByIdUseCase;
   readonly createAsset: CreateAssetUseCase;
@@ -347,6 +409,14 @@ export class Container {
   readonly listAllWorkspaces: ListAllWorkspacesUseCase;
   readonly listAllUsers: ListAllUsersUseCase;
   readonly impersonateUser: ImpersonateUserUseCase;
+  readonly listAdminErrors: ListAdminErrorsUseCase;
+  readonly getAdminApiUsage: GetAdminApiUsageUseCase;
+  readonly getFeatureFlags: GetFeatureFlagsUseCase;
+  readonly updateFeatureFlag: UpdateFeatureFlagUseCase;
+  readonly listComments: ListCommentsUseCase;
+  readonly createComment: CreateCommentUseCase;
+  readonly getCommentById: GetCommentByIdUseCase;
+  readonly deleteComment: DeleteCommentUseCase;
 
   constructor(config: ContainerConfig) {
     this.createCampaign = new CreateCampaignUseCase(
@@ -394,18 +464,25 @@ export class Container {
     );
 
     this.getBillingInfo = new GetBillingInfoUseCase(config.billingRepository);
+    this.getBillingUsage = new GetBillingUsageUseCase(config.billingRepository);
     this.createCheckoutSession = new CreateCheckoutSessionUseCase(config.billingRepository);
     this.createPortalSession = new CreatePortalSessionUseCase(config.billingRepository);
     this.listInvoices = new ListInvoicesUseCase(config.billingRepository);
     this.cancelSubscription = new CancelSubscriptionUseCase(config.billingRepository);
+    this.upgradePlan = new UpgradePlanUseCase(config.billingRepository);
+    this.downgradePlan = new DowngradePlanUseCase(config.billingRepository);
 
     this.listAds = new ListAdsUseCase(config.adRepository);
     this.getAdById = new GetAdByIdUseCase(config.adRepository);
     this.getAdPerformance = new GetAdPerformanceUseCase(config.adRepository);
     this.getAdCreativePerformance = new GetAdCreativePerformanceUseCase(config.adRepository);
+    this.updateAd = new UpdateAdUseCase(config.adRepository);
+    this.duplicateAd = new DuplicateAdUseCase(config.adRepository);
 
     this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
     this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);
+    this.getProfile = new GetProfileUseCase(config.settingsRepository);
+    this.updateProfile = new UpdateProfileUseCase(config.settingsRepository);
     this.getTeamMembers = new GetTeamMembersUseCase(config.settingsRepository);
     this.inviteTeamMember = new InviteTeamMemberUseCase(config.settingsRepository);
     this.updateTeamMemberRole = new UpdateTeamMemberRoleUseCase(config.settingsRepository);
@@ -430,6 +507,13 @@ export class Container {
     this.updateReport = new UpdateReportUseCase(config.reportRepository);
     this.deleteReport = new DeleteReportUseCase(config.reportRepository);
     this.runReport = new RunReportUseCase(config.reportRepository);
+    this.getReportResults = new GetReportResultsUseCase(config.reportRepository);
+
+    if (config.scheduledReportRepository) {
+      this.listScheduledReports = new ListScheduledReportsUseCase(config.scheduledReportRepository);
+      this.createScheduledReport = new CreateScheduledReportUseCase(config.scheduledReportRepository);
+      this.deleteScheduledReport = new DeleteScheduledReportUseCase(config.scheduledReportRepository);
+    }
 
     this.listAlerts = new ListAlertsUseCase(config.alertRepository);
     this.getAlertById = new GetAlertByIdUseCase(config.alertRepository);
@@ -438,6 +522,8 @@ export class Container {
     this.deleteAlert = new DeleteAlertUseCase(config.alertRepository);
     this.toggleAlert = new ToggleAlertUseCase(config.alertRepository);
     this.getAlertHistory = new GetAlertHistoryUseCase(config.alertRepository);
+    this.testAlert = new TestAlertUseCase(config.alertRepository, config.notificationService);
+    this.getAlertStats = new GetAlertStatsUseCase(config.alertRepository);
 
     this.search = new SearchUseCase(config.searchRepository);
     this.searchSuggestions = new GetSuggestionsUseCase(config.searchRepository);
@@ -446,6 +532,10 @@ export class Container {
     this.markAllNotificationsRead = new MarkAllNotificationsReadUseCase(config.notificationRepository);
     this.listWebhookConfigs = new ListWebhookConfigsUseCase(config.webhookRepository);
     this.createWebhookConfig = new CreateWebhookConfigUseCase(config.webhookRepository);
+    this.updateWebhookConfig = new UpdateWebhookConfigUseCase(config.webhookRepository);
+    this.deleteWebhookConfig = new DeleteWebhookConfigUseCase(config.webhookRepository);
+    this.testWebhookConfig = new TestWebhookConfigUseCase(config.webhookRepository);
+    this.listWebhookDeliveries = new ListWebhookDeliveriesUseCase(config.webhookRepository);
 
     this.listDraftComments = new ListDraftCommentsUseCase(
       config.draftRepository,
@@ -535,6 +625,12 @@ export class Container {
     this.getIntegration = new GetIntegrationUseCase(config.settingsRepository);
     this.disconnectIntegration = new DisconnectIntegrationUseCase(config.settingsRepository);
     this.getIntegrationHealth = new GetIntegrationHealthUseCase(config.settingsRepository);
+    this.connectPlatform = new ConnectPlatformUseCase();
+
+    if (config.adAccountRepository) {
+      this.listIntegrationAccounts = new ListIntegrationAccountsUseCase(config.adAccountRepository);
+      this.selectIntegrationAccount = new SelectIntegrationAccountUseCase(config.adAccountRepository);
+    }
     this.getOnboardingStatus = new GetOnboardingStatusUseCase(
       config.workspaceRepository,
       config.settingsRepository,
@@ -559,11 +655,14 @@ export class Container {
 
     this.listAuditLog = new ListAuditLogUseCase(config.auditLogRepository);
     this.getAuditLogSummary = new GetAuditLogSummaryUseCase(config.auditLogRepository);
+    this.getAuditLogById = new GetAuditLogByIdUseCase(config.auditLogRepository);
+    this.exportAuditLog = new ExportAuditLogUseCase(config.auditLogRepository);
 
     this.listExports = new ListExportsUseCase(config.exportRepository);
     this.getExportById = new GetExportByIdUseCase(config.exportRepository);
     this.createExport = new CreateExportUseCase(config.exportRepository);
     this.deleteExport = new DeleteExportUseCase(config.exportRepository);
+    this.downloadExport = new DownloadExportUseCase(config.exportRepository);
 
     this.listAssets = new ListAssetsUseCase(config.assetRepository);
     this.getAssetById = new GetAssetByIdUseCase(config.assetRepository);
@@ -579,5 +678,14 @@ export class Container {
     this.listAllWorkspaces = new ListAllWorkspacesUseCase(config.workspaceRepository);
     this.listAllUsers = new ListAllUsersUseCase(config.userRepository);
     this.impersonateUser = new ImpersonateUserUseCase(config.userRepository);
+    this.listAdminErrors = new ListAdminErrorsUseCase(config.adminOpsRepository);
+    this.getAdminApiUsage = new GetAdminApiUsageUseCase(config.adminOpsRepository);
+    this.getFeatureFlags = new GetFeatureFlagsUseCase(config.adminOpsRepository);
+    this.updateFeatureFlag = new UpdateFeatureFlagUseCase(config.adminOpsRepository);
+
+    this.listComments = new ListCommentsUseCase(config.commentRepository, config.draftRepository);
+    this.createComment = new CreateCommentUseCase(config.commentRepository, config.draftRepository);
+    this.getCommentById = new GetCommentByIdUseCase(config.commentRepository, config.draftRepository);
+    this.deleteComment = new DeleteCommentUseCase(config.commentRepository, config.draftRepository);
   }
 }
