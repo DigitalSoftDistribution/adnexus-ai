@@ -13,6 +13,7 @@ import {
   isStripeSecretConfigured,
 } from "../services/stripe";
 import { db } from "../db";
+import { query } from "../db/connection";
 import { workspaces, workspaceCredits, auditLogs } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { HttpError } from "../utils/errors";
@@ -323,7 +324,50 @@ router.post("/webhook", async (req, res, next) => {
       "Stripe webhook received",
     );
 
-    await handleWebhookEvent(event);
+    // ── Idempotency ──────────────────────────────────────────
+    // Stripe delivers at-least-once and retries on non-2xx. Claim the event id
+    // before processing; if it already exists AND was fully processed, this is
+    // a duplicate delivery and we ack without re-running the handler.
+    const { rows: claim } = await query<{ id: string }>(
+      `INSERT INTO stripe_webhook_events (id, type)
+         VALUES ($1, $2)
+         ON CONFLICT (id) DO NOTHING
+       RETURNING id`,
+      [event.id, event.type],
+    );
+    const justClaimed = claim.length > 0;
+    if (!justClaimed) {
+      const { rows: prior } = await query<{ processed_at: Date | null }>(
+        "SELECT processed_at FROM stripe_webhook_events WHERE id = $1",
+        [event.id],
+      );
+      if (prior[0]?.processed_at) {
+        logger.info(
+          { eventType: event.type, eventId: event.id },
+          "Duplicate Stripe webhook ignored",
+        );
+        return res.json({ received: true, eventId: event.id });
+      }
+      // Row exists but was never finished (prior crash) — fall through and
+      // (re)process so the event isn't lost.
+    }
+
+    try {
+      await handleWebhookEvent(event);
+      await query(
+        "UPDATE stripe_webhook_events SET processed_at = NOW() WHERE id = $1",
+        [event.id],
+      );
+    } catch (procErr) {
+      // Release our claim so Stripe's retry can re-attempt a clean run.
+      if (justClaimed) {
+        await query(
+          "DELETE FROM stripe_webhook_events WHERE id = $1 AND processed_at IS NULL",
+          [event.id],
+        ).catch(() => undefined);
+      }
+      throw procErr;
+    }
 
     // Log the webhook for audit trail
     try {
