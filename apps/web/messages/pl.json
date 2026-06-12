@@ -167,7 +167,15 @@
     "resetPasswordFailed": "Resetowanie hasła nie powiodło się. Spróbuj ponownie.",
     "invalidResetTokenTitle": "Nieprawidłowy lub wygasły link",
     "invalidResetTokenDescription": "Ten link do resetowania hasła jest nieprawidłowy lub wygasł. Poproś o nowy.",
-    "requestNewLink": "Poproś o nowy link"
+    "requestNewLink": "Poproś o nowy link",
+    "acceptInvite": "Accept invitation",
+    "acceptInviteTitle": "Accept your invitation",
+    "acceptInviteSubtitle": "Create your account to join the workspace",
+    "acceptInviteFailed": "Could not accept the invitation. The link may be invalid or expired.",
+    "acceptInviteSuccessTitle": "Welcome to the team",
+    "acceptInviteSuccessDescription": "Your account is ready. Sign in to open the dashboard.",
+    "invalidInviteTokenTitle": "Invalid or expired invitation",
+    "invalidInviteTokenDescription": "This invitation link is invalid or has expired. Ask your workspace admin to send a new invite."
   },
   "dashboard": {
     "title": "Pulpit",

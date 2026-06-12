@@ -167,7 +167,15 @@
     "resetPasswordFailed": "Échec de la réinitialisation du mot de passe. Veuillez réessayer.",
     "invalidResetTokenTitle": "Lien invalide ou expiré",
     "invalidResetTokenDescription": "Ce lien de réinitialisation du mot de passe est invalide ou a expiré. Veuillez en demander un nouveau.",
-    "requestNewLink": "Demander un nouveau lien"
+    "requestNewLink": "Demander un nouveau lien",
+    "acceptInvite": "Accept invitation",
+    "acceptInviteTitle": "Accept your invitation",
+    "acceptInviteSubtitle": "Create your account to join the workspace",
+    "acceptInviteFailed": "Could not accept the invitation. The link may be invalid or expired.",
+    "acceptInviteSuccessTitle": "Welcome to the team",
+    "acceptInviteSuccessDescription": "Your account is ready. Sign in to open the dashboard.",
+    "invalidInviteTokenTitle": "Invalid or expired invitation",
+    "invalidInviteTokenDescription": "This invitation link is invalid or has expired. Ask your workspace admin to send a new invite."
   },
   "dashboard": {
     "title": "Tableau de bord",

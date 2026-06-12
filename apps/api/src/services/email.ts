@@ -733,9 +733,14 @@ export class EmailService {
   /**
    * Send team invite email
    */
-  async sendTeamInvite(email: string, inviterName: string, workspaceName: string): Promise<void> {
-    const html = teamInviteTemplate({ inviterName, workspaceName, email }, this.appUrl);
-    const inviteUrl = `${this.appUrl}/accept-invite?email=${encodeURIComponent(email)}`;
+  async sendTeamInvite(
+    email: string,
+    inviterName: string,
+    workspaceName: string,
+    token: string,
+  ): Promise<void> {
+    const html = teamInviteTemplate({ inviterName, workspaceName, email, token }, this.appUrl);
+    const inviteUrl = `${this.appUrl}/auth/invite/${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'team_invite',

@@ -652,8 +652,11 @@ export function passwordResetTemplate(token: string, appUrl: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 // TEAM INVITE TEMPLATE
 // ─────────────────────────────────────────────────────────────────────────────
-export function teamInviteTemplate(data: { inviterName: string; workspaceName: string; email: string }, appUrl: string): string {
-  const inviteUrl = `${appUrl}/accept-invite?email=${encodeURIComponent(data.email)}`;
+export function teamInviteTemplate(
+  data: { inviterName: string; workspaceName: string; email: string; token: string },
+  appUrl: string,
+): string {
+  const inviteUrl = `${appUrl}/auth/invite/${encodeURIComponent(data.token)}`;
 
   const content = `
     <div style="padding: 32px 40px;">

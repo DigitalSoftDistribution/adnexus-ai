@@ -778,6 +778,23 @@ router.post(
       details: { invited_email: body.email, role: body.role },
     });
 
+    // ── 7. Queue invite email with tokenized accept link ──
+    const [{ data: workspaceRow }, { data: inviterRow }] = await Promise.all([
+      supabase.from('workspaces').select('name').eq('id', body.workspaceId).maybeSingle(),
+      supabase.from('users').select('name').eq('id', invitedByUserId).maybeSingle(),
+    ]);
+
+    try {
+      await emailService.sendTeamInvite(
+        body.email.toLowerCase(),
+        (inviterRow?.name as string) || invitedByEmail,
+        (workspaceRow?.name as string) || 'Your workspace',
+        inviteToken,
+      );
+    } catch (emailErr) {
+      logger.warn({ err: emailErr, email: body.email }, 'Failed to queue team invite email');
+    }
+
     res.status(201).json({
       success: true,
       data: {
