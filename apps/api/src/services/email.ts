@@ -2,6 +2,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { logger } from '../utils/logger';
+import { config } from '../config';
 import { supabase } from '../lib/supabase';
 import {
   morningBriefTemplate,
@@ -706,9 +707,13 @@ export class EmailService {
    * Send password reset email
    */
   async sendPasswordReset(email: string, token: string): Promise<void> {
-    const html = passwordResetTemplate(token, this.appUrl);
+    // Reset links must target the validated frontend host (FRONTEND_URL) —
+    // the same setting the rest of the auth flow uses. APP_URL may be unset
+    // or point elsewhere in local/staging deployments.
+    const frontendUrl = config.frontend.url;
+    const html = passwordResetTemplate(token, frontendUrl);
     // Must match the URL in passwordResetTemplate — the web app's reset page
-    const resetUrl = `${this.appUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'password_reset',
