@@ -5,45 +5,45 @@ import { eq, and, ilike, desc, sql } from 'drizzle-orm';
 import { ads, adsets, campaigns, ad_accounts } from '../../db/schema';
 
 export class AdRepository implements IAdRepository {
-  async findById(id: string): Promise<Ad | null> {
-    const row = await db.query.ads.findFirst({
-      where: eq(ads.id, id),
-      with: {
-        adset: {
-          with: {
-            campaign: {
-              with: {
-                adAccount: true,
-              },
-            },
-          },
-        },
-      },
-    });
+  /**
+   * Load one ad with joined adset/campaign/ad_account context.
+   * Uses explicit joins — Drizzle relational `with` is not configured on schema.
+   */
+  private async fetchAdRow(
+    id: string,
+    workspaceId?: string,
+  ): Promise<{ ad: typeof ads.$inferSelect; adset: typeof adsets.$inferSelect | null; campaign: typeof campaigns.$inferSelect | null; adAccount: typeof ad_accounts.$inferSelect | null } | null> {
+    const rows = await db
+      .select({
+        ad: ads,
+        adset: adsets,
+        campaign: campaigns,
+        adAccount: ad_accounts,
+      })
+      .from(ads)
+      .leftJoin(adsets, eq(ads.adset_id, adsets.id))
+      .leftJoin(campaigns, eq(adsets.campaign_id, campaigns.id))
+      .leftJoin(ad_accounts, eq(campaigns.ad_account_id, ad_accounts.id))
+      .where(
+        and(
+          eq(ads.id, id),
+          workspaceId ? eq(ad_accounts.workspaceId, workspaceId) : undefined,
+        ),
+      )
+      .limit(1);
 
+    return rows[0] ?? null;
+  }
+
+  async findById(id: string): Promise<Ad | null> {
+    const row = await this.fetchAdRow(id);
     if (!row) return null;
     return this.mapToAd(row);
   }
 
   async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Ad | null> {
-    const row = await db.query.ads.findFirst({
-      where: eq(ads.id, id),
-      with: {
-        adset: {
-          with: {
-            campaign: {
-              with: {
-                adAccount: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
+    const row = await this.fetchAdRow(id, workspaceId);
     if (!row) return null;
-    const ad = row as any;
-    if (ad.adset?.campaign?.adAccount?.workspaceId !== workspaceId) return null;
     return this.mapToAd(row);
   }
 
@@ -219,7 +219,7 @@ export class AdRepository implements IAdRepository {
 
     return {
       id: ad.id,
-      workspaceId: adAccount.workspaceId || '',
+      workspaceId: adAccount.workspaceId || ad.workspaceId || '',
       campaignId: campaign.id || ad.campaign_id || '',
       adsetId: adset.id || ad.adset_id || '',
       platformAdId: ad.platformAdId || null,
