@@ -8,6 +8,27 @@
 
 ---
 
+## Status Addendum — 2026-06-11
+
+The findings below reflect the January 2025 audit. The following have since
+been re-verified against the current codebase; the original sections are kept
+for historical reference.
+
+| Finding | Status (2026-06) | Evidence |
+|---------|------------------|----------|
+| AUTH-001 Refresh token rotation | ✅ Fixed | `POST /auth/refresh` rotates atomically and revokes all sessions on reuse (`apps/api/src/services/refresh-token-service.ts`, wired in `apps/api/src/routes/auth.ts`) |
+| AUTH-004 Account lockout | ✅ Fixed | Brute-force lockout middleware wired into `POST /auth/signin` with per-(IP, route, account) tracking (`apps/api/src/security/hardening.ts`) |
+| AUTHZ-001 Campaign edit ownership | ✅ Fixed | `verifyCampaignWorkspace` enforced on PUT/DELETE (`apps/api/src/routes/campaigns.ts`) |
+| AUTHZ-002 Role promotion via invite | ✅ Fixed | Invite role constrained to `admin\|analyst\|viewer`, route is admin-only, owner role immutable (`apps/api/src/routes/settings.ts`) |
+| INPUT-001 Server-side campaign validation | ✅ Fixed | Strict Zod schema with `.strict()` on campaign creation (`apps/api/src/routes/campaigns.ts`) |
+| Stripe webhook verification | ✅ Fixed | `stripe.webhooks.constructEvent` with `STRIPE_WEBHOOK_SECRET`, raw-body mount (`apps/api/src/routes/billing.ts`) |
+| SEC-003 Secrets in logs | ✅ Mitigated | Pino redaction for tokens/api keys/secrets at any depth in production (`apps/api/src/lib/logger.ts`); SQL params no longer logged on query failure |
+| XSS-001 CSP too permissive | ⚠️ Partially fixed | Web CSP drops `unsafe-eval` outside development and adds `object-src`/`base-uri`/`frame-ancestors`; `unsafe-inline` for scripts remains (Next.js inline runtime — nonce-based CSP is follow-up work) |
+| SEC-001/SEC-002 Secrets in env vars | ⏳ Open | `.env`-based secrets; vault/secrets-manager integration not implemented (deployment-environment concern) |
+| INPUT-002 File upload validation | ✅ Fixed | MIME whitelist enforced in multer `fileFilter`; stored extension derived from the accepted MIME type, not the client filename (`apps/api/src/routes/upload.ts`) |
+
+---
+
 ## Executive Summary
 
 This security audit evaluates the marketing campaign management platform across eight critical security domains. The assessment combines automated scanning, manual code review, penetration testing methodology, and architectural analysis. Each finding includes a severity rating (Critical/High/Medium/Low), CVSS score where applicable, exploitation scenario, and remediation recommendation.

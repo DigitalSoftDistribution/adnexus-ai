@@ -1,5 +1,11 @@
 # AdNexus AI - Final Status Report
 
+> ⚠️ **HISTORICAL DOCUMENT** — this report describes the v0.1.0 state as of
+> 2025-05-23 and is kept for reference only. For the current state see
+> [docs/PATH_TO_V1.md](docs/PATH_TO_V1.md) (launch status) and
+> [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) (honest feature
+> inventory).
+
 > **Project**: AdNexus AI - AI-Powered Advertising Platform  
 > **Version**: 0.1.0  
 > **Report Date**: 2025-05-23  

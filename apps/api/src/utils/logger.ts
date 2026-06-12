@@ -1,11 +1,8 @@
-/** Minimal logger stub for backend compatibility. */
-const noop = () => {};
-const logger = {
-  debug: noop as (...args: unknown[]) => void,
-  info: noop as (...args: unknown[]) => void,
-  warn: noop as (...args: unknown[]) => void,
-  error: noop as (...args: unknown[]) => void,
-};
-
-export { logger };
-export default logger;
+/**
+ * Compatibility shim: some modules import the logger from `utils/logger`.
+ * Re-export the real pino logger from `lib/logger` so those call sites get
+ * structured, redacted logging instead of the historical no-op stub.
+ */
+export { logger, getRequestLogger, getModuleLogger } from '../lib/logger';
+export type { Logger } from '../lib/logger';
+export { default } from '../lib/logger';

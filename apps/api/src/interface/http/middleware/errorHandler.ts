@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { DomainError } from '../../../domain/value-objects/Result';
+import { getModuleLogger } from '../../../lib/logger';
+
+const logger = getModuleLogger('error-handler');
 
 export interface ApiErrorResponse {
   success: false;
@@ -72,7 +75,7 @@ export function expressErrorHandler(
   }
 
   // Generic fallback
-  console.error('Unhandled error:', err);
+  logger.error({ err }, 'Unhandled error');
   const response: ApiErrorResponse = {
     success: false,
     error: {

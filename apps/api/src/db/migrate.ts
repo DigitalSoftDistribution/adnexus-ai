@@ -192,9 +192,7 @@ async function migrateUp(): Promise<void> {
       console.log(`     ✅ Applied`);
     } catch (error) {
       await query("ROLLBACK");
-      logger.error(`[Migrate:UP] Failed on ${migration.filename}`, {
-        error: (error as Error).message,
-      });
+      logger.error({ err: error }, `[Migrate:UP] Failed on ${migration.filename}`);
       console.error(`     ❌ Failed: ${(error as Error).message}`);
       throw error;
     }
@@ -250,9 +248,7 @@ async function migrateDown(): Promise<void> {
       console.log(`     ✅ Rolled back`);
     } catch (error) {
       await query("ROLLBACK");
-      logger.error(`[Migrate:DOWN] Failed on ${migration.filename}`, {
-        error: (error as Error).message,
-      });
+      logger.error({ err: error }, `[Migrate:DOWN] Failed on ${migration.filename}`);
       console.error(`     ❌ Failed: ${(error as Error).message}`);
       throw error;
     }
@@ -312,16 +308,11 @@ async function main(): Promise<void> {
   try {
     // Verify database connectivity first
     const { rows } = await query<{ now: Date }>("SELECT NOW() as now");
-    logger.info("[Migrate] Connected to PostgreSQL", {
-      serverTime: rows[0].now,
-    });
+    logger.info({ serverTime: rows[0].now }, "[Migrate] Connected to PostgreSQL");
 
     await COMMANDS[cmd]();
   } catch (error) {
-    logger.error("[Migrate] Fatal error", {
-      command: cmd,
-      error: (error as Error).message,
-    });
+    logger.error({ err: error, command: cmd }, "[Migrate] Fatal error");
     console.error(`\n❌ Migration failed: ${(error as Error).message}`);
     process.exit(1);
   } finally {

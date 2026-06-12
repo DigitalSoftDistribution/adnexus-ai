@@ -12,6 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 
 import { config } from "../config";
 import { getRedisClient } from "../lib/redis";
+import { getModuleLogger } from "../lib/logger";
+
+const log = getModuleLogger("evaluate-rules");
 
 export const RULE_EVALUATION_QUEUE_NAME = "rule-evaluation";
 
@@ -1081,10 +1084,10 @@ function getWorkerRedis(): Redis {
 
 function createConsoleLogger(): Logger {
   return {
-    info: (msg, meta) => console.log(msg, meta ?? ""),
-    debug: (msg, meta) => console.debug(msg, meta ?? ""),
-    warn: (msg, meta) => console.warn(msg, meta ?? ""),
-    error: (msg, meta) => console.error(msg, meta ?? ""),
+    info: (msg, meta) => log.info(meta ?? {}, msg),
+    debug: (msg, meta) => log.debug(meta ?? {}, msg),
+    warn: (msg, meta) => log.warn(meta ?? {}, msg),
+    error: (msg, meta) => log.error(meta ?? {}, msg),
   };
 }
 
@@ -1214,12 +1217,12 @@ export async function enqueueWorkspaceRuleEvaluation(
 ): Promise<string | null> {
   const disableReason = getEvaluateRulesDisableReason();
   if (disableReason) {
-    console.log(`[Rule Evaluation] Skipping enqueue: ${disableReason}`);
+    log.info(`Skipping enqueue: ${disableReason}`);
     return null;
   }
 
   if (!ruleEvaluationWorker) {
-    console.log("[Rule Evaluation] Worker is not running; cannot enqueue workspace evaluation");
+    log.info("Worker is not running; cannot enqueue workspace evaluation");
     return null;
   }
 

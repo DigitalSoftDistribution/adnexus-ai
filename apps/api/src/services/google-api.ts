@@ -3,6 +3,9 @@ import { config } from '../config';
 import { PlatformError } from '../lib/errors';
 import { supabase } from '../lib/supabase';
 import type { Platform, UnifiedCampaign, UnifiedAdSet, UnifiedAd } from '../types';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('google-api');
 
 const GOOGLE_ADS_API = config.google.adsApiUrl;
 const GOOGLE_OAUTH_URL = config.google.oauthUrl;
@@ -273,7 +276,7 @@ export async function getGoogleAuthUrl(workspaceId: string): Promise<string> {
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent');
 
-  console.log('[google] Generated OAuth URL for workspace:', workspaceId);
+  logger.info({ workspaceId }, 'Generated OAuth URL for workspace');
   return url.toString();
 }
 
@@ -293,7 +296,7 @@ export async function handleGoogleCallback(code: string, workspaceId: string): P
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
 
-    console.log('[google] OAuth code exchanged successfully');
+    logger.info('OAuth code exchanged successfully');
 
     if (!tokenData.access_token) {
       throw new PlatformError('google', 'No access token in OAuth response');
@@ -361,11 +364,11 @@ export async function handleGoogleCallback(code: string, workspaceId: string): P
       );
 
     if (tokenError) {
-      console.error('[google] Failed to store token:', tokenError);
+      logger.error({ err: tokenError }, 'Failed to store token');
       throw new PlatformError('google', `Token storage failed: ${tokenError.message}`);
     }
 
-    console.log('[google] Account connected:', customer.id, customer.descriptive_name);
+    logger.info({ accountId: customer.id, name: customer.descriptive_name }, 'Account connected');
 
     return {
       id: `${workspaceId}_google_${customer.id}`,
@@ -418,7 +421,7 @@ export async function fetchGoogleCampaigns(
       ORDER BY campaign.id DESC
     `.trim();
 
-    console.log('[google] Fetching campaigns for account:', accountId);
+    logger.info({ accountId }, 'Fetching campaigns for account');
 
     const results = await searchGoogleAds<{
       campaign: GoogleCampaign;
@@ -489,7 +492,7 @@ export async function createGoogleCampaign(
     }
 
     const campaignId = extractIdFromResource(createdResource);
-    console.log('[google] Campaign created:', campaignId, campaign.name);
+    logger.info({ campaignId, name: campaign.name }, 'Campaign created');
     return campaignId;
   } catch (err) {
     if (err instanceof PlatformError) throw err;
@@ -531,7 +534,7 @@ export async function updateGoogleCampaign(
     }
 
     if (updateMask.length === 0) {
-      console.log('[google] No fields to update for campaign:', campaignId);
+      logger.info({ campaignId }, 'No fields to update for campaign');
       return;
     }
 
@@ -548,7 +551,7 @@ export async function updateGoogleCampaign(
       ],
     );
 
-    console.log('[google] Campaign updated:', campaignId, updateMask.join(', '));
+    logger.info({ campaignId, updatedFields: updateMask.join(', ') }, 'Campaign updated');
   } catch (err) {
     if (err instanceof PlatformError) throw err;
     const e = err as AxiosError;
@@ -576,7 +579,7 @@ export async function deleteGoogleCampaign(
       ],
     );
 
-    console.log('[google] Campaign removed:', campaignId);
+    logger.info({ campaignId }, 'Campaign removed');
   } catch (err) {
     if (err instanceof PlatformError) throw err;
     const e = err as AxiosError;
@@ -611,7 +614,7 @@ export async function fetchGoogleAdGroups(
       ORDER BY ad_group.id DESC
     `.trim();
 
-    console.log('[google] Fetching ad groups for campaign:', campaignId);
+    logger.info({ campaignId }, 'Fetching ad groups for campaign');
 
     const results = await searchGoogleAds<{
       adGroup: GoogleAdGroup;
@@ -663,7 +666,7 @@ export async function createGoogleAdGroup(
     }
 
     const adGroupId = extractIdFromResource(createdResource);
-    console.log('[google] Ad group created:', adGroupId, adGroup.name);
+    logger.info({ adGroupId, name: adGroup.name }, 'Ad group created');
     return adGroupId;
   } catch (err) {
     if (err instanceof PlatformError) throw err;
@@ -703,7 +706,7 @@ export async function fetchGoogleAds(
       ORDER BY ad_group_ad.ad.id DESC
     `.trim();
 
-    console.log('[google] Fetching ads for ad group:', adGroupId);
+    logger.info({ adGroupId }, 'Fetching ads for ad group');
 
     const results = await searchGoogleAds<{
       adGroupAd: GoogleAd;
@@ -768,7 +771,7 @@ export async function createGoogleAd(
     }
 
     const adId = extractIdFromResource(createdResource);
-    console.log('[google] Ad created:', adId, ad.name);
+    logger.info({ adId, name: ad.name }, 'Ad created');
     return adId;
   } catch (err) {
     if (err instanceof PlatformError) throw err;
@@ -822,7 +825,7 @@ export async function fetchGoogleInsights(
       ORDER BY metrics.cost_micros DESC
     `.trim();
 
-    console.log('[google] Fetching insights for', campaignIds.length, 'campaigns, date range:', formattedStart, 'to', formattedEnd);
+    logger.info({ campaignCount: campaignIds.length, start: formattedStart, end: formattedEnd }, 'Fetching insights for campaigns');
 
     const results = await searchGoogleAds<{
       campaign: {
@@ -892,7 +895,7 @@ export async function fetchGoogleAccountInsights(
       WHERE segments.date BETWEEN '${formattedStart}' AND '${formattedEnd}'
     `.trim();
 
-    console.log('[google] Fetching account insights for:', accountId);
+    logger.info({ accountId }, 'Fetching account insights');
 
     const results = await searchGoogleAds<{
       metrics: {
@@ -1046,7 +1049,7 @@ export async function normalizeGoogleAd(ad: GoogleAd): Promise<UnifiedAd> {
 
 export async function refreshGoogleToken(refreshToken: string): Promise<{ accessToken: string; expiresAt: Date }> {
   try {
-    console.log('[google] Refreshing access token');
+    logger.info('Refreshing access token');
 
     const { data } = await axios.post<GoogleTokenResponse>(
       GOOGLE_TOKEN_URL,
@@ -1066,7 +1069,7 @@ export async function refreshGoogleToken(refreshToken: string): Promise<{ access
     const expiresIn = data.expires_in ?? 3600;
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-    console.log('[google] Token refreshed, expires at:', expiresAt.toISOString());
+    logger.info({ expiresAt: expiresAt.toISOString() }, 'Token refreshed');
 
     return {
       accessToken: data.access_token,
@@ -1089,20 +1092,20 @@ export async function validateGoogleToken(accessToken: string): Promise<boolean>
 
     // Check if token is expired
     if (data.expires_in !== undefined && data.expires_in <= 0) {
-      console.log('[google] Token is expired');
+      logger.info('Token is expired');
       return false;
     }
 
     // Verify it has the adwords scope
     const hasAdwordsScope = data.scope?.includes('adwords') ?? false;
     if (!hasAdwordsScope) {
-      console.log('[google] Token missing adwords scope');
+      logger.info('Token missing adwords scope');
       return false;
     }
 
     return true;
   } catch (err) {
-    console.log('[google] Token validation failed:', (err as AxiosError).message);
+    logger.info({ err: (err as AxiosError).message }, 'Token validation failed');
     return false;
   }
 }

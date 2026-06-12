@@ -10,6 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatCurrency, formatNumber, formatPercent, formatDate } from '@/lib/utils';
 import {
   ArrowLeft, Edit, Pause, Play, BarChart3, Users, Calendar,
@@ -198,6 +208,7 @@ export function CampaignDetailContent() {
   const params = useParams();
   const id = params.id as string;
   const [activeTab, setActiveTab] = useState('overview');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { data: campaign, isLoading } = useCampaign(id);
   const actions = useCampaignActions(id);
   const t = useTranslations('campaigns');
@@ -300,7 +311,7 @@ export function CampaignDetailContent() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => actions.delete.mutate()}
+            onClick={() => setDeleteDialogOpen(true)}
             disabled={actions.delete.isPending}
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
@@ -309,6 +320,31 @@ export function CampaignDetailContent() {
           </Button>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteCampaignTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteCampaignDescription', { name: campaign.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={actions.delete.isPending}
+              onClick={() => {
+                if (actions.delete.isPending) return;
+                actions.delete.mutate();
+              }}
+            >
+              {tc('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Metrics */}
       <div className="grid gap-4 md:grid-cols-4">

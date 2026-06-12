@@ -23,6 +23,8 @@ jest.mock('../../src/platforms/account-store', () => ({
 
 jest.mock('../../src/security/encryption', () => ({
   decryptToken: jest.fn((wrapped: string) => wrapped.replace('enc:v1:', 'decrypted:')),
+  encryptToken: jest.fn((token: string) => `enc:v1:${token}`),
+  isEncrypted: jest.fn((value: unknown) => typeof value === 'string' && value.startsWith('enc:v1:')),
 }));
 
 const mockQuery = query as jest.MockedFunction<typeof query>;

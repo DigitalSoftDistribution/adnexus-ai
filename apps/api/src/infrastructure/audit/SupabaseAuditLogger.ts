@@ -1,5 +1,8 @@
 import type { IAuditLogger, AuditLogEntry } from '../../application/ports/IAuditLogger';
 import { supabase } from '../../lib/supabase';
+import { getModuleLogger } from '../../lib/logger';
+
+const logger = getModuleLogger('audit-logger');
 
 export class SupabaseAuditLogger implements IAuditLogger {
   async log(entry: AuditLogEntry): Promise<void> {
@@ -21,10 +24,21 @@ export class SupabaseAuditLogger implements IAuditLogger {
         source: entry.source,
         ip_address: entry.ipAddress,
       });
-    } catch {
-      // Audit logging should never fail the main operation
-      // In production, send to a fallback (e.g., stdout, Sentry)
-      console.error('Audit log failed:', entry);
+    } catch (err) {
+      // Audit logging should never fail the main operation. Log identifiers
+      // only — entry metadata/details can carry the sensitive content the
+      // audit trail exists to protect.
+      logger.error(
+        {
+          err,
+          workspaceId: entry.workspaceId,
+          userId: entry.userId,
+          action: entry.action,
+          entityType: entry.entityType,
+          entityId: entry.entityId,
+        },
+        'Audit log failed',
+      );
     }
   }
 
@@ -51,8 +65,15 @@ export class SupabaseAuditLogger implements IAuditLogger {
       }));
 
       await supabase.from('audit_log').insert(rows);
-    } catch {
-      console.error('Batch audit log failed:', entries);
+    } catch (err) {
+      logger.error(
+        {
+          err,
+          count: entries.length,
+          workspaceIds: [...new Set(entries.map((e) => e.workspaceId))],
+        },
+        'Batch audit log failed',
+      );
     }
   }
 }

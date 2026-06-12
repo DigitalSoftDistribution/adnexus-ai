@@ -19,6 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AlertCircle, CheckCircle, Copy, Users, Key, Bell, Save, Plus, Trash2 } from 'lucide-react';
 
 interface Workspace {
@@ -240,6 +250,8 @@ export function SettingsContent() {
   const [inviteRole, setInviteRole] = useState<InvitableTeamRole>('viewer');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
+  const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
 
   const handleStartEditWorkspace = () => {
     setWorkspaceName(workspace.data?.name ?? '');
@@ -365,6 +377,70 @@ export function SettingsContent() {
         </DialogContent>
       </Dialog>
 
+      {/* Team member removal confirmation */}
+      <AlertDialog
+        open={memberToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open) setMemberToRemove(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('removeMemberTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('removeMemberDescription', {
+                name: memberToRemove?.name ?? memberToRemove?.email ?? '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeMember.isPending}
+              onClick={() => {
+                if (removeMember.isPending) return;
+                if (memberToRemove) removeMember.mutate(memberToRemove.userId);
+                setMemberToRemove(null);
+              }}
+            >
+              {t('removeMemberConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* API key revocation confirmation */}
+      <AlertDialog
+        open={keyToRevoke !== null}
+        onOpenChange={(open) => {
+          if (!open) setKeyToRevoke(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('revokeApiKeyTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('revokeApiKeyDescription', { name: keyToRevoke?.name ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={revokeApiKey.isPending}
+              onClick={() => {
+                if (revokeApiKey.isPending) return;
+                if (keyToRevoke) revokeApiKey.mutate(keyToRevoke.id);
+                setKeyToRevoke(null);
+              }}
+            >
+              {t('revokeApiKeyConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
@@ -480,7 +556,7 @@ export function SettingsContent() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeMember.mutate(member.userId)}
+                          onClick={() => setMemberToRemove(member)}
                           disabled={removeMember.isPending || member.role === 'owner'}
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
@@ -644,7 +720,7 @@ export function SettingsContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => revokeApiKey.mutate(key.id)}
+                        onClick={() => setKeyToRevoke(key)}
                         disabled={revokeApiKey.isPending}
                         aria-label={t('revokeApiKey')}
                       >

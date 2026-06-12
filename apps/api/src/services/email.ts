@@ -2,6 +2,8 @@ import nodemailer, { Transporter } from 'nodemailer';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { logger } from '../utils/logger';
+import { config } from '../config';
+import { supabase } from '../lib/supabase';
 import {
   morningBriefTemplate,
   draftApprovalTemplate,
@@ -84,6 +86,22 @@ export interface EmailJobData {
   data?: MorningBriefData | WeeklySummaryData;
 }
 
+/**
+ * drafts.impact_estimate may be plain text or a JSONB object depending on the
+ * writer — normalize it to a human-readable string (or undefined).
+ */
+function formatImpactEstimate(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'string') return value || undefined;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const parts = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v != null && typeof v !== 'object')
+      .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v)}`);
+    return parts.length > 0 ? parts.join(' · ') : undefined;
+  }
+  return String(value);
+}
+
 export class EmailService {
   private transporter: Transporter;
   private emailQueue: Queue;
@@ -159,95 +177,331 @@ export class EmailService {
   }
 
   private async getUserEmail(userId: string): Promise<string | null> {
-    // TODO: Replace with actual user lookup from database
-    logger.debug(`Looking up email for user: ${userId}`);
-    return null;
+    const { data, error } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      logger.warn({ err: error, userId }, 'Failed to look up user email');
+      return null;
+    }
+    return data?.email ?? null;
+  }
+
+  /** User's preferred timezone from user_settings, defaulting to UTC. */
+  private async getUserTimezone(userId: string, workspaceId: string): Promise<string> {
+    const { data } = await supabase
+      .from('user_settings')
+      .select('timezone')
+      .eq('user_id', userId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+
+    return (data?.timezone as string) || 'UTC';
+  }
+
+  /** Calendar day (YYYY-MM-DD) of the given instant in the given timezone. */
+  private localDay(date: Date, timeZone: string): string {
+    // en-CA formats as YYYY-MM-DD
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  }
+
+  /** UTC instant of midnight on the given local calendar day (YYYY-MM-DD). */
+  private startOfLocalDayUtc(day: string, timeZone: string): Date {
+    const utcGuess = new Date(`${day}T00:00:00Z`);
+    // sv-SE renders as "YYYY-MM-DD HH:mm:ss" — reinterpret the zone-local
+    // wall-clock time as UTC to derive the zone offset at that instant.
+    const wallClock = utcGuess.toLocaleString('sv-SE', { timeZone });
+    const wallClockAsUtc = new Date(wallClock.replace(' ', 'T') + 'Z');
+    const offsetMs = wallClockAsUtc.getTime() - utcGuess.getTime();
+    return new Date(utcGuess.getTime() - offsetMs);
+  }
+
+  private async getWorkspaceName(workspaceId: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('workspaces')
+      .select('name')
+      .eq('id', workspaceId)
+      .maybeSingle();
+
+    if (error || !data?.name) {
+      return 'Your Workspace';
+    }
+    return data.name as string;
+  }
+
+  /**
+   * Fetch per-campaign daily metric rows for the workspace's campaigns
+   * within [start, end] (inclusive, YYYY-MM-DD strings).
+   */
+  private async fetchDailyMetrics(
+    workspaceId: string,
+    start: string,
+    end: string,
+  ): Promise<Array<{ campaign_id: string; campaign_name: string; date: string; spend: number; roas: number; conversions: number; cpa: number; impressions: number; clicks: number }>> {
+    // Campaigns are workspace-scoped either directly (campaigns.workspace_id)
+    // or through their ad account — cover both paths, like the campaign
+    // routes do.
+    const [viaAdAccount, direct] = await Promise.all([
+      supabase
+        .from('campaigns')
+        .select('id, name, ad_accounts!inner(workspace_id)')
+        .eq('ad_accounts.workspace_id', workspaceId),
+      supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('workspace_id', workspaceId),
+    ]);
+
+    if (viaAdAccount.error) {
+      logger.warn({ err: viaAdAccount.error, workspaceId }, 'Failed to fetch campaigns for email metrics');
+    }
+    if (direct.error) {
+      logger.warn({ err: direct.error, workspaceId }, 'Failed to fetch workspace campaigns for email metrics');
+    }
+
+    const nameById = new Map<string, string>();
+    for (const c of [...(viaAdAccount.data ?? []), ...(direct.data ?? [])]) {
+      nameById.set(c.id as string, (c.name as string) ?? 'Unnamed Campaign');
+    }
+
+    if (nameById.size === 0) {
+      return [];
+    }
+
+    const { data: rows, error: metricsError } = await supabase
+      .from('campaign_daily_metrics')
+      .select('campaign_id, date, spend, roas, conversions, cpa, impressions, clicks')
+      .in('campaign_id', Array.from(nameById.keys()))
+      .gte('date', start)
+      .lte('date', end);
+
+    if (metricsError) {
+      logger.warn({ err: metricsError, workspaceId }, 'Failed to fetch daily metrics for email');
+      return [];
+    }
+
+    return (rows ?? []).map((r) => ({
+      campaign_id: r.campaign_id as string,
+      campaign_name: nameById.get(r.campaign_id as string) ?? 'Unnamed Campaign',
+      date: r.date as string,
+      spend: Number(r.spend ?? 0),
+      roas: Number(r.roas ?? 0),
+      conversions: Number(r.conversions ?? 0),
+      cpa: Number(r.cpa ?? 0),
+      impressions: Number(r.impressions ?? 0),
+      clicks: Number(r.clicks ?? 0),
+    }));
   }
 
   private async getMorningBriefData(userId: string, workspaceId: string): Promise<MorningBriefData> {
-    // TODO: Integrate with reporting service to gather actual data
     const now = new Date();
+    const tz = await this.getUserTimezone(userId, workspaceId);
+    // Calendar days are computed in the user's timezone so "yesterday" lines
+    // up with the dates stored in campaign_daily_metrics.
+    const dayAgo = (n: number) => this.localDay(new Date(now.getTime() - n * 86400000), tz);
+    const yesterday = dayAgo(1);
+    const dayBefore = dayAgo(2);
+
+    const [workspaceName, rows] = await Promise.all([
+      this.getWorkspaceName(workspaceId),
+      this.fetchDailyMetrics(workspaceId, dayBefore, yesterday),
+    ]);
+
+    const yRows = rows.filter((r) => r.date === yesterday);
+    const pRows = rows.filter((r) => r.date === dayBefore);
+
+    const sum = (xs: typeof rows, key: 'spend' | 'conversions' | 'impressions' | 'clicks') =>
+      xs.reduce((acc, r) => acc + r[key], 0);
+    const pctChange = (current: number, previous: number) =>
+      previous > 0 ? ((current - previous) / previous) * 100 : 0;
+
+    const ySpend = sum(yRows, 'spend');
+    const pSpend = sum(pRows, 'spend');
+    const yConv = sum(yRows, 'conversions');
+    const pConv = sum(pRows, 'conversions');
+    // Spend-weighted ROAS / CPA across campaigns
+    const weightedRoas = (xs: typeof rows) => {
+      const spend = sum(xs, 'spend');
+      return spend > 0 ? xs.reduce((acc, r) => acc + r.roas * r.spend, 0) / spend : 0;
+    };
+    const cpa = (spend: number, conversions: number) => (conversions > 0 ? spend / conversions : 0);
+
+    // Rank campaigns by day-over-day ROAS movement. Winners must have
+    // improved and losers must have declined — on a day where everything
+    // moved one way, the other list is simply empty.
+    const prevByCampaign = new Map(pRows.map((r) => [r.campaign_id, r]));
+    const movements = yRows
+      .map((r) => {
+        const prev = prevByCampaign.get(r.campaign_id);
+        return {
+          name: r.campaign_name,
+          metric: 'ROAS',
+          change: prev ? pctChange(r.roas, prev.roas) : 0,
+        };
+      })
+      .filter((m) => m.change !== 0)
+      .sort((a, b) => b.change - a.change);
+    const winners = movements.filter((m) => m.change > 0);
+    const losers = movements.filter((m) => m.change < 0);
+
+    // Pending AI drafts double as actionable recommendations
+    const { data: pendingDrafts } = await supabase
+      .from('drafts')
+      .select('id, campaign_name, change_summary, ai_reasoning, draft_type')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'pending')
+      .eq('actor_type', 'ai')
+      .order('created_at', { ascending: false })
+      .limit(3);
+
     return {
-      date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-      workspaceName: 'Demo Workspace',
+      date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz }),
+      workspaceName,
       kpis: {
-        spend: { value: 12450.75, change: 12.3 },
-        roas: { value: 4.85, change: -2.1 },
-        conversions: { value: 342, change: 8.7 },
-        cpa: { value: 36.4, change: -5.2 },
+        spend: { value: ySpend, change: pctChange(ySpend, pSpend) },
+        roas: { value: weightedRoas(yRows), change: pctChange(weightedRoas(yRows), weightedRoas(pRows)) },
+        conversions: { value: yConv, change: pctChange(yConv, pConv) },
+        cpa: { value: cpa(ySpend, yConv), change: pctChange(cpa(ySpend, yConv), cpa(pSpend, pConv)) },
       },
-      topWinners: [
-        { name: 'Summer Sale Campaign', metric: 'ROAS', change: 45.2 },
-        { name: 'Retargeting - Cart Abandoners', metric: 'Conversions', change: 32.8 },
-      ],
-      topLosers: [
-        { name: 'Brand Awareness - Q3', metric: 'CPA', change: 28.5 },
-        { name: 'Display - Prospecting', metric: 'ROAS', change: -18.3 },
-      ],
-      recommendations: [
-        {
-          id: 'rec_1',
-          title: 'Increase budget on Summer Sale Campaign',
-          description: 'ROAS is 45% above target. Increasing budget by 20% could yield 150+ additional conversions.',
-          impact: 'high',
-          category: 'Budget Optimization',
-        },
-        {
-          id: 'rec_2',
-          title: 'Pause underperforming ad sets in Brand Awareness',
-          description: '3 ad sets have CPA 2x above average for 5+ days. Pausing could save $420/week.',
-          impact: 'medium',
-          category: 'Performance',
-        },
-        {
-          id: 'rec_3',
-          title: 'A/B test new creative for Retargeting campaign',
-          description: 'Current creative frequency is high. Fresh creative could improve CTR by 15-25%.',
-          impact: 'medium',
-          category: 'Creative',
-        },
-      ],
-      insights: [
-        'Weekend ROAS was 23% higher than weekday average — consider increasing weekend budgets.',
-        'Mobile conversions increased 18% after the latest landing page update.',
-        'Competitor activity detected in 3 of your top-performing keywords.',
-      ],
+      topWinners: winners.slice(0, 2),
+      topLosers: losers.slice(-2).reverse(),
+      recommendations: (pendingDrafts ?? []).map((d) => ({
+        id: d.id as string,
+        title: (d.change_summary as string) ?? `Proposed ${d.draft_type} for ${d.campaign_name}`,
+        description: (d.ai_reasoning as string) ?? 'Review the pending draft for details.',
+        impact: 'medium' as const,
+        category: (d.draft_type as string) ?? 'Optimization',
+      })),
+      insights: [],
     };
   }
 
   private async getWeeklySummaryData(userId: string, workspaceId: string): Promise<WeeklySummaryData> {
-    // TODO: Integrate with reporting service
+    const now = new Date();
+    const tz = await this.getUserTimezone(userId, workspaceId);
+    const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000);
+    // Week boundaries in the user's timezone, matching campaign_daily_metrics dates
+    const localDayAgo = (n: number) => this.localDay(daysAgo(n), tz);
+
+    const currentStart = localDayAgo(7);
+    const currentEnd = localDayAgo(1);
+    const previousStart = localDayAgo(14);
+    const previousEnd = localDayAgo(8);
+
+    const [workspaceName, rows] = await Promise.all([
+      this.getWorkspaceName(workspaceId),
+      this.fetchDailyMetrics(workspaceId, previousStart, currentEnd),
+    ]);
+
+    const current = rows.filter((r) => r.date >= currentStart);
+    const previous = rows.filter((r) => r.date <= previousEnd);
+
+    const sum = (xs: typeof rows, key: 'spend' | 'conversions' | 'impressions' | 'clicks') =>
+      xs.reduce((acc, r) => acc + r[key], 0);
+    const pctChange = (c: number, p: number) => (p > 0 ? ((c - p) / p) * 100 : 0);
+    const weightedRoas = (xs: typeof rows) => {
+      const spend = sum(xs, 'spend');
+      return spend > 0 ? xs.reduce((acc, r) => acc + r.roas * r.spend, 0) / spend : 0;
+    };
+    const cpa = (spend: number, conversions: number) => (conversions > 0 ? spend / conversions : 0);
+
+    const metric = (key: 'spend' | 'conversions' | 'impressions' | 'clicks') => {
+      const c = sum(current, key);
+      const p = sum(previous, key);
+      return { current: c, previous: p, change: pctChange(c, p) };
+    };
+
+    // Top campaigns by spend over the current week
+    const byCampaign = new Map<string, { name: string; spend: number; roasWeighted: number; conversions: number }>();
+    for (const r of current) {
+      const entry = byCampaign.get(r.campaign_id) ?? { name: r.campaign_name, spend: 0, roasWeighted: 0, conversions: 0 };
+      entry.spend += r.spend;
+      entry.roasWeighted += r.roas * r.spend;
+      entry.conversions += r.conversions;
+      byCampaign.set(r.campaign_id, entry);
+    }
+    const topCampaigns = [...byCampaign.values()]
+      .sort((a, b) => b.spend - a.spend)
+      .slice(0, 3)
+      .map((c) => ({
+        name: c.name,
+        spend: c.spend,
+        roas: c.spend > 0 ? c.roasWeighted / c.spend : 0,
+        conversions: c.conversions,
+      }));
+
+    // Anchor audit counts to the same local calendar week as the metrics
+    // above — [currentStart, today) — not a rolling instant from send time
+    const weekStartDate = this.startOfLocalDayUtc(currentStart, tz);
+    const weekEndExclusive = this.startOfLocalDayUtc(this.localDay(now, tz), tz);
+    const [{ count: aiActions }, { count: draftsCreated }] = await Promise.all([
+      supabase
+        .from('audit_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .eq('actor_type', 'ai')
+        .gte('created_at', weekStartDate.toISOString())
+        .lt('created_at', weekEndExclusive.toISOString()),
+      supabase
+        .from('drafts')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .gte('created_at', weekStartDate.toISOString())
+        .lt('created_at', weekEndExclusive.toISOString()),
+    ]);
+
+    const spendM = metric('spend');
+    const convM = metric('conversions');
+
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: tz });
+
     return {
-      weekRange: 'Jan 6 - Jan 12, 2025',
-      workspaceName: 'Demo Workspace',
-      spend: { current: 87155.25, previous: 78920.0, change: 10.4 },
-      roas: { current: 4.52, previous: 4.18, change: 8.1 },
-      conversions: { current: 2394, previous: 2108, change: 13.6 },
-      cpa: { current: 36.4, previous: 37.44, change: -2.8 },
-      impressions: { current: 2840500, previous: 2610200, change: 8.8 },
-      clicks: { current: 45200, previous: 41200, change: 9.7 },
-      topCampaigns: [
-        { name: 'Summer Sale Campaign', spend: 12450.75, roas: 6.2, conversions: 520 },
-        { name: 'Retargeting - Cart Abandoners', spend: 8750.5, roas: 8.1, conversions: 680 },
-        { name: 'Search - Brand', spend: 4200.0, roas: 12.4, conversions: 310 },
-      ],
-      aiActions: 24,
-      draftsCreated: 8,
-      timeSaved: '6.5 hours',
+      weekRange: `${fmt(daysAgo(7))} - ${fmt(daysAgo(1))}, ${now.getFullYear()}`,
+      workspaceName,
+      spend: spendM,
+      roas: {
+        current: weightedRoas(current),
+        previous: weightedRoas(previous),
+        change: pctChange(weightedRoas(current), weightedRoas(previous)),
+      },
+      conversions: convM,
+      cpa: {
+        current: cpa(spendM.current, convM.current),
+        previous: cpa(spendM.previous, convM.previous),
+        change: pctChange(cpa(spendM.current, convM.current), cpa(spendM.previous, convM.previous)),
+      },
+      impressions: metric('impressions'),
+      clicks: metric('clicks'),
+      topCampaigns,
+      aiActions: aiActions ?? 0,
+      draftsCreated: draftsCreated ?? 0,
+      // Rough estimate: ~15 minutes of manual work saved per automated action
+      timeSaved: `${(((aiActions ?? 0) * 15) / 60).toFixed(1)} hours`,
     };
   }
 
   /**
-   * Send morning brief email
+   * Send morning brief email.
+   *
+   * When the caller (e.g. the morning-brief worker) has already computed the
+   * brief, pass it via `briefData` to avoid re-deriving it here.
    */
-  async sendMorningBrief(userId: string, workspaceId: string): Promise<void> {
+  async sendMorningBrief(userId: string, workspaceId: string, briefData?: MorningBriefData): Promise<void> {
     const email = await this.getUserEmail(userId);
     if (!email) {
       logger.warn(`No email found for user ${userId}, skipping morning brief`);
       return;
     }
 
-    const data = await this.getMorningBriefData(userId, workspaceId);
+    const data = briefData ?? (await this.getMorningBriefData(userId, workspaceId));
     const html = morningBriefTemplate(data, this.appUrl);
 
     await this.queueEmail(
@@ -266,21 +520,42 @@ export class EmailService {
    * Send draft approval request email
    */
   async sendDraftApprovalRequest(draftId: string, approverEmail: string): Promise<void> {
-    // TODO: Fetch draft details from database
+    const { data: row, error } = await supabase
+      .from('drafts')
+      .select('id, campaign_name, draft_type, change_summary, change_detail, ai_reasoning, impact_estimate, actor_type, actor_name')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (error || !row) {
+      logger.warn({ err: error ?? undefined, draftId }, 'Draft not found, skipping approval email');
+      return;
+    }
+
+    const fieldLabels: Record<string, string> = {
+      budget_change: 'Daily Budget',
+      status_change: 'Status',
+      bid_adjustment: 'Bid Strategy',
+      targeting_edit: 'Audience Targeting',
+      audience_edit: 'Audience Targeting',
+      creative_swap: 'Creative',
+    };
+    const detail = (row.change_detail ?? {}) as Record<string, unknown>;
+    const reason = (row.ai_reasoning as string) ?? (row.change_summary as string) ?? '';
+
     const draft = {
-      id: draftId,
-      campaignName: 'Summer Sale Campaign',
-      proposedBy: 'AdNexus AI',
+      id: row.id as string,
+      campaignName: (row.campaign_name as string) ?? 'Unknown Campaign',
+      proposedBy:
+        (row.actor_name as string) ?? (row.actor_type === 'ai' ? 'AdNexus AI' : 'A teammate'),
       changes: [
-        { field: 'Daily Budget', from: '$500', to: '$650', reason: 'ROAS is 45% above target' },
-        { field: 'Bid Strategy', from: 'Lowest Cost', to: 'Cost Cap', reason: 'Improve cost efficiency' },
-        { field: 'Audience Targeting', from: 'Broad', to: 'Lookalike 1%', reason: 'Higher conversion rate with similar audiences' },
+        {
+          field: fieldLabels[row.draft_type as string] ?? (row.draft_type as string) ?? 'Change',
+          from: String(detail.old_value ?? detail.old_status ?? '—'),
+          to: String(detail.new_value ?? detail.new_status ?? '—'),
+          reason,
+        },
       ],
-      estimatedImpact: {
-        additionalSpend: 1050,
-        projectedRoas: 5.8,
-        projectedConversions: 150,
-      },
+      impactSummary: formatImpactEstimate(row.impact_estimate),
     };
 
     const html = draftApprovalTemplate(draft, this.appUrl);
@@ -435,8 +710,13 @@ export class EmailService {
    * Send password reset email
    */
   async sendPasswordReset(email: string, token: string): Promise<void> {
-    const html = passwordResetTemplate(token, this.appUrl);
-    const resetUrl = `${this.appUrl}/reset-password?token=${token}`;
+    // Reset links must target the validated frontend host (FRONTEND_URL) —
+    // the same setting the rest of the auth flow uses. APP_URL may be unset
+    // or point elsewhere in local/staging deployments.
+    const frontendUrl = config.frontend.url;
+    const html = passwordResetTemplate(token, frontendUrl);
+    // Must match the URL in passwordResetTemplate — the web app's reset page
+    const resetUrl = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
 
     await this.queueEmail(
       'password_reset',
@@ -550,7 +830,25 @@ export class EmailService {
   }
 }
 
-export const emailService = new EmailService();
+// Lazy singleton: the constructor opens Redis/BullMQ connections, which must
+// not happen as an import side effect (route modules import this service, and
+// tests/CLI tools import routes without a Redis available).
+let _emailService: EmailService | null = null;
+
+export function getEmailService(): EmailService {
+  if (!_emailService) {
+    _emailService = new EmailService();
+  }
+  return _emailService;
+}
+
+export const emailService: EmailService = new Proxy({} as EmailService, {
+  get(_target, prop, receiver) {
+    const instance = getEmailService();
+    const value = Reflect.get(instance, prop, instance);
+    return typeof value === 'function' ? value.bind(instance) : value;
+  },
+});
 
 /** Standalone sendEmail helper for notifications */
 export async function sendEmail(params: { to: string; subject: string; body: string }): Promise<void> {

@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Adresse e-mail ou mot de passe invalide",
+    "forgotPasswordTitle": "Mot de passe oublié ?",
+    "forgotPasswordSubtitle": "Saisissez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "resetEmailSentTitle": "Vérifiez votre boîte mail",
+    "resetEmailSentDescription": "Si un compte existe pour cette adresse e-mail, nous avons envoyé un lien de réinitialisation du mot de passe. Le lien expire dans 1 heure.",
+    "resetRequestFailed": "Impossible d'envoyer l'e-mail de réinitialisation. Veuillez réessayer.",
+    "backToSignIn": "Retour à la connexion",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "resetPasswordTitle": "Réinitialisez votre mot de passe",
+    "resetPasswordSubtitle": "Saisissez un nouveau mot de passe pour votre compte",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "confirmPasswordRequired": "Veuillez confirmer votre nouveau mot de passe",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+    "resetPasswordSuccessTitle": "Mot de passe réinitialisé",
+    "resetPasswordSuccessDescription": "Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "resetPasswordFailed": "Échec de la réinitialisation du mot de passe. Veuillez réessayer.",
+    "invalidResetTokenTitle": "Lien invalide ou expiré",
+    "invalidResetTokenDescription": "Ce lien de réinitialisation du mot de passe est invalide ou a expiré. Veuillez en demander un nouveau.",
+    "requestNewLink": "Demander un nouveau lien"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -330,7 +350,9 @@
     "connectPlatform": "Connecter une plateforme",
     "failedToSync": "Échec de la synchronisation de la campagne",
     "sync": "Synchroniser",
-    "syncing": "Synchronisation..."
+    "syncing": "Synchronisation...",
+    "deleteCampaignTitle": "Supprimer la campagne",
+    "deleteCampaignDescription": "Voulez-vous vraiment supprimer « {name} » ? Cette action est irréversible."
   },
   "drafts": {
     "title": "Brouillons",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Aucune clé API pour le moment",
     "apiKeysPlaceholder": "Générez une clé API pour accéder à l'API AdNexus par programmation.",
-    "created": "Créé"
+    "created": "Créé",
+    "removeMemberTitle": "Retirer un membre de l'équipe",
+    "removeMemberDescription": "Voulez-vous vraiment retirer {name} de cet espace de travail ? Son accès sera immédiatement révoqué.",
+    "removeMemberConfirm": "Retirer",
+    "revokeApiKeyTitle": "Révoquer la clé API",
+    "revokeApiKeyDescription": "Voulez-vous vraiment révoquer la clé API « {name} » ? Toutes les applications utilisant cette clé cesseront de fonctionner immédiatement.",
+    "revokeApiKeyConfirm": "Révoquer"
   },
   "billing": {
     "title": "Facturation",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Échec de la récupération de la campagne",
     "failedToFetchAdSets": "Échec de la récupération des ensembles de publicités",
     "failedToFetchHistory": "Échec de la récupération de l'historique",
-    "failedToFetchAds": "Échec de la récupération des publicités"
+    "failedToFetchAds": "Échec de la récupération des publicités",
+    "somethingWentWrong": "Une erreur est survenue",
+    "unexpectedErrorDescription": "Une erreur inattendue est survenue. Veuillez réessayer.",
+    "tryAgain": "Réessayer"
   },
   "notifications": {
     "title": "Notifications",

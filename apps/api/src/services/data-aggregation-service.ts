@@ -12,6 +12,9 @@ import {
   PlatformBreakdown,
   PeriodComparison,
 } from '../types/report';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('data-aggregation');
 
 /** Platform API client interface */
 interface PlatformApiClient {
@@ -70,7 +73,7 @@ export class DataAggregationService {
         onProgress?.(source.platformId, 'completed');
       } catch (error) {
         const errorMessage = `Failed to fetch from ${source.platformName}: ${(error as Error).message}`;
-        console.error(`[DataAggregationService] ${errorMessage}`);
+        logger.error(errorMessage);
         errors.push(errorMessage);
         onProgress?.(source.platformId, 'failed', errorMessage);
 

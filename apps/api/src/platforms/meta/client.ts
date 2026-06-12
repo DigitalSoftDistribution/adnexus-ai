@@ -90,6 +90,9 @@ import {
   MetaClientConfig,
   RequestContext,
 } from "./types";
+import { getModuleLogger } from "../../lib/logger";
+
+const log = getModuleLogger("meta-client");
 
 // Re-export all types for consumers
 export * from "./types";
@@ -396,10 +399,10 @@ export interface MetaApiLogger {
 
 /** Default console-based logger */
 const defaultLogger: MetaApiLogger = {
-  debug: (msg, meta) => console.debug(`[MetaAPI:DEBUG] ${msg}`, meta || ""),
-  info: (msg, meta) => console.info(`[MetaAPI:INFO] ${msg}`, meta || ""),
-  warn: (msg, meta) => console.warn(`[MetaAPI:WARN] ${msg}`, meta || ""),
-  error: (msg, meta) => console.error(`[MetaAPI:ERROR] ${msg}`, meta || ""),
+  debug: (msg, meta) => log.debug({ ...meta }, msg),
+  info: (msg, meta) => log.info({ ...meta }, msg),
+  warn: (msg, meta) => log.warn({ ...meta }, msg),
+  error: (msg, meta) => log.error({ ...meta }, msg),
 };
 
 // ============================================================================

@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db/connection';
 import { authenticate, requireMember as requireAuth } from '../middleware/authenticate';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('comments-route');
 
 const router = Router();
 
@@ -112,7 +115,7 @@ router.get('/drafts/:id/comments', authenticate, async (req, res) => {
 
     res.json({ draftId, comments });
   } catch (err) {
-    console.error('[GET /drafts/:id/comments]', err);
+    logger.error({ err }, 'GET /drafts/:id/comments');
     res.status(500).json({ error: 'Failed to load comments' });
   }
 });
@@ -133,21 +136,21 @@ router.post(
 
     const { text, parentId } = parse.data;
 
-    // If replying, validate parent belongs to same draft
-    if (parentId) {
-      const { rows: parentCheck } = await query(
-        'SELECT draft_id FROM comments WHERE id = $1',
-        [parentId]
-      );
-      if (parentCheck.length === 0) {
-        return res.status(404).json({ error: 'Parent comment not found' });
-      }
-      if (parentCheck[0].draft_id !== draftId) {
-        return res.status(400).json({ error: 'Parent belongs to a different draft' });
-      }
-    }
-
     try {
+      // If replying, validate parent belongs to same draft
+      if (parentId) {
+        const { rows: parentCheck } = await query(
+          'SELECT draft_id FROM comments WHERE id = $1',
+          [parentId]
+        );
+        if (parentCheck.length === 0) {
+          return res.status(404).json({ error: 'Parent comment not found' });
+        }
+        if (parentCheck[0].draft_id !== draftId) {
+          return res.status(400).json({ error: 'Parent belongs to a different draft' });
+        }
+      }
+
       const { rows: [newComment] } = await query(
         `
           INSERT INTO comments (draft_id, user_id, text, parent_id)
@@ -194,7 +197,7 @@ router.post(
         },
       });
     } catch (err) {
-      console.error('[POST /drafts/:id/comments]', err);
+      logger.error({ err }, 'POST /drafts/:id/comments');
       res.status(500).json({ error: 'Failed to create comment' });
     }
   }
@@ -225,7 +228,7 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 
     res.json({ success: true, deletedId: commentId });
   } catch (err) {
-    console.error('[DELETE /comments/:id]', err);
+    logger.error({ err }, 'DELETE /comments/:id');
     res.status(500).json({ error: 'Failed to delete comment' });
   }
 });

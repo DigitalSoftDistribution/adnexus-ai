@@ -1,5 +1,8 @@
 import { getRedisClient, isRedisAvailable } from '../lib/redis';
 import type { UnifiedCampaign, Draft } from '../types';
+import { getModuleLogger } from '../lib/logger';
+
+const logger = getModuleLogger('cache-service');
 
 // ─── Cache Local Types ───────────────────────────────────────
 
@@ -126,7 +129,7 @@ export async function get<T>(key: string): Promise<T | null> {
     const raw = await redis.get(key);
     return deserialize<T>(raw);
   } catch (err) {
-    console.error(`Cache GET error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache GET error (key prefix: ${key.split(':', 1)[0]})`);
     return null;
   }
 }
@@ -143,7 +146,7 @@ export async function set(key: string, value: unknown, ttlSeconds?: number): Pro
       await redis.set(key, payload);
     }
   } catch (err) {
-    console.error(`Cache SET error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache SET error (key prefix: ${key.split(':', 1)[0]})`);
   }
 }
 
@@ -154,7 +157,7 @@ export async function del(key: string): Promise<void> {
   try {
     await redis.del(key);
   } catch (err) {
-    console.error(`Cache DEL error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache DEL error (key prefix: ${key.split(':', 1)[0]})`);
   }
 }
 
@@ -175,7 +178,7 @@ export async function delPattern(pattern: string): Promise<void> {
       await redis.del(...keys);
     }
   } catch (err) {
-    console.error(`Cache DEL pattern error for "${pattern}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache DEL pattern error (prefix: ${pattern.split(':', 1)[0]})`);
   }
 }
 
@@ -187,7 +190,7 @@ export async function exists(key: string): Promise<boolean> {
     const result = await redis.exists(key);
     return result === 1;
   } catch (err) {
-    console.error(`Cache EXISTS error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache EXISTS error (key prefix: ${key.split(':', 1)[0]})`);
     return false;
   }
 }
@@ -199,7 +202,7 @@ export async function ttl(key: string): Promise<number> {
   try {
     return await redis.ttl(key);
   } catch (err) {
-    console.error(`Cache TTL error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache TTL error (key prefix: ${key.split(':', 1)[0]})`);
     return -2;
   }
 }
@@ -335,7 +338,7 @@ export async function incrementCounter(
     }
     return 1;
   } catch (err) {
-    console.error(`Cache INCR error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache INCR error (key prefix: ${key.split(':', 1)[0]})`);
     return 1;
   }
 }
@@ -348,7 +351,7 @@ export async function getCounter(key: string): Promise<number> {
     const raw = await redis.get(key);
     return raw ? parseInt(raw, 10) || 0 : 0;
   } catch (err) {
-    console.error(`Cache GET counter error for key "${key}":`, err instanceof Error ? err.message : err);
+    logger.error({ err: err instanceof Error ? err.message : err }, `Cache GET counter error (key prefix: ${key.split(':', 1)[0]})`);
     return 0;
   }
 }

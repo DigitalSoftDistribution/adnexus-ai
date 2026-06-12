@@ -462,7 +462,7 @@ export class MorningBriefWorker {
   /**
    * Step 9: Send morning brief email via email service queue.
    */
-  async sendEmail(userId: string, data: FullMorningBriefData): Promise<void> {
+  async sendEmail(userId: string, workspaceId: string, data: FullMorningBriefData): Promise<void> {
     const startTime = Date.now();
     logger.debug({ userId }, '[MorningBrief] Sending email');
 
@@ -489,7 +489,7 @@ export class MorningBriefWorker {
         insights: data.executiveSummary,
       };
 
-      await emailService.sendMorningBrief(userId, data.workspaceName);
+      await emailService.sendMorningBrief(userId, workspaceId, emailData);
       logger.debug({ userId, durationMs: Date.now() - startTime }, '[MorningBrief] Email queued');
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -685,7 +685,7 @@ export class MorningBriefWorker {
       await job.updateProgress(50);
 
       // ── Step 9: Send email ──
-      await this.sendEmail(userId, brief);
+      await this.sendEmail(userId, workspaceId, brief);
       await job.updateProgress(70);
 
       // ── Step 9b: In-app notification ──

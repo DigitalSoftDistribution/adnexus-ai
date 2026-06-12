@@ -11,7 +11,13 @@ import {
 } from '../services/refresh-token-service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
+import { bruteForceProtection } from '../security/hardening';
+import { emailService } from '../services/email';
+import { revokeAllRefreshTokensForUser } from '../services/refresh-token-service';
 import type { TokenResponse, User, Workspace, WorkspaceRole } from '../types';
+
+import { getModuleLogger } from '../lib/logger';
+const logger = getModuleLogger('auth-route');
 
 const router = Router();
 
@@ -268,6 +274,7 @@ router.post(
  */
 router.post(
   '/signin',
+  bruteForceProtection,
   asyncHandler(async (req, res) => {
     const body = signinSchema.parse(req.body);
 
@@ -278,6 +285,7 @@ router.post(
     });
 
     if (signInError || !signInData.user) {
+      (req as unknown as { recordFailedAttempt?: () => void }).recordFailedAttempt?.();
       throw new UnauthorizedError('Invalid email or password');
     }
 
@@ -328,6 +336,7 @@ router.post(
     const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
 
     // ── 6. Log audit event ──
+    (req as unknown as { recordSuccessfulAttempt?: () => void }).recordSuccessfulAttempt?.();
     await supabase.from('audit_log').insert({
       workspace_id: workspace.id,
       actor_type: 'user',
@@ -495,48 +504,107 @@ router.get(
 );
 
 /**
- * POST /auth/reset-password
+ * POST /auth/reset-password  (alias: /auth/forgot-password)
  *
- * Request a password reset email. Uses Supabase Auth to send
- * a password-reset email to the given address.
+ * Two-step password reset:
+ *   1. `{ email }` — generate a recovery token via Supabase admin and send
+ *      our reset email linking to the frontend reset page. The response is
+ *      identical whether or not the account exists (no enumeration).
+ *   2. `{ token, password }` — verify the recovery token and set the new
+ *      password.
  *
- * @body { email: string }
+ * @body { email: string } | { token: string, password: string }
  * @returns { message: string }
  */
 router.post(
   ['/reset-password', '/forgot-password'],
   asyncHandler(async (req, res) => {
-    const body = resetPasswordRequestSchema.parse(req.body);
+    // ── Step 2: token-based completion ──
+    if (typeof (req.body as Record<string, unknown> | undefined)?.token === 'string') {
+      const body = resetPasswordSchema.parse(req.body);
 
-    // Check whether the user exists before sending (don't leak this info)
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const targetUser = existingUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === body.email.toLowerCase(),
-    );
+      const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+        type: 'recovery',
+        token_hash: body.token,
+      });
 
-    // Always return the same message to prevent email enumeration
-    if (!targetUser) {
+      if (verifyError || !verified?.user) {
+        throw new UnauthorizedError('Invalid or expired reset token');
+      }
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        verified.user.id,
+        { password: body.password },
+      );
+
+      if (updateError) {
+        throw new AppError(
+          'PASSWORD_RESET_FAILED',
+          `Failed to update password: ${updateError.message}`,
+          500,
+        );
+      }
+
+      // Invalidate existing sessions — anyone holding an old refresh token
+      // (e.g. the attacker that prompted the reset) must not outlive it.
+      // Best-effort: the password is already changed, so don't fail the
+      // request, but log loudly.
+      try {
+        await revokeAllRefreshTokensForUser(verified.user.id);
+        if (verified.session?.access_token) {
+          const { error: signOutError } = await supabase.auth.admin.signOut(
+            verified.session.access_token,
+            'global',
+          );
+          if (signOutError) {
+            logger.error(
+              { err: signOutError.message, userId: verified.user.id },
+              '[auth] Failed to revoke Supabase sessions after password reset',
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(
+          { err, userId: verified.user.id },
+          '[auth] Failed to revoke refresh tokens after password reset',
+        );
+      }
+
       res.json({
         success: true,
-        data: { message: 'If an account exists, a password reset email has been sent' },
+        data: { message: 'Password has been reset. You can now sign in.' },
       });
       return;
     }
 
-    // Send reset email via Supabase Auth
-    const { error } = await supabase.auth.resetPasswordForEmail(body.email, {
-      redirectTo: `${config.frontend.url}/auth/reset-password`,
-    });
-
-    if (error) {
-      // Still return the same message; log the actual error internally
-      console.error('[auth] Supabase resetPasswordForEmail failed:', error.message);
-    }
-
-    res.json({
+    // ── Step 1: request a reset email ──
+    const body = resetPasswordRequestSchema.parse(req.body);
+    const genericMessage = {
       success: true,
       data: { message: 'If an account exists, a password reset email has been sent' },
-    });
+    };
+
+    // The response must be identical for unknown emails AND internal
+    // failures — error responses here would leak account existence.
+    try {
+      const { data: linkData, error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: body.email,
+      });
+
+      const tokenHash = linkData?.properties?.hashed_token;
+      if (error || !tokenHash) {
+        if (error) {
+          logger.warn({ err: error.message }, '[auth] Recovery link generation failed');
+        }
+      } else {
+        await emailService.sendPasswordReset(body.email, tokenHash);
+      }
+    } catch (err) {
+      logger.error({ err }, '[auth] Password reset email flow failed');
+    }
+
+    res.json(genericMessage);
   }),
 );
 

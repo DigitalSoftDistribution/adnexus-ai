@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Correo electrónico o contraseña no válidos",
+    "forgotPasswordTitle": "¿Olvidaste tu contraseña?",
+    "forgotPasswordSubtitle": "Introduce tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña",
+    "sendResetLink": "Enviar enlace de restablecimiento",
+    "resetEmailSentTitle": "Revisa tu correo electrónico",
+    "resetEmailSentDescription": "Si existe una cuenta con esa dirección de correo, hemos enviado un enlace para restablecer la contraseña. El enlace caduca en 1 hora.",
+    "resetRequestFailed": "No se pudo enviar el correo de restablecimiento. Inténtalo de nuevo.",
+    "backToSignIn": "Volver a iniciar sesión",
+    "resetPassword": "Restablecer contraseña",
+    "resetPasswordTitle": "Restablece tu contraseña",
+    "resetPasswordSubtitle": "Introduce una nueva contraseña para tu cuenta",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "confirmPasswordRequired": "Confirma tu nueva contraseña",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden",
+    "resetPasswordSuccessTitle": "Contraseña restablecida correctamente",
+    "resetPasswordSuccessDescription": "Tu contraseña se ha actualizado. Ya puedes iniciar sesión con tu nueva contraseña.",
+    "resetPasswordFailed": "No se pudo restablecer la contraseña. Inténtalo de nuevo.",
+    "invalidResetTokenTitle": "Enlace no válido o caducado",
+    "invalidResetTokenDescription": "Este enlace para restablecer la contraseña no es válido o ha caducado. Solicita uno nuevo.",
+    "requestNewLink": "Solicitar un nuevo enlace"
   },
   "dashboard": {
     "title": "Panel",
@@ -330,7 +350,9 @@
     "connectPlatform": "Conectar una plataforma",
     "failedToSync": "Error al sincronizar la campaña",
     "sync": "Sincronizar",
-    "syncing": "Sincronizando..."
+    "syncing": "Sincronizando...",
+    "deleteCampaignTitle": "Eliminar campaña",
+    "deleteCampaignDescription": "¿Seguro que quieres eliminar «{name}»? Esta acción no se puede deshacer."
   },
   "drafts": {
     "title": "Borradores",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Aún no hay claves de API",
     "apiKeysPlaceholder": "Genera una clave de API para acceder a la API de AdNexus mediante programación.",
-    "created": "Creado"
+    "created": "Creado",
+    "removeMemberTitle": "Eliminar miembro del equipo",
+    "removeMemberDescription": "¿Seguro que quieres eliminar a {name} de este espacio de trabajo? Perderá el acceso de inmediato.",
+    "removeMemberConfirm": "Eliminar",
+    "revokeApiKeyTitle": "Revocar clave de API",
+    "revokeApiKeyDescription": "¿Seguro que quieres revocar la clave de API «{name}»? Las aplicaciones que la usen dejarán de funcionar de inmediato.",
+    "revokeApiKeyConfirm": "Revocar"
   },
   "billing": {
     "title": "Facturación",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Error al obtener la campaña",
     "failedToFetchAdSets": "Error al obtener los conjuntos de anuncios",
     "failedToFetchHistory": "Error al obtener el historial",
-    "failedToFetchAds": "Error al obtener los anuncios"
+    "failedToFetchAds": "Error al obtener los anuncios",
+    "somethingWentWrong": "Algo salió mal",
+    "unexpectedErrorDescription": "Se produjo un error inesperado. Inténtalo de nuevo.",
+    "tryAgain": "Intentar de nuevo"
   },
   "notifications": {
     "title": "Notificaciones",

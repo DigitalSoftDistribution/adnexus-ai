@@ -145,7 +145,27 @@
     "nameRequired": "Please enter your full name",
     "emailRequired": "Please enter your email address",
     "passwordRequired": "Please enter your password",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Ungültige E-Mail-Adresse oder ungültiges Passwort",
+    "forgotPasswordTitle": "Passwort vergessen?",
+    "forgotPasswordSubtitle": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
+    "sendResetLink": "Link zum Zurücksetzen senden",
+    "resetEmailSentTitle": "Prüfen Sie Ihre E-Mails",
+    "resetEmailSentDescription": "Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet. Der Link läuft in 1 Stunde ab.",
+    "resetRequestFailed": "Die E-Mail zum Zurücksetzen konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "resetPassword": "Passwort zurücksetzen",
+    "resetPasswordTitle": "Passwort zurücksetzen",
+    "resetPasswordSubtitle": "Geben Sie ein neues Passwort für Ihr Konto ein",
+    "newPassword": "Neues Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "confirmPasswordRequired": "Bitte bestätigen Sie Ihr neues Passwort",
+    "passwordsDoNotMatch": "Die Passwörter stimmen nicht überein",
+    "resetPasswordSuccessTitle": "Passwort erfolgreich zurückgesetzt",
+    "resetPasswordSuccessDescription": "Ihr Passwort wurde aktualisiert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+    "resetPasswordFailed": "Das Zurücksetzen des Passworts ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "invalidResetTokenTitle": "Ungültiger oder abgelaufener Link",
+    "invalidResetTokenDescription": "Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.",
+    "requestNewLink": "Neuen Link anfordern"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -330,7 +350,9 @@
     "connectPlatform": "Plattform verbinden",
     "failedToSync": "Kampagne konnte nicht synchronisiert werden",
     "sync": "Synchronisieren",
-    "syncing": "Synchronisierung..."
+    "syncing": "Synchronisierung...",
+    "deleteCampaignTitle": "Kampagne löschen",
+    "deleteCampaignDescription": "Möchten Sie „{name}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
   },
   "drafts": {
     "title": "Entwürfe",
@@ -514,7 +536,13 @@
     "neverUsed": "Never used",
     "noApiKeys": "Noch keine API-Schlüssel",
     "apiKeysPlaceholder": "Generieren Sie einen API-Schlüssel, um programmatisch auf die AdNexus-API zuzugreifen.",
-    "created": "Erstellt"
+    "created": "Erstellt",
+    "removeMemberTitle": "Teammitglied entfernen",
+    "removeMemberDescription": "Möchten Sie {name} wirklich aus diesem Workspace entfernen? Der Zugriff wird sofort entzogen.",
+    "removeMemberConfirm": "Entfernen",
+    "revokeApiKeyTitle": "API-Schlüssel widerrufen",
+    "revokeApiKeyDescription": "Möchten Sie den API-Schlüssel „{name}“ wirklich widerrufen? Alle Anwendungen, die diesen Schlüssel verwenden, funktionieren dann sofort nicht mehr.",
+    "revokeApiKeyConfirm": "Widerrufen"
   },
   "billing": {
     "title": "Abrechnung",
@@ -685,7 +713,10 @@
     "failedToFetchCampaign": "Kampagne konnte nicht abgerufen werden",
     "failedToFetchAdSets": "Anzeigengruppen konnten nicht abgerufen werden",
     "failedToFetchHistory": "Verlauf konnte nicht abgerufen werden",
-    "failedToFetchAds": "Anzeigen konnten nicht abgerufen werden"
+    "failedToFetchAds": "Anzeigen konnten nicht abgerufen werden",
+    "somethingWentWrong": "Etwas ist schiefgelaufen",
+    "unexpectedErrorDescription": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "tryAgain": "Erneut versuchen"
   },
   "notifications": {
     "title": "Benachrichtigungen",

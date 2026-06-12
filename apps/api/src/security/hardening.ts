@@ -11,6 +11,9 @@ import rateLimit, { RateLimitRequestHandler } from "express-rate-limit";
 import slowDown from "express-slow-down";
 import hpp from "hpp";
 import mongoSanitize from "express-mongo-sanitize";
+import { getModuleLogger } from "../lib/logger";
+
+const logger = getModuleLogger("security-hardening");
 
 // ── Constants ──────────────────────────────────────────────
 
@@ -214,7 +217,7 @@ export function createCorsMiddleware(): ReturnType<typeof cors> {
       }
 
       // Log blocked origins for security monitoring
-      console.warn(`[security] CORS blocked origin: ${origin}`);
+      logger.warn(`CORS blocked origin: ${origin}`);
       callback(new Error(`Origin ${origin} is not allowed by CORS`));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -379,11 +382,17 @@ export function sqlInjectionDetection(
   // Check query parameters
   const queryResult = scanObject(req.query, SQLI_CHECK_FIELDS);
   if (queryResult) {
-    console.warn(`[security] SQL injection attempt detected in query:`, {
-      ip: req.ip,
-      path: req.path,
-      ...queryResult,
-    });
+    // Log the field/pattern only — the raw value is attacker-controlled and
+    // may contain payloads or secrets that don't belong in permanent logs
+    logger.warn(
+      {
+        ip: req.ip,
+        path: req.path,
+        field: queryResult.field,
+        pattern: queryResult.pattern,
+      },
+      `SQL injection attempt detected in query`
+    );
     res.status(403).json({
       error: "Invalid input detected",
       code: "SQL_INJECTION_DETECTED",
@@ -394,11 +403,15 @@ export function sqlInjectionDetection(
   // Check request body
   const bodyResult = scanObject(req.body, SQLI_CHECK_FIELDS);
   if (bodyResult) {
-    console.warn(`[security] SQL injection attempt detected in body:`, {
-      ip: req.ip,
-      path: req.path,
-      ...bodyResult,
-    });
+    logger.warn(
+      {
+        ip: req.ip,
+        path: req.path,
+        field: bodyResult.field,
+        pattern: bodyResult.pattern,
+      },
+      `SQL injection attempt detected in body`
+    );
     res.status(403).json({
       error: "Invalid input detected",
       code: "SQL_INJECTION_DETECTED",
@@ -410,10 +423,14 @@ export function sqlInjectionDetection(
   const rawUrl = req.originalUrl || req.url;
   const urlMatch = SQL_INJECTION_PATTERNS.find((p) => p.test(rawUrl));
   if (urlMatch) {
-    console.warn(`[security] SQL injection pattern in URL:`, {
-      ip: req.ip,
-      url: rawUrl,
-    });
+    logger.warn(
+      {
+        ip: req.ip,
+        path: req.path,
+        pattern: String(urlMatch),
+      },
+      `SQL injection pattern in URL`
+    );
     res.status(403).json({
       error: "Invalid request",
       code: "SQL_INJECTION_DETECTED",
@@ -432,7 +449,10 @@ function getClientIdentifier(req: Request): string {
   // Combine IP + route for route-specific rate limiting
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const route = req.path;
-  const username = req.body?.email || req.body?.username || "";
+  // Normalize so case/whitespace variants of the same account share a bucket
+  const username = String(req.body?.email || req.body?.username || "")
+    .trim()
+    .toLowerCase();
   // Include username to prevent credential stuffing across different accounts
   return `${ip}:${route}:${username}`;
 }
@@ -464,11 +484,17 @@ export function bruteForceProtection(
     const remainingMs = entry.blockedUntil - now;
     const remainingMin = Math.ceil(remainingMs / 60000);
 
+    // Match the API's standard error envelope ({ success, error: { code,
+    // message } }) so clients surface the lockout message instead of a
+    // generic failure.
+    res.setHeader("Retry-After", Math.ceil(remainingMs / 1000));
     res.status(429).json({
-      error: "Too many failed attempts",
-      code: "ACCOUNT_LOCKED",
-      message: `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
-      retryAfter: Math.ceil(remainingMs / 1000),
+      success: false,
+      error: {
+        code: "ACCOUNT_LOCKED",
+        message: `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
+        details: { retryAfter: Math.ceil(remainingMs / 1000) },
+      },
     });
     return;
   }
@@ -477,7 +503,9 @@ export function bruteForceProtection(
   (req as unknown as Record<string, unknown>).recordFailedAttempt = () => {
     const currentEntry = bruteForceStore.get(id);
 
-    if (!currentEntry) {
+    // Start a fresh window when there is no entry or the previous attempts
+    // fall outside the configured window
+    if (!currentEntry || now - currentEntry.firstAttempt > BRUTE_FORCE_WINDOW_MS) {
       bruteForceStore.set(id, {
         attempts: 1,
         firstAttempt: now,
@@ -490,11 +518,14 @@ export function bruteForceProtection(
 
     if (currentEntry.attempts >= BRUTE_FORCE_MAX_ATTEMPTS) {
       currentEntry.blockedUntil = now + BRUTE_FORCE_BLOCK_DURATION_MS;
-      console.warn(`[security] Account locked due to brute force:`, {
-        identifier: id,
-        attempts: currentEntry.attempts,
-        blockedUntil: new Date(currentEntry.blockedUntil).toISOString(),
-      });
+      logger.warn(
+        {
+          identifier: id,
+          attempts: currentEntry.attempts,
+          blockedUntil: new Date(currentEntry.blockedUntil).toISOString(),
+        },
+        `Account locked due to brute force`
+      );
     }
 
     bruteForceStore.set(id, currentEntry);
@@ -639,10 +670,13 @@ export function createHppMiddleware() {
 export function createMongoSanitizeMiddleware() {
   return mongoSanitize({
     onSanitize: ({ req, key }) => {
-      console.warn(`[security] Sanitized MongoDB operator in key: ${key}`, {
-        ip: req.ip,
-        path: req.path,
-      });
+      logger.warn(
+        {
+          ip: req.ip,
+          path: req.path,
+        },
+        `Sanitized MongoDB operator in key: ${key}`
+      );
     },
   });
 }
