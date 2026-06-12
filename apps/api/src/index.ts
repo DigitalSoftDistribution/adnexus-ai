@@ -349,7 +349,22 @@ const server = isTestEnv
         'AdNexus API server started',
       );
 
-      // Start background workers when Redis is available
+      // Metrics sync worker — gated by BACKGROUND_JOBS_ENABLED + BACKGROUND_METRICS_SYNC_ENABLED
+      // (same default-off pattern as evaluate-rules, PR #121 / metrics-sync PR #117)
+      if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+        try {
+          const { startMetricsSyncWorker } = await import('./workers/metrics-sync');
+          const status = await startMetricsSyncWorker();
+          loggerApp.info(
+            { worker: 'metrics-sync', status: status.status, reason: status.reason },
+            'Metrics sync worker startup evaluated',
+          );
+        } catch (err) {
+          loggerApp.error({ err }, 'Failed to start metrics sync worker');
+        }
+      }
+
+      // Morning brief — legacy path; full scheduler gating lands in PR #79
       if (isRedisAvailable()) {
         try {
           const { startMorningBriefScheduler } = await import('./workers/morning-brief');
@@ -359,7 +374,7 @@ const server = isTestEnv
           loggerApp.error({ err }, 'Failed to start morning brief scheduler');
         }
       } else {
-        loggerApp.info('Redis not available, skipping background workers');
+        loggerApp.info('Redis not available, skipping morning brief scheduler');
       }
     });
 
@@ -388,6 +403,26 @@ function gracefulShutdown(signal: string): void {
   // Stop accepting new HTTP connections
   const onClosed = async () => {
     loggerApp.info('HTTP server closed, cleaning up resources...');
+
+    if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+      try {
+        const { shutdownMetricsSync } = await import('./workers/metrics-sync');
+        await shutdownMetricsSync();
+        loggerApp.info('Metrics sync worker stopped');
+      } catch (err) {
+        loggerApp.error({ err }, 'Error stopping metrics sync worker');
+      }
+    }
+
+    if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
+      try {
+        const { shutdownMetricsSync } = await import('./workers/metrics-sync');
+        await shutdownMetricsSync();
+        loggerApp.info('Metrics sync worker stopped');
+      } catch (err) {
+        loggerApp.error({ err }, 'Error stopping metrics sync worker');
+      }
+    }
 
     try {
       await closeRedis();
