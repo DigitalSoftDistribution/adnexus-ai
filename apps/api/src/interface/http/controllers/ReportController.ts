@@ -1,9 +1,14 @@
 import type { Container } from '../../../application/services/Container';
+import { REPORT_TEMPLATES } from '../../../domain/reports/reportTemplates';
 import { asyncHandler } from '../middleware/errorHandler';
 import type { AuthenticatedRequest } from '../middleware/requireAuth';
 
 export function createReportController(container: Container) {
   return {
+    templates: asyncHandler<AuthenticatedRequest>(async (_req, res) => {
+      res.json({ success: true, data: REPORT_TEMPLATES });
+    }),
+
     dashboard: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.getCampaignSummary.execute({
         workspaceId: req.user!.workspaceId,
