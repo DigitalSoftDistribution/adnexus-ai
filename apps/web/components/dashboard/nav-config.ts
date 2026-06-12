@@ -7,6 +7,7 @@ import {
   Bot,
   Bell,
   Target,
+  Palette,
   Plug,
   ServerCog,
   Webhook,
@@ -43,6 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/dashboard/campaigns', labelKey: 'campaigns', icon: Megaphone },
       { href: '/dashboard/drafts', labelKey: 'drafts', icon: FileEdit },
+      { href: '/dashboard/creatives', labelKey: 'creatives', icon: Palette },
       { href: '/dashboard/audiences', labelKey: 'audiences', icon: Users },
     ],
   },
