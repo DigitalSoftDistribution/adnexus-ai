@@ -28,6 +28,20 @@
 - The Python MCP server (`apps/mcp`) is functional over stdio/SSE. The Node
   API does not yet expose a production Streamable HTTP MCP endpoint.
 
+## Webhooks
+
+- Meta/TikTok webhook signature verification re-hashes the parsed JSON body
+  rather than the original raw request bytes. Providers sign the raw bytes, so
+  verification can fail (or pass incorrectly) when parser reformatting changes
+  the byte stream. Fixing this requires capturing the raw body via the JSON
+  body-parser's `verify` hook and threading it to the handlers.
+- The Google webhook route validates the per-workspace secret but the handler
+  re-resolves the tenant from payload ids; campaign/adset resolution inside
+  `webhook-handler.ts` matches on platform-native ids without a platform
+  predicate. Workspaces that link the same ad account in multiple workspaces
+  could route an event to the wrong tenant. TikTok/Snap webhooks are mock-only
+  (see Platform execution above), which bounds the practical impact today.
+
 ## Billing
 
 - Stripe checkout, webhooks (signature-verified), and plan management work
