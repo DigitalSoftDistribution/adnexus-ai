@@ -6,7 +6,7 @@ const serviceClientOptions = {
   auth: { autoRefreshToken: false, persistSession: false },
   // @ts-expect-error — ws transport for Node 20 without native WebSocket
   realtime: { transport: WebSocket },
-} as const;
+};
 
 /** Service-role client for PostgREST / database operations. Never call auth.admin on this instance — createUser mutates the session JWT and breaks RLS bypass on inserts. */
 export const supabase = createClient(config.supabase.url, config.supabase.serviceKey, serviceClientOptions);
