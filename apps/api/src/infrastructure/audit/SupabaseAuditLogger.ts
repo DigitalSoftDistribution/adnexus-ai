@@ -24,10 +24,21 @@ export class SupabaseAuditLogger implements IAuditLogger {
         source: entry.source,
         ip_address: entry.ipAddress,
       });
-    } catch {
-      // Audit logging should never fail the main operation
-      // In production, send to a fallback (e.g., stdout, Sentry)
-      logger.error({ entry }, 'Audit log failed');
+    } catch (err) {
+      // Audit logging should never fail the main operation. Log identifiers
+      // only — entry metadata/details can carry the sensitive content the
+      // audit trail exists to protect.
+      logger.error(
+        {
+          err,
+          workspaceId: entry.workspaceId,
+          userId: entry.userId,
+          action: entry.action,
+          entityType: entry.entityType,
+          entityId: entry.entityId,
+        },
+        'Audit log failed',
+      );
     }
   }
 
@@ -54,8 +65,15 @@ export class SupabaseAuditLogger implements IAuditLogger {
       }));
 
       await supabase.from('audit_log').insert(rows);
-    } catch {
-      logger.error({ entries }, 'Batch audit log failed');
+    } catch (err) {
+      logger.error(
+        {
+          err,
+          count: entries.length,
+          workspaceIds: [...new Set(entries.map((e) => e.workspaceId))],
+        },
+        'Batch audit log failed',
+      );
     }
   }
 }

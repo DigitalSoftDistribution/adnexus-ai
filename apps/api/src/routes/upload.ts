@@ -191,7 +191,7 @@ router.post(
         return res.status(500).json({
           success: false,
           message: 'Failed to upload file to storage',
-          error: uploadError.message,
+          error: 'See server logs for details',
         });
       }
 
@@ -241,7 +241,7 @@ router.post(
         return res.status(500).json({
           success: false,
           message: 'File uploaded but failed to save metadata',
-          error: dbError.message,
+          error: 'See server logs for details',
         });
       }
 
@@ -263,7 +263,7 @@ router.post(
       return res.status(500).json({
         success: false,
         message: 'Internal server error during upload',
-        error: err.message,
+        error: 'See server logs for details',
       });
     }
   }
@@ -353,7 +353,7 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch uploads',
-        error: error.message,
+        error: 'See server logs for details',
       });
     }
 
@@ -384,7 +384,7 @@ router.get('/uploads', authMiddleware, async (req: AuthenticatedRequest, res: Re
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: err.message,
+      error: 'See server logs for details',
     });
   }
 });
@@ -419,7 +419,7 @@ router.get('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, res
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: err.message,
+      error: 'See server logs for details',
     });
   }
 });
@@ -482,7 +482,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
       return res.status(500).json({
         success: false,
         message: 'Failed to delete upload record',
-        error: dbError.message,
+        error: 'See server logs for details',
       });
     }
 
@@ -496,7 +496,7 @@ router.delete('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, 
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: err.message,
+      error: 'See server logs for details',
     });
   }
 });
@@ -543,7 +543,7 @@ router.patch('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, r
       return res.status(500).json({
         success: false,
         message: 'Failed to update upload',
-        error: error.message,
+        error: 'See server logs for details',
       });
     }
 
@@ -556,7 +556,7 @@ router.patch('/uploads/:id', authMiddleware, async (req: AuthenticatedRequest, r
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: err.message,
+      error: 'See server logs for details',
     });
   }
 });

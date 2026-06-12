@@ -313,7 +313,7 @@ export async function enqueueOnboardingSequence(params: {
 
   await Promise.all(addPromises);
 
-  logger.info(`Enqueued ${jobs.length} emails for user ${userId} (${email})`);
+  logger.info({ userId, emailDomain: email.split('@')[1] ?? 'unknown' }, `Enqueued ${jobs.length} onboarding emails`);
 }
 
 /**
@@ -364,7 +364,7 @@ const worker = new Worker(
   async (job: Job<OnboardingEmailJob>) => {
     const { userId, userName, email, template } = job.data;
 
-    logger.info(`Processing ${job.name} for ${email} (attempt ${job.attemptsMade + 1})`);
+    logger.info({ jobId: job.id, userId, attempt: job.attemptsMade + 1 }, `Processing ${job.name}`);
 
     // 1. Check if user is unsubscribed
     const userState = await fetchUserState(userId);
@@ -415,7 +415,7 @@ const worker = new Worker(
       },
     });
 
-    logger.info(`Sent ${template} to ${email}`);
+    logger.info({ jobId: job.id, userId, template }, 'Sent onboarding email');
 
     return { sent: true, template, recipient: email };
   },

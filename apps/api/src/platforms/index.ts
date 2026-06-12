@@ -853,6 +853,12 @@ export class PlatformManager {
           allCampaigns.push(campaign);
           clientByCampaign.set(campaign, clients[i].client);
         }
+      } else {
+        // Surface partial data instead of silently pretending completeness
+        logger.warn(
+          { err: result.reason, platform: clients[i].platform },
+          '[PlatformManager] Campaign fetch failed for one account; cross-platform insights will be partial',
+        );
       }
     });
 
@@ -970,6 +976,13 @@ export class PlatformManager {
     // Group by (date, platform), accumulating spend/conversions and tracking
     // conversion value so ROAS can be derived per bucket.
     const trendBuckets = new Map<string, TrendEntry & { conversionValue: number }>();
+    const failedInsightFetches = insightResults.filter((r) => r.status === 'rejected').length;
+    if (failedInsightFetches > 0) {
+      logger.warn(
+        { failedInsightFetches, total: insightResults.length },
+        '[PlatformManager] Some campaign insight fetches failed; daily trends will be partial',
+      );
+    }
     for (const result of insightResults) {
       if (result.status !== 'fulfilled') continue;
       for (const insight of result.value) {

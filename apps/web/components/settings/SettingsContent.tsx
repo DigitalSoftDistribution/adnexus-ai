@@ -397,7 +397,9 @@ export function SettingsContent() {
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeMember.isPending}
               onClick={() => {
+                if (removeMember.isPending) return;
                 if (memberToRemove) removeMember.mutate(memberToRemove.userId);
                 setMemberToRemove(null);
               }}
@@ -426,7 +428,9 @@ export function SettingsContent() {
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={revokeApiKey.isPending}
               onClick={() => {
+                if (revokeApiKey.isPending) return;
                 if (keyToRevoke) revokeApiKey.mutate(keyToRevoke.id);
                 setKeyToRevoke(null);
               }}

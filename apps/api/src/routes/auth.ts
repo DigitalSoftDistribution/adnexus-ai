@@ -13,6 +13,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { bruteForceProtection } from '../security/hardening';
 import { emailService } from '../services/email';
+import { revokeAllRefreshTokensForUser } from '../services/refresh-token-service';
 import type { TokenResponse, User, Workspace, WorkspaceRole } from '../types';
 
 import { getModuleLogger } from '../lib/logger';
@@ -541,6 +542,31 @@ router.post(
           'PASSWORD_RESET_FAILED',
           `Failed to update password: ${updateError.message}`,
           500,
+        );
+      }
+
+      // Invalidate existing sessions — anyone holding an old refresh token
+      // (e.g. the attacker that prompted the reset) must not outlive it.
+      // Best-effort: the password is already changed, so don't fail the
+      // request, but log loudly.
+      try {
+        await revokeAllRefreshTokensForUser(verified.user.id);
+        if (verified.session?.access_token) {
+          const { error: signOutError } = await supabase.auth.admin.signOut(
+            verified.session.access_token,
+            'global',
+          );
+          if (signOutError) {
+            logger.error(
+              { err: signOutError.message, userId: verified.user.id },
+              '[auth] Failed to revoke Supabase sessions after password reset',
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(
+          { err, userId: verified.user.id },
+          '[auth] Failed to revoke refresh tokens after password reset',
         );
       }
 

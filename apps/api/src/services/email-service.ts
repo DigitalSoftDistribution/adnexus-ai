@@ -110,7 +110,8 @@ export class EmailService {
     try {
       const result = await this.transporter.sendMail(mailOptions);
       logger.info(
-        `Email sent successfully: MessageId=${result.messageId}, Recipients=${validEmails.join(', ')}`
+        { messageId: result.messageId, recipientCount: validEmails.length },
+        'Email sent successfully',
       );
     } catch (error) {
       logger.error({ err: error }, 'Failed to send email');

@@ -439,20 +439,23 @@ export class EmailService {
       }));
 
     // Anchor audit counts to the same local calendar week as the metrics
-    // above, not a rolling instant from email-send time
+    // above — [currentStart, today) — not a rolling instant from send time
     const weekStartDate = this.startOfLocalDayUtc(currentStart, tz);
+    const weekEndExclusive = this.startOfLocalDayUtc(this.localDay(now, tz), tz);
     const [{ count: aiActions }, { count: draftsCreated }] = await Promise.all([
       supabase
         .from('audit_log')
         .select('id', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId)
         .eq('actor_type', 'ai')
-        .gte('created_at', weekStartDate.toISOString()),
+        .gte('created_at', weekStartDate.toISOString())
+        .lt('created_at', weekEndExclusive.toISOString()),
       supabase
         .from('drafts')
         .select('id', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId)
-        .gte('created_at', weekStartDate.toISOString()),
+        .gte('created_at', weekStartDate.toISOString())
+        .lt('created_at', weekEndExclusive.toISOString()),
     ]);
 
     const spendM = metric('spend');

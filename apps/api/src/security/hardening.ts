@@ -382,11 +382,14 @@ export function sqlInjectionDetection(
   // Check query parameters
   const queryResult = scanObject(req.query, SQLI_CHECK_FIELDS);
   if (queryResult) {
+    // Log the field/pattern only — the raw value is attacker-controlled and
+    // may contain payloads or secrets that don't belong in permanent logs
     logger.warn(
       {
         ip: req.ip,
         path: req.path,
-        ...queryResult,
+        field: queryResult.field,
+        pattern: queryResult.pattern,
       },
       `SQL injection attempt detected in query`
     );
@@ -404,7 +407,8 @@ export function sqlInjectionDetection(
       {
         ip: req.ip,
         path: req.path,
-        ...bodyResult,
+        field: bodyResult.field,
+        pattern: bodyResult.pattern,
       },
       `SQL injection attempt detected in body`
     );
@@ -422,7 +426,8 @@ export function sqlInjectionDetection(
     logger.warn(
       {
         ip: req.ip,
-        url: rawUrl,
+        path: req.path,
+        pattern: String(urlMatch),
       },
       `SQL injection pattern in URL`
     );
@@ -444,7 +449,10 @@ function getClientIdentifier(req: Request): string {
   // Combine IP + route for route-specific rate limiting
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const route = req.path;
-  const username = req.body?.email || req.body?.username || "";
+  // Normalize so case/whitespace variants of the same account share a bucket
+  const username = String(req.body?.email || req.body?.username || "")
+    .trim()
+    .toLowerCase();
   // Include username to prevent credential stuffing across different accounts
   return `${ip}:${route}:${username}`;
 }
@@ -495,7 +503,9 @@ export function bruteForceProtection(
   (req as unknown as Record<string, unknown>).recordFailedAttempt = () => {
     const currentEntry = bruteForceStore.get(id);
 
-    if (!currentEntry) {
+    // Start a fresh window when there is no entry or the previous attempts
+    // fall outside the configured window
+    if (!currentEntry || now - currentEntry.firstAttempt > BRUTE_FORCE_WINDOW_MS) {
       bruteForceStore.set(id, {
         attempts: 1,
         firstAttempt: now,

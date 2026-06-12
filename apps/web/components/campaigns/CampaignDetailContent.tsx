@@ -334,7 +334,11 @@ export function CampaignDetailContent() {
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => actions.delete.mutate()}
+              disabled={actions.delete.isPending}
+              onClick={() => {
+                if (actions.delete.isPending) return;
+                actions.delete.mutate();
+              }}
             >
               {tc('delete')}
             </AlertDialogAction>

@@ -35,9 +35,11 @@ function getFieldErrors(
   }
 
   if (touchedFields.email) {
-    if (!email.trim()) {
+    // Validate the same normalized value the submit handler sends
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
       errors.email = t('emailRequired');
-    } else if (!EMAIL_REGEX.test(email)) {
+    } else if (!EMAIL_REGEX.test(normalizedEmail)) {
       errors.email = t('invalidEmail');
     }
   }

@@ -16,10 +16,12 @@ function getEmailError(
   email: string,
   t: ReturnType<typeof useTranslations<'auth'>>,
 ): string | undefined {
-  if (!email.trim()) {
+  // Validate the same normalized value the submit handler sends
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail) {
     return t('emailRequired');
   }
-  if (!EMAIL_REGEX.test(email)) {
+  if (!EMAIL_REGEX.test(normalizedEmail)) {
     return t('invalidEmail');
   }
   return undefined;

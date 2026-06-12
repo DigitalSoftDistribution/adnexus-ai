@@ -2,8 +2,8 @@
 
 > Last updated: 2026-06-11. This document is the honest, single-source inventory
 > of functionality that is intentionally restricted, mocked, or incomplete in
-> the current release. Read it together with `docs/PATH_TO_V1.md` (launch
-> status) and `V2-ROADMAP.md` (planned work).
+> the current release. Read it together with `PATH_TO_V1.md` (launch
+> status) and `../V2-ROADMAP.md` (planned work).
 
 ## Platform execution
 

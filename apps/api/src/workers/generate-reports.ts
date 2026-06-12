@@ -919,12 +919,13 @@ export class ReportGenerationWorker {
   ): import('../types/report').TimeRange {
     const start = new Date(timeRange.start);
     const end = new Date(timeRange.end);
-    const durationMs = end.getTime() - start.getTime();
+    // +1ms so inclusive fetches don't double-count the shared boundary
+    const inclusiveDurationMs = end.getTime() - start.getTime() + 1;
 
     return {
       ...timeRange,
-      start: new Date(start.getTime() - durationMs),
-      end: new Date(start.getTime()),
+      start: new Date(start.getTime() - inclusiveDurationMs),
+      end: new Date(start.getTime() - 1),
     };
   }
 
@@ -1003,7 +1004,7 @@ export class ReportGenerationWorker {
       workspace_id: report.workspaceId ?? null,
       scheduled_report_id: report.scheduledReportId ?? null,
       content: report as unknown as Record<string, unknown>,
-      status: report.status === 'failed' ? 'failed' : 'completed',
+      status: report.status,
       created_at: new Date().toISOString(),
     });
 

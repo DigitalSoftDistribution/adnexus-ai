@@ -136,21 +136,21 @@ router.post(
 
     const { text, parentId } = parse.data;
 
-    // If replying, validate parent belongs to same draft
-    if (parentId) {
-      const { rows: parentCheck } = await query(
-        'SELECT draft_id FROM comments WHERE id = $1',
-        [parentId]
-      );
-      if (parentCheck.length === 0) {
-        return res.status(404).json({ error: 'Parent comment not found' });
-      }
-      if (parentCheck[0].draft_id !== draftId) {
-        return res.status(400).json({ error: 'Parent belongs to a different draft' });
-      }
-    }
-
     try {
+      // If replying, validate parent belongs to same draft
+      if (parentId) {
+        const { rows: parentCheck } = await query(
+          'SELECT draft_id FROM comments WHERE id = $1',
+          [parentId]
+        );
+        if (parentCheck.length === 0) {
+          return res.status(404).json({ error: 'Parent comment not found' });
+        }
+        if (parentCheck[0].draft_id !== draftId) {
+          return res.status(400).json({ error: 'Parent belongs to a different draft' });
+        }
+      }
+
       const { rows: [newComment] } = await query(
         `
           INSERT INTO comments (draft_id, user_id, text, parent_id)
