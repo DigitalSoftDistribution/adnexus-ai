@@ -73,6 +73,7 @@ import { GetAdPerformanceUseCase } from '../use-cases/ad/GetAdPerformanceUseCase
 import { GetAdCreativePerformanceUseCase } from '../use-cases/ad/GetAdCreativePerformanceUseCase';
 import { UpdateAdUseCase } from '../use-cases/ad/UpdateAdUseCase';
 import { DuplicateAdUseCase } from '../use-cases/ad/DuplicateAdUseCase';
+import { BulkValidateAdsUseCase } from '../use-cases/ad/BulkValidateAdsUseCase';
 import { GetWorkspaceSettingsUseCase } from '../use-cases/settings/GetWorkspaceSettingsUseCase';
 import { UpdateWorkspaceSettingsUseCase } from '../use-cases/settings/UpdateWorkspaceSettingsUseCase';
 import { GetTeamMembersUseCase } from '../use-cases/settings/GetTeamMembersUseCase';
@@ -293,6 +294,7 @@ export class Container {
   readonly getAdCreativePerformance: GetAdCreativePerformanceUseCase;
   readonly updateAd: UpdateAdUseCase;
   readonly duplicateAd: DuplicateAdUseCase;
+  readonly bulkValidateAds: BulkValidateAdsUseCase;
   readonly getWorkspaceSettings: GetWorkspaceSettingsUseCase;
   readonly updateWorkspaceSettings: UpdateWorkspaceSettingsUseCase;
   readonly getProfile: GetProfileUseCase;
@@ -478,6 +480,7 @@ export class Container {
     this.getAdCreativePerformance = new GetAdCreativePerformanceUseCase(config.adRepository);
     this.updateAd = new UpdateAdUseCase(config.adRepository);
     this.duplicateAd = new DuplicateAdUseCase(config.adRepository);
+    this.bulkValidateAds = new BulkValidateAdsUseCase();
 
     this.getWorkspaceSettings = new GetWorkspaceSettingsUseCase(config.settingsRepository);
     this.updateWorkspaceSettings = new UpdateWorkspaceSettingsUseCase(config.settingsRepository);

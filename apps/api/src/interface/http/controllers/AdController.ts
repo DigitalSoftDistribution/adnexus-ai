@@ -83,6 +83,21 @@ export function createAdController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+
+    bulkValidate: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.bulkValidateAds.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        specs: req.body?.specs ?? req.body,
+      });
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      res.json({ success: true, data: result.data });
+    }),
+
     duplicate: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.duplicateAd.execute({
         adId: req.params.id,
