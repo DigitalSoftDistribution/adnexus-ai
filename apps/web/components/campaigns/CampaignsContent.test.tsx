@@ -16,7 +16,7 @@ const campaigns = [
     spend: 1000,
     impressions: 50000,
     clicks: 1200,
-    ctr: 0.024,
+    ctr: 2.4,
     conversions: 80,
     startDate: '2026-06-01',
     endDate: null,
@@ -30,7 +30,7 @@ const campaigns = [
     spend: 500,
     impressions: 30000,
     clicks: 400,
-    ctr: 0.013,
+    ctr: 1.33,
     conversions: 10,
     startDate: '2026-05-01',
     endDate: '2026-05-31',
@@ -63,6 +63,8 @@ describe('CampaignsContent', () => {
 
     expect(await screen.findByText('Summer Sale')).toBeInTheDocument();
     expect(screen.getByText('Brand Awareness')).toBeInTheDocument();
+    expect(screen.getByText('2.40%')).toBeInTheDocument();
+    expect(screen.getByText('1.33%')).toBeInTheDocument();
     // The "New Campaign" CTA links to the create page.
     const newLink = screen.getByRole('link', { name: /new campaign/i });
     // The locale-aware Link prepends the active locale prefix.

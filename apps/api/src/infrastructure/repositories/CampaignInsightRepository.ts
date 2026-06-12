@@ -101,7 +101,7 @@ export class CampaignInsightRepository implements ICampaignInsightRepository {
     const { rows: dailyRows } = await query<Record<string, unknown>>(
       `SELECT * FROM ${METRICS_TABLE}
        WHERE ${whereClause}
-       ORDER BY date DESC
+       ORDER BY date ASC
        LIMIT 30`,
       params,
     );
