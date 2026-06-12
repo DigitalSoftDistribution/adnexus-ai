@@ -87,6 +87,37 @@ coolify deploy adnexus-api --force   # once after all vars saved
 | `API_URL` | `https://adnexus-api.apps.softblaze.net` |
 | `NEXT_PUBLIC_API_URL` | Same as `API_URL` |
 
+### Background workers — metrics sync (`adnexus-api` Coolify app)
+
+Workers are **default-off**. Enable only after `REDIS_URL` is set and `/ready` shows `redis: ok`. See [`docs/WORKERS.md`](../docs/WORKERS.md).
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `REDIS_URL` | **Yes** (when workers on) | — | BullMQ queue connection |
+| `BACKGROUND_JOBS_ENABLED` | **Yes** | `false` | Master gate for all background workers |
+| `BACKGROUND_METRICS_SYNC_ENABLED` | **Yes** | `false` | Starts metrics-sync BullMQ worker on API boot |
+| `BACKGROUND_EVALUATE_RULES_ENABLED` | No | `false` | Rule-evaluation worker (separate PR / rollout) |
+
+**Phase 2 partial rollout (metrics-sync only):**
+
+```bash
+coolify env-set adnexus-api REDIS_URL 'redis://<host>:6379'
+coolify env-set adnexus-api BACKGROUND_JOBS_ENABLED true
+coolify env-set adnexus-api BACKGROUND_METRICS_SYNC_ENABLED true
+coolify deploy adnexus-api --force   # once after all vars saved
+```
+
+**Rollback:** unset `BACKGROUND_METRICS_SYNC_ENABLED` (or set to `false`) and redeploy — API starts without the worker; no crash.
+
+**Verify after deploy:**
+
+```bash
+curl -sS https://adnexus-api.apps.softblaze.net/ready | python3 -m json.tool
+# Expected: redis: ok (when REDIS_URL configured)
+```
+
+Check API logs for `Metrics sync worker startup evaluated` with `status: running`.
+
 ---
 
 ## Phase 1 — Verify curls (after deploy)
