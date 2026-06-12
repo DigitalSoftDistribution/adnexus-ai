@@ -355,26 +355,14 @@ const PORT = config.port;
 // suites and register process-wide signal handlers, so we skip startup entirely.
 const isTestEnv = config.nodeEnv === 'test';
 
-// Fail fast in production when at-rest encryption isn't configured — OAuth
-// tokens and other secrets must never be persisted without it. Outside
-// production we only warn so local/dev boots still work.
+// The hard requirement (ENCRYPTION_MASTER_KEY present and valid) is already
+// enforced at module-load time: importing security/encryption constructs the
+// KeyManager singleton, which throws a descriptive error and aborts startup if
+// the key is missing or malformed. Here we only surface the *softer* warnings
+// (weak/short key, missing HMAC_SECRET) that don't by themselves prevent boot.
 if (!isTestEnv) {
-  const enc = validateEncryptionEnv();
-  for (const w of enc.warnings) {
+  for (const w of validateEncryptionEnv().warnings) {
     logger.warn({ scope: 'encryption-env' }, w);
-  }
-  if (!enc.valid) {
-    if (config.nodeEnv === 'production') {
-      logger.error(
-        { scope: 'encryption-env', missing: enc.missing },
-        'Refusing to start: required encryption environment is missing',
-      );
-      process.exit(1);
-    }
-    logger.warn(
-      { scope: 'encryption-env', missing: enc.missing },
-      'Encryption environment incomplete (permitted outside production)',
-    );
   }
 }
 
