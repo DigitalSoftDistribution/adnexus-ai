@@ -24,6 +24,7 @@ import {
   authenticatedRateLimiter,
   unauthenticatedRateLimiter,
   webhookRateLimiter,
+  aiRateLimiter,
 } from './middleware/rateLimiter';
 import { authenticate } from './middleware/authenticate';
 import { authenticateToken, requireAdmin } from './middleware/auth';
@@ -279,7 +280,7 @@ app.use(authenticatedRateLimiter);
 app.use('/api/v1/campaigns', requireResourceAccess('campaigns'), campaignRoutes);
 app.use('/api/v1/ads', requireResourceAccess('ads'), adRoutes);
 app.use('/api/v1/drafts', requireResourceAccess('drafts'), draftRoutes);
-app.use('/api/v1/agent', requireResourceAccess('agent'), agentRoutes);
+app.use('/api/v1/agent', requireResourceAccess('agent'), aiRateLimiter, agentRoutes);
 app.use('/api/v1/reports', requireResourceAccess('reports'), reportRoutes);
 app.use('/api/v1/audiences', requireResourceAccess('audiences'), audienceRoutes);
 app.use('/api/v1/settings', requireResourceAccess('settings'), settingsRoutes);
@@ -288,7 +289,7 @@ app.use('/api/v1/billing', requireResourceAccess('billing'), billingRoutes);
 app.use('/api/v1/goals', requireResourceAccess('goals'), goalRoutes);
 app.use('/api/v1/exports', requireResourceAccess('exports'), exportRoutes);
 app.use('/api/v1/search', requireResourceAccess('search'), searchRoutes);
-app.use('/api/v1/rag', requireResourceAccess('rag'), ragRoutes);
+app.use('/api/v1/rag', requireResourceAccess('rag'), aiRateLimiter, ragRoutes);
 app.use('/api/v1/webhooks', requireResourceAccess('webhooks'), webhooksConfigRoutes);
 app.use('/api/v1/audit-log', requireResourceAccess('audit-log'), auditLogRoutes);
 app.use('/api/v1/admin', requireResourceAccess('settings'), adminRoutes);

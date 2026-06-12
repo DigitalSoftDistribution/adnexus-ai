@@ -23,6 +23,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../lib/errors';
+import { isSafePublicHttpUrl } from '../lib/url-safety';
 import { getRequestLogger } from '../lib/logger';
 
 const router = Router();
@@ -57,7 +58,13 @@ const VALID_EVENT_TYPES = [
 // ─── Zod Schemas ─────────────────────────────────────────────
 
 const createWebhookSchema = z.object({
-  url: z.string().url('Must be a valid URL').min(1, 'URL is required'),
+  url: z
+    .string()
+    .url('Must be a valid URL')
+    .min(1, 'URL is required')
+    .refine(isSafePublicHttpUrl, {
+      message: 'URL must be a public http(s) endpoint (private, loopback, and link-local hosts are not allowed)',
+    }),
   events: z
     .array(z.string())
     .min(1, 'At least one event type is required')
@@ -69,7 +76,13 @@ const createWebhookSchema = z.object({
 });
 
 const updateWebhookSchema = z.object({
-  url: z.string().url().optional(),
+  url: z
+    .string()
+    .url()
+    .refine(isSafePublicHttpUrl, {
+      message: 'URL must be a public http(s) endpoint (private, loopback, and link-local hosts are not allowed)',
+    })
+    .optional(),
   events: z
     .array(z.string())
     .refine(

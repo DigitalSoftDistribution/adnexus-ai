@@ -7,7 +7,14 @@ import { config } from '../config';
 
 // ─── Types ───────────────────────────────────────────────────
 
-export type RateLimitTier = 'authenticated' | 'unauthenticated' | 'webhook';
+export type RateLimitTier = 'authenticated' | 'unauthenticated' | 'webhook' | 'ai';
+
+/**
+ * Per-minute cap for AI/LLM endpoints (agent, RAG). These call paid providers
+ * and deduct workspace credits, so they get a tighter limit than the general
+ * authenticated tier. Override with RATE_LIMIT_AI_PER_MINUTE.
+ */
+const AI_REQUESTS_PER_MINUTE = Number(process.env.RATE_LIMIT_AI_PER_MINUTE) || 20;
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -31,6 +38,10 @@ const TIER_LIMITS: Record<RateLimitTier, { requests: number; windowMs: number }>
   },
   webhook: {
     requests: config.rateLimit.webhookPerMinute,
+    windowMs: 60_000,
+  },
+  ai: {
+    requests: AI_REQUESTS_PER_MINUTE,
     windowMs: 60_000,
   },
 };
@@ -61,6 +72,15 @@ function shouldSkipRateLimit(req: Request): boolean {
 }
 
 function getClientIdentifier(req: Request, tier: RateLimitTier): string {
+  if (tier === 'ai') {
+    // Prefer the authenticated user; fall back to API key, then IP, so one
+    // tenant cannot exhaust another's AI budget.
+    const apiKey = req.headers['x-api-key'];
+    if (req.user?.sub) return `ratelimit:ai:${req.user.sub}`;
+    if (typeof apiKey === 'string' && apiKey) return `ratelimit:ai:key:${apiKey}`;
+    const ip = req.socket?.remoteAddress ?? req.ip ?? 'unknown';
+    return `ratelimit:ai:ip:${ip}`;
+  }
   if (tier === 'authenticated' && req.user?.sub) {
     return `ratelimit:auth:${req.user.sub}`;
   }
@@ -237,3 +257,6 @@ export const unauthenticatedRateLimiter = createRateLimiter('unauthenticated');
 
 /** Rate limiter for webhook endpoints (200 req/min default) */
 export const webhookRateLimiter = createRateLimiter('webhook');
+
+/** Tight rate limiter for AI/LLM endpoints (20 req/min/user default) */
+export const aiRateLimiter = createRateLimiter('ai');

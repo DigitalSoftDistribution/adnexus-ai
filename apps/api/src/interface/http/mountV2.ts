@@ -17,7 +17,7 @@
 
 import type { Express } from 'express';
 import { Router as createRouter } from 'express';
-import { authenticatedRateLimiter, unauthenticatedRateLimiter } from '../../middleware/rateLimiter';
+import { authenticatedRateLimiter, unauthenticatedRateLimiter, aiRateLimiter } from '../../middleware/rateLimiter';
 import { expressErrorHandler } from './middleware/errorHandler';
 
 // Infrastructure
@@ -200,7 +200,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/webhooks', authenticatedRateLimiter, createWebhookRoutes(container));
   v2.use('/campaigns/:campaignId/adsets', authenticatedRateLimiter, createAdSetRoutes(container));
   v2.use('/goals', authenticatedRateLimiter, createGoalRoutes(container));
-  v2.use('/agent', authenticatedRateLimiter, createAgentRoutes(container));
+  v2.use('/agent', authenticatedRateLimiter, aiRateLimiter, createAgentRoutes(container));
   v2.use('/audit-log', authenticatedRateLimiter, createAuditLogRoutes(container));
   v2.use('/exports', authenticatedRateLimiter, createExportRoutes(container));
   v2.use('/assets', authenticatedRateLimiter, createAssetRoutes(container));
