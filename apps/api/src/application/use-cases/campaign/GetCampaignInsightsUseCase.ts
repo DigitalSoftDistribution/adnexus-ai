@@ -29,7 +29,12 @@ export class GetCampaignInsightsUseCase {
       return err(new NotFoundError('Campaign'));
     }
 
-    const cacheKey = `insights:${input.workspaceId}:${input.campaignId}:${input.dateFrom ?? '_'}:${input.dateTo ?? '_'}`;
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const dateFrom = input.dateFrom ?? thirtyDaysAgo.toISOString().slice(0, 10);
+    const dateTo = input.dateTo ?? now.toISOString().slice(0, 10);
+
+    const cacheKey = `insights:${input.workspaceId}:${input.campaignId}:${dateFrom}:${dateTo}`;
     const cached = await cache.get<CampaignInsightSummary>(cacheKey);
     if (cached) {
       return ok(cached);
@@ -37,8 +42,8 @@ export class GetCampaignInsightsUseCase {
 
     const summary = await this.insightRepository.getSummary(
       input.campaignId,
-      input.dateFrom,
-      input.dateTo,
+      dateFrom,
+      dateTo,
     );
 
     await cache.set(cacheKey, summary, 600); // 10 min cache

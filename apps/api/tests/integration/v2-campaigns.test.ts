@@ -169,6 +169,74 @@ describe('V2 runtime mount — /api/v2/campaigns', () => {
     });
   });
 
+  describe('GET /api/v2/campaigns/:id/insights', () => {
+    it('returns 200 with aggregated metrics from campaign_metrics', async () => {
+      v2Query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: UUIDS.campaign1,
+              workspace_id: UUIDS.workspace1,
+              ad_account_id: UUIDS.metaAccount,
+              platform: 'meta',
+              name: 'Alpha',
+              status: 'active',
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+          ],
+          rowCount: 1,
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              total_spend: 450,
+              total_impressions: 500000,
+              total_clicks: 2500,
+              total_conversions: 120,
+              avg_ctr: 0.5,
+              avg_cpa: 3.75,
+              avg_roas: 4.2,
+              avg_cpm: 0.9,
+              avg_cpc: 0.18,
+            },
+          ],
+          rowCount: 1,
+        })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const token = generateToken(UUIDS.owner, 'owner', UUIDS.workspace1);
+      const res = await request(app)
+        .get(`/api/v2/campaigns/${UUIDS.campaign1}/insights`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toMatchObject({
+        campaignId: UUIDS.campaign1,
+        totalSpend: 450,
+        totalImpressions: 500000,
+        totalClicks: 2500,
+      });
+      expect(v2Query).toHaveBeenCalledWith(
+        expect.stringContaining('FROM campaign_metrics'),
+        expect.any(Array),
+      );
+    });
+
+    it('returns 404 when the campaign is not in the workspace', async () => {
+      v2Query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const token = generateToken(UUIDS.owner, 'owner', UUIDS.workspace1);
+      const res = await request(app)
+        .get(`/api/v2/campaigns/${UUIDS.campaign1}/insights`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
+    });
+  });
+
   describe('RBAC — POST /api/v2/campaigns', () => {
     it('returns 403 for a viewer (requireRole owner/admin/editor)', async () => {
       const token = generateToken(UUIDS.viewer, 'viewer', UUIDS.workspace1);

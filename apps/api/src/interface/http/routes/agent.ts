@@ -17,6 +17,7 @@ export function createAgentRoutes(container: Container): Router {
 
   // Advisory surface
   router.get('/recommendations', requireAuth, controller.recommendations as any);
+  router.post('/recommendations', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.generateRecommendations as any);
   router.post('/recommendations/:id/apply', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.applyRecommendation as any);
   router.post('/recommendations/:id/dismiss', requireAuth, requireRole('owner', 'admin', 'editor') as any, controller.dismissRecommendation as any);
   router.get('/insights', requireAuth, controller.insights as any);
