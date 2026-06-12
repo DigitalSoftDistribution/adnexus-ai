@@ -414,16 +414,6 @@ function gracefulShutdown(signal: string): void {
       }
     }
 
-    if (config.backgroundJobs.enabled && config.backgroundJobs.metricsSyncEnabled) {
-      try {
-        const { shutdownMetricsSync } = await import('./workers/metrics-sync');
-        await shutdownMetricsSync();
-        loggerApp.info('Metrics sync worker stopped');
-      } catch (err) {
-        loggerApp.error({ err }, 'Error stopping metrics sync worker');
-      }
-    }
-
     try {
       await closeRedis();
       loggerApp.info('Redis connection closed');
