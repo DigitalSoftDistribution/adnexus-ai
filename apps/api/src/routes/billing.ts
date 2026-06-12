@@ -325,31 +325,29 @@ router.post("/webhook", async (req, res, next) => {
     );
 
     // ── Idempotency ──────────────────────────────────────────
-    // Stripe delivers at-least-once and retries on non-2xx. Claim the event id
-    // before processing; if it already exists AND was fully processed, this is
-    // a duplicate delivery and we ack without re-running the handler.
+    // Stripe delivers at-least-once and retries on non-2xx. The unique row is
+    // an atomic lock: concurrent deliveries of the same event can't both enter
+    // the handler. The conflict path only re-claims a row that was started but
+    // never finished (processed_at IS NULL) AND is older than the stale window,
+    // so a crashed attempt is eventually retried without races re-processing a
+    // freshly-claimed (in-flight) or already-completed event.
     const { rows: claim } = await query<{ id: string }>(
       `INSERT INTO stripe_webhook_events (id, type)
          VALUES ($1, $2)
-         ON CONFLICT (id) DO NOTHING
+         ON CONFLICT (id) DO UPDATE
+           SET received_at = NOW()
+           WHERE stripe_webhook_events.processed_at IS NULL
+             AND stripe_webhook_events.received_at < NOW() - INTERVAL '10 minutes'
        RETURNING id`,
       [event.id, event.type],
     );
-    const justClaimed = claim.length > 0;
-    if (!justClaimed) {
-      const { rows: prior } = await query<{ processed_at: Date | null }>(
-        "SELECT processed_at FROM stripe_webhook_events WHERE id = $1",
-        [event.id],
+    if (claim.length === 0) {
+      // Already processed, or another delivery is actively processing it.
+      logger.info(
+        { eventType: event.type, eventId: event.id },
+        "Duplicate or in-flight Stripe webhook ignored",
       );
-      if (prior[0]?.processed_at) {
-        logger.info(
-          { eventType: event.type, eventId: event.id },
-          "Duplicate Stripe webhook ignored",
-        );
-        return res.json({ received: true, eventId: event.id });
-      }
-      // Row exists but was never finished (prior crash) — fall through and
-      // (re)process so the event isn't lost.
+      return res.json({ received: true, eventId: event.id });
     }
 
     try {
@@ -359,13 +357,11 @@ router.post("/webhook", async (req, res, next) => {
         [event.id],
       );
     } catch (procErr) {
-      // Release our claim so Stripe's retry can re-attempt a clean run.
-      if (justClaimed) {
-        await query(
-          "DELETE FROM stripe_webhook_events WHERE id = $1 AND processed_at IS NULL",
-          [event.id],
-        ).catch(() => undefined);
-      }
+      // Release our claim so Stripe's retry can re-attempt immediately.
+      await query(
+        "DELETE FROM stripe_webhook_events WHERE id = $1 AND processed_at IS NULL",
+        [event.id],
+      ).catch(() => undefined);
       throw procErr;
     }
 

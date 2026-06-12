@@ -74,9 +74,11 @@ function shouldSkipRateLimit(req: Request): boolean {
 function getClientIdentifier(req: Request, tier: RateLimitTier): string {
   if (tier === 'ai') {
     // Prefer the authenticated user; fall back to API key, then IP, so one
-    // tenant cannot exhaust another's AI budget.
+    // tenant cannot exhaust another's AI budget. v1 sets req.user.sub while v2
+    // sets req.user.id — accept either.
+    const userId = req.user?.sub ?? (req.user as { id?: string } | undefined)?.id;
     const apiKey = req.headers['x-api-key'];
-    if (req.user?.sub) return `ratelimit:ai:${req.user.sub}`;
+    if (userId) return `ratelimit:ai:${userId}`;
     if (typeof apiKey === 'string' && apiKey) return `ratelimit:ai:key:${apiKey}`;
     const ip = req.socket?.remoteAddress ?? req.ip ?? 'unknown';
     return `ratelimit:ai:ip:${ip}`;
