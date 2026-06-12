@@ -15,7 +15,7 @@ export interface SeedMockTrafficInput {
 }
 
 const ADMIN_ROLES = ['owner', 'admin'];
-const SUPPORTED_PLATFORMS: MockTrafficPlatform[] = ['meta', 'google'];
+const SUPPORTED_PLATFORMS: MockTrafficPlatform[] = ['meta', 'google', 'tiktok', 'snap'];
 const SUPPORTED_VARIANTS = ['baseline', 'high_spend', 'low_roas'] as const;
 type MockTrafficVariant = (typeof SUPPORTED_VARIANTS)[number];
 

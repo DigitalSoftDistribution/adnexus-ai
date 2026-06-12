@@ -1138,6 +1138,40 @@
           "totalResultsCount": "2"
         }
       }
+    },
+    {
+      "name": "Meta Graph API - update ad or ad set",
+      "priority": 25,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9.]+/(730000000000000[0-9]+|630000000000000[0-9]+|120200000000000[0-9]+)"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "success": true
+        }
+      }
+    },
+    {
+      "name": "Meta Graph API - improve creative suggestion",
+      "priority": 20,
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v[0-9.]+/[0-9]+/copies"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "copied_ad_id": "73000000000009999"
+        }
+      }
     }
   ]
 }
