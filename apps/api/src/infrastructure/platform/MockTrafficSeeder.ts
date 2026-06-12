@@ -509,6 +509,11 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
     return rows[0].id;
   }
 
+  /** Prod ads.status CHECK allows active/paused/draft — not archived. */
+  private toDbAdStatus(status: MockAdFixture['status']): 'active' | 'paused' {
+    return status === 'archived' ? 'paused' : status;
+  }
+
   /**
    * Upsert ad — mirrors syncPersistence.upsertAd with fatigue fields for QA dashboards.
    */
@@ -562,7 +567,7 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
           campaignId,
           platform,
           fixture.name,
-          fixture.status,
+          this.toDbAdStatus(fixture.status),
           fixture.creativeType,
           fixture.creativeUrl,
           fixture.creativeText,
@@ -592,7 +597,7 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
         platform,
         fixture.platformAdId,
         fixture.name,
-        fixture.status,
+        this.toDbAdStatus(fixture.status),
         fixture.creativeType,
         fixture.creativeUrl,
         fixture.creativeText,

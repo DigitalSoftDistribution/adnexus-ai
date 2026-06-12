@@ -108,4 +108,30 @@ describe('MockTrafficSeeder', () => {
     expect(adInsert?.[1]?.[10]).toBe(22);
     expect(adInsert?.[1]?.[11]).toBe('healthy');
   });
+
+  it('persists archived-like ads as paused with critical fatigue', async () => {
+    idSequence(['acc-meta']);
+
+    await new MockTrafficSeeder().seed({
+      workspaceId: 'ws-qa',
+      userId: 'user-qa',
+      platforms: ['meta'],
+      variant: 'baseline',
+    });
+
+    const adInserts = mockedQuery.mock.calls.filter(([sql]) =>
+      /insert into ads\s*\(/i.test(String(sql)),
+    );
+    expect(adInserts).toHaveLength(12);
+
+    const archivedLike = adInserts.filter(([, params]) =>
+      String(params?.[5]).includes('(archived)'),
+    );
+    expect(archivedLike).toHaveLength(4);
+    for (const [, params] of archivedLike) {
+      expect(params?.[6]).toBe('paused');
+      expect(params?.[10]).toBe(85);
+      expect(params?.[11]).toBe('critical');
+    }
+  });
 });
