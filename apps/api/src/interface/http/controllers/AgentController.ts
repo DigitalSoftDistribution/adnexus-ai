@@ -122,6 +122,15 @@ export function createAgentController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    generateRecommendations: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const result = await container.listRecommendations.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+      });
+      if (!result.success) throw result.error;
+      res.status(201).json({ success: true, data: result.data });
+    }),
+
     applyRecommendation: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       const result = await container.applyRecommendation.execute({
         workspaceId: req.user!.workspaceId,
