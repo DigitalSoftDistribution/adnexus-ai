@@ -12,7 +12,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Link } from '@/i18n/navigation';
 import { formatDate } from '@/lib/utils';
-import { Bot, Sparkles, TrendingUp, AlertTriangle, CheckCircle, XCircle, FileEdit, ShieldCheck } from 'lucide-react';
+import { Bot, Sparkles, TrendingUp, AlertTriangle, CheckCircle, XCircle, FileEdit, ShieldCheck, MessageSquare } from 'lucide-react';
+import { AgentChatPanel } from './AgentChatPanel';
 
 interface AgentStatus {
   isRunning: boolean;
@@ -211,6 +212,10 @@ export function AIAgentContent() {
             {t('recommendations')} ({pendingRecs.length})
           </TabsTrigger>
           <TabsTrigger value="approvals">{t('approvals')}</TabsTrigger>
+          <TabsTrigger value="chat">
+            <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+            {t('chat')}
+          </TabsTrigger>
           <TabsTrigger value="insights">{t('insights')}</TabsTrigger>
           <TabsTrigger value="history">{t('history')}</TabsTrigger>
         </TabsList>
@@ -251,6 +256,10 @@ export function AIAgentContent() {
 
         <TabsContent value="approvals">
           <ApprovalsTab recommendations={recs} />
+        </TabsContent>
+
+        <TabsContent value="chat">
+          <AgentChatPanel />
         </TabsContent>
 
         <TabsContent value="insights">

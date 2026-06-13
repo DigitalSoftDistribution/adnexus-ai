@@ -100,4 +100,69 @@ describe('AIAgentContent', () => {
       });
     });
   });
+
+  it('sends chat messages via conversation API', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/v2/agent/status') return { ok: true, json: async () => ({ data: status }) };
+      if (url === '/api/v2/agent/recommendations') return { ok: true, json: async () => ({ data: [] }) };
+      if (url === '/api/v2/agent/conversations' && !init?.method) {
+        return { ok: true, json: async () => ({ data: [] }) };
+      }
+      if (url === '/api/v2/agent/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              id: 'conv-1',
+              title: 'New conversation',
+              createdAt: '2026-06-13T00:00:00.000Z',
+              updatedAt: '2026-06-13T00:00:00.000Z',
+            },
+          }),
+        };
+      }
+      if (url === '/api/v2/agent/conversations/conv-1' && !init?.method) {
+        return { ok: true, json: async () => ({ data: { conversation: { id: 'conv-1' }, messages: [] } }) };
+      }
+      if (url === '/api/v2/agent/conversations/conv-1/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [
+              { id: 'msg-1', role: 'user', content: 'What should I optimize?', createdAt: '2026-06-13T00:00:00.000Z' },
+              {
+                id: 'msg-2',
+                role: 'assistant',
+                content: 'Open the Recommendations tab to apply any of these as a draft.',
+                createdAt: '2026-06-13T00:00:01.000Z',
+              },
+            ],
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({ data: [] }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQuery(<AIAgentContent />);
+
+    await userEvent.click(await screen.findByRole('tab', { name: /chat/i }));
+
+    const input = await screen.findByPlaceholderText(/ask the operator/i);
+    await userEvent.type(input, 'What should I optimize?');
+    await userEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v2/agent/conversations/conv-1/messages',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ content: 'What should I optimize?' }),
+        }),
+      );
+    });
+
+    expect(await screen.findByText(/open the recommendations tab/i)).toBeInTheDocument();
+    expect(screen.getByText(/chat is advisory only/i)).toBeInTheDocument();
+  });
 });
