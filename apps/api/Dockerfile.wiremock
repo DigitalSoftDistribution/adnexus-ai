@@ -1,0 +1,7 @@
+# Internal Coolify service — AdNexus platform API stubs (Option B).
+# Build context: repo root. Coolify: Dockerfile path apps/api/Dockerfile.wiremock
+FROM wiremock/wiremock:3.10.0
+COPY apps/api/tests/wiremock/ /home/wiremock/
+HEALTHCHECK --interval=10s --timeout=3s --retries=10 \
+  CMD curl -fsS http://localhost:8080/__admin/health || exit 1
+CMD ["--global-response-templating", "--disable-gzip"]
