@@ -1,10 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClientOptions } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { config } from '../config';
 
 /** Backend clients use PostgREST + Auth admin only — no Supabase Realtime subscriptions. */
 const serviceClientOptions = {
   auth: { autoRefreshToken: false, persistSession: false },
-};
+  realtime: { transport: WebSocket },
+} as SupabaseClientOptions<'public'>;
 
 /** Service-role client for PostgREST / database operations. Never call auth.admin on this instance — createUser mutates the session JWT and breaks RLS bypass on inserts. */
 export const supabase = createClient(config.supabase.url, config.supabase.serviceKey, serviceClientOptions);
