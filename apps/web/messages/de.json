@@ -36,7 +36,8 @@
       "workspace": "Arbeitsbereich",
       "admin": "Admin",
       "create": "Erstellen"
-    }
+    },
+    "analytics": "Analysen"
   },
   "common": {
     "loading": "Wird geladen...",
@@ -775,5 +776,21 @@
     "emptyDescription": "Arbeitsbereich-Aktivitäten erscheinen hier.",
     "emptyFiltered": "No matching activity",
     "emptyFilteredDescription": "Try clearing or changing the audit log filters."
+  },
+  "analytics": {
+    "title": "Analysen",
+    "description": "Kampagnenübergreifende Leistungskennzahlen und Trends für Ihren Arbeitsbereich.",
+    "empty": "Noch keine Analysedaten",
+    "emptyDescription": "Verbinden Sie Werbekonten und erstellen Sie Kampagnen, um hier Leistungskennzahlen zu sehen.",
+    "emptyCta": "Kampagnen anzeigen",
+    "totalSpend": "Gesamtausgaben",
+    "impressions": "Impressionen",
+    "clicks": "Klicks",
+    "conversions": "Conversions",
+    "avgCtr": "Ø CTR",
+    "avgCpa": "Ø CPA",
+    "avgRoas": "Ø ROAS",
+    "spendTrend": "Ausgaben & Conversions",
+    "spendTrendDescription": "Tägliche Ausgaben und Conversions aktiver Kampagnen."
   }
 }

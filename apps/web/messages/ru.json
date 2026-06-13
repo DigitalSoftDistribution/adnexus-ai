@@ -36,7 +36,8 @@
       "workspace": "Рабочая область",
       "admin": "Admin",
       "create": "Создать"
-    }
+    },
+    "analytics": "Аналитика"
   },
   "common": {
     "loading": "Загрузка...",
@@ -775,5 +776,21 @@
     "emptyDescription": "Активность рабочей области появится здесь.",
     "emptyFiltered": "No matching activity",
     "emptyFilteredDescription": "Try clearing or changing the audit log filters."
+  },
+  "analytics": {
+    "title": "Аналитика",
+    "description": "Метрики эффективности и тренды кампаний в рабочей области.",
+    "empty": "Пока нет аналитических данных",
+    "emptyDescription": "Подключите рекламные аккаунты и создайте кампании, чтобы увидеть метрики.",
+    "emptyCta": "Открыть кампании",
+    "totalSpend": "Общие расходы",
+    "impressions": "Показы",
+    "clicks": "Клики",
+    "conversions": "Конверсии",
+    "avgCtr": "Ср. CTR",
+    "avgCpa": "Ср. CPA",
+    "avgRoas": "Ср. ROAS",
+    "spendTrend": "Расходы и конверсии",
+    "spendTrendDescription": "Ежедневные расходы и конверсии активных кампаний."
   }
 }
