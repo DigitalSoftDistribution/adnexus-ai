@@ -7,8 +7,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       META_GRAPH_URL: http://wiremock:8080
       GOOGLE_ADS_API_URL: http://wiremock:8080/v16
