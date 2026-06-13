@@ -63,11 +63,37 @@ async function main() {
   });
 
   console.log('→ GET /api/v2/ads');
-  const ads = await json('GET', '/api/v2/ads?limit=100', { token });
+  const ads = await json('GET', '/api/v2/ads?limit=200', { token });
   const rows = ads.data?.ads ?? ads.data ?? [];
   const total = ads.data?.total ?? rows.length;
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error(`Expected ads > 0, got total=${total}`);
+  }
+  if (rows.length < 48) {
+    throw new Error(`Expected at least 48 ads, got ${rows.length}`);
+  }
+
+  const creativeTexts = new Set(rows.map((a) => a.creative_text ?? a.creativeText).filter(Boolean));
+  const creativeTypes = new Set(rows.map((a) => a.creative_type ?? a.creativeType).filter(Boolean));
+  const fatigueStatuses = new Set(rows.map((a) => a.fatigue_status ?? a.fatigueStatus).filter(Boolean));
+  const platforms = new Set(rows.map((a) => a.platform).filter(Boolean));
+
+  if (creativeTexts.size < 12) {
+    throw new Error(`Expected diverse creative copy (≥12 unique), got ${creativeTexts.size}`);
+  }
+  if (creativeTypes.size < 3) {
+    throw new Error(`Expected ≥3 creative types, got: ${[...creativeTypes].join(', ')}`);
+  }
+  if (fatigueStatuses.size < 2) {
+    throw new Error(`Expected fatigue variety, got: ${[...fatigueStatuses].join(', ')}`);
+  }
+  if (platforms.size < 4) {
+    throw new Error(`Expected 4 platforms in ads, got: ${[...platforms].join(', ')}`);
+  }
+
+  const sampleAd = rows.find((a) => (a.creative_text ?? a.creativeText)?.includes('CTA:'));
+  if (!sampleAd) {
+    throw new Error('Expected at least one ad with CTA in creative_text');
   }
 
   console.log('→ GET /api/v2/campaigns');
@@ -82,6 +108,11 @@ async function main() {
   console.log(JSON.stringify({
     adsListed: rows.length,
     adsTotal: total,
+    uniqueCreativeTexts: creativeTexts.size,
+    creativeTypes: [...creativeTypes],
+    fatigueStatuses: [...fatigueStatuses],
+    platforms: [...platforms],
+    sampleCreative: (sampleAd.creative_text ?? sampleAd.creativeText)?.slice(0, 120),
     campaignStatusVariety: [...statuses],
     seeded,
   }, null, 2));
