@@ -78,16 +78,67 @@ const CAMPAIGN_OBJECTIVES: Record<MockTrafficPlatform, [string, string]> = {
   snap: ['sales', 'engagement'],
 };
 
-const META_AD_FATIGUE: Record<
-  MockAdFixture['status'],
-  { fatigueScore: number; fatigueStatus: MockAdFixture['fatigueStatus'] }
-> = {
-  active: { fatigueScore: 22, fatigueStatus: 'healthy' },
-  paused: { fatigueScore: 52, fatigueStatus: 'warning' },
-  archived: { fatigueScore: 85, fatigueStatus: 'critical' },
+const AD_STATUS_CYCLE: MockAdFixture['status'][] = ['active', 'paused', 'archived'];
+
+/** Fatigue tiers — spread ~40/30/20/10 across the portfolio for dashboard QA. */
+const FATIGUE_TIERS: Array<{ fatigueScore: number; fatigueStatus: MockAdFixture['fatigueStatus'] }> = [
+  { fatigueScore: 18, fatigueStatus: 'healthy' },
+  { fatigueScore: 22, fatigueStatus: 'healthy' },
+  { fatigueScore: 48, fatigueStatus: 'warning' },
+  { fatigueScore: 55, fatigueStatus: 'warning' },
+  { fatigueScore: 72, fatigueStatus: 'critical' },
+  { fatigueScore: 88, fatigueStatus: 'exhausted' },
+];
+
+interface PlatformCreativeTemplate {
+  headline: string;
+  body: string;
+  cta: string;
+  creativeType: string;
+}
+
+const PLATFORM_CREATIVES: Record<MockTrafficPlatform, PlatformCreativeTemplate[]> = {
+  meta: [
+    { headline: 'Summer Sale — 40% Off Sitewide', body: 'Limited time only. Free shipping on orders $50+.', cta: 'Shop Now', creativeType: 'image' },
+    { headline: 'Meet Our Best Sellers', body: 'Thousands of 5-star reviews. See why customers love us.', cta: 'Learn More', creativeType: 'video' },
+    { headline: 'New Collection Drop', body: 'Fresh styles just landed. Swipe through the lookbook.', cta: 'Sign Up', creativeType: 'carousel' },
+    { headline: 'Flash Deal — 24 Hours', body: 'Extra 15% off with code FLASH24 at checkout.', cta: 'Get Offer', creativeType: 'image' },
+    { headline: 'UGC Testimonial — Real Results', body: '"I was skeptical but this changed everything." — Jamie K.', cta: 'Shop Now', creativeType: 'video' },
+    { headline: 'Bundle & Save 25%', body: 'Mix and match any 3 items. Automatically applied.', cta: 'Shop Now', creativeType: 'collection' },
+  ],
+  google: [
+    { headline: 'Buy Official Products Online', body: 'Free returns · 2-day shipping · Price match guarantee.', cta: 'Buy Now', creativeType: 'responsive' },
+    { headline: 'Search Brand — Official Store', body: 'Shop direct. No middlemen. Authentic products only.', cta: 'Get Offer', creativeType: 'image' },
+    { headline: 'Limited Stock — Order Today', body: 'High demand item. Only 47 left in warehouse.', cta: 'Apply Now', creativeType: 'image' },
+    { headline: 'Compare Plans & Pricing', body: 'Transparent pricing. Cancel anytime. No hidden fees.', cta: 'Learn More', creativeType: 'responsive' },
+    { headline: 'Demo Video — See It In Action', body: 'Watch a 60-second product walkthrough.', cta: 'Watch Now', creativeType: 'video' },
+    { headline: 'Download Free Buyer Guide', body: 'PDF guide: How to choose the right plan for your team.', cta: 'Download', creativeType: 'image' },
+  ],
+  tiktok: [
+    { headline: 'POV: You found the deal of the year', body: 'Trending now · 2.1M views · Creator @shopwithus', cta: 'Shop Now', creativeType: 'video' },
+    { headline: 'This hack went viral for a reason', body: 'Save this before it gets taken down 👀', cta: 'Watch More', creativeType: 'video' },
+    { headline: 'GRWM using our bestsellers', body: 'Get ready with me — full routine linked in bio.', cta: 'Download', creativeType: 'video' },
+    { headline: 'Unboxing + honest review', body: 'Not sponsored. Real talk about quality & value.', cta: 'Shop Now', creativeType: 'video' },
+    { headline: 'Dupe vs Original — side by side', body: 'Same quality, half the price. Link in comments.', cta: 'Learn More', creativeType: 'spark' },
+    { headline: 'Day-in-the-life brand edition', body: 'Behind the scenes at our studio. New drops weekly.', cta: 'Follow', creativeType: 'video' },
+  ],
+  snap: [
+    { headline: 'Swipe Up — Exclusive Drop', body: '24-hour only. AR try-on available in Snap.', cta: 'Shop Now', creativeType: 'story' },
+    { headline: 'Limited Edition — Sold Out Soon', body: 'Only on Snap. Free lens filter with purchase.', cta: 'View', creativeType: 'image' },
+    { headline: 'Friend Referral Bonus', body: 'Invite 3 friends, get $20 off your next order.', cta: 'Sign Up', creativeType: 'image' },
+    { headline: 'Snap Map Local Event', body: 'Pop-up this weekend. Check in for surprise discount.', cta: 'Learn More', creativeType: 'story' },
+    { headline: 'Install App — First Order Free', body: 'New users only. Terms apply.', cta: 'Install Now', creativeType: 'app_install' },
+    { headline: 'Poll: Which color next?', body: 'Vote in our Story. Winning shade ships Friday.', cta: 'Vote', creativeType: 'story' },
+  ],
 };
 
-const AD_STATUS_CYCLE: MockAdFixture['status'][] = ['active', 'paused', 'archived'];
+/** Platform-typical ad-level CTR baselines (percent). */
+const PLATFORM_AD_CTR: Record<MockTrafficPlatform, number> = {
+  meta: 1.85,
+  google: 5.6,
+  tiktok: 4.1,
+  snap: 3.8,
+};
 
 function buildCampaignFixtures(platform: MockTrafficPlatform): MockCampaignFixture[] {
   const label = PLATFORM_LABELS[platform];
@@ -113,21 +164,25 @@ function buildCampaignFixtures(platform: MockTrafficPlatform): MockCampaignFixtu
   ];
 }
 
+const AD_SET_SEGMENTS = ['Prospecting', 'Retargeting', 'Lookalike'] as const;
+
 function buildAdSetFixtures(campaign: MockCampaignFixture): MockAdSetFixture[] {
-  return [
-    {
-      platformAdSetId: `${campaign.platformCampaignId}_as_1`,
-      name: `${campaign.name} - Ad Set 1`,
-      status: 'active',
-      dailyBudget: Math.round(campaign.dailyBudget * 0.55),
-    },
-    {
-      platformAdSetId: `${campaign.platformCampaignId}_as_2`,
-      name: `${campaign.name} - Ad Set 2`,
-      status: 'paused',
-      dailyBudget: Math.round(campaign.dailyBudget * 0.45),
-    },
-  ];
+  const budgetShares = [0.4, 0.35, 0.25];
+  return AD_SET_SEGMENTS.map((segment, index) => ({
+    platformAdSetId: `${campaign.platformCampaignId}_as_${index + 1}`,
+    name: `${campaign.name} — ${segment}`,
+    status: index === 0 ? 'active' : index === 1 ? 'active' : 'paused',
+    dailyBudget: Math.round(campaign.dailyBudget * budgetShares[index]),
+  }));
+}
+
+function creativeIndex(platform: MockTrafficPlatform, adSet: MockAdSetFixture, adIndex: number): number {
+  const adSetNum = Number(adSet.platformAdSetId.match(/_as_(\d+)$/)?.[1] ?? 1);
+  return ((adSetNum - 1) * 3 + adIndex) % PLATFORM_CREATIVES[platform].length;
+}
+
+function formatCreativeText(template: PlatformCreativeTemplate): string {
+  return `${template.headline} | ${template.body} | CTA: ${template.cta}`;
 }
 
 function buildAdFixtures(
@@ -135,25 +190,47 @@ function buildAdFixtures(
   adSet: MockAdSetFixture,
 ): MockAdFixture[] {
   return AD_STATUS_CYCLE.map((status, index) => {
-    const fatigue =
-      platform === 'meta'
-        ? META_AD_FATIGUE[status]
-        : status === 'active'
-          ? { fatigueScore: 20, fatigueStatus: 'healthy' as const }
-          : status === 'paused'
-            ? { fatigueScore: 45, fatigueStatus: 'warning' as const }
-            : { fatigueScore: 70, fatigueStatus: 'critical' as const };
+    const templateIdx = creativeIndex(platform, adSet, index);
+    const template = PLATFORM_CREATIVES[platform][templateIdx];
+    const fatigueIdx = (templateIdx + index) % FATIGUE_TIERS.length;
+    const fatigue = FATIGUE_TIERS[fatigueIdx];
+    const ext = template.creativeType === 'video' || template.creativeType === 'story' ? 'mp4' : 'jpg';
 
     return {
       platformAdId: `${adSet.platformAdSetId}_ad_${index + 1}`,
-      name: `${adSet.name} - Creative ${index + 1} (${status})`,
+      name: template.headline,
       status,
-      creativeType: index === 1 ? 'video' : 'image',
-      creativeUrl: `https://cdn.adnexus.ai/mock/${platform}/${adSet.platformAdSetId}_${index + 1}.jpg`,
-      creativeText: `QA mock creative for ${PLATFORM_LABELS[platform]} (${status})`,
+      creativeType: template.creativeType,
+      creativeUrl: `https://cdn.adnexus.ai/mock/${platform}/${adSet.platformAdSetId}_${index + 1}.${ext}`,
+      creativeText: formatCreativeText(template),
       ...fatigue,
     };
   });
+}
+
+function adLevelMetrics(
+  platform: MockTrafficPlatform,
+  status: MockAdFixture['status'],
+  fatigueScore: number,
+): { spend: number; impressions: number; clicks: number; conversions: number; ctr: number; frequency: number } {
+  const targetCtr = PLATFORM_AD_CTR[platform];
+  const statusFactor = status === 'active' ? 1 : status === 'paused' ? 0.38 : 0.12;
+  const spend = round((platform === 'google' ? 95 : platform === 'meta' ? 140 : 75) * statusFactor);
+  const impressions = Math.max(
+    500,
+    Math.round(spend * (platform === 'google' ? 42 : platform === 'tiktok' ? 55 : 68)),
+  );
+  const clicks = Math.max(1, Math.round(impressions * (targetCtr / 100) * (1 - fatigueScore / 200)));
+  const conversions = Math.max(1, Math.round(clicks * (platform === 'google' ? 0.08 : 0.05) * statusFactor));
+  const ctr = round((clicks / impressions) * 100);
+  return {
+    spend,
+    impressions,
+    clicks,
+    conversions,
+    ctr,
+    frequency: round(1.1 + fatigueScore / 80),
+  };
 }
 
 function metric(
@@ -529,16 +606,12 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
       [adSetId, fixture.platformAdId],
     );
 
-    const baseMetrics = {
-      spend: fixture.status === 'active' ? 120 : fixture.status === 'paused' ? 45 : 12,
-      impressions: fixture.status === 'active' ? 8200 : fixture.status === 'paused' ? 3100 : 900,
-      clicks: fixture.status === 'active' ? 210 : fixture.status === 'paused' ? 62 : 14,
-      conversions: fixture.status === 'active' ? 18 : fixture.status === 'paused' ? 5 : 1,
-      frequency: fixture.fatigueScore != null ? 1.2 + fixture.fatigueScore / 100 : 1.5,
-    };
-    const ctr = baseMetrics.impressions > 0
-      ? round((baseMetrics.clicks / baseMetrics.impressions) * 100)
-      : 0;
+    const baseMetrics = adLevelMetrics(
+      platform,
+      fixture.status,
+      fixture.fatigueScore ?? 25,
+    );
+    const ctr = baseMetrics.ctr;
 
     if (existing[0]) {
       await query(
@@ -638,6 +711,6 @@ export const MOCK_TRAFFIC_ALL_PLATFORMS = ALL_PLATFORMS;
 /** Exported for unit tests — deterministic counts per fully-seeded platform. */
 export const MOCK_TRAFFIC_COUNTS_PER_PLATFORM = {
   campaigns: 2,
-  adSets: 4,
-  ads: 12,
+  adSets: 6,
+  ads: 18,
 } as const;

@@ -105,7 +105,8 @@ describe('MockTrafficSeeder', () => {
       /insert into ads\s*\(/i.test(String(sql)),
     );
     expect(adInsert?.[1]?.[6]).toBe('active');
-    expect(adInsert?.[1]?.[10]).toBe(22);
+    expect(String(adInsert?.[1]?.[5])).toContain('Summer Sale');
+    expect(String(adInsert?.[1]?.[9])).toContain('CTA:');
     expect(adInsert?.[1]?.[11]).toBe('healthy');
   });
 });
