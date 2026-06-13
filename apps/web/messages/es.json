@@ -36,7 +36,8 @@
       "workspace": "Espacio de trabajo",
       "admin": "Admin",
       "create": "Crear"
-    }
+    },
+    "analytics": "Analítica"
   },
   "common": {
     "loading": "Cargando...",
@@ -765,5 +766,21 @@
     "emptyDescription": "La actividad del espacio de trabajo aparecerá aquí.",
     "emptyFiltered": "No matching activity",
     "emptyFilteredDescription": "Try clearing or changing the audit log filters."
+  },
+  "analytics": {
+    "title": "Analítica",
+    "description": "Métricas de rendimiento y tendencias de campañas en su espacio de trabajo.",
+    "empty": "Aún no hay datos analíticos",
+    "emptyDescription": "Conecte cuentas publicitarias y cree campañas para ver métricas aquí.",
+    "emptyCta": "Ver campañas",
+    "totalSpend": "Gasto total",
+    "impressions": "Impresiones",
+    "clicks": "Clics",
+    "conversions": "Conversiones",
+    "avgCtr": "CTR prom.",
+    "avgCpa": "CPA prom.",
+    "avgRoas": "ROAS prom.",
+    "spendTrend": "Gasto y conversiones",
+    "spendTrendDescription": "Gasto diario y conversiones de campañas activas."
   }
 }

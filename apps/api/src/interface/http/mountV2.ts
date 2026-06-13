@@ -87,6 +87,7 @@ import { createAssetRoutes } from './routes/assets';
 import { createAdminRoutes } from './routes/admin';
 import { createIntegrationRoutes } from './routes/integrations';
 import { createMcpRoutes } from './routes/mcp';
+import { createAnalyticsRoutes } from './routes/analytics';
 import { createOnboardingRoutes } from './routes/onboarding';
 import { createCommentRoutes } from './routes/comments';
 
@@ -191,6 +192,7 @@ export function mountV2Routes(app: Express, options: MountV2Options = {}): Mount
   v2.use('/settings', authenticatedRateLimiter, createSettingsRoutes(container));
   v2.use('/integrations', authenticatedRateLimiter, createIntegrationRoutes(container));
   v2.use('/mcp', authenticatedRateLimiter, createMcpRoutes(container));
+  v2.use('/analytics', authenticatedRateLimiter, createAnalyticsRoutes(container));
   v2.use('/onboarding', authenticatedRateLimiter, createOnboardingRoutes(container));
   v2.use('/audiences', authenticatedRateLimiter, createAudienceRoutes(container));
   v2.use('/reports', authenticatedRateLimiter, createReportRoutes(container));

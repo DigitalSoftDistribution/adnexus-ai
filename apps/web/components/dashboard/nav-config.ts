@@ -4,6 +4,7 @@ import {
   FileEdit,
   Users,
   BarChart3,
+  LineChart,
   Bot,
   Bell,
   Target,
@@ -58,7 +59,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     titleKey: 'dataHub',
-    items: [{ href: '/dashboard/reports', labelKey: 'reports', icon: BarChart3 }],
+    items: [
+      { href: '/dashboard/analytics', labelKey: 'analytics', icon: LineChart },
+      { href: '/dashboard/reports', labelKey: 'reports', icon: BarChart3 },
+    ],
   },
   {
     titleKey: 'developerPlatform',

@@ -36,7 +36,8 @@
       "workspace": "Obszar roboczy",
       "admin": "Admin",
       "create": "Utwórz"
-    }
+    },
+    "analytics": "Analityka"
   },
   "common": {
     "loading": "Ładowanie...",
@@ -765,5 +766,21 @@
     "emptyDescription": "Aktywność obszaru roboczego pojawi się tutaj.",
     "emptyFiltered": "No matching activity",
     "emptyFilteredDescription": "Try clearing or changing the audit log filters."
+  },
+  "analytics": {
+    "title": "Analityka",
+    "description": "Metryki wydajności i trendy kampanii w całym workspace.",
+    "empty": "Brak danych analitycznych",
+    "emptyDescription": "Połącz konta reklamowe i utwórz kampanie, aby zobaczyć metryki.",
+    "emptyCta": "Zobacz kampanie",
+    "totalSpend": "Całkowite wydatki",
+    "impressions": "Wyświetlenia",
+    "clicks": "Kliknięcia",
+    "conversions": "Konwersje",
+    "avgCtr": "Śr. CTR",
+    "avgCpa": "Śr. CPA",
+    "avgRoas": "Śr. ROAS",
+    "spendTrend": "Wydatki i konwersje",
+    "spendTrendDescription": "Dzienne wydatki i konwersje aktywnych kampanii."
   }
 }

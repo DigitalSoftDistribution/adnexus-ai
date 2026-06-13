@@ -36,7 +36,8 @@
       "workspace": "ワークスペース",
       "admin": "Admin",
       "create": "作成"
-    }
+    },
+    "analytics": "分析"
   },
   "common": {
     "loading": "読み込み中...",
@@ -765,5 +766,21 @@
     "emptyDescription": "ワークスペースのアクティビティがここに表示されます。",
     "emptyFiltered": "No matching activity",
     "emptyFilteredDescription": "Try clearing or changing the audit log filters."
+  },
+  "analytics": {
+    "title": "分析",
+    "description": "ワークスペース全体のキャンペーン横断パフォーマンス指標とトレンド。",
+    "empty": "分析データがありません",
+    "emptyDescription": "広告アカウントを接続しキャンペーンを作成すると、ここに指標が表示されます。",
+    "emptyCta": "キャンペーンを表示",
+    "totalSpend": "総支出",
+    "impressions": "インプレッション",
+    "clicks": "クリック",
+    "conversions": "コンバージョン",
+    "avgCtr": "平均CTR",
+    "avgCpa": "平均CPA",
+    "avgRoas": "平均ROAS",
+    "spendTrend": "支出とコンバージョン",
+    "spendTrendDescription": "アクティブキャンペーンの日次支出とコンバージョン。"
   }
 }

@@ -12,6 +12,7 @@
     "drafts": "Approvals",
     "creatives": "Creative Explorer",
     "reports": "Reports",
+    "analytics": "Analytics",
     "audiences": "Audiences",
     "alerts": "Alerts",
     "billing": "Billing",
@@ -791,6 +792,22 @@
     "target": "Target",
     "empty": "No goals yet",
     "emptyDescription": "Create a goal to track ROAS, CPA, conversions and more."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "description": "Cross-campaign performance metrics and trends for your workspace.",
+    "empty": "No analytics data yet",
+    "emptyDescription": "Connect ad accounts and create campaigns to see performance metrics here.",
+    "emptyCta": "View campaigns",
+    "totalSpend": "Total spend",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "avgCtr": "Avg. CTR",
+    "avgCpa": "Avg. CPA",
+    "avgRoas": "Avg. ROAS",
+    "spendTrend": "Spend & conversions",
+    "spendTrendDescription": "Daily spend and conversions across active campaigns."
   },
   "auditLog": {
     "title": "Audit Log",
