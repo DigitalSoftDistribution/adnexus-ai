@@ -935,7 +935,37 @@
       }
     },
     {
-      "name": "Google OAuth token refresh",
+      "name": "Google OAuth token refresh (form-urlencoded)",
+      "priority": 15,
+      "request": {
+        "method": "POST",
+        "urlPath": "/token",
+        "headers": {
+          "Content-Type": {
+            "contains": "application/x-www-form-urlencoded"
+          }
+        },
+        "bodyPatterns": [
+          {
+            "contains": "grant_type=refresh_token"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "access_token": "ya29.MockRefreshedAccessToken_Refresh",
+          "token_type": "Bearer",
+          "expires_in": 3599,
+          "scope": "https://www.googleapis.com/auth/adwords"
+        }
+      }
+    },
+    {
+      "name": "Google OAuth token refresh (json)",
       "priority": 10,
       "request": {
         "method": "POST",

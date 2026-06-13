@@ -16,11 +16,19 @@ This harness lets the V2 dashboard, API, workers, and MCP integration streams ex
 ## Local runbook
 
 ```bash
-pnpm wiremock:up
+# Default host port is 9085. If another WireMock instance already owns 9085:
+WIREMOCK_HOST_PORT=9087 pnpm wiremock:up
+
 pnpm wiremock:smoke
+WIREMOCK_BASE_URL=http://localhost:9087 pnpm wiremock:platform
 ```
 
-Use these API env overrides when testing against local WireMock:
+| Variable | Default | Purpose |
+|---|---|---|
+| `WIREMOCK_HOST_PORT` | `9085` | Host port mapped to WireMock container `8080` |
+| `WIREMOCK_BASE_URL` | `http://localhost:9085` | Base URL for smoke + platform integration scripts |
+
+Use these API env overrides when testing against local WireMock (substitute your port if not `9085`):
 
 ```bash
 META_GRAPH_URL=http://localhost:9085
@@ -32,6 +40,18 @@ TIKTOK_API_URL=http://localhost:9085/open_api/v1.3
 SNAP_API_BASE_URL=http://localhost:9085/v1
 SNAP_OAUTH_BASE_URL=http://localhost:9085/snap/oauth2
 ```
+
+### What `wiremock:platform` covers
+
+Runs `apps/api/tests/wiremock/run-platform-integration.ts` against live stubs — no database or Redis required:
+
+- Meta OAuth token refresh (`fb_exchange_token`)
+- Google OAuth token refresh (form-urlencoded, as used by `refreshGoogleToken`)
+- Google token info validation
+- Meta ad accounts, campaigns, insights (metrics-sync read path)
+- Google Ads search campaigns + insights (metrics-sync read path)
+
+Full `MetaPlatformSyncService` / `metrics-sync` worker end-to-end requires Postgres + Redis + seeded `ad_accounts` rows; use PR #75 mock-traffic harness for DB-backed preview QA.
 
 ## Coolify preview design
 

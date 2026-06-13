@@ -23,7 +23,8 @@
     "smoke:v1": "node scripts/v1-smoke.mjs",
     "wiremock:up": "docker compose -f docker-compose.wiremock.yml up -d wiremock",
     "wiremock:down": "docker compose -f docker-compose.wiremock.yml down",
-    "wiremock:smoke": "node scripts/wiremock-smoke.mjs"
+    "wiremock:smoke": "node scripts/wiremock-smoke.mjs",
+    "wiremock:platform": "pnpm --filter @adnexus/api exec tsx tests/wiremock/run-platform-integration.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
