@@ -119,6 +119,13 @@ export class ExecuteDraftUseCase {
 
       if (!recoverableStuck) {
         if (draft.status === 'executing') {
+          // Stale here (but not recoverable) means execution is disabled, so we
+          // can't re-drive the platform write — resolve it to a terminal `failed`
+          // (flagged for reconciliation) instead of leaving it wedged. A fresh
+          // executing draft is a genuine in-flight write → 409.
+          if (this.isStaleExecuting(draft)) {
+            return this.resolveUnrecoverableExecuting(draft, input);
+          }
           return err(new ConflictError('Draft execution is already in progress.'));
         }
         await this.auditLogger?.log({
@@ -353,6 +360,48 @@ export class ExecuteDraftUseCase {
     });
 
     return ok(finalized ?? { ...claimed, status: 'executed', executedAt: new Date() });
+  }
+
+  /**
+   * Terminal resolution for a draft stuck in `executing` that can't be recovered
+   * because platform execution is now disabled (so we can't re-drive the write).
+   * Marks it `failed` + flags it for reconciliation so it isn't wedged forever.
+   */
+  private async resolveUnrecoverableExecuting(
+    draft: Draft,
+    input: ExecuteDraftInput,
+  ): Promise<Result<Draft>> {
+    await this.draftRepo.updateStatus(draft.id, 'failed', {
+      execution: {
+        requestedBy: input.executedBy,
+        attemptedAt: new Date().toISOString(),
+        status: 'failed',
+        platformApplied: false,
+        reason: 'stale_execution_unrecoverable',
+        needsReconciliation: true,
+      },
+    });
+
+    await this.auditLogger?.log({
+      workspaceId: input.workspaceId,
+      userId: input.executedBy,
+      action: `Stuck draft resolved to failed (execution disabled): ${draft.changeSummary}`,
+      actionCategory: 'draft_execution_failed',
+      campaignId: draft.campaignId ?? undefined,
+      entityType: 'draft',
+      entityId: draft.id,
+      actorType: 'user',
+      actorId: input.executedBy,
+      metadata: {
+        draftType: draft.draftType,
+        platform: draft.platform,
+        reason: 'stale_execution_unrecoverable',
+        needsReconciliation: true,
+      },
+      source: 'dashboard',
+    });
+
+    return err(new DraftExecutionFailedError('stale_execution_unrecoverable'));
   }
 
   private async recordFailure(

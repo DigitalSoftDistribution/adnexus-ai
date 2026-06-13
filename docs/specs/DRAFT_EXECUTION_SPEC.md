@@ -99,6 +99,10 @@ preconditions: role ∈ {owner,admin,editor}; draft.status === 'approved';
   idempotent write. A *fresh* `executing` draft still returns **409 "in progress"**
   so an active write is never double-driven. `drafts.status` is a free-form
   `VARCHAR(50)` in the live schema, so `executing` needs no migration.
+- **Flag-off recovery:** if a draft is stuck in stale `executing` but execution
+  has since been disabled for the workspace (so we can't re-drive the write), the
+  execute path resolves it to a terminal `failed` flagged `needsReconciliation`
+  — it is never wedged with no terminal state.
 - **Residual (acceptable for the flag-gated pilot):** two concurrent *stale*
   recoveries can both re-drive the (idempotent) pause/resume write. Harmless for
   pause/resume; when non-idempotent budget writes land they must carry a lease

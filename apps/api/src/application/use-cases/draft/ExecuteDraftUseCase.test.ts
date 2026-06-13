@@ -392,6 +392,41 @@ describe('ExecuteDraftUseCase — real execution', () => {
     expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'executed', expect.any(Object));
   });
 
+  it('resolves a stale executing draft to failed when execution is disabled (no wedge)', async () => {
+    const staleExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date(Date.now() - 30 * 60_000).toISOString() },
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(staleExecuting) });
+    const audit = makeAudit();
+    const deps = makeExecDeps({ isExecutionEnabled: () => false });
+    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBeInstanceOf(DraftExecutionFailedError);
+    expect(repo.updateStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'failed',
+      expect.objectContaining({
+        execution: expect.objectContaining({
+          reason: 'stale_execution_unrecoverable',
+          needsReconciliation: true,
+        }),
+      }),
+    );
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'draft_execution_failed' }),
+    );
+  });
+
   it('stays in disabled mode when the workspace flag is off', async () => {
     const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()) });
     const deps = makeExecDeps({ isExecutionEnabled: () => false });
