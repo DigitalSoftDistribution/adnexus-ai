@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import type { Container } from '../../../application/services/Container';
+import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/requireAuth';
+import type { AuthenticatedRequest } from '../middleware/requireAuth';
 import { filterMcpCatalog, getMcpStatusMetadata, summarizeMcpCatalog } from './mcpCatalog';
+import { invokeMcpTool } from './mcpInvoke';
 
 export function createMcpRoutes(_container: Container): Router {
   const router = Router();
@@ -27,6 +30,22 @@ export function createMcpRoutes(_container: Container): Router {
       },
     });
   });
+
+  router.post(
+    '/tools/:name/invoke',
+    requireAuth,
+    asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      const outcome = invokeMcpTool({
+        toolName: req.params.name,
+        arguments: req.body?.arguments as Record<string, unknown> | undefined,
+      });
+
+      res.json({
+        success: true,
+        data: outcome,
+      });
+    }),
+  );
 
   return router;
 }
