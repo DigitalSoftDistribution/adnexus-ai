@@ -127,12 +127,17 @@ async function main() {
       data: syncRes.data?.data ?? syncRes.data,
     };
   }
+  const syncPayload = syncResult?.data ?? {};
+  const syncJob = syncPayload.job ?? {};
+  const liveSynced = syncPayload.liveSynced === true;
+  const campaignsSynced = syncPayload.campaignsSynced ?? syncJob.campaignsSynced ?? 0;
+
   report.phases.platformSync = {
     accountId: mockAccount?.id,
     platform: mockAccount?.platform,
     sync: syncResult,
-    wiremockLive: syncResult?.data?.liveSynced === true,
-    campaignsSynced: syncResult?.data?.campaignsSynced ?? 0,
+    wiremockLive: liveSynced,
+    campaignsSynced,
   };
 
   // Aggregate verdict
@@ -143,8 +148,8 @@ async function main() {
     report.verdict[m.status === 'PASS' ? 'pass' : 'fail']++;
   }
   if (syncResult) {
-    report.verdict[syncResult.data?.liveSynced ? 'pass' : 'fail']++;
-    if (syncResult.data?.campaignsSynced > 0) report.verdict.pass++;
+    report.verdict[liveSynced ? 'pass' : 'fail']++;
+    if (campaignsSynced > 0) report.verdict.pass++;
     else report.verdict.fail++;
   } else {
     report.verdict.skip++;

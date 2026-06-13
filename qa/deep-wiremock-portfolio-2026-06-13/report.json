@@ -1,0 +1,187 @@
+{
+  "timestamp": "2026-06-13T14:55:00.891Z",
+  "apiBase": "https://adnexus-api.apps.softblaze.net",
+  "webBase": "https://adnexus-ai.apps.softblaze.net",
+  "phases": {
+    "mockTrafficSeed": {
+      "seeded": {
+        "workspaceId": "95ed949a-16ed-4fae-a4ad-c996f515d804",
+        "accountsSeeded": 4,
+        "campaignsSeeded": 8,
+        "adSetsSeeded": 24,
+        "adsSeeded": 72,
+        "metricsSeeded": 112,
+        "platforms": [
+          "meta",
+          "google",
+          "tiktok",
+          "snap"
+        ],
+        "accountIds": [
+          "af07cc49-840d-4e60-b8d3-bd5900c5c996",
+          "aa1d543e-0c12-4d12-94ba-9a4a33b213fd",
+          "a69195ac-5611-45a0-b8b6-655939fb18a9",
+          "185938ed-a7de-4c70-82e3-20d4c975fe5f"
+        ],
+        "campaignStatuses": [
+          "active",
+          "paused"
+        ]
+      },
+      "adsListed": 100,
+      "sampleAd": {
+        "name": "Friend Referral Bonus",
+        "platform": "snap",
+        "creativeType": "image",
+        "creativeText": "Friend Referral Bonus | Invite 3 friends, get $20 off your next order. | CTA: Sign Up",
+        "fatigueStatus": "critical"
+      },
+      "checks": [
+        {
+          "name": "seed_http_ok",
+          "pass": true
+        },
+        {
+          "name": "ads_gte_48",
+          "pass": true,
+          "detail": 100
+        },
+        {
+          "name": "unique_copy_gte_12",
+          "pass": true,
+          "detail": 24
+        },
+        {
+          "name": "creative_types_gte_3",
+          "pass": true,
+          "detail": [
+            "image",
+            "story",
+            "app_install",
+            "video",
+            "spark",
+            "responsive",
+            "carousel",
+            "collection"
+          ]
+        },
+        {
+          "name": "fatigue_variety",
+          "pass": true,
+          "detail": [
+            "critical",
+            "warning",
+            "healthy",
+            "exhausted"
+          ]
+        },
+        {
+          "name": "four_platforms",
+          "pass": true,
+          "detail": [
+            "snap",
+            "tiktok",
+            "google",
+            "meta"
+          ]
+        },
+        {
+          "name": "cta_in_copy",
+          "pass": true
+        }
+      ]
+    },
+    "apiMatrix": {
+      "results": [
+        {
+          "area": "Reports",
+          "endpoint": "GET /reports/templates",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Campaigns",
+          "endpoint": "GET /campaigns",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Ads",
+          "endpoint": "GET /ads/:id",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Ads",
+          "endpoint": "GET /ads/:id/performance",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Bulk",
+          "endpoint": "POST /ads/bulk/validate",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Analytics",
+          "endpoint": "GET /analytics/data",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "MCP",
+          "endpoint": "POST /mcp/tools/mcp_get_status/invoke",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Agent",
+          "endpoint": "GET /agent/sessions",
+          "status": "PASS",
+          "http": 200
+        },
+        {
+          "area": "Integrations",
+          "endpoint": "GET /integrations/accounts",
+          "status": "PASS",
+          "http": 200
+        }
+      ]
+    },
+    "platformSync": {
+      "accountId": "af07cc49-840d-4e60-b8d3-bd5900c5c996",
+      "platform": "meta",
+      "sync": {
+        "http": 200,
+        "ok": true,
+        "data": {
+          "job": {
+            "id": "467a2a76-6a70-4286-bdaa-52229a604195",
+            "workspaceId": "95ed949a-16ed-4fae-a4ad-c996f515d804",
+            "adAccountId": "af07cc49-840d-4e60-b8d3-bd5900c5c996",
+            "platform": "meta",
+            "status": "partial",
+            "campaignsSynced": 2,
+            "metricsSynced": 2,
+            "errorCount": 2,
+            "startedAt": "2026-06-13T14:55:05.573Z",
+            "finishedAt": "2026-06-13T14:55:05.852Z",
+            "durationMs": 279,
+            "triggeredBy": "43a73040-6861-4e32-99a0-a7787a8ccc5e",
+            "createdAt": "2026-06-13T14:55:05.573Z"
+          },
+          "liveSynced": true
+        }
+      },
+      "wiremockLive": true,
+      "campaignsSynced": 2
+    }
+  },
+  "verdict": {
+    "pass": 18,
+    "fail": 0,
+    "skip": 0
+  },
+  "overall": "PASS"
+}
