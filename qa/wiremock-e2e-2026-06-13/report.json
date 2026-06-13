@@ -1,0 +1,151 @@
+{
+  "timestamp": "2026-06-13T06:08:30.000Z",
+  "verdict": {
+    "wiremockOnPreview": false,
+    "wiremockInCi": false,
+    "wiremockLocalHarness": true,
+    "label": "CI_AND_LOCAL_ONLY",
+    "summary": "WireMock runs locally via docker-compose.wiremock.yml and is exercised by PR #127 harness (9/9 pass). Preview API has mock-traffic DB seed enabled but no WireMock sidecar and no META_GRAPH_URL/GOOGLE_* overrides — platform sync jobs complete with liveSynced=false and zero campaigns/metrics pulled."
+  },
+  "preview": {
+    "web": "https://adnexus-ai.apps.softblaze.net",
+    "api": "https://adnexus-api.apps.softblaze.net",
+    "qaUser": "qa-owner@softblaze.net",
+    "harnessKey": "qa-mock-traffic-2026-06-07",
+    "coolify": {
+      "adnexusApi": {
+        "buildPack": "dockerfile",
+        "gitBranch": "main",
+        "status": "running:healthy",
+        "wiremockSidecar": false,
+        "platformUrlOverrides": [],
+        "mockTrafficHarness": {
+          "MOCK_TRAFFIC_HARNESS_ENABLED": true,
+          "MOCK_TRAFFIC_HARNESS_CONTEXT": "preview",
+          "MOCK_TRAFFIC_HARNESS_KEY": "set (not logged)"
+        }
+      }
+    },
+    "defaultPlatformUrls": {
+      "META_GRAPH_URL": "https://graph.facebook.com",
+      "GOOGLE_ADS_API_URL": "https://googleads.googleapis.com/v16",
+      "GOOGLE_TOKEN_URL": "https://oauth2.googleapis.com/token"
+    }
+  },
+  "pr127": {
+    "url": "https://github.com/DigitalSoftDistribution/adnexus-ai/pull/127",
+    "title": "test(wiremock): Meta + Google platform integration harness",
+    "branch": "feat/wiremock-platform-e2e-2026-06-10",
+    "state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "mergeStateStatus": "UNSTABLE",
+    "conflicts": [
+      "apps/api/tests/wiremock/mappings/adnexus-v2-platforms.json",
+      "docs/WIREMOCK_PLATFORM_HARNESS.md"
+    ],
+    "checks": {
+      "CodeRabbit": "SUCCESS",
+      "Cursor Bugbot": "SUCCESS",
+      "coolify/adnexus-ai": "PENDING (stale since 2026-06-10)"
+    },
+    "additions": 253,
+    "deletions": 4,
+    "files": [
+      "apps/api/tests/wiremock/integration-test.sh",
+      "apps/api/tests/wiremock/mappings/adnexus-v2-platforms.json",
+      "apps/api/tests/wiremock/run-platform-integration.ts",
+      "docs/WIREMOCK_PLATFORM_HARNESS.md",
+      "package.json"
+    ],
+    "value": "Adds pnpm wiremock:platform script exercising Meta/Google OAuth refresh + sync read paths against live stubs; fixes Google form-urlencoded refresh mapping.",
+    "mergeRecommendation": "REBASE_THEN_MERGE — valuable harness, no runtime risk; resolve 2-file doc/mapping conflicts first."
+  },
+  "localWiremock": {
+    "composeFile": "docker-compose.wiremock.yml",
+    "hostPort": 9087,
+    "smoke": {
+      "status": "PASS",
+      "checks": ["health", "meta campaigns", "google search", "tiktok campaigns", "snap campaigns"]
+    },
+    "platformIntegration": {
+      "status": "PASS",
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        "wiremock health",
+        "meta oauth token refresh",
+        "google oauth token refresh",
+        "google token info validation",
+        "meta platform sync — ad accounts",
+        "meta platform sync — campaigns",
+        "meta platform sync — insights (metrics)",
+        "google platform sync — campaigns",
+        "google platform sync — insights (metrics)"
+      ],
+      "command": "WIREMOCK_BASE_URL=http://localhost:9087 pnpm wiremock:platform",
+      "branch": "feat/wiremock-platform-e2e-2026-06-10"
+    }
+  },
+  "previewE2e": {
+    "mockTrafficSeed": {
+      "endpoint": "POST /api/v2/integrations/mock-traffic/seed",
+      "status": "PASS",
+      "http": 200,
+      "result": {
+        "accountsSeeded": 4,
+        "campaignsSeeded": 8,
+        "adSetsSeeded": 16,
+        "adsSeeded": 48,
+        "metricsSeeded": 112,
+        "platforms": ["meta", "google", "tiktok", "snap"]
+      }
+    },
+    "dataEndpoints": {
+      "GET /api/v2/campaigns": { "http": 200, "status": "PASS" },
+      "GET /api/v2/ads": { "http": 200, "status": "PASS" },
+      "GET /api/v2/settings/integrations": { "http": 200, "status": "PASS", "metaConnected": true, "googleConnected": true }
+    },
+    "platformSync": {
+      "POST /api/v2/integrations/accounts/{meta}/sync": {
+        "http": 200,
+        "status": "PASS_NO_LIVE_SYNC",
+        "liveSynced": false,
+        "campaignsSynced": 0,
+        "metricsSynced": 0,
+        "note": "Job completes but does not pull from WireMock — preview uses production platform URLs with mock DB tokens"
+      },
+      "POST /api/v2/integrations/accounts/{google}/sync": {
+        "http": 200,
+        "status": "PASS_NO_LIVE_SYNC",
+        "liveSynced": false,
+        "campaignsSynced": 0,
+        "metricsSynced": 0
+      },
+      "GET /api/v2/integrations/meta/health": { "http": 200, "healthy": true }
+    },
+    "oauthConnect": {
+      "GET /api/v1/auth/meta/connect": { "http": 401, "note": "Requires session cookie or authenticated browser flow" },
+      "GET /api/v1/auth/google/connect": { "http": 401, "note": "Requires session cookie or authenticated browser flow" }
+    },
+    "notFound": [
+      "/api/v2/analytics/overview",
+      "/api/v2/metrics/sync/status",
+      "POST /api/v2/metrics/sync"
+    ]
+  },
+  "architecture": {
+    "wiremockScope": "Local docker-compose + optional CI (not wired in .github/workflows today)",
+    "mockTrafficScope": "Preview DB seed only — seeds fake accounts/campaigns/metrics in Postgres, independent of WireMock HTTP stubs",
+    "previewGap": "API container is single-service Dockerfile on Coolify; no internal wiremock:8080 sidecar; platform clients default to graph.facebook.com / googleads.googleapis.com"
+  },
+  "recommendedNextSteps": [
+    "Rebase and merge PR #127 — local wiremock:platform harness is green and low-risk",
+    "Open/deploy WireMock preview sidecar (draft PR feat/wiremock-preview-sidecar-2026-06-13) with Coolify compose + META_GRAPH_URL=http://wiremock:8080 env overrides",
+    "After sidecar: re-run account sync and expect liveSynced=true with campaignsSynced>0 against stubs",
+    "Add wiremock:platform to CI (optional) — spin compose service in GitHub Actions before integration job"
+  ],
+  "prs": {
+    "audit": "https://github.com/DigitalSoftDistribution/adnexus-ai/pull/127",
+    "previewSidecarDraft": "https://github.com/DigitalSoftDistribution/adnexus-ai/pull/178"
+  }
+}
