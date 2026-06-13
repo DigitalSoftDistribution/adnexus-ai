@@ -241,6 +241,8 @@ export interface ContainerConfig {
    * draft execution stays in the safe v1-pilot "review only" mode.
    */
   isPlatformExecutionEnabled?: (workspaceId: string) => boolean | Promise<boolean>;
+  /** Ms before a stuck `executing` draft becomes retryable (default 10min). */
+  platformExecutionStaleMs?: number;
   /** Optional preview/dev-only mock traffic seeder. */
   mockTrafficSeeder?: IMockTrafficSeeder;
   /** Optional account-sync deps; required to expose the account sync use-case. */
@@ -463,6 +465,7 @@ export class Container {
       campaignRepo: config.campaignRepository,
       writeService: config.platformWriteService,
       isExecutionEnabled: config.isPlatformExecutionEnabled,
+      staleExecutingMs: config.platformExecutionStaleMs,
     });
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);

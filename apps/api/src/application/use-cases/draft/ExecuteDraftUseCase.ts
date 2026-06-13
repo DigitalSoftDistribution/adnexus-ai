@@ -30,7 +30,14 @@ export interface DraftExecutionDeps {
   campaignRepo?: ICampaignRepository;
   writeService?: IPlatformWriteService;
   isExecutionEnabled?: (workspaceId: string) => Promise<boolean> | boolean;
+  /**
+   * How long (ms) a draft may sit in `executing` before it is considered stuck
+   * (crash between claim and finalize) and becomes retryable. Defaults to 10min.
+   */
+  staleExecutingMs?: number;
 }
+
+const DEFAULT_STALE_EXECUTING_MS = 600_000;
 
 export class DraftExecutionDisabledError extends DomainError {
   constructor() {
@@ -65,11 +72,31 @@ export class DraftExecutionFailedError extends DomainError {
 }
 
 export class ExecuteDraftUseCase {
+  private readonly staleExecutingMs: number;
+
   constructor(
     private draftRepo: IDraftRepository,
     private auditLogger?: IAuditLogger,
     private deps: DraftExecutionDeps = {},
-  ) {}
+  ) {
+    this.staleExecutingMs = deps.staleExecutingMs ?? DEFAULT_STALE_EXECUTING_MS;
+  }
+
+  /**
+   * True when an `executing` draft has been in flight long enough to be treated
+   * as stuck (crash between claim and finalize) rather than actively in progress.
+   * A missing/invalid `startedAt` is treated as stale so a draft can never be
+   * permanently wedged.
+   */
+  private isStaleExecuting(draft: Draft): boolean {
+    if (draft.status !== 'executing') return false;
+    const execution = draft.changeDetail.execution as { startedAt?: unknown } | undefined;
+    const startedAt = execution?.startedAt;
+    if (typeof startedAt !== 'string') return true;
+    const startedMs = new Date(startedAt).getTime();
+    if (Number.isNaN(startedMs)) return true;
+    return Date.now() - startedMs >= this.staleExecutingMs;
+  }
 
   async execute(input: ExecuteDraftInput): Promise<Result<Draft>> {
     if (!['owner', 'admin', 'editor'].includes(input.userRole)) {
@@ -81,29 +108,42 @@ export class ExecuteDraftUseCase {
       return err(new NotFoundError('Draft'));
     }
 
+    const executionEnabled = await this.isExecutionEnabled(input.workspaceId);
+
     if (draft.status !== 'approved') {
-      await this.auditLogger?.log({
-        workspaceId: input.workspaceId,
-        userId: input.executedBy,
-        action: `Draft execution blocked: ${draft.changeSummary}`,
-        actionCategory: 'draft_execution_blocked',
-        campaignId: draft.campaignId ?? undefined,
-        entityType: 'draft',
-        entityId: draft.id,
-        actorType: 'user',
-        actorId: input.executedBy,
-        metadata: {
-          status: draft.status,
-          requiredStatus: 'approved',
-          rollbackCondition: draft.changeDetail.rollbackCondition ?? draft.changeDetail.rollback_condition ?? null,
-        },
-        source: 'dashboard',
-      });
-      return err(new ForbiddenError('Only approved drafts can be executed'));
+      // A draft stuck in `executing` (crash between claim and finalize) can be
+      // re-driven once it has been executing past the stale threshold. A *fresh*
+      // `executing` draft is a genuine in-flight write → 409, not a recovery.
+      const recoverableStuck =
+        draft.status === 'executing' && executionEnabled && this.isStaleExecuting(draft);
+
+      if (!recoverableStuck) {
+        if (draft.status === 'executing') {
+          return err(new ConflictError('Draft execution is already in progress.'));
+        }
+        await this.auditLogger?.log({
+          workspaceId: input.workspaceId,
+          userId: input.executedBy,
+          action: `Draft execution blocked: ${draft.changeSummary}`,
+          actionCategory: 'draft_execution_blocked',
+          campaignId: draft.campaignId ?? undefined,
+          entityType: 'draft',
+          entityId: draft.id,
+          actorType: 'user',
+          actorId: input.executedBy,
+          metadata: {
+            status: draft.status,
+            requiredStatus: 'approved',
+            rollbackCondition: draft.changeDetail.rollbackCondition ?? draft.changeDetail.rollback_condition ?? null,
+          },
+          source: 'dashboard',
+        });
+        return err(new ForbiddenError('Only approved drafts can be executed'));
+      }
     }
 
     // Real execution path — only when fully wired AND enabled for this workspace.
-    if (await this.isExecutionEnabled(input.workspaceId)) {
+    if (executionEnabled) {
       const outcome = await this.tryExecuteOnPlatform(draft, input);
       // `null` means "execution is on, but this draft isn't an executable shape
       // yet" (unsupported platform/type/missing ids) — fall through to the safe
@@ -214,7 +254,8 @@ export class ExecuteDraftUseCase {
     // duplicate request can't get a false success while the write is still in
     // flight or about to fail.
     const startedAt = new Date().toISOString();
-    const claimed = await this.draftRepo.claimStatus(draft.id, 'approved', 'executing', {
+    const recovering = draft.status === 'executing';
+    const claimMeta = {
       execution: {
         requestedBy: input.executedBy,
         startedAt,
@@ -222,8 +263,15 @@ export class ExecuteDraftUseCase {
         action: action.kind,
         before: { status: beforeStatus },
         after: { status: action.after },
+        ...(recovering ? { recoveredAt: startedAt, recoveredFrom: 'stale_executing' } : {}),
       },
-    });
+    };
+    // Normal path claims approved → executing. Recovery of a stuck `executing`
+    // draft re-leases executing → executing (refreshing startedAt) so a later
+    // retry sees a fresh in-flight window.
+    const claimed = recovering
+      ? await this.draftRepo.claimStatus(draft.id, 'executing', 'executing', claimMeta)
+      : await this.draftRepo.claimStatus(draft.id, 'approved', 'executing', claimMeta);
 
     if (!claimed) {
       const current = await this.draftRepo.findByIdAndWorkspace(draft.id, input.workspaceId);

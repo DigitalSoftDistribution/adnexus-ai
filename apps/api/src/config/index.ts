@@ -94,6 +94,9 @@ const envSchema = z.object({
   // allowlist so we can pilot writes for design-partner workspaces only.
   ENABLE_PLATFORM_EXECUTION: z.string().default('false'),
   PLATFORM_EXECUTION_ENABLED_WORKSPACES: z.string().default(''),
+  // A draft stuck in `executing` (crash between claim and finalize) becomes
+  // retryable after this many ms. Defaults to 10 minutes.
+  PLATFORM_EXECUTION_STALE_MS: z.coerce.number().int().positive().default(600000),
 
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
@@ -273,6 +276,7 @@ export const config = {
     enabledWorkspaces: env.PLATFORM_EXECUTION_ENABLED_WORKSPACES.split(',')
       .map((w) => w.trim())
       .filter(Boolean),
+    staleMs: env.PLATFORM_EXECUTION_STALE_MS,
   },
 
   stripe: {

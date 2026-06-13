@@ -337,6 +337,61 @@ describe('ExecuteDraftUseCase — real execution', () => {
     expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
   });
 
+  it('returns 409 (in progress) for a fresh executing draft, without recovering or writing', async () => {
+    const freshExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date().toISOString() }, // just started
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(freshExecuting) });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
+    }
+    expect(repo.claimStatus).not.toHaveBeenCalled();
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('recovers a stuck (stale) executing draft by re-leasing and re-driving the write', async () => {
+    const staleExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date(Date.now() - 30 * 60_000).toISOString() }, // 30m ago
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(staleExecuting) });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(true);
+    // Recovery re-leases executing → executing (not approved → executing).
+    expect(repo.claimStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'executing',
+      'executing',
+      expect.objectContaining({
+        execution: expect.objectContaining({ recoveredFrom: 'stale_executing' }),
+      }),
+    );
+    expect(deps.writeService!.pauseCampaign).toHaveBeenCalled();
+    expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'executed', expect.any(Object));
+  });
+
   it('stays in disabled mode when the workspace flag is off', async () => {
     const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()) });
     const deps = makeExecDeps({ isExecutionEnabled: () => false });

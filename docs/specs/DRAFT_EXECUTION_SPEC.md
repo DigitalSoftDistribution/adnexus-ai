@@ -91,12 +91,18 @@ preconditions: role ∈ {owner,admin,editor}; draft.status === 'approved';
   - anything else → **409** conflict.
 - On a successful write the use case finalizes `executing → executed`; on failure
   `recordFailure` moves `executing → failed`. The interim state is truthful for
-  every reader (dashboard, lists, concurrent callers).
-- **Residual gap (acceptable for the flag-gated pilot):** a process crash between
-  the claim and the write leaves the draft stuck in `executing` with no platform
-  change. A reconciliation sweep that times out stale `executing` rows is the
-  phase-2 hardening; tracked, not blocking. `drafts.status` is a free-form
+  every reader (dashboard, lists, concurrent callers); `getStats` counts it.
+- **Stuck-execution recovery — ✅ implemented.** A draft stuck in `executing`
+  (crash between claim and finalize) becomes retryable once it has been executing
+  past `PLATFORM_EXECUTION_STALE_MS` (default 10min). The execute path then
+  re-leases `executing → executing` (refreshing `startedAt`) and re-drives the
+  idempotent write. A *fresh* `executing` draft still returns **409 "in progress"**
+  so an active write is never double-driven. `drafts.status` is a free-form
   `VARCHAR(50)` in the live schema, so `executing` needs no migration.
+- **Residual (acceptable for the flag-gated pilot):** two concurrent *stale*
+  recoveries can both re-drive the (idempotent) pause/resume write. Harmless for
+  pause/resume; when non-idempotent budget writes land they must carry a lease
+  token. Tracked, not blocking.
 
 ### 4. Rollback
 

@@ -146,6 +146,7 @@ export function buildContainer(): Container {
     isPlatformExecutionEnabled: (workspaceId: string) =>
       config.platformExecution.enabled ||
       config.platformExecution.enabledWorkspaces.includes(workspaceId),
+    platformExecutionStaleMs: config.platformExecution.staleMs,
     adAccountRepository: new AdAccountRepository(),
     syncJobRepository: new SyncJobRepository(),
     scheduledReportRepository: new ScheduledReportRepository(),
