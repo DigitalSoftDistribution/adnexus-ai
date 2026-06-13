@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "i18n:check": "node scripts/check-i18n-parity.cjs",
+    "i18n:report": "node scripts/check-i18n-parity.cjs --report",
     "clean": "rm -rf .next"
   },
   "dependencies": {
