@@ -85,6 +85,7 @@ export class DraftRepository implements IDraftRepository {
         COUNT(*)::int as total,
         COUNT(*) FILTER (WHERE status = 'pending')::int as pending,
         COUNT(*) FILTER (WHERE status = 'approved')::int as approved,
+        COUNT(*) FILTER (WHERE status = 'executing')::int as executing,
         COUNT(*) FILTER (WHERE status = 'rejected')::int as rejected,
         COUNT(*) FILTER (WHERE status = 'executed')::int as executed,
         COUNT(*) FILTER (WHERE status = 'failed')::int as failed,
@@ -92,7 +93,7 @@ export class DraftRepository implements IDraftRepository {
       FROM drafts WHERE workspace_id = $1`,
       [workspaceId],
     );
-    return rows[0] ?? { total: 0, pending: 0, approved: 0, rejected: 0, executed: 0, failed: 0, rolledBack: 0 };
+    return rows[0] ?? { total: 0, pending: 0, approved: 0, executing: 0, rejected: 0, executed: 0, failed: 0, rolledBack: 0 };
   }
 
   async create(draft: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> {

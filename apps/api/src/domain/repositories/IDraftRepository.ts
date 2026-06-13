@@ -22,6 +22,7 @@ export interface DraftStats {
   total: number;
   pending: number;
   approved: number;
+  executing: number;
   rejected: number;
   executed: number;
   failed: number;
