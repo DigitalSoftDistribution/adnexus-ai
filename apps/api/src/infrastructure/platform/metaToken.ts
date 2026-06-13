@@ -4,6 +4,7 @@ import { persistRefreshedToken } from '../../platforms/account-store';
 import { decryptToken } from '../../security/encryption';
 import { getModuleLogger } from '../../lib/logger';
 import { decryptOAuthTokenFromStorage } from '../../security/oauth-token-crypto';
+import { resolveMockHarnessToken } from './mockHarnessTokens';
 
 const log = getModuleLogger('meta-token');
 
@@ -69,7 +70,9 @@ export async function resolveMetaToken(adAccountId: string): Promise<string | nu
   );
   const row = rows[0];
   const oauthToken = decryptOAuthTokenFromStorage(row?.oauth_token);
-  if (!oauthToken) return null;
+  if (!oauthToken) {
+    return resolveMockHarnessToken(adAccountId, 'meta');
+  }
 
   const now = Date.now();
   const expiryMs = row.token_expires_at ? new Date(row.token_expires_at).getTime() : null;

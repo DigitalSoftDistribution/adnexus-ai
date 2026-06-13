@@ -1,3 +1,5 @@
+import type { Platform } from './Campaign';
+
 export type AdStatus = 'active' | 'paused' | 'archived' | 'draft' | 'pending' | 'deleted';
 export type CreativeType = 'image' | 'video' | 'carousel' | 'collection' | 'text';
 
@@ -6,6 +8,8 @@ export interface Ad {
   workspaceId: string;
   campaignId: string;
   adsetId: string;
+  /** Resolved from campaign/adset join — present on list/detail responses. */
+  platform: Platform | null;
   platformAdId: string | null;
   name: string;
   status: AdStatus;

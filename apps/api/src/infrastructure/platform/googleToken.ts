@@ -3,6 +3,7 @@ import { refreshGoogleToken } from '../../services/google-api';
 import { persistRefreshedToken } from '../../platforms/account-store';
 import { getModuleLogger } from '../../lib/logger';
 import { decryptOAuthTokenFromStorage } from '../../security/oauth-token-crypto';
+import { resolveMockHarnessToken } from './mockHarnessTokens';
 
 const log = getModuleLogger('google-token');
 
@@ -18,7 +19,9 @@ export async function resolveGoogleToken(adAccountId: string): Promise<string | 
 
   const row = rows[0];
   const oauthToken = decryptOAuthTokenFromStorage(row?.oauth_token);
-  if (!oauthToken) return null;
+  if (!oauthToken) {
+    return resolveMockHarnessToken(adAccountId, 'google');
+  }
 
   const now = Date.now();
   const expiryMs = row.token_expires_at ? new Date(row.token_expires_at).getTime() : null;

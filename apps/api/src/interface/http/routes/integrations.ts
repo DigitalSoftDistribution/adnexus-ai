@@ -16,6 +16,8 @@ export function createIntegrationRoutes(container: Container): Router {
     requireRole('owner', 'admin') as any,
     controller.seedMockTraffic as any,
   );
+  // Flat account list for dashboard/QA — must precede /:platform param routes.
+  router.get('/accounts', requireAuth, controller.listAllAccounts as any);
   router.post(
     '/:platform/connect',
     requireAuth,

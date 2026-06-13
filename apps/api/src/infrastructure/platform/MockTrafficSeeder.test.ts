@@ -100,6 +100,7 @@ describe('MockTrafficSeeder', () => {
       String(sql).includes('INSERT INTO ad_accounts'),
     );
     expect(String(accountInsert?.[1]?.[4])).toContain('qa-mock-traffic-2026-06-07');
+    expect(accountInsert?.[1]?.[5]).toBe('EAAMockAccessToken1234567890');
 
     const adInsert = mockedQuery.mock.calls.find(([sql]) =>
       /insert into ads\s*\(/i.test(String(sql)),

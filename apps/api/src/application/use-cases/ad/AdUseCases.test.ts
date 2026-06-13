@@ -11,6 +11,7 @@ const ad: Ad = {
   workspaceId: 'ws-1',
   campaignId: 'c-1',
   adsetId: 'aset-1',
+  platform: 'meta',
   platformAdId: 'pa-1',
   name: 'Hero Creative',
   status: 'active',

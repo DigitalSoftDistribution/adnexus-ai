@@ -8,6 +8,10 @@ import type {
 import type { SyncedCampaignMetrics } from '../../application/ports/IPlatformSyncService';
 import { writeCampaignMetrics } from './syncPersistence';
 import { oauthTokensForDbWrite } from '../../security/oauth-token-crypto';
+import {
+  harnessTokenForSeedPlatform,
+  WIREMOCK_HARNESS_ACCOUNT_IDS,
+} from './mockHarnessTokens';
 
 interface MockCampaignFixture {
   platformCampaignId: string;
@@ -45,34 +49,11 @@ const PLATFORM_LABELS: Record<MockTrafficPlatform, string> = {
   snap: 'Snap',
 };
 
-const ACCOUNT_FIXTURES: Record<
-  MockTrafficPlatform,
-  { platformAccountId: string; name: string; accessToken: string; refreshToken: string }
-> = {
-  meta: {
-    platformAccountId: 'act_1234567890',
-    name: 'QA Meta Ads Account',
-    accessToken: 'EAAMockAccessToken1234567890',
-    refreshToken: 'mock-meta-refresh-token',
-  },
-  google: {
-    platformAccountId: '1234567890',
-    name: 'QA Google Ads Account',
-    accessToken: 'ya29.MockGoogleAccessToken1234567890',
-    refreshToken: 'mock-google-refresh-token',
-  },
-  tiktok: {
-    platformAccountId: 'tt_adv_123',
-    name: 'QA TikTok Ads Account',
-    accessToken: 'mock-tiktok-access-token',
-    refreshToken: 'mock-tiktok-refresh-token',
-  },
-  snap: {
-    platformAccountId: 'snap_adacct_123',
-    name: 'QA Snapchat Ads Account',
-    accessToken: 'mock-snap-access-token',
-    refreshToken: 'mock-snap-refresh-token',
-  },
+const ACCOUNT_FIXTURES: Record<MockTrafficPlatform, { platformAccountId: string; name: string }> = {
+  meta: { platformAccountId: WIREMOCK_HARNESS_ACCOUNT_IDS.meta, name: 'QA Meta Ads Account' },
+  google: { platformAccountId: WIREMOCK_HARNESS_ACCOUNT_IDS.google, name: 'QA Google Ads Account' },
+  tiktok: { platformAccountId: 'tt_adv_123', name: 'QA TikTok Ads Account' },
+  snap: { platformAccountId: 'snap_adacct_123', name: 'QA Snapchat Ads Account' },
 };
 
 /** OAuth expiry far enough out that preview sync skips refresh during QA. */
@@ -417,7 +398,10 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
 
   private async upsertAccount(workspaceId: string, platform: MockTrafficPlatform): Promise<string> {
     const fixture = ACCOUNT_FIXTURES[platform];
-    const tokens = oauthTokensForDbWrite(fixture.accessToken, fixture.refreshToken);
+    const harnessToken = harnessTokenForSeedPlatform(platform);
+    const accessToken = harnessToken ?? `mock-${platform}-access-token`;
+    const refreshToken = harnessToken ?? `mock-${platform}-refresh-token`;
+    const tokens = oauthTokensForDbWrite(accessToken, refreshToken);
     const tokenExpiresAt = mockTokenExpiryIso();
     const metadata = {
       accountName: fixture.name,

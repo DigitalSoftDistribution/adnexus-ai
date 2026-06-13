@@ -165,6 +165,7 @@ import {
 } from '../use-cases/integration/IntegrationUseCases';
 import { ConnectPlatformUseCase } from '../use-cases/integration/ConnectPlatformUseCase';
 import { ListIntegrationAccountsUseCase } from '../use-cases/integration/ListIntegrationAccountsUseCase';
+import { ListAdAccountsUseCase } from '../use-cases/ad-account/ListAdAccountsUseCase';
 import { SelectIntegrationAccountUseCase } from '../use-cases/integration/SelectIntegrationAccountUseCase';
 import {
   GetOnboardingStatusUseCase,
@@ -383,6 +384,7 @@ export class Container {
   readonly getIntegrationHealth: GetIntegrationHealthUseCase;
   readonly connectPlatform: ConnectPlatformUseCase;
   readonly listIntegrationAccounts?: ListIntegrationAccountsUseCase;
+  readonly listAdAccounts?: ListAdAccountsUseCase;
   readonly selectIntegrationAccount?: SelectIntegrationAccountUseCase;
   readonly getOnboardingStatus: GetOnboardingStatusUseCase;
   readonly setOnboardingStep: SetOnboardingStepUseCase;
@@ -632,6 +634,7 @@ export class Container {
 
     if (config.adAccountRepository) {
       this.listIntegrationAccounts = new ListIntegrationAccountsUseCase(config.adAccountRepository);
+      this.listAdAccounts = new ListAdAccountsUseCase(config.adAccountRepository);
       this.selectIntegrationAccount = new SelectIntegrationAccountUseCase(config.adAccountRepository);
     }
     this.getOnboardingStatus = new GetOnboardingStatusUseCase(
