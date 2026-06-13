@@ -40,6 +40,38 @@ export function createIntegrationController(container: Container) {
       res.json({ success: true, data: result.data });
     }),
 
+    listAllAccounts: asyncHandler<AuthenticatedRequest>(async (req, res) => {
+      if (!container.listAdAccounts) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'ACCOUNTS_UNAVAILABLE', message: 'Integration accounts are not configured' },
+        });
+        return;
+      }
+      const parsedLimit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : undefined;
+      const limit = parsedLimit !== undefined && Number.isFinite(parsedLimit) ? parsedLimit : 100;
+      const result = await container.listAdAccounts.execute({
+        workspaceId: req.user!.workspaceId,
+        userRole: req.user!.role,
+        limit,
+      });
+      if (!result.success) throw result.error;
+      res.json({
+        success: true,
+        data: {
+          accounts: result.data.adAccounts.map((account) => ({
+            id: account.id,
+            platform: account.platform,
+            platformAccountId: account.platformAccountId,
+            name: account.name,
+            status: account.status,
+            isActive: account.isActive,
+            lastSyncedAt: account.lastSyncedAt?.toISOString() ?? null,
+          })),
+        },
+      });
+    }),
+
     selectAccount: asyncHandler<AuthenticatedRequest>(async (req, res) => {
       if (!container.selectIntegrationAccount) {
         res.status(503).json({

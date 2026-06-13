@@ -88,6 +88,8 @@ const envSchema = z.object({
   SNAP_API_BASE_URL: z.string().url().default('https://adsapi.snapchat.com/v1'),
   SNAP_OAUTH_BASE_URL: z.string().url().default('https://accounts.snapchat.com/accounts/oauth2'),
   ENABLE_MOCK_SOCIAL_SYNC: z.string().default('false'),
+  /** Preview QA: allow WireMock live sync for mock-traffic harness accounts without real OAuth. */
+  MOCK_PLATFORM_SYNC: z.string().default('false'),
 
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
@@ -260,6 +262,7 @@ export const config = {
 
   socialSync: {
     enableMockTikTokSnap: env.ENABLE_MOCK_SOCIAL_SYNC === 'true',
+    mockPlatformSync: env.MOCK_PLATFORM_SYNC === 'true',
   },
 
   stripe: {

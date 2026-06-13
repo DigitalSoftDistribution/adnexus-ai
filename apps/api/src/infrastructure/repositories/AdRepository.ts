@@ -222,6 +222,7 @@ export class AdRepository implements IAdRepository {
       workspaceId: adAccount.workspaceId || ad.workspaceId || '',
       campaignId: campaign.id || ad.campaign_id || '',
       adsetId: adset.id || ad.adset_id || '',
+      platform: (campaign.platform ?? adset.platform ?? adAccount.platform ?? null) as Ad['platform'],
       platformAdId: ad.platformAdId || null,
       name: ad.name || '',
       status: ad.status || 'draft',

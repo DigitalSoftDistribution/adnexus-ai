@@ -18,6 +18,8 @@ services:
       TIKTOK_API_URL: http://wiremock:8080/open_api/v1.3
       SNAP_API_BASE_URL: http://wiremock:8080/v1
       SNAP_OAUTH_BASE_URL: http://wiremock:8080/snap/oauth2
+      MOCK_PLATFORM_SYNC: "true"
+      ENABLE_MOCK_SOCIAL_SYNC: "true"
     depends_on:
       wiremock:
         condition: service_healthy
