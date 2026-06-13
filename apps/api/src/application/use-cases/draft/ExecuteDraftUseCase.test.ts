@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   DraftExecutionDisabledError,
   DraftExecutionFailedError,
+  DraftExecutionPersistError,
   ExecuteDraftUseCase,
   type DraftExecutionDeps,
 } from './ExecuteDraftUseCase';
@@ -262,6 +263,36 @@ describe('ExecuteDraftUseCase — real execution', () => {
     expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'failed', expect.any(Object));
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ actionCategory: 'draft_execution_failed' }),
+    );
+  });
+
+  it('surfaces a persist failure (not a synthetic success) when the platform applied but the row did not update', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()),
+      updateStatus: vi.fn().mockResolvedValue(null),
+    });
+    const audit = makeAudit();
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(deps.writeService!.pauseCampaign).toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(DraftExecutionPersistError);
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(500);
+      expect((result.error as DraftExecutionPersistError).details).toEqual({ platformApplied: true });
+    }
+    // It must record the divergence, and must NOT claim a clean execution.
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionCategory: 'draft_execution_persist_failed',
+        metadata: expect.objectContaining({ platformApplied: true, needsReconciliation: true }),
+      }),
+    );
+    expect(audit.log).not.toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'draft_executed' }),
     );
   });
 

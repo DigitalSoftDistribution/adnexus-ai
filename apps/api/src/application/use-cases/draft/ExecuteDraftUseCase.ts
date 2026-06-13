@@ -64,6 +64,25 @@ export class DraftExecutionFailedError extends DomainError {
   }
 }
 
+/**
+ * Raised when the platform write succeeded but the draft's executed state could
+ * not be persisted (e.g. the draft row was concurrently removed/modified). The
+ * change IS live on the platform — `platformApplied: true` — so the caller must
+ * treat the draft as out of sync and reconcile, not retry blindly.
+ */
+export class DraftExecutionPersistError extends DomainError {
+  constructor(action: string) {
+    super(
+      `The ${action} was applied on the ad platform, but the draft state could not be persisted. The change is live; reconcile the draft before retrying.`,
+      'DRAFT_EXECUTION_PERSIST_FAILED',
+      500,
+      { platformApplied: true },
+    );
+    this.name = 'DraftExecutionPersistError';
+    Object.setPrototypeOf(this, DraftExecutionPersistError.prototype);
+  }
+}
+
 export class ExecuteDraftUseCase {
   constructor(
     private draftRepo: IDraftRepository,
@@ -247,6 +266,37 @@ export class ExecuteDraftUseCase {
       },
     });
 
+    if (!updated) {
+      // The platform write SUCCEEDED but the executed state could not be
+      // persisted (draft concurrently removed/modified). Do not report a clean
+      // success with a synthetic draft — the live campaign now diverges from a
+      // draft still marked `approved`. Record the divergence for reconciliation
+      // and surface it to the caller.
+      await this.auditLogger?.log({
+        workspaceId: input.workspaceId,
+        userId: input.executedBy,
+        action: `Draft applied on ${draft.platform} but executed-state persist failed: ${draft.changeSummary}`,
+        actionCategory: 'draft_execution_persist_failed',
+        campaignId: draft.campaignId ?? undefined,
+        entityType: 'draft',
+        entityId: draft.id,
+        actorType: 'user',
+        actorId: input.executedBy,
+        metadata: {
+          draftType: draft.draftType,
+          platform: draft.platform,
+          platformCampaignId,
+          action: action.kind,
+          platformApplied: true,
+          needsReconciliation: true,
+          before: { status: beforeStatus },
+          after: { status: action.after },
+        },
+        source: 'dashboard',
+      });
+      return err(new DraftExecutionPersistError(action.kind));
+    }
+
     await this.auditLogger?.log({
       workspaceId: input.workspaceId,
       userId: input.executedBy,
@@ -268,7 +318,7 @@ export class ExecuteDraftUseCase {
       source: 'dashboard',
     });
 
-    return ok(updated ?? { ...draft, status: 'executed', executedAt: new Date() });
+    return ok(updated);
   }
 
   private async recordFailure(
