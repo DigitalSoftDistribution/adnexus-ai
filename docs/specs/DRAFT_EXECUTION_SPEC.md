@@ -1,9 +1,13 @@
 # Spec: Enable real draft execution (P0-A)
 
-> Status date: 2026-06-13. Owner-area: API / platform. Closes the #1 v1 blocker
-> in `../V1_PUNCH_LIST.md`. This is a spec, not an implementation — fully
-> building it requires live platform write-scope credentials and an estimated
-> 2–3 weeks with rollout/rollback testing.
+> Status date: 2026-06-13. Owner-area: API / platform. Addresses the #1 v1
+> blocker in `../V1_PUNCH_LIST.md`.
+>
+> **Implementation status:** Phase 1 (Meta `status_change` pause/resume behind a
+> per-workspace flag) is **DONE** — `ExecuteDraftUseCase` + `MetaPlatformWriteService`
+> + Container wiring + config flag + 10 unit tests. The remaining phases below
+> (budget writes, Google adapter, rollback, live-sandbox e2e) are still spec-only
+> and need live platform write-scope credentials.
 
 ## Problem
 

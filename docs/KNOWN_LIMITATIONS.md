@@ -7,13 +7,19 @@
 
 ## Platform execution
 
-- **Draft execution is disabled (v1 pilot policy).** Drafts can be created,
-  reviewed, approved, and rejected, but executing a draft never writes to an
-  ad platform. `ExecuteDraftUseCase` returns a structured
-  `v1_pilot_platform_execution_disabled` error and records the attempt in the
-  audit log (`apps/api/src/application/use-cases/draft/ExecuteDraftUseCase.ts`).
-  Enabling real execution requires platform write-scope credentials, rollback
-  handling, and an estimated 2–3 weeks of engineering.
+- **Draft execution is flag-gated and off by default.** Drafts can be created,
+  reviewed, approved, and rejected. Real platform execution now exists for the
+  safe, reversible case — **Meta `status_change` (pause/resume)** — but it only
+  runs when enabled for a workspace via `ENABLE_PLATFORM_EXECUTION=true` or the
+  `PLATFORM_EXECUTION_ENABLED_WORKSPACES` allowlist. With the flag off (default),
+  `ExecuteDraftUseCase` returns the same `v1_pilot_platform_execution_disabled`
+  error and audits the attempt. When enabled, an approved pause/resume draft is
+  applied via `MetaPlatformWriteService`, the draft is marked `executed`/`failed`,
+  and before/after is recorded in the audit log
+  (`apps/api/src/application/use-cases/draft/ExecuteDraftUseCase.ts`).
+  **Still deferred:** budget/creative/structural writes, Google writes (capability
+  gated off), automatic rollback, and the live-sandbox e2e. See
+  [specs/DRAFT_EXECUTION_SPEC.md](specs/DRAFT_EXECUTION_SPEC.md).
 - **TikTok and Snapchat sync is mock-only.** When `ENABLE_MOCK_SOCIAL_SYNC=true`,
   syncs for those platforms return deterministic fixtures from
   `MockSocialPlatformSyncService`; with the flag off (default) they are

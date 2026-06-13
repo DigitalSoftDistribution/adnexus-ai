@@ -1,13 +1,35 @@
 import type { IDraftRepository } from '../../../domain/repositories/IDraftRepository';
+import type { ICampaignRepository } from '../../../domain/repositories/ICampaignRepository';
 import type { Draft } from '../../../domain/entities/Draft';
-import { Result, err, ForbiddenError, NotFoundError, DomainError } from '../../../domain/value-objects/Result';
+import type { Platform } from '../../../domain/entities/Campaign';
+import { Result, ok, err, ForbiddenError, NotFoundError, DomainError } from '../../../domain/value-objects/Result';
 import type { IAuditLogger } from '../../ports/IAuditLogger';
+import type {
+  IPlatformWriteService,
+  PlatformWriteContext,
+  PlatformWriteResult,
+} from '../../ports/IPlatformWriteService';
+import { AD_PLATFORM_CAPABILITIES } from '../../ports/AdPlatformCapabilities';
 
 export interface ExecuteDraftInput {
   draftId: string;
   workspaceId: string;
   executedBy: string;
   userRole: string;
+}
+
+/**
+ * Optional collaborators that turn on REAL platform execution. When any of these
+ * is absent — or `isExecutionEnabled` resolves false for the workspace — the use
+ * case preserves the v1-pilot behavior: approvals record review intent only and
+ * `DraftExecutionDisabledError` is returned. This keeps the default (and every
+ * existing caller/test that constructs the use case with just a repo + audit
+ * logger) on the safe, no-write path. See docs/specs/DRAFT_EXECUTION_SPEC.md.
+ */
+export interface DraftExecutionDeps {
+  campaignRepo?: ICampaignRepository;
+  writeService?: IPlatformWriteService;
+  isExecutionEnabled?: (workspaceId: string) => Promise<boolean> | boolean;
 }
 
 export class DraftExecutionDisabledError extends DomainError {
@@ -27,10 +49,26 @@ export class DraftExecutionDisabledError extends DomainError {
   }
 }
 
+export class DraftExecutionFailedError extends DomainError {
+  constructor(reason: string, message?: string) {
+    super(
+      message
+        ? `Platform rejected the change: ${message}`
+        : `Draft could not be applied to the ad platform (${reason}).`,
+      'DRAFT_EXECUTION_FAILED',
+      502,
+      { platformApplied: false, reason },
+    );
+    this.name = 'DraftExecutionFailedError';
+    Object.setPrototypeOf(this, DraftExecutionFailedError.prototype);
+  }
+}
+
 export class ExecuteDraftUseCase {
   constructor(
     private draftRepo: IDraftRepository,
     private auditLogger?: IAuditLogger,
+    private deps: DraftExecutionDeps = {},
   ) {}
 
   async execute(input: ExecuteDraftInput): Promise<Result<Draft>> {
@@ -62,6 +100,15 @@ export class ExecuteDraftUseCase {
         source: 'dashboard',
       });
       return err(new ForbiddenError('Only approved drafts can be executed'));
+    }
+
+    // Real execution path — only when fully wired AND enabled for this workspace.
+    if (await this.isExecutionEnabled(input.workspaceId)) {
+      const outcome = await this.tryExecuteOnPlatform(draft, input);
+      // `null` means "execution is on, but this draft isn't an executable shape
+      // yet" (unsupported platform/type/missing ids) — fall through to the safe
+      // disabled response rather than silently dropping the request.
+      if (outcome) return outcome;
     }
 
     const attemptedAt = new Date().toISOString();
@@ -101,5 +148,178 @@ export class ExecuteDraftUseCase {
     });
 
     return err(new DraftExecutionDisabledError());
+  }
+
+  private async isExecutionEnabled(workspaceId: string): Promise<boolean> {
+    if (!this.deps.writeService || !this.deps.campaignRepo || !this.deps.isExecutionEnabled) {
+      return false;
+    }
+    return Boolean(await this.deps.isExecutionEnabled(workspaceId));
+  }
+
+  /**
+   * Attempts the live write for an executable draft. Returns a Result when the
+   * draft was handled (executed or failed), or `null` when the draft is not an
+   * executable shape (so the caller falls back to the disabled response).
+   *
+   * v1 scope: only reversible status_change (pause/resume) on writable
+   * platforms. Budget/creative/structural writes are intentionally deferred —
+   * see docs/specs/DRAFT_EXECUTION_SPEC.md.
+   */
+  private async tryExecuteOnPlatform(
+    draft: Draft,
+    input: ExecuteDraftInput,
+  ): Promise<Result<Draft> | null> {
+    const writeService = this.deps.writeService!;
+    const campaignRepo = this.deps.campaignRepo!;
+
+    if (draft.platform === 'all') return null;
+    const capability = AD_PLATFORM_CAPABILITIES[draft.platform as Platform];
+    if (!capability?.canWriteCampaigns || !writeService.supports(draft.platform as Platform)) {
+      return null;
+    }
+    if (draft.draftType !== 'status_change') return null;
+
+    const action = this.resolveStatusAction(draft.changeDetail);
+    if (!action) return null;
+
+    // Resolve the platform ids. The campaign row is authoritative for the ad
+    // account + platform campaign id; fall back to ids embedded in the draft.
+    let platformCampaignId: string | null = null;
+    let adAccountId: string | null = null;
+    let beforeStatus: string | null =
+      (draft.changeDetail.old_status as string | undefined) ?? null;
+
+    if (draft.campaignId) {
+      const campaign = await campaignRepo.findByIdAndWorkspace(draft.campaignId, input.workspaceId);
+      if (campaign) {
+        platformCampaignId = campaign.platformCampaignId;
+        adAccountId = campaign.adAccountId;
+        beforeStatus = campaign.status;
+      }
+    }
+    if (!platformCampaignId) {
+      platformCampaignId = (draft.changeDetail.platform_campaign_id as string | undefined) ?? null;
+    }
+
+    if (!platformCampaignId || !adAccountId) {
+      return this.recordFailure(draft, input, 'no_platform_id', undefined, beforeStatus, action.after);
+    }
+
+    const ctx: PlatformWriteContext = {
+      platform: draft.platform as Platform,
+      platformCampaignId,
+      adAccountId,
+    };
+
+    let result: PlatformWriteResult;
+    try {
+      result =
+        action.kind === 'pause'
+          ? await writeService.pauseCampaign(ctx)
+          : await writeService.resumeCampaign(ctx);
+    } catch (e) {
+      return this.recordFailure(
+        draft,
+        input,
+        'platform_error',
+        (e as Error).message,
+        beforeStatus,
+        action.after,
+      );
+    }
+
+    if (!result.applied) {
+      const message = result.reason === 'platform_error' ? result.message : undefined;
+      return this.recordFailure(draft, input, result.reason, message, beforeStatus, action.after);
+    }
+
+    const appliedAt = new Date().toISOString();
+    const updated = await this.draftRepo.updateStatus(draft.id, 'executed', {
+      execution: {
+        requestedBy: input.executedBy,
+        appliedAt,
+        status: 'executed',
+        platformApplied: true,
+        action: action.kind,
+        before: { status: beforeStatus },
+        after: { status: action.after },
+      },
+    });
+
+    await this.auditLogger?.log({
+      workspaceId: input.workspaceId,
+      userId: input.executedBy,
+      action: `Draft executed on ${draft.platform}: ${draft.changeSummary}`,
+      actionCategory: 'draft_executed',
+      campaignId: draft.campaignId ?? undefined,
+      entityType: 'draft',
+      entityId: draft.id,
+      actorType: 'user',
+      actorId: input.executedBy,
+      metadata: {
+        draftType: draft.draftType,
+        platform: draft.platform,
+        platformCampaignId,
+        action: action.kind,
+        before: { status: beforeStatus },
+        after: { status: action.after },
+      },
+      source: 'dashboard',
+    });
+
+    return ok(updated ?? { ...draft, status: 'executed', executedAt: new Date() });
+  }
+
+  private async recordFailure(
+    draft: Draft,
+    input: ExecuteDraftInput,
+    reason: string,
+    message: string | undefined,
+    beforeStatus: string | null,
+    afterStatus: string,
+  ): Promise<Result<Draft>> {
+    await this.draftRepo.updateStatus(draft.id, 'failed', {
+      execution: {
+        requestedBy: input.executedBy,
+        attemptedAt: new Date().toISOString(),
+        status: 'failed',
+        platformApplied: false,
+        reason,
+        message: message ?? null,
+        before: { status: beforeStatus },
+        intended: { status: afterStatus },
+      },
+    });
+
+    await this.auditLogger?.log({
+      workspaceId: input.workspaceId,
+      userId: input.executedBy,
+      action: `Draft execution failed on ${draft.platform}: ${draft.changeSummary}`,
+      actionCategory: 'draft_execution_failed',
+      campaignId: draft.campaignId ?? undefined,
+      entityType: 'draft',
+      entityId: draft.id,
+      actorType: 'user',
+      actorId: input.executedBy,
+      metadata: { draftType: draft.draftType, platform: draft.platform, reason, message: message ?? null },
+      source: 'dashboard',
+    });
+
+    return err(new DraftExecutionFailedError(reason, message));
+  }
+
+  /** Maps a status_change draft's `new_status` to a pause/resume action. */
+  private resolveStatusAction(
+    changeDetail: Record<string, unknown>,
+  ): { kind: 'pause' | 'resume'; after: string } | null {
+    const raw = changeDetail.new_status ?? changeDetail.status ?? changeDetail.targetStatus;
+    if (typeof raw !== 'string') return null;
+    const norm = raw.trim().toUpperCase();
+    if (norm === 'PAUSED' || norm === 'PAUSE') return { kind: 'pause', after: 'paused' };
+    if (norm === 'ACTIVE' || norm === 'ENABLED' || norm === 'RESUME') {
+      return { kind: 'resume', after: 'active' };
+    }
+    return null;
   }
 }

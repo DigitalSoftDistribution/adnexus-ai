@@ -89,6 +89,12 @@ const envSchema = z.object({
   SNAP_OAUTH_BASE_URL: z.string().url().default('https://accounts.snapchat.com/accounts/oauth2'),
   ENABLE_MOCK_SOCIAL_SYNC: z.string().default('false'),
 
+  // Platform execution (real draft writes). Default OFF — see
+  // docs/specs/DRAFT_EXECUTION_SPEC.md. Global kill-switch plus a per-workspace
+  // allowlist so we can pilot writes for design-partner workspaces only.
+  ENABLE_PLATFORM_EXECUTION: z.string().default('false'),
+  PLATFORM_EXECUTION_ENABLED_WORKSPACES: z.string().default(''),
+
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
@@ -260,6 +266,13 @@ export const config = {
 
   socialSync: {
     enableMockTikTokSnap: env.ENABLE_MOCK_SOCIAL_SYNC === 'true',
+  },
+
+  platformExecution: {
+    enabled: env.ENABLE_PLATFORM_EXECUTION === 'true',
+    enabledWorkspaces: env.PLATFORM_EXECUTION_ENABLED_WORKSPACES.split(',')
+      .map((w) => w.trim())
+      .filter(Boolean),
   },
 
   stripe: {

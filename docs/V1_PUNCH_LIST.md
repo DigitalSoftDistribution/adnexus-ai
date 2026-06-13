@@ -33,17 +33,21 @@ nobody burns time on them:
 
 ## P0 — true v1 ship blockers
 
-### P0-A — Enable real draft execution (Meta + Google write path) 🔴 #1 blocker
-- **Reality:** `ExecuteDraftUseCase` always returns
-  `v1_pilot_platform_execution_disabled`. The product can draft/review/approve
-  but **cannot push a change to a live ad account.** This is the single largest
-  gap between the pitch ("AI drafts → you approve → it goes live") and reality.
-- **Effort:** ~2–3 weeks (per `KNOWN_LIMITATIONS.md`). Needs platform write-scope
-  creds, rollback handling, idempotency, audit on apply.
-- **Plan:** see `specs/DRAFT_EXECUTION_SPEC.md`.
-- **Acceptance:** an approved draft for a Meta campaign (pause/resume + budget)
-  applies to the live account behind a per-workspace feature flag, is recorded in
-  the audit log with before/after, and is reversible.
+### P0-A — Enable real draft execution (Meta + Google write path) 🟡 core wiring landed
+- **Was:** `ExecuteDraftUseCase` always returned
+  `v1_pilot_platform_execution_disabled` — the product could draft/review/approve
+  but not push a change to a live ad account.
+- **Done (this pass):** the execution path is wired behind a per-workspace flag
+  (`ENABLE_PLATFORM_EXECUTION` / `PLATFORM_EXECUTION_ENABLED_WORKSPACES`, default
+  OFF). When enabled, an approved **Meta `status_change` (pause/resume)** draft
+  resolves the campaign's platform ids, calls `MetaPlatformWriteService`, marks
+  the draft `executed`/`failed`, and records before/after in the audit log.
+  Flag-off behavior is byte-for-byte unchanged. Covered by 10 vitest cases
+  (`ExecuteDraftUseCase.test.ts`); API typecheck + draft suites green.
+- **Remaining:** budget-change writes (new adapter method), Google write service
+  (`canWriteCampaigns` still gated off), automatic rollback (`RevertDraftUseCase`;
+  the `before` snapshot already persists), and the live-sandbox e2e.
+- **Plan:** see `specs/DRAFT_EXECUTION_SPEC.md` (updated with status).
 
 ### P0-B — Single success envelope for list endpoints
 - **Reality:** `PATH_TO_V1.md` P0-3 still open — three campaign-list shapes exist;
