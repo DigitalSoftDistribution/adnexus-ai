@@ -1,0 +1,38 @@
+# Coolify preview topology: API + internal WireMock sidecar (not publicly routed).
+# Apply as custom docker compose in Coolify adnexus-api preview environment.
+# WireMock __admin must stay off Traefik — internal network only.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      META_GRAPH_URL: http://wiremock:8080
+      GOOGLE_ADS_API_URL: http://wiremock:8080/v16
+      GOOGLE_OAUTH_URL: http://wiremock:8080/google/oauth2/auth
+      GOOGLE_TOKEN_URL: http://wiremock:8080/token
+      GOOGLE_TOKEN_INFO_URL: http://wiremock:8080/tokeninfo
+      TIKTOK_API_URL: http://wiremock:8080/open_api/v1.3
+      SNAP_API_BASE_URL: http://wiremock:8080/v1
+      SNAP_OAUTH_BASE_URL: http://wiremock:8080/snap/oauth2
+    depends_on:
+      wiremock:
+        condition: service_healthy
+
+  wiremock:
+    image: wiremock/wiremock:3.10.0
+    command:
+      - --global-response-templating
+      - --disable-gzip
+    expose:
+      - "8080"
+    volumes:
+      - ./apps/api/tests/wiremock:/home/wiremock:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
