@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   DraftExecutionDisabledError,
   DraftExecutionFailedError,
-  DraftExecutionPersistError,
   ExecuteDraftUseCase,
   type DraftExecutionDeps,
 } from './ExecuteDraftUseCase';
@@ -50,6 +49,7 @@ const makeRepo = (overrides: Partial<IDraftRepository> = {}): IDraftRepository =
     getStats: vi.fn(),
     create: vi.fn(),
     updateStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executed' })),
+    claimStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executed' })),
     approve: vi.fn(),
     reject: vi.fn(),
     delete: vi.fn(),
@@ -213,8 +213,10 @@ describe('ExecuteDraftUseCase — real execution', () => {
     expect(deps.writeService!.pauseCampaign).toHaveBeenCalledWith(
       expect.objectContaining({ platform: 'meta', platformCampaignId: 'pcid-1', adAccountId: 'acct-1' }),
     );
-    expect(repo.updateStatus).toHaveBeenCalledWith(
+    // Claim (approved → executed) must happen atomically before the write.
+    expect(repo.claimStatus).toHaveBeenCalledWith(
       'draft-1',
+      'approved',
       'executed',
       expect.objectContaining({
         execution: expect.objectContaining({ platformApplied: true, action: 'pause' }),
@@ -266,34 +268,44 @@ describe('ExecuteDraftUseCase — real execution', () => {
     );
   });
 
-  it('surfaces a persist failure (not a synthetic success) when the platform applied but the row did not update', async () => {
+  it('does not issue a second platform write when it loses the execution claim (idempotent)', async () => {
+    // claimStatus returns null → another concurrent execute already claimed it.
     const repo = makeRepo({
-      findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()),
-      updateStatus: vi.fn().mockResolvedValue(null),
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft()) // initial load (approved)
+        .mockResolvedValueOnce(makeDraft({ status: 'executed' })), // post-claim re-read
+      claimStatus: vi.fn().mockResolvedValue(null),
     });
-    const audit = makeAudit();
     const deps = makeExecDeps();
-    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
 
     const result = await useCase.execute(baseInput);
 
-    expect(deps.writeService!.pauseCampaign).toHaveBeenCalled();
+    expect(result.success).toBe(true); // idempotent: the winner is applying it
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+    expect(deps.writeService!.resumeCampaign).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when the claim is lost and the draft is not in an executed state', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft())
+        .mockResolvedValueOnce(makeDraft({ status: 'rejected' })),
+      claimStatus: vi.fn().mockResolvedValue(null),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toBeInstanceOf(DraftExecutionPersistError);
-      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(500);
-      expect((result.error as DraftExecutionPersistError).details).toEqual({ platformApplied: true });
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
     }
-    // It must record the divergence, and must NOT claim a clean execution.
-    expect(audit.log).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actionCategory: 'draft_execution_persist_failed',
-        metadata: expect.objectContaining({ platformApplied: true, needsReconciliation: true }),
-      }),
-    );
-    expect(audit.log).not.toHaveBeenCalledWith(
-      expect.objectContaining({ actionCategory: 'draft_executed' }),
-    );
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
   });
 
   it('stays in disabled mode when the workspace flag is off', async () => {

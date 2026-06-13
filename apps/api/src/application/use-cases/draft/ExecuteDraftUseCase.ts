@@ -2,7 +2,7 @@ import type { IDraftRepository } from '../../../domain/repositories/IDraftReposi
 import type { ICampaignRepository } from '../../../domain/repositories/ICampaignRepository';
 import type { Draft } from '../../../domain/entities/Draft';
 import type { Platform } from '../../../domain/entities/Campaign';
-import { Result, ok, err, ForbiddenError, NotFoundError, DomainError } from '../../../domain/value-objects/Result';
+import { Result, ok, err, ForbiddenError, NotFoundError, ConflictError, DomainError } from '../../../domain/value-objects/Result';
 import type { IAuditLogger } from '../../ports/IAuditLogger';
 import type {
   IPlatformWriteService,
@@ -61,25 +61,6 @@ export class DraftExecutionFailedError extends DomainError {
     );
     this.name = 'DraftExecutionFailedError';
     Object.setPrototypeOf(this, DraftExecutionFailedError.prototype);
-  }
-}
-
-/**
- * Raised when the platform write succeeded but the draft's executed state could
- * not be persisted (e.g. the draft row was concurrently removed/modified). The
- * change IS live on the platform — `platformApplied: true` — so the caller must
- * treat the draft as out of sync and reconcile, not retry blindly.
- */
-export class DraftExecutionPersistError extends DomainError {
-  constructor(action: string) {
-    super(
-      `The ${action} was applied on the ad platform, but the draft state could not be persisted. The change is live; reconcile the draft before retrying.`,
-      'DRAFT_EXECUTION_PERSIST_FAILED',
-      500,
-      { platformApplied: true },
-    );
-    this.name = 'DraftExecutionPersistError';
-    Object.setPrototypeOf(this, DraftExecutionPersistError.prototype);
   }
 }
 
@@ -225,6 +206,37 @@ export class ExecuteDraftUseCase {
       return this.recordFailure(draft, input, 'no_platform_id', undefined, beforeStatus, action.after);
     }
 
+    // Atomically claim the draft (approved → executed) BEFORE touching the
+    // platform. Only one concurrent execute can win this compare-and-set, so we
+    // can never issue two platform writes for the same draft. The loser gets
+    // null and returns without calling the write service. Claiming first (vs.
+    // persisting after the write) also removes the "wrote to platform but failed
+    // to persist" divergence window entirely.
+    const appliedAt = new Date().toISOString();
+    const claimed = await this.draftRepo.claimStatus(draft.id, 'approved', 'executed', {
+      execution: {
+        requestedBy: input.executedBy,
+        appliedAt,
+        status: 'executed',
+        platformApplied: true,
+        action: action.kind,
+        before: { status: beforeStatus },
+        after: { status: action.after },
+      },
+    });
+
+    if (!claimed) {
+      const current = await this.draftRepo.findByIdAndWorkspace(draft.id, input.workspaceId);
+      if (current && current.status === 'executed') {
+        // A concurrent request already claimed this draft and is applying it.
+        // Treat as an idempotent success rather than issuing a second write.
+        return ok(current);
+      }
+      return err(
+        new ConflictError('Draft is no longer approved (already being executed or resolved).'),
+      );
+    }
+
     const ctx: PlatformWriteContext = {
       platform: draft.platform as Platform,
       platformCampaignId,
@@ -253,50 +265,6 @@ export class ExecuteDraftUseCase {
       return this.recordFailure(draft, input, result.reason, message, beforeStatus, action.after);
     }
 
-    const appliedAt = new Date().toISOString();
-    const updated = await this.draftRepo.updateStatus(draft.id, 'executed', {
-      execution: {
-        requestedBy: input.executedBy,
-        appliedAt,
-        status: 'executed',
-        platformApplied: true,
-        action: action.kind,
-        before: { status: beforeStatus },
-        after: { status: action.after },
-      },
-    });
-
-    if (!updated) {
-      // The platform write SUCCEEDED but the executed state could not be
-      // persisted (draft concurrently removed/modified). Do not report a clean
-      // success with a synthetic draft — the live campaign now diverges from a
-      // draft still marked `approved`. Record the divergence for reconciliation
-      // and surface it to the caller.
-      await this.auditLogger?.log({
-        workspaceId: input.workspaceId,
-        userId: input.executedBy,
-        action: `Draft applied on ${draft.platform} but executed-state persist failed: ${draft.changeSummary}`,
-        actionCategory: 'draft_execution_persist_failed',
-        campaignId: draft.campaignId ?? undefined,
-        entityType: 'draft',
-        entityId: draft.id,
-        actorType: 'user',
-        actorId: input.executedBy,
-        metadata: {
-          draftType: draft.draftType,
-          platform: draft.platform,
-          platformCampaignId,
-          action: action.kind,
-          platformApplied: true,
-          needsReconciliation: true,
-          before: { status: beforeStatus },
-          after: { status: action.after },
-        },
-        source: 'dashboard',
-      });
-      return err(new DraftExecutionPersistError(action.kind));
-    }
-
     await this.auditLogger?.log({
       workspaceId: input.workspaceId,
       userId: input.executedBy,
@@ -318,7 +286,7 @@ export class ExecuteDraftUseCase {
       source: 'dashboard',
     });
 
-    return ok(updated);
+    return ok(claimed);
   }
 
   private async recordFailure(

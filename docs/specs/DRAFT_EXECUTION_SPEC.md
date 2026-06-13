@@ -77,12 +77,21 @@ preconditions: role ∈ {owner,admin,editor}; draft.status === 'approved';
      - return a typed error carrying result.reason/message
 ```
 
-### 3. Idempotency + concurrency
+### 3. Idempotency + concurrency — ✅ implemented
 
-- Use the draft row as the idempotency key: only `approved` → `executed` is a
-  legal transition; re-running an `executed` draft is a no-op success.
-- Wrap the status transition in a conditional update
-  (`WHERE status='approved'`) so two concurrent executes can't double-apply.
+- The draft row is the idempotency key: only `approved` → `executed` is a legal
+  transition.
+- **`IDraftRepository.claimStatus(id, 'approved', 'executed', meta)`** does a
+  compare-and-set (`UPDATE … WHERE id = $1 AND status = $3`). The use case
+  **claims the draft before touching the platform**, so two concurrent executes
+  can't both issue a platform write — the loser gets `null` and returns an
+  idempotent success (if the winner already moved it to `executed`) or a 409
+  `ConflictError`. Claiming first also removes the "wrote to platform but failed
+  to persist" divergence window.
+- **Known gap (acceptable for the pilot):** a process crash between the claim and
+  the platform write leaves the draft `executed` with no platform change. A
+  dedicated `executing` interim state + reconciliation sweep is the phase-2
+  hardening; tracked, not blocking, while execution is flag-gated.
 
 ### 4. Rollback
 
