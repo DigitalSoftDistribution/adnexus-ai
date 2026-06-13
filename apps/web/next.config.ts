@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
+      {
+        source: '/auth/login',
+        destination: '/auth/signin',
+        permanent: true,
+      },
+      {
+        source: `/:locale(${localePattern})/auth/login`,
+        destination: '/:locale/auth/signin',
+        permanent: true,
+      },
       ...legalAliasRedirects.flatMap((page) => [
         {
           source: `/${page}`,

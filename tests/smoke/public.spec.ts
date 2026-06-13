@@ -46,6 +46,12 @@ test.describe('Public Pages', () => {
     await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
   });
 
+  test('/auth/login redirects to signin', async ({ page }) => {
+    await page.goto('/en/auth/login');
+    await expect(page).toHaveURL(/\/en\/auth\/signin/);
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  });
+
   test('pricing page loads', async ({ page }) => {
     await gotoWithRetry(page, '/en/pricing');
     await expect(page.getByRole('heading').first()).toBeVisible();
