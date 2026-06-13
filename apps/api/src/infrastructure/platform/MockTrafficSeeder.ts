@@ -7,6 +7,7 @@ import type {
 } from '../../application/ports/IMockTrafficSeeder';
 import type { SyncedCampaignMetrics } from '../../application/ports/IPlatformSyncService';
 import { writeCampaignMetrics } from './syncPersistence';
+import { oauthTokensForDbWrite } from '../../security/oauth-token-crypto';
 
 interface MockCampaignFixture {
   platformCampaignId: string;
@@ -44,12 +45,40 @@ const PLATFORM_LABELS: Record<MockTrafficPlatform, string> = {
   snap: 'Snap',
 };
 
-const ACCOUNT_FIXTURES: Record<MockTrafficPlatform, { platformAccountId: string; name: string }> = {
-  meta: { platformAccountId: 'mock_meta_act_1001', name: 'QA Meta Ads Account' },
-  google: { platformAccountId: 'mock_google_cid_2001', name: 'QA Google Ads Account' },
-  tiktok: { platformAccountId: 'mock_tiktok_adv_3001', name: 'QA TikTok Ads Account' },
-  snap: { platformAccountId: 'mock_snap_act_4001', name: 'QA Snapchat Ads Account' },
+const ACCOUNT_FIXTURES: Record<
+  MockTrafficPlatform,
+  { platformAccountId: string; name: string; accessToken: string; refreshToken: string }
+> = {
+  meta: {
+    platformAccountId: 'act_1234567890',
+    name: 'QA Meta Ads Account',
+    accessToken: 'EAAMockAccessToken1234567890',
+    refreshToken: 'mock-meta-refresh-token',
+  },
+  google: {
+    platformAccountId: '1234567890',
+    name: 'QA Google Ads Account',
+    accessToken: 'ya29.MockGoogleAccessToken1234567890',
+    refreshToken: 'mock-google-refresh-token',
+  },
+  tiktok: {
+    platformAccountId: 'tt_adv_123',
+    name: 'QA TikTok Ads Account',
+    accessToken: 'mock-tiktok-access-token',
+    refreshToken: 'mock-tiktok-refresh-token',
+  },
+  snap: {
+    platformAccountId: 'snap_adacct_123',
+    name: 'QA Snapchat Ads Account',
+    accessToken: 'mock-snap-access-token',
+    refreshToken: 'mock-snap-refresh-token',
+  },
 };
+
+/** OAuth expiry far enough out that preview sync skips refresh during QA. */
+function mockTokenExpiryIso(): string {
+  return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+}
 
 /** Per-platform campaign metric baselines (active, paused). */
 const CAMPAIGN_METRIC_BASES: Record<MockTrafficPlatform, [SyncedCampaignMetrics, SyncedCampaignMetrics]> = {
@@ -388,6 +417,8 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
 
   private async upsertAccount(workspaceId: string, platform: MockTrafficPlatform): Promise<string> {
     const fixture = ACCOUNT_FIXTURES[platform];
+    const tokens = oauthTokensForDbWrite(fixture.accessToken, fixture.refreshToken);
+    const tokenExpiresAt = mockTokenExpiryIso();
     const metadata = {
       accountName: fixture.name,
       mockTraffic: true,
@@ -410,19 +441,43 @@ export class MockTrafficSeeder implements IMockTrafficSeeder {
            status = 'active',
            metadata = $3,
            account_id = COALESCE(account_id, $4),
+           platform_account_id = $4,
+           oauth_token = $5,
+           refresh_token = $6,
+           token_expires_at = $7,
            last_synced_at = NOW(),
            updated_at = NOW()
          WHERE id = $1`,
-        [existing[0].id, fixture.name, JSON.stringify(metadata), fixture.platformAccountId],
+        [
+          existing[0].id,
+          fixture.name,
+          JSON.stringify(metadata),
+          fixture.platformAccountId,
+          tokens.oauth_token,
+          tokens.refresh_token,
+          tokenExpiresAt,
+        ],
       );
       return existing[0].id;
     }
 
     const { rows } = await query<{ id: string }>(
-      `INSERT INTO ad_accounts (workspace_id, platform, platform_account_id, account_id, name, status, metadata, last_synced_at)
-       VALUES ($1, $2, $3, $3, $4, 'active', $5, NOW())
+      `INSERT INTO ad_accounts (
+         workspace_id, platform, platform_account_id, account_id, name, status,
+         metadata, oauth_token, refresh_token, token_expires_at, last_synced_at
+       )
+       VALUES ($1, $2, $3, $3, $4, 'active', $5, $6, $7, $8, NOW())
        RETURNING id`,
-      [workspaceId, platform, fixture.platformAccountId, fixture.name, JSON.stringify(metadata)],
+      [
+        workspaceId,
+        platform,
+        fixture.platformAccountId,
+        fixture.name,
+        JSON.stringify(metadata),
+        tokens.oauth_token,
+        tokens.refresh_token,
+        tokenExpiresAt,
+      ],
     );
     return rows[0].id;
   }

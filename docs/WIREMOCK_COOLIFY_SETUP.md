@@ -25,6 +25,13 @@ coolify POST /api/v1/applications/private-github-app --data '{
 
 After first deploy, remove any auto-assigned public domain in Coolify UI (Service → Domains → clear). `__admin` must not be on Traefik.
 
+Set a stable internal DNS alias (required for `http://adnexus-wiremock:8080` from other apps):
+
+```bash
+coolify PATCH /api/v1/applications/<wiremock-uuid> --data '{"custom_network_aliases":"adnexus-wiremock"}'
+coolify deploy adnexus-wiremock --force
+```
+
 **Alternative:** Docker Compose at `/docker-compose.wiremock-coolify.yml` with `build_pack: dockercompose`.
 
 ## 2. Revert `adnexus-api` to Dockerfile (if on compose sidecar)
