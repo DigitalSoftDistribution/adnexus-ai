@@ -14,6 +14,8 @@ interface PricingPreviewProps {
   subtitle?: string;
   differentiator?: string;
   comparisonHref?: string | null;
+  /** Hero: above-the-fold on /pricing — visible immediately, tighter spacing. */
+  variant?: 'section' | 'hero';
 }
 
 export function PricingPreview({
@@ -22,12 +24,19 @@ export function PricingPreview({
   subtitle = 'Start free. Upgrade as your strategy grows — not as your budget does.',
   differentiator = 'Unlike Madgicx or Revealbot, we don\'t take a percentage.',
   comparisonHref = '/pricing',
+  variant = 'section',
 }: PricingPreviewProps) {
-  const { ref, isVisible } = useScrollAnimation(0.2);
+  const scrollAnim = useScrollAnimation(0.2);
+  const isHero = variant === 'hero';
+  const isVisible = isHero ? true : scrollAnim.isVisible;
   const tiers = PRICING_TIERS;
 
   return (
-    <section ref={ref} className="w-full py-24 px-6" style={{ background: 'var(--bg-primary)' }}>
+    <section
+      ref={isHero ? undefined : scrollAnim.ref}
+      className={isHero ? 'w-full pt-10 pb-16 px-6' : 'w-full py-24 px-6'}
+      style={{ background: 'var(--bg-primary)' }}
+    >
       <div className="max-w-[1100px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
