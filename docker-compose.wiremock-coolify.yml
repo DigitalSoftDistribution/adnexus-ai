@@ -1,0 +1,9 @@
+# Coolify internal WireMock (Option B) — no Traefik route; reachable as adnexus-wiremock:8080 on coolify network.
+services:
+  wiremock:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.wiremock
+    expose:
+      - "8080"
+    restart: unless-stopped
