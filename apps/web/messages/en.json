@@ -453,7 +453,19 @@
     "analysisFrequencyDesc": "How often the AI Agent analyzes your campaigns",
     "excludedCampaigns": "Excluded campaigns",
     "excludedCampaignsDesc": "Campaigns to exclude from AI recommendations",
-    "history": "History"
+    "history": "History",
+    "chat": "Chat",
+    "chatTitle": "Ask the operator",
+    "chatDescription": "Get advisory answers grounded in your current recommendations.",
+    "chatGuardrailNote": "Chat is advisory only. To act on a suggestion, use Draft for approval on the Recommendations tab — nothing publishes without review.",
+    "chatEmpty": "Ask about campaign performance, priorities, or what to optimize next.",
+    "chatInputPlaceholder": "Ask the operator…",
+    "chatSend": "Send message",
+    "chatYou": "You",
+    "chatOperator": "Operator",
+    "failedToFetchConversation": "Failed to load conversation",
+    "failedToCreateConversation": "Failed to start conversation",
+    "failedToSendMessage": "Failed to send message"
   },
   "reports": {
     "title": "Reports",
