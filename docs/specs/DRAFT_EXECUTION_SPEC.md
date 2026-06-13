@@ -77,21 +77,26 @@ preconditions: role ∈ {owner,admin,editor}; draft.status === 'approved';
      - return a typed error carrying result.reason/message
 ```
 
-### 3. Idempotency + concurrency — ✅ implemented
+### 3. Idempotency + concurrency — ✅ implemented (with `executing` interim state)
 
-- The draft row is the idempotency key: only `approved` → `executed` is a legal
-  transition.
-- **`IDraftRepository.claimStatus(id, 'approved', 'executed', meta)`** does a
+- The draft row is the idempotency key. The status machine is
+  `approved → executing → executed | failed`.
+- **`IDraftRepository.claimStatus(id, 'approved', 'executing', meta)`** does a
   compare-and-set (`UPDATE … WHERE id = $1 AND status = $3`). The use case
-  **claims the draft before touching the platform**, so two concurrent executes
-  can't both issue a platform write — the loser gets `null` and returns an
-  idempotent success (if the winner already moved it to `executed`) or a 409
-  `ConflictError`. Claiming first also removes the "wrote to platform but failed
-  to persist" divergence window.
-- **Known gap (acceptable for the pilot):** a process crash between the claim and
-  the platform write leaves the draft `executed` with no platform change. A
-  dedicated `executing` interim state + reconciliation sweep is the phase-2
-  hardening; tracked, not blocking, while execution is flag-gated.
+  **claims the draft into `executing` before touching the platform**, so two
+  concurrent executes can't both issue a platform write. The loser re-reads and:
+  - `executed` → returns an idempotent **success** (the winner genuinely finished);
+  - `executing` → returns **409** ("already in progress") — never a false success
+    while the write is still in flight or about to fail;
+  - anything else → **409** conflict.
+- On a successful write the use case finalizes `executing → executed`; on failure
+  `recordFailure` moves `executing → failed`. The interim state is truthful for
+  every reader (dashboard, lists, concurrent callers).
+- **Residual gap (acceptable for the flag-gated pilot):** a process crash between
+  the claim and the write leaves the draft stuck in `executing` with no platform
+  change. A reconciliation sweep that times out stale `executing` rows is the
+  phase-2 hardening; tracked, not blocking. `drafts.status` is a free-form
+  `VARCHAR(50)` in the live schema, so `executing` needs no migration.
 
 ### 4. Rollback
 

@@ -1,4 +1,11 @@
-export type DraftStatus = 'pending' | 'approved' | 'rejected' | 'executed' | 'failed' | 'rolled_back';
+export type DraftStatus =
+  | 'pending'
+  | 'approved'
+  | 'executing'
+  | 'executed'
+  | 'rejected'
+  | 'failed'
+  | 'rolled_back';
 export type DraftType =
   | 'budget_adjustment'
   | 'bid_adjustment'

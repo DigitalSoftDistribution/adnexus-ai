@@ -49,7 +49,7 @@ const makeRepo = (overrides: Partial<IDraftRepository> = {}): IDraftRepository =
     getStats: vi.fn(),
     create: vi.fn(),
     updateStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executed' })),
-    claimStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executed' })),
+    claimStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executing' })),
     approve: vi.fn(),
     reject: vi.fn(),
     delete: vi.fn(),
@@ -213,10 +213,18 @@ describe('ExecuteDraftUseCase — real execution', () => {
     expect(deps.writeService!.pauseCampaign).toHaveBeenCalledWith(
       expect.objectContaining({ platform: 'meta', platformCampaignId: 'pcid-1', adAccountId: 'acct-1' }),
     );
-    // Claim (approved → executed) must happen atomically before the write.
+    // Claim (approved → executing) must happen atomically before the write,
+    // then finalize executing → executed after the write succeeds.
     expect(repo.claimStatus).toHaveBeenCalledWith(
       'draft-1',
       'approved',
+      'executing',
+      expect.objectContaining({
+        execution: expect.objectContaining({ status: 'executing', action: 'pause' }),
+      }),
+    );
+    expect(repo.updateStatus).toHaveBeenCalledWith(
+      'draft-1',
       'executed',
       expect.objectContaining({
         execution: expect.objectContaining({ platformApplied: true, action: 'pause' }),
@@ -268,8 +276,8 @@ describe('ExecuteDraftUseCase — real execution', () => {
     );
   });
 
-  it('does not issue a second platform write when it loses the execution claim (idempotent)', async () => {
-    // claimStatus returns null → another concurrent execute already claimed it.
+  it('returns an idempotent success without a second write when the winner already executed', async () => {
+    // claimStatus returns null → another execute won; the draft is already executed.
     const repo = makeRepo({
       findByIdAndWorkspace: vi
         .fn()
@@ -282,12 +290,33 @@ describe('ExecuteDraftUseCase — real execution', () => {
 
     const result = await useCase.execute(baseInput);
 
-    expect(result.success).toBe(true); // idempotent: the winner is applying it
+    expect(result.success).toBe(true); // a real success: the winner already finished
     expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
     expect(deps.writeService!.resumeCampaign).not.toHaveBeenCalled();
   });
 
-  it('returns 409 when the claim is lost and the draft is not in an executed state', async () => {
+  it('returns 409 (in progress, no false success) when the winner is still executing', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft())
+        .mockResolvedValueOnce(makeDraft({ status: 'executing' })),
+      claimStatus: vi.fn().mockResolvedValue(null),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
+    }
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when the claim is lost and the draft is not in an executing/executed state', async () => {
     const repo = makeRepo({
       findByIdAndWorkspace: vi
         .fn()

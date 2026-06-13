@@ -206,19 +206,19 @@ export class ExecuteDraftUseCase {
       return this.recordFailure(draft, input, 'no_platform_id', undefined, beforeStatus, action.after);
     }
 
-    // Atomically claim the draft (approved → executed) BEFORE touching the
+    // Atomically claim the draft (approved → executing) BEFORE touching the
     // platform. Only one concurrent execute can win this compare-and-set, so we
-    // can never issue two platform writes for the same draft. The loser gets
-    // null and returns without calling the write service. Claiming first (vs.
-    // persisting after the write) also removes the "wrote to platform but failed
-    // to persist" divergence window entirely.
-    const appliedAt = new Date().toISOString();
-    const claimed = await this.draftRepo.claimStatus(draft.id, 'approved', 'executed', {
+    // can never issue two platform writes for the same draft. The `executing`
+    // interim state is truthful for every reader: a concurrent loser (and the
+    // dashboard) sees "in progress" rather than a premature `executed`, so a
+    // duplicate request can't get a false success while the write is still in
+    // flight or about to fail.
+    const startedAt = new Date().toISOString();
+    const claimed = await this.draftRepo.claimStatus(draft.id, 'approved', 'executing', {
       execution: {
         requestedBy: input.executedBy,
-        appliedAt,
-        status: 'executed',
-        platformApplied: true,
+        startedAt,
+        status: 'executing',
         action: action.kind,
         before: { status: beforeStatus },
         after: { status: action.after },
@@ -227,14 +227,16 @@ export class ExecuteDraftUseCase {
 
     if (!claimed) {
       const current = await this.draftRepo.findByIdAndWorkspace(draft.id, input.workspaceId);
-      if (current && current.status === 'executed') {
-        // A concurrent request already claimed this draft and is applying it.
-        // Treat as an idempotent success rather than issuing a second write.
+      if (current?.status === 'executed') {
+        // The winning request already completed the platform write — a *real*
+        // idempotent success, not an in-flight guess.
         return ok(current);
       }
-      return err(
-        new ConflictError('Draft is no longer approved (already being executed or resolved).'),
-      );
+      const detail =
+        current?.status === 'executing'
+          ? 'Draft execution is already in progress.'
+          : 'Draft is no longer approved (already executed, failed, or resolved).';
+      return err(new ConflictError(detail));
     }
 
     const ctx: PlatformWriteContext = {
@@ -265,6 +267,22 @@ export class ExecuteDraftUseCase {
       return this.recordFailure(draft, input, result.reason, message, beforeStatus, action.after);
     }
 
+    // Platform write succeeded — finalize executing → executed. We are the sole
+    // claimer of this row, so an unconditional transition is safe.
+    const appliedAt = new Date().toISOString();
+    const finalized = await this.draftRepo.updateStatus(draft.id, 'executed', {
+      execution: {
+        requestedBy: input.executedBy,
+        startedAt,
+        appliedAt,
+        status: 'executed',
+        platformApplied: true,
+        action: action.kind,
+        before: { status: beforeStatus },
+        after: { status: action.after },
+      },
+    });
+
     await this.auditLogger?.log({
       workspaceId: input.workspaceId,
       userId: input.executedBy,
@@ -286,7 +304,7 @@ export class ExecuteDraftUseCase {
       source: 'dashboard',
     });
 
-    return ok(claimed);
+    return ok(finalized ?? { ...claimed, status: 'executed', executedAt: new Date() });
   }
 
   private async recordFailure(
