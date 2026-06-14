@@ -74,12 +74,14 @@ const mockSupabase = (jest.requireMock('../../src/lib/supabase') as any).supabas
 const mockFrom = mockSupabase.from as jest.Mock;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+let currentUserEmailVerified = true;
+
 /** Auth middleware verifies caller via from('users').single(); resolve to a valid user. */
 function usersBuilder() {
   const b: Record<string, unknown> = {
     select: jest.fn(() => b),
     eq: jest.fn(() => b),
-    single: jest.fn().mockResolvedValue({ data: { id: UUIDS.owner }, error: null }),
+    single: jest.fn().mockImplementation(() => Promise.resolve({ data: { id: UUIDS.owner, email_verified: currentUserEmailVerified }, error: null })),
   };
   return b;
 }
@@ -88,6 +90,7 @@ const WS_ID = mockWorkspaces.free.id;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  currentUserEmailVerified = true;
   mockFrom.mockImplementation(() => usersBuilder());
   mockWorkspacesFindFirst.mockResolvedValue(undefined);
   mockCreditsFindFirst.mockResolvedValue(undefined);
@@ -259,6 +262,21 @@ describe('POST /api/v1/billing/checkout', () => {
     // Assert
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
+  });
+
+  it('should require a verified email before starting checkout', async () => {
+    currentUserEmailVerified = false;
+    const token = generateToken(UUIDS.owner, 'owner', WS_ID, false);
+    mockWorkspacesFindFirst.mockResolvedValue({ id: WS_ID, stripeCustomerId: 'cus_test' });
+
+    const response = await request(app)
+      .post('/api/v1/billing/checkout')
+      .set('Authorization', `Bearer ${token}`)
+      .set('x-workspace-id', WS_ID)
+      .send({ priceId: 'price_123' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
 });
 

@@ -137,8 +137,14 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
 });
 
-// Parse and validate environment variables
-const parsedEnv = envSchema.safeParse(process.env);
+// Parse and validate environment variables.
+// Accept the Supabase dashboard's conventional service-role variable name as
+// a compatibility alias while keeping SUPABASE_SERVICE_KEY canonical internally.
+const rawEnv = {
+  ...process.env,
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
+const parsedEnv = envSchema.safeParse(rawEnv);
 
 if (!parsedEnv.success) {
   const issues = parsedEnv.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
