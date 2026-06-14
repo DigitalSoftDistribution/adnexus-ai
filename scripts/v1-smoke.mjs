@@ -51,6 +51,7 @@ Checks AdNexus V1 preview/runtime readiness:
   - API CORS preflight for preview origin
   - API unauthenticated behavior for protected /api/v2 routes
   - Optional authenticated probes when SMOKE_AUTH_TOKEN or --token is supplied
+  - Authenticated billing-plan and notification probes for launch-readiness surfaces
   - Optional web routes and same-origin /api/v2 rewrite behavior
 
 Environment alternatives: API_URL, WEB_URL, SMOKE_ORIGIN, SMOKE_AUTH_TOKEN, SMOKE_TIMEOUT_MS, SMOKE_RETRIES.`);
@@ -198,6 +199,39 @@ if (options.token) {
       expect: (response) => response.status >= 200 && response.status < 300,
     });
   }
+
+  checks.push(
+    {
+      name: 'api billing launch plans',
+      url: joinUrl(options.baseUrl, '/api/v2/billing/plans'),
+      init: { headers: { Authorization: `Bearer ${options.token}` } },
+      expect: (response) => response.status === 200,
+      validate: (body) => Boolean(
+        body &&
+          typeof body === 'object' &&
+          body.success === true &&
+          body.data &&
+          typeof body.data === 'object' &&
+          typeof body.data.billingEnabled === 'boolean' &&
+          Array.isArray(body.data.plans),
+      ),
+    },
+    {
+      name: 'api morning brief notification surface',
+      url: joinUrl(options.baseUrl, '/api/v2/notifications?limit=5'),
+      init: { headers: { Authorization: `Bearer ${options.token}` } },
+      expect: (response) => response.status === 200,
+      validate: (body) => Boolean(
+        body &&
+          typeof body === 'object' &&
+          body.success === true &&
+          body.data &&
+          typeof body.data === 'object' &&
+          Array.isArray(body.data.notifications) &&
+          typeof body.data.unreadCount === 'number',
+      ),
+    },
+  );
 }
 
 if (options.webUrl) {

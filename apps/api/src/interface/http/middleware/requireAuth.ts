@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../../../config';
-import { UnauthorizedError, ForbiddenError } from '../../../domain/value-objects/Result';
+import { UnauthorizedError, ForbiddenError, DomainError } from '../../../domain/value-objects/Result';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -9,7 +9,16 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     workspaceId: string;
     role: string;
+    emailVerified?: boolean;
   } | any;
+}
+
+export class EmailNotVerifiedError extends DomainError {
+  constructor(message = 'Please verify your email before continuing') {
+    super(message, 'EMAIL_NOT_VERIFIED', 403);
+    this.name = 'EmailNotVerifiedError';
+    Object.setPrototypeOf(this, EmailNotVerifiedError.prototype);
+  }
 }
 
 /**
@@ -33,6 +42,7 @@ function verifyToken(token: string): AuthenticatedRequest['user'] {
     workspaceId:
       (payload.workspace_id as string) || (payload.workspaceId as string) || '',
     role: (payload.role as string) || 'viewer',
+    emailVerified: payload.emailVerified === true,
   };
 }
 
@@ -81,6 +91,24 @@ export function requireAuthQuery(
   } catch (err) {
     next(err);
   }
+}
+
+export function requireVerifiedEmail(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+): void {
+  if (!req.user) {
+    next(new UnauthorizedError('Authentication required'));
+    return;
+  }
+
+  if (req.user.emailVerified !== true) {
+    next(new EmailNotVerifiedError());
+    return;
+  }
+
+  next();
 }
 
 export function requireRole(...allowedRoles: string[]) {

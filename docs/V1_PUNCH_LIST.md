@@ -84,11 +84,10 @@ nobody burns time on them:
 - **Remaining:** none for v1. (Optional: a fixture test asserting a known-good
   provider signature verifies — nice-to-have, not blocking.)
 
-### P0-E — Billing e2e (plan-upgrade → webhook → credits)
-- **Reality:** code path works; only integration coverage today. This is a
-  **test-coverage** gap, not a code gap.
-- **Effort:** ~2 days with Stripe signature fixtures. **Acceptance:** e2e proves
-  upgrade → webhook → credit grant on the served surface.
+### P0-E — Billing e2e (plan-upgrade → webhook → credits) 🟡 offline harness + v2 gate landed
+- **Reality:** the offline service-boundary e2e exists (`apps/api/tests/e2e/billing-flow.test.ts`) and proves a Stripe `checkout.session.completed` webhook upgrades the workspace, provisions plan credit limits, and resets usage without live Stripe credentials. The web-served v2 billing actions now also enforce the same email-verification gate as v1 billing/OAuth before checkout, upgrade, or portal access.
+- **This pass:** `pnpm smoke:v1` authenticated mode now probes `/api/v2/billing/plans` and `/api/v2/notifications?limit=5`, wiring the launch smoke to the billing-readiness and Morning Brief dashboard surfaces rather than relying on prose checklists.
+- **Remaining:** live Stripe QA still requires a verified QA owner, configured Stripe test price/webhook secret, and the Stripe CLI/dashboard webhook delivery confirmation.
 
 ## P1 — needed right after v1 (the moats)
 
