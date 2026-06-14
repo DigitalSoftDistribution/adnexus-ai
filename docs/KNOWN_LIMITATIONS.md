@@ -40,11 +40,12 @@
 
 ## Webhooks
 
-- Meta/TikTok webhook signature verification re-hashes the parsed JSON body
-  rather than the original raw request bytes. Providers sign the raw bytes, so
-  verification can fail (or pass incorrectly) when parser reformatting changes
-  the byte stream. Fixing this requires capturing the raw body via the JSON
-  body-parser's `verify` hook and threading it to the handlers.
+- Meta/TikTok webhook signature verification uses the **original raw request
+  bytes**: `express.json`'s `verify` hook captures `req.rawBody`, and the inbound
+  webhook routes (`apps/api/src/routes/webhooks.ts`) thread it into
+  `verifyMetaSignature` / `verifyTikTokSignature` (falling back to a
+  re-serialized body only when the raw bytes are unavailable). Providers sign the
+  raw bytes, so this verifies correctly.
 - The Google webhook route validates the per-workspace secret; campaign
   resolution inside `webhook-handler.ts` scopes workspace/campaign lookup by
   `ad_accounts.platform` (fixed 2026-06-12, PR #159). **Adset** resolution

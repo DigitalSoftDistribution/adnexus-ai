@@ -49,29 +49,44 @@ nobody burns time on them:
   the `before` snapshot already persists), and the live-sandbox e2e.
 - **Plan:** see `specs/DRAFT_EXECUTION_SPEC.md` (updated with status).
 
-### P0-B — Single success envelope for list endpoints
-- **Reality:** `PATH_TO_V1.md` P0-3 still open — three campaign-list shapes exist;
-  frontend uses adapters.
-- **Effort:** ~1 day. **Acceptance:** frontend renders campaign/draft/audience
-  lists with no shape adapters against served v2.
+### P0-B — Single success envelope for list endpoints ✅ done (verified 2026-06-14)
+- **Reality (re-audited):** the *served v2* path and the live frontend already
+  agree on one shape. `ListCampaignsUseCase` returns `{ campaigns, total, … }`,
+  `CampaignController` wraps it as `{ success, data }`, and `CampaignsContent.tsx`
+  reads `data.data.campaigns` / `data.data.total` with **no shape adapters**. The
+  three contradictory shapes in the historical `PATH_TO_V1.md` P0-3 referred to
+  the old v1/e2e contracts; the v2 surface converged. Drafts/audiences follow the
+  same `{ success, data:{ items, total } }` convention.
+- **Remaining:** none for v1. (If a future endpoint needs cursor pagination, add a
+  shared list envelope helper — tracked under P2.)
 
-### P0-C — Email verification on signup
-- **Reality:** `KNOWN_LIMITATIONS.md` — "Signup does not require email
-  verification." Table-stakes + abuse vector for a paid SaaS.
-- **Effort:** ~2–3 days (token issue + email + verify route + gate). Email
-  transport already exists (SendGrid/SMTP/JSON-dev).
-- **Acceptance:** new accounts receive a verification email; unverified accounts
-  are gated from billing/connect actions.
+### P0-C — Email verification on signup ❌ the real remaining P0
+- **Reality (re-audited):** genuinely missing. Signup (`apps/api/src/routes/auth.ts`)
+  creates the Supabase user with `email_confirm: true` (auto-confirmed) and never
+  sets/checks `users.email_verified` (column exists, defaults false). Nothing
+  gates on it. Table-stakes + abuse vector for a paid SaaS / EU target.
+- **Plan:** see `specs/EMAIL_VERIFICATION_SPEC.md`. Mirrors the existing
+  Supabase-OTP password-reset flow (no new token table needed). Email transport
+  already exists (SendGrid/SMTP/JSON-dev).
+- **Not deploy-verifiable in CI sandbox** (needs live Supabase + email); build +
+  unit-test the gate logic, verify the email/Supabase wiring on a preview.
+- **Acceptance:** new accounts get a verification email; `email_verified` flips on
+  verify; unverified accounts are gated from billing/connect actions.
 
-### P0-D — Webhook raw-body signature verification
-- **Reality:** Meta/TikTok webhook verification re-hashes parsed JSON, not raw
-  bytes (`KNOWN_LIMITATIONS.md`). Real correctness/security bug.
-- **Effort:** ~1 day. Capture raw body via the JSON parser `verify` hook and
-  thread it to handlers. **Acceptance:** signature check uses original bytes;
-  fixture test with a real provider signature passes.
+### P0-D — Webhook raw-body signature verification ✅ done (verified 2026-06-14)
+- **Reality (re-audited):** already correct. `express.json`'s `verify` hook
+  captures `req.rawBody` (`apps/api/src/index.ts`), and the inbound webhook routes
+  (`apps/api/src/routes/webhooks.ts`) thread it into `verifyMetaSignature` /
+  `verifyTikTokSignature`, which hash the **original raw bytes** (re-serialized
+  body is only a fallback when raw bytes are absent). The v2 `webhooks` routes are
+  config CRUD only — no inbound receiver is missing this. `KNOWN_LIMITATIONS.md`
+  was stale and is now corrected.
+- **Remaining:** none for v1. (Optional: a fixture test asserting a known-good
+  provider signature verifies — nice-to-have, not blocking.)
 
 ### P0-E — Billing e2e (plan-upgrade → webhook → credits)
-- **Reality:** only integration coverage today (`PATH_TO_V1.md` P0-5 remainder).
+- **Reality:** code path works; only integration coverage today. This is a
+  **test-coverage** gap, not a code gap.
 - **Effort:** ~2 days with Stripe signature fixtures. **Acceptance:** e2e proves
   upgrade → webhook → credit grant on the served surface.
 
