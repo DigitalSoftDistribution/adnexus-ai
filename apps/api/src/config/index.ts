@@ -91,6 +91,15 @@ const envSchema = z.object({
   /** Preview QA: allow WireMock live sync for mock-traffic harness accounts without real OAuth. */
   MOCK_PLATFORM_SYNC: z.string().default('false'),
 
+  // Platform execution (real draft writes). Default OFF — see
+  // docs/specs/DRAFT_EXECUTION_SPEC.md. Global kill-switch plus a per-workspace
+  // allowlist so we can pilot writes for design-partner workspaces only.
+  ENABLE_PLATFORM_EXECUTION: z.string().default('false'),
+  PLATFORM_EXECUTION_ENABLED_WORKSPACES: z.string().default(''),
+  // A draft stuck in `executing` (crash between claim and finalize) becomes
+  // retryable after this many ms. Defaults to 10 minutes.
+  PLATFORM_EXECUTION_STALE_MS: z.coerce.number().int().positive().default(600000),
+
   // Billing
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
@@ -263,6 +272,14 @@ export const config = {
   socialSync: {
     enableMockTikTokSnap: env.ENABLE_MOCK_SOCIAL_SYNC === 'true',
     mockPlatformSync: env.MOCK_PLATFORM_SYNC === 'true',
+  },
+
+  platformExecution: {
+    enabled: env.ENABLE_PLATFORM_EXECUTION === 'true',
+    enabledWorkspaces: env.PLATFORM_EXECUTION_ENABLED_WORKSPACES.split(',')
+      .map((w) => w.trim())
+      .filter(Boolean),
+    staleMs: env.PLATFORM_EXECUTION_STALE_MS,
   },
 
   stripe: {

@@ -5,6 +5,22 @@
 > Supersedes the "Phases 1-5 COMPLETE" claims in [V2-ROADMAP.md](../V2-ROADMAP.md)
 > (those were aspirational at the time — the test suite was red and v2 was not yet served).
 
+> ### 2026-06-13 — 360° verification addendum
+> A full codebase + market verification pass landed three companion docs:
+> - **[V1_PUNCH_LIST.md](V1_PUNCH_LIST.md)** — the consolidated, prioritized,
+>   verified list of what's left for v1 (the authoritative to-do).
+> - **[POSITIONING_2026.md](POSITIONING_2026.md)** — strategic pivot: Meta/Amazon
+>   shipped free official MCPs in 2026, commoditizing "MCP-native + write tools".
+>   Lead with **draft-first governance + cross-platform unification + multilingual**.
+> - **[specs/DRAFT_EXECUTION_SPEC.md](specs/DRAFT_EXECUTION_SPEC.md)** — concrete
+>   plan for the #1 blocker below (real Meta/Google write path behind a flag).
+>
+> Two punch-list items shipped in that pass: the **creative-fatigue detail view**
+> is now wired to `GET /api/v2/ads/:id/creative-performance`, and an **i18n parity
+> CI guard** locks the 10-locale translation set from regressing.
+> The remaining true blocker is **P0-A: real draft execution** (see below — it is
+> the renumbered successor to the implicit gap behind P0-1/P0-5).
+
 This document is the single source of truth for what is actually done, what is
 genuinely broken, and the prioritized path to a shippable v1. Every item has a
 status, an owner-area, a test gate, and acceptance criteria.

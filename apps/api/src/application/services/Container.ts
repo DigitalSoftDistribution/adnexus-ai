@@ -237,6 +237,13 @@ export interface ContainerConfig {
   platformSyncService?: IPlatformSyncService;
   /** Optional ad-platform write service for pause/resume (e.g. Meta). */
   platformWriteService?: IPlatformWriteService;
+  /**
+   * Gates real draft execution per workspace. Returns false (or is absent) →
+   * draft execution stays in the safe v1-pilot "review only" mode.
+   */
+  isPlatformExecutionEnabled?: (workspaceId: string) => boolean | Promise<boolean>;
+  /** Ms before a stuck `executing` draft becomes retryable (default 10min). */
+  platformExecutionStaleMs?: number;
   /** Optional preview/dev-only mock traffic seeder. */
   mockTrafficSeeder?: IMockTrafficSeeder;
   /** Optional account-sync deps; required to expose the account sync use-case. */
@@ -456,7 +463,12 @@ export class Container {
       config.auditLogger,
     );
     this.rejectDraft = new RejectDraftUseCase(config.draftRepository);
-    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository, config.auditLogger);
+    this.executeDraft = new ExecuteDraftUseCase(config.draftRepository, config.auditLogger, {
+      campaignRepo: config.campaignRepository,
+      writeService: config.platformWriteService,
+      isExecutionEnabled: config.isPlatformExecutionEnabled,
+      staleExecutingMs: config.platformExecutionStaleMs,
+    });
 
     this.getWorkspace = new GetWorkspaceUseCase(config.workspaceRepository);
 

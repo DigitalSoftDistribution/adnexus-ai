@@ -1,8 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { DraftExecutionDisabledError, ExecuteDraftUseCase } from './ExecuteDraftUseCase';
+import {
+  DraftExecutionDisabledError,
+  DraftExecutionFailedError,
+  ExecuteDraftUseCase,
+  type DraftExecutionDeps,
+} from './ExecuteDraftUseCase';
 import type { IDraftRepository } from '../../../domain/repositories/IDraftRepository';
+import type { ICampaignRepository } from '../../../domain/repositories/ICampaignRepository';
 import type { IAuditLogger } from '../../ports/IAuditLogger';
+import type { IPlatformWriteService, PlatformWriteResult } from '../../ports/IPlatformWriteService';
 import type { Draft } from '../../../domain/entities/Draft';
+import type { Campaign } from '../../../domain/entities/Campaign';
 
 const makeDraft = (overrides: Partial<Draft> = {}): Draft =>
   ({
@@ -41,6 +49,7 @@ const makeRepo = (overrides: Partial<IDraftRepository> = {}): IDraftRepository =
     getStats: vi.fn(),
     create: vi.fn(),
     updateStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executed' })),
+    claimStatus: vi.fn().mockResolvedValue(makeDraft({ status: 'executing' })),
     approve: vi.fn(),
     reject: vi.fn(),
     delete: vi.fn(),
@@ -145,5 +154,323 @@ describe('ExecuteDraftUseCase', () => {
     expect(result.success).toBe(false);
     if (!result.success) expect((result.error as unknown as { statusCode: number }).statusCode).toBe(404);
     expect(repo.updateStatus).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Real execution path (flag-gated) ────────────────────────────────────────
+
+const makeCampaign = (overrides: Partial<Campaign> = {}): Campaign =>
+  ({
+    id: 'camp-1',
+    workspaceId: 'ws-1',
+    adAccountId: 'acct-1',
+    platform: 'meta',
+    platformCampaignId: 'pcid-1',
+    name: 'Spring Sale',
+    status: 'active',
+    ...overrides,
+  }) as Campaign;
+
+const makeWriteService = (
+  overrides: Partial<IPlatformWriteService> = {},
+): IPlatformWriteService => ({
+  supports: (p) => p === 'meta',
+  pauseCampaign: vi.fn().mockResolvedValue({ applied: true } as PlatformWriteResult),
+  resumeCampaign: vi.fn().mockResolvedValue({ applied: true } as PlatformWriteResult),
+  ...overrides,
+});
+
+const makeCampaignRepo = (campaign: Campaign | null = makeCampaign()): ICampaignRepository =>
+  ({
+    findByIdAndWorkspace: vi.fn().mockResolvedValue(campaign),
+  }) as unknown as ICampaignRepository;
+
+const makeExecDeps = (overrides: Partial<DraftExecutionDeps> = {}): DraftExecutionDeps => ({
+  writeService: makeWriteService(),
+  campaignRepo: makeCampaignRepo(),
+  isExecutionEnabled: () => true,
+  ...overrides,
+});
+
+const statusDraft = (overrides: Partial<Draft> = {}): Draft =>
+  makeDraft({
+    draftType: 'status_change',
+    changeSummary: 'Pause Spring Sale',
+    changeDetail: { new_status: 'PAUSED', platform_campaign_id: 'pcid-1' },
+    ...overrides,
+  });
+
+describe('ExecuteDraftUseCase — real execution', () => {
+  it('applies a pause to the platform and marks the draft executed', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()) });
+    const audit = makeAudit();
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(true);
+    expect(deps.writeService!.pauseCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ platform: 'meta', platformCampaignId: 'pcid-1', adAccountId: 'acct-1' }),
+    );
+    // Claim (approved → executing) must happen atomically before the write,
+    // then finalize executing → executed after the write succeeds.
+    expect(repo.claimStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'approved',
+      'executing',
+      expect.objectContaining({
+        execution: expect.objectContaining({ status: 'executing', action: 'pause' }),
+      }),
+    );
+    expect(repo.updateStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'executed',
+      expect.objectContaining({
+        execution: expect.objectContaining({ platformApplied: true, action: 'pause' }),
+      }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'draft_executed' }),
+    );
+  });
+
+  it('resolves a resume action from an ACTIVE target', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValue(statusDraft({ changeDetail: { new_status: 'ACTIVE' } })),
+    });
+    const deps = makeExecDeps({ campaignRepo: makeCampaignRepo(makeCampaign({ status: 'paused' })) });
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(true);
+    expect(deps.writeService!.resumeCampaign).toHaveBeenCalled();
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('marks the draft failed and returns 502 when the platform rejects the write', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()) });
+    const audit = makeAudit();
+    const deps = makeExecDeps({
+      writeService: makeWriteService({
+        pauseCampaign: vi
+          .fn()
+          .mockResolvedValue({ applied: false, reason: 'platform_error', message: 'rate limited' }),
+      }),
+    });
+    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(DraftExecutionFailedError);
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(502);
+    }
+    expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'failed', expect.any(Object));
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'draft_execution_failed' }),
+    );
+  });
+
+  it('returns an idempotent success without a second write when the winner already executed', async () => {
+    // claimStatus returns null → another execute won; the draft is already executed.
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft()) // initial load (approved)
+        .mockResolvedValueOnce(makeDraft({ status: 'executed' })), // post-claim re-read
+      claimStatus: vi.fn().mockResolvedValue(null),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(true); // a real success: the winner already finished
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+    expect(deps.writeService!.resumeCampaign).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 (in progress, no false success) when the winner is still executing', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft())
+        .mockResolvedValueOnce(makeDraft({ status: 'executing' })),
+      claimStatus: vi.fn().mockResolvedValue(null),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
+    }
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when the claim is lost and the draft is not in an executing/executed state', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(statusDraft())
+        .mockResolvedValueOnce(makeDraft({ status: 'rejected' })),
+      claimStatus: vi.fn().mockResolvedValue(null),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
+    }
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 (in progress) for a fresh executing draft, without recovering or writing', async () => {
+    const freshExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date().toISOString() }, // just started
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(freshExecuting) });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect((result.error as unknown as { statusCode: number }).statusCode).toBe(409);
+      expect(result.error.name).toBe('ConflictError');
+    }
+    expect(repo.claimStatus).not.toHaveBeenCalled();
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('recovers a stuck (stale) executing draft by re-leasing and re-driving the write', async () => {
+    const staleExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date(Date.now() - 30 * 60_000).toISOString() }, // 30m ago
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(staleExecuting) });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(true);
+    // Recovery re-leases executing → executing (not approved → executing).
+    expect(repo.claimStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'executing',
+      'executing',
+      expect.objectContaining({
+        execution: expect.objectContaining({ recoveredFrom: 'stale_executing' }),
+      }),
+    );
+    expect(deps.writeService!.pauseCampaign).toHaveBeenCalled();
+    expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'executed', expect.any(Object));
+  });
+
+  it('resolves a stale executing draft to failed when execution is disabled (no wedge)', async () => {
+    const staleExecuting = makeDraft({
+      status: 'executing',
+      draftType: 'status_change',
+      changeDetail: {
+        new_status: 'PAUSED',
+        platform_campaign_id: 'pcid-1',
+        execution: { startedAt: new Date(Date.now() - 30 * 60_000).toISOString() },
+      },
+    });
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(staleExecuting) });
+    const audit = makeAudit();
+    const deps = makeExecDeps({ isExecutionEnabled: () => false });
+    const useCase = new ExecuteDraftUseCase(repo, audit, deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBeInstanceOf(DraftExecutionFailedError);
+    expect(repo.updateStatus).toHaveBeenCalledWith(
+      'draft-1',
+      'failed',
+      expect.objectContaining({
+        execution: expect.objectContaining({
+          reason: 'stale_execution_unrecoverable',
+          needsReconciliation: true,
+        }),
+      }),
+    );
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCategory: 'draft_execution_failed' }),
+    );
+  });
+
+  it('stays in disabled mode when the workspace flag is off', async () => {
+    const repo = makeRepo({ findByIdAndWorkspace: vi.fn().mockResolvedValue(statusDraft()) });
+    const deps = makeExecDeps({ isExecutionEnabled: () => false });
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBeInstanceOf(DraftExecutionDisabledError);
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+    expect(repo.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('falls through to disabled for non-executable draft types (e.g. budget)', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValue(statusDraft({ draftType: 'budget_adjustment' })),
+    });
+    const deps = makeExecDeps();
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBeInstanceOf(DraftExecutionDisabledError);
+    expect(deps.writeService!.pauseCampaign).not.toHaveBeenCalled();
+  });
+
+  it('fails safe when the campaign has no resolvable platform id', async () => {
+    const repo = makeRepo({
+      findByIdAndWorkspace: vi
+        .fn()
+        .mockResolvedValue(statusDraft({ changeDetail: { new_status: 'PAUSED' } })),
+    });
+    const deps = makeExecDeps({
+      campaignRepo: makeCampaignRepo(makeCampaign({ platformCampaignId: null })),
+    });
+    const useCase = new ExecuteDraftUseCase(repo, makeAudit(), deps);
+
+    const result = await useCase.execute(baseInput);
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBeInstanceOf(DraftExecutionFailedError);
+    expect(repo.updateStatus).toHaveBeenCalledWith('draft-1', 'failed', expect.any(Object));
   });
 });

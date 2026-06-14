@@ -22,6 +22,7 @@ export interface DraftStats {
   total: number;
   pending: number;
   approved: number;
+  executing: number;
   rejected: number;
   executed: number;
   failed: number;
@@ -35,6 +36,18 @@ export interface IDraftRepository {
   getStats(workspaceId: string): Promise<DraftStats>;
   create(draft: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft>;
   updateStatus(id: string, status: DraftStatus, metadata?: Record<string, unknown>): Promise<Draft | null>;
+  /**
+   * Atomically transition a draft only if it is currently in `fromStatus`.
+   * Returns the updated row, or null if the draft was not in `fromStatus`
+   * (a concurrent caller already moved it). Used to claim a draft for execution
+   * so two concurrent executes cannot both write to the ad platform.
+   */
+  claimStatus(
+    id: string,
+    fromStatus: DraftStatus,
+    toStatus: DraftStatus,
+    metadata?: Record<string, unknown>,
+  ): Promise<Draft | null>;
   approve(id: string, approvedBy: string): Promise<Draft | null>;
   reject(id: string, rejectedBy: string, reason?: string): Promise<Draft | null>;
   delete(id: string): Promise<boolean>;

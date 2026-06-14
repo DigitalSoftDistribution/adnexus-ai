@@ -85,6 +85,7 @@ export class DraftRepository implements IDraftRepository {
         COUNT(*)::int as total,
         COUNT(*) FILTER (WHERE status = 'pending')::int as pending,
         COUNT(*) FILTER (WHERE status = 'approved')::int as approved,
+        COUNT(*) FILTER (WHERE status = 'executing')::int as executing,
         COUNT(*) FILTER (WHERE status = 'rejected')::int as rejected,
         COUNT(*) FILTER (WHERE status = 'executed')::int as executed,
         COUNT(*) FILTER (WHERE status = 'failed')::int as failed,
@@ -92,7 +93,7 @@ export class DraftRepository implements IDraftRepository {
       FROM drafts WHERE workspace_id = $1`,
       [workspaceId],
     );
-    return rows[0] ?? { total: 0, pending: 0, approved: 0, rejected: 0, executed: 0, failed: 0, rolledBack: 0 };
+    return rows[0] ?? { total: 0, pending: 0, approved: 0, executing: 0, rejected: 0, executed: 0, failed: 0, rolledBack: 0 };
   }
 
   async create(draft: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> {
@@ -126,6 +127,27 @@ export class DraftRepository implements IDraftRepository {
       `UPDATE drafts SET status = $2${setExtra}${metadata ? ', change_detail = change_detail || $3::jsonb' : ''}
        WHERE id = $1 RETURNING *`,
       metadata ? [id, status, JSON.stringify(metadata)] : [id, status],
+    );
+    return rows[0] ? this.mapRow(rows[0]) : null;
+  }
+
+  async claimStatus(
+    id: string,
+    fromStatus: DraftStatus,
+    toStatus: DraftStatus,
+    metadata?: Record<string, unknown>,
+  ): Promise<Draft | null> {
+    const setExtra = toStatus === 'executed'
+      ? ', executed_at = NOW(), resolved_at = NOW()'
+      : (toStatus === 'rejected' || toStatus === 'rolled_back' || toStatus === 'failed')
+        ? ', resolved_at = NOW()'
+        : '';
+    // The `AND status = $3` makes this a compare-and-set: only one concurrent
+    // caller can move the row out of `fromStatus`; the loser gets zero rows.
+    const { rows } = await query<Record<string, unknown>>(
+      `UPDATE drafts SET status = $2${setExtra}${metadata ? ', change_detail = change_detail || $4::jsonb' : ''}
+       WHERE id = $1 AND status = $3 RETURNING *`,
+      metadata ? [id, toStatus, fromStatus, JSON.stringify(metadata)] : [id, toStatus, fromStatus],
     );
     return rows[0] ? this.mapRow(rows[0]) : null;
   }
