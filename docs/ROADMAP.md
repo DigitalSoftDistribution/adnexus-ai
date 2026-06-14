@@ -39,9 +39,10 @@ The last code ship-blocker:
 
 | Item | Status | Owner-area | Notes |
 |---|---|---|---|
-| **Email verification on signup** (P0-C) | 📋 spec'd | auth | `specs/EMAIL_VERIFICATION_SPEC.md`. Build flag-gated; verify Supabase/email on preview. |
+| **Email verification on signup** (P0-C) | 🟡 implemented | auth | `specs/EMAIL_VERIFICATION_SPEC.md`. API/UI gate landed; verify live Supabase/email delivery on preview. |
 | Billing e2e (P0-E) | test gap | billing | Stripe-fixture e2e for upgrade→webhook→credits. |
 | v1 launch smoke green | recurring | release | `pnpm smoke:v1` against preview before go/no-go. |
+| Morning Brief dashboard surface (T2) | 🟡 implemented | dashboard/worker | Latest in-app morning brief now appears on `/dashboard`; preview verification required. |
 
 **Launch gate:** P0-C shipped + smoke green. Then flip draft execution on for 1–2
 design-partner workspaces and watch audit/error rates.

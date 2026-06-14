@@ -501,30 +501,37 @@ export class MorningBriefWorker {
   /**
    * Step 9b: Create in-app notification for the morning brief.
    */
-  async createInAppNotification(userId: string, data: FullMorningBriefData): Promise<void> {
-    logger.debug({ userId }, '[MorningBrief] Creating in-app notification');
+  async createInAppNotification(userId: string, workspaceId: string, data: FullMorningBriefData): Promise<void> {
+    logger.debug({ userId, workspaceId }, '[MorningBrief] Creating in-app notification');
 
     try {
       const notification: CreateNotificationInput = {
-        workspaceId: data.workspaceName, // Will be resolved to actual workspaceId
+        workspaceId,
         userId,
-        type: 'draft_pending', // Using closest available type; consider adding 'morning_brief' to NotificationType
+        type: 'morning_brief',
         title: `Daily Brief — ${data.date}`,
         message: `Spend: $${data.kpis.spend.value.toLocaleString()} · ROAS: ${data.kpis.roas.value}x · ${data.aiRecommendations.length} AI recommendations · ${data.anomalies.length} alerts`,
         data: {
+          date: data.date,
           workspaceName: data.workspaceName,
           kpis: data.kpis,
+          executiveSummary: data.executiveSummary,
+          topWinners: data.topWinners.slice(0, 3),
+          topLosers: data.topLosers.slice(0, 3),
+          recommendations: data.aiRecommendations.slice(0, 3),
+          anomalies: data.anomalies.slice(0, 3),
+          budgetPacing: data.budgetPacing.slice(0, 3),
+          creativeFatigue: data.creativeFatigue.slice(0, 3),
           recommendationCount: data.aiRecommendations.length,
           anomalyCount: data.anomalies.length,
           fatigueAlertCount: data.creativeFatigue.length,
           budgetAlertCount: data.budgetPacing.filter((b) => b.status === 'warning' || b.status === 'critical').length,
           draftCount: data.draftsPending.length,
-          type: 'morning_brief',
         },
       };
 
       await createNotification(notification);
-      logger.debug({ userId }, '[MorningBrief] In-app notification created');
+      logger.debug({ userId, workspaceId }, '[MorningBrief] In-app notification created');
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error({ error: err.message, userId }, '[MorningBrief] In-app notification failed');
@@ -689,7 +696,7 @@ export class MorningBriefWorker {
       await job.updateProgress(70);
 
       // ── Step 9b: In-app notification ──
-      await this.createInAppNotification(userId, brief);
+      await this.createInAppNotification(userId, workspaceId, brief);
       await job.updateProgress(80);
 
       // ── Step 10: Slack publish ──

@@ -13,6 +13,7 @@ export type NotificationType =
   | 'budget_alert'
   | 'team_invite'
   | 'welcome'
+  | 'morning_brief'
   | 'system';
 
 export interface Notification {
@@ -22,9 +23,10 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  data: Record<string, unknown>;
-  status: 'unread' | 'read';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  read: boolean;
   read_at: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -123,8 +125,9 @@ export async function createNotification(input: CreateNotificationInput): Promis
       type: input.type,
       title: input.title,
       message: input.message,
-      data: input.data ?? {},
-      status: 'unread',
+      priority: 'medium',
+      read: false,
+      metadata: input.data ?? {},
     })
     .select()
     .single();
@@ -155,9 +158,9 @@ export async function listNotifications(
     .order('created_at', { ascending: false });
 
   if (statusFilter === 'read') {
-    query = query.eq('status', 'read');
+    query = query.eq('read', true);
   } else if (statusFilter === 'unread') {
-    query = query.eq('status', 'unread');
+    query = query.eq('read', false);
   }
 
   if (options?.type) {
@@ -186,7 +189,7 @@ export async function getUnreadCount(workspaceId: string, userId: string): Promi
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId)
-    .eq('status', 'unread')
+    .eq('read', false)
     .or(`user_id.eq.${userId},user_id.is.null`);
 
   if (error) {
@@ -217,7 +220,7 @@ export async function markAsRead(notificationId: string, userId: string): Promis
   const { data, error } = await supabase
     .from('notifications')
     .update({
-      status: 'read',
+      read: true,
       read_at: new Date().toISOString(),
     })
     .eq('id', notificationId)
@@ -242,11 +245,11 @@ export async function markAllAsRead(
   const { error, count } = await supabase
     .from('notifications')
     .update({
-      status: 'read',
+      read: true,
       read_at: new Date().toISOString(),
     })
     .eq('workspace_id', workspaceId)
-    .eq('status', 'unread')
+    .eq('read', false)
     .or(`user_id.eq.${userId},user_id.is.null`);
 
   if (error) {
@@ -387,17 +390,16 @@ export async function broadcastToWorkspace(
     return; // No members to notify
   }
 
-  // Create a broadcast notification (user_id = null) instead of per-user rows
-  // Individual users track read status via a separate mechanism or client-side
-  // For simplicity, we create one broadcast notification
+  // Create a broadcast notification (user_id = null) instead of per-user rows.
   const { error } = await supabase.from('notifications').insert({
     workspace_id: workspaceId,
     user_id: null,
     type: notification.type,
     title: notification.title,
     message: notification.message,
-    data: notification.data ?? {},
-    status: 'unread',
+    priority: 'medium',
+    read: false,
+    metadata: notification.data ?? {},
   });
 
   if (error) {

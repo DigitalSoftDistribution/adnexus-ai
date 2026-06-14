@@ -130,6 +130,23 @@ interface Recommendation {
   expiresAt: string | null;
 }
 
+interface MorningBriefKpis {
+  spend?: { value?: number; change?: number };
+  roas?: { value?: number; change?: number };
+  conversions?: { value?: number; change?: number };
+  cpa?: { value?: number; change?: number };
+}
+
+interface MorningBriefNotificationMetadata {
+  date?: string;
+  workspaceName?: string;
+  kpis?: MorningBriefKpis;
+  executiveSummary?: string[];
+  recommendationCount?: number;
+  anomalyCount?: number;
+  draftCount?: number;
+}
+
 interface NotificationItem {
   id: string;
   type: string;
@@ -137,6 +154,7 @@ interface NotificationItem {
   message: string;
   priority: "low" | "medium" | "high" | "critical";
   read: boolean;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -337,6 +355,9 @@ export function DashboardContent() {
   const unreadNotifications = (notifications.data?.notifications ?? []).filter(
     (n) => !n.read,
   );
+  const latestMorningBrief = (notifications.data?.notifications ?? []).find(
+    (n) => n.type === "morning_brief",
+  );
   const alertsQueueCount = activeAlerts.length + unreadNotifications.length;
   const pendingRecs = (recommendations.data ?? []).filter(
     (r) => r.status === "pending",
@@ -534,6 +555,7 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
+        <MorningBriefCard notification={latestMorningBrief} />
         <DataFreshnessCard
           integrations={integrations ?? []}
           loading={integrationsLoading}
@@ -541,7 +563,7 @@ export function DashboardContent() {
         />
         {chartData.length > 0 ? (
           <ChartCard
-            className="lg:col-span-2"
+            className="lg:col-span-1"
             title={t("performanceOverview")}
             description={t("performanceDescription")}
             type="area"
@@ -866,6 +888,133 @@ function QueueItem({
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{meta}</p>
     </div>
   );
+}
+
+function MorningBriefCard({ notification }: { notification: NotificationItem | undefined }) {
+  const t = useTranslations("dashboard");
+  const metadata = asMorningBriefMetadata(notification?.metadata);
+  const summaryLines = metadata.executiveSummary ?? [];
+  const spend = metadata.kpis?.spend?.value;
+  const roas = metadata.kpis?.roas?.value;
+
+  return (
+    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-primary" />
+              {t("morningBriefTitle")}
+            </CardTitle>
+            <CardDescription>{t("morningBriefDescription")}</CardDescription>
+          </div>
+          {notification ? (
+            <Badge variant="teal">{metadata.date ?? formatShortDate(notification.createdAt)}</Badge>
+          ) : (
+            <Badge variant="outline">{t("morningBriefEmptyBadge")}</Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {notification ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <CommandMetric
+                icon={<DollarSign className="h-4 w-4" />}
+                label={t("morningBriefSpend")}
+                value={spend === undefined ? "—" : formatCurrency(spend)}
+                detail={t("morningBriefSpendDetail")}
+              />
+              <CommandMetric
+                icon={<Target className="h-4 w-4" />}
+                label={t("morningBriefRoas")}
+                value={roas === undefined ? "—" : `${roas.toFixed(2)}x`}
+                detail={t("morningBriefRoasDetail")}
+              />
+            </div>
+            <div className="rounded-xl border bg-background/70 p-4">
+              <p className="text-sm font-medium">{notification.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+              {summaryLines.length > 0 && (
+                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  {summaryLines.slice(0, 3).map((line, index) => (
+                    <li key={`${notification.id}-${index}`} className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="grid gap-2 text-sm sm:grid-cols-3">
+              <BriefCount label={t("morningBriefRecommendations")} value={metadata.recommendationCount ?? 0} />
+              <BriefCount label={t("morningBriefAlerts")} value={metadata.anomalyCount ?? 0} />
+              <BriefCount label={t("morningBriefDrafts")} value={metadata.draftCount ?? 0} />
+            </div>
+          </>
+        ) : (
+          <EmptyState
+            icon={<Lightbulb className="h-10 w-10" />}
+            title={t("morningBriefEmptyTitle")}
+            description={t("morningBriefEmptyDescription")}
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/settings">{t("morningBriefSettingsCta")}</Link>
+              </Button>
+            }
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BriefCount({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border bg-background/70 p-3">
+      <p className="text-xl font-semibold">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function asMorningBriefMetadata(metadata: Record<string, unknown> | null | undefined): MorningBriefNotificationMetadata {
+  if (!metadata) return {};
+  return {
+    date: typeof metadata.date === "string" ? metadata.date : undefined,
+    workspaceName: typeof metadata.workspaceName === "string" ? metadata.workspaceName : undefined,
+    kpis: asMorningBriefKpis(metadata.kpis),
+    executiveSummary: Array.isArray(metadata.executiveSummary)
+      ? metadata.executiveSummary.filter((item): item is string => typeof item === "string")
+      : undefined,
+    recommendationCount: asNumber(metadata.recommendationCount),
+    anomalyCount: asNumber(metadata.anomalyCount),
+    draftCount: asNumber(metadata.draftCount),
+  };
+}
+
+function asMorningBriefKpis(value: unknown): MorningBriefKpis | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Record<string, unknown>;
+  return {
+    spend: asKpiValue(source.spend),
+    roas: asKpiValue(source.roas),
+    conversions: asKpiValue(source.conversions),
+    cpa: asKpiValue(source.cpa),
+  };
+}
+
+function asKpiValue(value: unknown): { value?: number; change?: number } | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Record<string, unknown>;
+  return {
+    value: asNumber(source.value),
+    change: asNumber(source.change),
+  };
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function DataFreshnessCard({

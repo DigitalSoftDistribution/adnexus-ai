@@ -288,7 +288,20 @@
     "fresh": "Fresh",
     "stale": "Stale",
     "connectForFreshness": "Connect and sync an ad account to unlock freshness checks.",
-    "reviewIntegrations": "Review integrations"
+    "reviewIntegrations": "Review integrations",
+    "morningBriefTitle": "Morning Brief",
+    "morningBriefDescription": "The latest AI-generated operating brief for this workspace.",
+    "morningBriefEmptyBadge": "Not generated",
+    "morningBriefSpend": "Spend",
+    "morningBriefSpendDetail": "Brief window",
+    "morningBriefRoas": "ROAS",
+    "morningBriefRoasDetail": "Blended result",
+    "morningBriefRecommendations": "Recommendations",
+    "morningBriefAlerts": "Alerts",
+    "morningBriefDrafts": "Drafts",
+    "morningBriefEmptyTitle": "No in-app brief yet",
+    "morningBriefEmptyDescription": "When the morning brief worker runs, the latest digest will appear here in addition to email.",
+    "morningBriefSettingsCta": "Check notification settings"
   },
   "campaigns": {
     "title": "Campagne",

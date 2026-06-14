@@ -21,8 +21,8 @@ export class MarkNotificationReadUseCase {
       return ok(false);
     }
 
-    // Ensure user can only mark their own notifications
-    if (notification.userId !== input.userId || notification.workspaceId !== input.workspaceId) {
+    // Users may mark direct notifications and workspace broadcasts as read.
+    if (notification.workspaceId !== input.workspaceId || (notification.userId !== null && notification.userId !== input.userId)) {
       return err(new ForbiddenError('Cannot modify this notification'));
     }
 
