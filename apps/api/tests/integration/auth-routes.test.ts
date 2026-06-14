@@ -21,6 +21,22 @@ const refreshTokenService = jest.requireMock('../../src/services/refresh-token-s
   TokenReuseDetectedError: typeof import('../../src/services/refresh-token-service').TokenReuseDetectedError;
 };
 
+jest.mock('../../src/services/email', () => ({
+  emailService: {
+    sendPasswordReset: jest.fn(),
+    sendEmailVerification: jest.fn(),
+    sendTeamInvite: jest.fn(),
+  },
+}));
+
+const mockEmailService = (jest.requireMock('../../src/services/email') as {
+  emailService: {
+    sendPasswordReset: jest.Mock;
+    sendEmailVerification: jest.Mock;
+    sendTeamInvite: jest.Mock;
+  };
+}).emailService;
+
 // ─── Mock Supabase ───────────────────────────────────────────────
 
 // NOTE: jest.mock() is hoisted above these declarations, so the factory may not
@@ -45,14 +61,16 @@ jest.mock('../../src/lib/supabase', () => {
       deleteUser: jest.fn(),
       updateUserById: jest.fn(),
       getUserById: jest.fn(),
+      generateLink: jest.fn(),
     },
     signInWithPassword: jest.fn(),
+    verifyOtp: jest.fn(),
     signUp: jest.fn(),
     resetPasswordForEmail: jest.fn(),
     getUser: jest.fn(),
     signOut: jest.fn(),
   };
-  return { supabase: { from, auth } };
+  return { supabase: { from, auth }, supabaseAuthAdmin: { auth } };
 });
 
 // Retrieve the same mock instances the route module will use.
@@ -74,12 +92,17 @@ function resetAuthMock() {
   mockAuth.admin.deleteUser.mockResolvedValue({ data: null, error: null });
   mockAuth.admin.updateUserById.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
   mockAuth.admin.getUserById.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
+  mockAuth.admin.generateLink.mockResolvedValue({
+    data: { properties: { hashed_token: 'verification-token' } },
+    error: null,
+  });
   mockAuth.signInWithPassword.mockResolvedValue({
     data: { user: { id: UUIDS.owner, email: mockUsers.owner.email } },
     error: null,
   });
   mockAuth.signUp.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
   mockAuth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+  mockAuth.verifyOtp.mockResolvedValue({ data: { user: { id: UUIDS.owner } }, error: null });
   mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
   mockAuth.signOut.mockResolvedValue({ error: null });
 }
@@ -131,9 +154,12 @@ describe('POST /api/v1/auth/signup', () => {
     jest.clearAllMocks();
     resetAuthMock();
     mockFrom.mockImplementation(defaultFromImpl);
+    mockEmailService.sendEmailVerification.mockResolvedValue(undefined);
+    mockEmailService.sendPasswordReset.mockResolvedValue(undefined);
+    mockEmailService.sendTeamInvite.mockResolvedValue(undefined);
   });
 
-  it('should create a new user with workspace', async () => {
+  it('should create a new user with workspace and send verification email', async () => {
     // Arrange
     mockFrom.mockImplementation((table: string) => {
       if (table === 'users') {
@@ -197,6 +223,14 @@ describe('POST /api/v1/auth/signup', () => {
     expect(response.body.data).toBeDefined();
     expect(response.body.data.token).toBeDefined();
     expect(response.body.data.user).toBeDefined();
+    expect(mockAuth.admin.generateLink).toHaveBeenCalledWith({
+      type: 'magiclink',
+      email: mockUsers.owner.email,
+    });
+    expect(mockEmailService.sendEmailVerification).toHaveBeenCalledWith(
+      mockUsers.owner.email,
+      'verification-token',
+    );
   });
 
   it('should reject signup with invalid email', async () => {
@@ -401,6 +435,53 @@ describe('POST /api/v1/auth/signin', () => {
     // Assert
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
+  });
+});
+
+describe('POST /api/v1/auth/verify-email', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetAuthMock();
+    mockFrom.mockImplementation(defaultFromImpl);
+  });
+
+  it('should verify a valid email token', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'users') {
+        const builder = defaultBuilder();
+        (builder.single as jest.Mock).mockResolvedValue({
+          data: { id: UUIDS.owner, email_verified: false },
+          error: null,
+        });
+        (builder.update as jest.Mock).mockImplementation(() => ({
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }));
+        return builder;
+      }
+      return defaultBuilder();
+    });
+
+    const response = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token: 'verification-token' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
+      type: 'magiclink',
+      token_hash: 'verification-token',
+    });
+  });
+
+  it('should reject invalid verification tokens', async () => {
+    mockAuth.verifyOtp.mockResolvedValue({ data: { user: null }, error: { message: 'expired' } });
+
+    const response = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token: 'expired-token' });
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe('UNAUTHORIZED');
   });
 });
 

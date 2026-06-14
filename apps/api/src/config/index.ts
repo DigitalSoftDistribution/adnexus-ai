@@ -33,6 +33,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
+  REQUIRE_EMAIL_VERIFICATION: z.string().default('true'),
 
   // Redis
   REDIS_URL: z.string().url().optional(),
@@ -196,6 +197,7 @@ export const config = {
     secret: env.JWT_SECRET,
     accessExpiry: env.JWT_ACCESS_EXPIRY,
     refreshExpiry: env.JWT_REFRESH_EXPIRY,
+    requireEmailVerification: env.REQUIRE_EMAIL_VERIFICATION !== 'false',
     // Legacy aliases for backward compatibility during migration
     get expiresIn() { return this.accessExpiry; },
     get refreshExpiresIn() { return this.refreshExpiry; },

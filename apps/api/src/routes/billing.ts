@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, requireWorkspace } from "../middleware/auth";
+import { requireAuth, requireVerifiedEmail, requireWorkspace } from "../middleware/auth";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -170,6 +170,7 @@ router.post(
   "/checkout",
   requireAuth,
   requireWorkspace,
+  requireVerifiedEmail,
   requireStripeConfig,
   async (req, res, next) => {
     try {
@@ -239,6 +240,7 @@ router.post(
   "/portal",
   requireAuth,
   requireWorkspace,
+  requireVerifiedEmail,
   requireStripeConfig,
   async (req, res, next) => {
     try {

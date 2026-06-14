@@ -176,7 +176,19 @@
     "acceptInviteSuccessTitle": "Welcome to the team",
     "acceptInviteSuccessDescription": "Your account is ready. Sign in to open the dashboard.",
     "invalidInviteTokenTitle": "Invalid or expired invitation",
-    "invalidInviteTokenDescription": "This invitation link is invalid or has expired. Ask your workspace admin to send a new invite."
+    "invalidInviteTokenDescription": "This invitation link is invalid or has expired. Ask your workspace admin to send a new invite.",
+    "verifyEmail": "Verify Email",
+    "verifyEmailTitle": "Verify your email",
+    "verifyEmailDescription": "Click below to confirm your email address.",
+    "verifyEmailMissingTokenDescription": "Enter your email address and we'll send a fresh verification link.",
+    "verifyEmailSignupDescription": "We sent a verification link to {email}. You can keep exploring now, but billing and platform connections require verification.",
+    "verifyEmailSuccessTitle": "Email verified",
+    "verifyEmailSuccessDescription": "Your email has been verified. You can now connect ad platforms and manage billing.",
+    "verifyEmailFailed": "Email verification failed. Please request a new link.",
+    "resendVerificationEmail": "Resend verification email",
+    "resendVerificationFailed": "Could not send the verification email. Please try again.",
+    "resendVerificationSuccess": "If that account exists and is unverified, we've sent a verification email.",
+    "continueToOnboarding": "Continue to onboarding"
   },
   "dashboard": {
     "title": "Panel",

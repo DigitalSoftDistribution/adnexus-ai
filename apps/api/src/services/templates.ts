@@ -650,6 +650,42 @@ export function passwordResetTemplate(token: string, appUrl: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION TEMPLATE
+// ─────────────────────────────────────────────────────────────────────────────
+export function emailVerificationTemplate(token: string, appUrl: string): string {
+  const verifyUrl = `${appUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
+
+  const content = `
+    <div style="padding: 32px 40px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <div style="font-size: 48px; margin-bottom: 8px;">✅</div>
+        <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: ${colors.gray900};">Verify your email</h1>
+        <p style="margin: 0; font-size: 14px; color: ${colors.gray500};">Confirm this address to unlock billing and ad-account connections.</p>
+      </div>
+
+      <div style="padding: 24px; background-color: ${colors.gray50}; border-radius: 10px; margin-bottom: 24px; text-align: center;">
+        <p style="margin: 0 0 20px; font-size: 14px; color: ${colors.gray600}; line-height: 1.5;">
+          You can keep exploring AdNexus AI now. Before you connect ad platforms or start a paid plan, verify your email with the button below.
+        </p>
+        ${button('Verify Email', verifyUrl, 'primary')}
+      </div>
+
+      <div style="padding: 16px; background-color: #EFF6FF; border-radius: 8px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 12px; color: ${colors.info}; text-align: center;">
+          If you didn't create an AdNexus AI account, you can safely ignore this email.
+        </p>
+      </div>
+
+      <div style="text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 12px; color: ${colors.gray400};">Button not working? Copy and paste this link:</p>
+        <p style="margin: 0; font-size: 12px; color: ${colors.primary}; word-break: break-all;">${verifyUrl}</p>
+      </div>
+    </div>`;
+
+  return emailWrapper(content, appUrl);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TEAM INVITE TEMPLATE
 // ─────────────────────────────────────────────────────────────────────────────
 export function teamInviteTemplate(
