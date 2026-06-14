@@ -109,6 +109,18 @@ export interface Messages {
     'unexpectedError': string;
     'emailPlaceholder': string;
     'namePlaceholder': string;
+    'verifyEmail': string;
+    'verifyEmailTitle': string;
+    'verifyEmailDescription': string;
+    'verifyEmailMissingTokenDescription': string;
+    'verifyEmailSignupDescription': string;
+    'verifyEmailSuccessTitle': string;
+    'verifyEmailSuccessDescription': string;
+    'verifyEmailFailed': string;
+    'resendVerificationEmail': string;
+    'resendVerificationFailed': string;
+    'resendVerificationSuccess': string;
+    'continueToOnboarding': string;
   };
   'dashboard': {
     'title': string;

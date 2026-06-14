@@ -33,6 +33,12 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class EmailNotVerifiedError extends AppError {
+  constructor(message = 'Please verify your email before continuing') {
+    super('EMAIL_NOT_VERIFIED', message, 403);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(resource = 'Resource') {
     super('NOT_FOUND', `${resource} not found`, 404);

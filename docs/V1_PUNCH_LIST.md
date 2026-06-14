@@ -84,11 +84,10 @@ nobody burns time on them:
 - **Remaining:** none for v1. (Optional: a fixture test asserting a known-good
   provider signature verifies — nice-to-have, not blocking.)
 
-### P0-E — Billing e2e (plan-upgrade → webhook → credits)
-- **Reality:** code path works; only integration coverage today. This is a
-  **test-coverage** gap, not a code gap.
-- **Effort:** ~2 days with Stripe signature fixtures. **Acceptance:** e2e proves
-  upgrade → webhook → credit grant on the served surface.
+### P0-E — Billing e2e (plan-upgrade → webhook → credits) 🟡 offline harness + v2 gate landed
+- **Reality:** the offline service-boundary e2e exists (`apps/api/tests/e2e/billing-flow.test.ts`) and proves a Stripe `checkout.session.completed` webhook upgrades the workspace, provisions plan credit limits, and resets usage without live Stripe credentials. The web-served v2 billing actions now also enforce the same email-verification gate as v1 billing/OAuth before checkout, upgrade, or portal access.
+- **This pass:** `pnpm smoke:v1` authenticated mode now probes `/api/v2/billing/plans` and `/api/v2/notifications?limit=5`, wiring the launch smoke to the billing-readiness and Morning Brief dashboard surfaces rather than relying on prose checklists.
+- **Remaining:** live Stripe QA still requires a verified QA owner, configured Stripe test price/webhook secret, and the Stripe CLI/dashboard webhook delivery confirmation.
 
 ## P1 — needed right after v1 (the moats)
 
@@ -98,12 +97,16 @@ nobody burns time on them:
 - **Effort:** ~2–3 weeks. **Acceptance:** one dashboard number for blended
   ROAS/CPA/spend across connected platforms, with per-channel drill-down.
 
-### T2 — Surface Morning Brief in the product UI
-- **Reality:** backend worker generates it (`workers/morning-brief.ts`, 5 credits,
-  z-score anomalies) and **emails** it, but there is **no dashboard surface** —
-  one of three marketing-headline AI features is invisible in-app.
-- **Effort:** ~2–3 days (add a read/persist endpoint for the latest brief + a
-  dashboard card/page). **Acceptance:** `/dashboard` shows today's brief.
+### T2 — Surface Morning Brief in the product UI 🟡 core surface landed
+- **Reality (was):** backend worker generated it (`workers/morning-brief.ts`, 5 credits,
+  z-score anomalies) and **emailed** it, but there was no dashboard surface —
+  one of three marketing-headline AI features was invisible in-app.
+- **Done (this pass):** the worker now writes a `morning_brief` in-app notification
+  to the real workspace id, the v2 notification repository returns broadcast/user
+  notifications in dashboard-friendly shape, and `/dashboard` renders the latest
+  brief with KPIs, summary lines, and recommendation/alert/draft counts.
+- **Remaining:** persist full briefs in a dedicated table if history/search is needed;
+  preview-verify the worker notification against live Supabase/Redis.
 
 ### T3 — Creative-fatigue detail view ✅ DONE in this pass
 - **Reality (was):** `/dashboard/creatives` showed fatigue scores but the richer

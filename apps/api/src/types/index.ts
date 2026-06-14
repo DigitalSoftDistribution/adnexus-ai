@@ -19,6 +19,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  email_verified?: boolean;
   avatar_url?: string | null;
   exp?: number;
   created_at: string;
@@ -50,6 +51,7 @@ export interface JWTPayload {
   email: string;
   workspace_id: string;
   role: WorkspaceRole;
+  emailVerified?: boolean;
   iat: number;
   exp: number;
   /** If authenticated via API key, the key's database ID */

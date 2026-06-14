@@ -11,7 +11,7 @@ import { Router, type Request, type Response } from 'express';
 import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
-import { requireAuth, requireAdmin } from '../../middleware/auth';
+import { requireAuth, requireAdmin, requireVerifiedEmail } from '../../middleware/auth';
 import { consumeOAuthStateNonce, createOAuthState, integrationsRedirect, oauthCallbackUrl, requestWorkspaceMatchesAuthenticatedWorkspace, sendOAuthJsonError, userCanManageOAuthWorkspace, verifyOAuthState, wantsJson } from './oauthState';
 import { oauthTokensForDbWrite } from '../../security/oauth-token-crypto';
 
@@ -128,7 +128,7 @@ async function resolveGoogleAccessibleAccounts(accessToken: string): Promise<Goo
  *
  * Redirects the user to Google's OAuth consent page.
  */
-router.get('/connect', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+router.get('/connect', requireAuth, requireAdmin, requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     if (!requestWorkspaceMatchesAuthenticatedWorkspace(req.query.workspace_id, req.workspaceId)) {
       res.status(403).json({ error: 'Workspace mismatch', code: 'FORBIDDEN' });

@@ -33,6 +33,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
+  REQUIRE_EMAIL_VERIFICATION: z.string().default('true'),
 
   // Redis
   REDIS_URL: z.string().url().optional(),
@@ -136,8 +137,14 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
 });
 
-// Parse and validate environment variables
-const parsedEnv = envSchema.safeParse(process.env);
+// Parse and validate environment variables.
+// Accept the Supabase dashboard's conventional service-role variable name as
+// a compatibility alias while keeping SUPABASE_SERVICE_KEY canonical internally.
+const rawEnv = {
+  ...process.env,
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
+const parsedEnv = envSchema.safeParse(rawEnv);
 
 if (!parsedEnv.success) {
   const issues = parsedEnv.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
@@ -196,6 +203,7 @@ export const config = {
     secret: env.JWT_SECRET,
     accessExpiry: env.JWT_ACCESS_EXPIRY,
     refreshExpiry: env.JWT_REFRESH_EXPIRY,
+    requireEmailVerification: env.REQUIRE_EMAIL_VERIFICATION !== 'false',
     // Legacy aliases for backward compatibility during migration
     get expiresIn() { return this.accessExpiry; },
     get refreshExpiresIn() { return this.refreshExpiry; },

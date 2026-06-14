@@ -13,6 +13,7 @@ import {
   onboardingDay3Template,
   onboardingDay7Template,
   passwordResetTemplate,
+  emailVerificationTemplate,
   teamInviteTemplate,
 } from './templates';
 
@@ -73,7 +74,7 @@ export interface WeeklySummaryData {
 }
 
 export interface EmailJobData {
-  type: 'morning_brief' | 'draft_approval' | 'alert' | 'weekly_summary' | 'welcome' | 'onboarding_day3' | 'onboarding_day7' | 'password_reset' | 'team_invite';
+  type: 'morning_brief' | 'draft_approval' | 'alert' | 'weekly_summary' | 'welcome' | 'onboarding_day3' | 'onboarding_day7' | 'password_reset' | 'email_verification' | 'team_invite';
   userId?: string;
   workspaceId?: string;
   draftId?: string;
@@ -728,6 +729,23 @@ export class EmailService {
     );
 
     logger.info(`Queued password reset email for ${email}`);
+  }
+
+  async sendEmailVerification(email: string, token: string): Promise<void> {
+    const frontendUrl = config.frontend.url;
+    const html = emailVerificationTemplate(token, frontendUrl);
+    const verifyUrl = `${frontendUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
+
+    await this.queueEmail(
+      'email_verification',
+      email,
+      'Verify your AdNexus AI email address',
+      html,
+      `Verify your AdNexus AI email address: ${verifyUrl}\n\nIf you did not create an account, you can ignore this email.`,
+      { email },
+    );
+
+    logger.info(`Queued email verification for ${email}`);
   }
 
   /**

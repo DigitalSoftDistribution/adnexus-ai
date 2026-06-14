@@ -14,7 +14,12 @@ import { mockUsers, mockWorkspaces, UUIDS } from '../fixtures/data';
 /**
  * Generate a JWT token for testing with the given user and role.
  */
-export function generateToken(userId: string, role: WorkspaceRole = 'owner', workspaceId?: string): string {
+export function generateToken(
+  userId: string,
+  role: WorkspaceRole = 'owner',
+  workspaceId?: string,
+  emailVerified = true,
+): string {
   const user = Object.values(mockUsers).find(u => u.id === userId) ?? mockUsers.owner;
   const wsId = workspaceId ?? mockWorkspaces.free.id;
 
@@ -24,6 +29,7 @@ export function generateToken(userId: string, role: WorkspaceRole = 'owner', wor
       email: user.email,
       workspace_id: wsId,
       role,
+      emailVerified,
     },
     config.jwt.secret,
     { expiresIn: '7d' }

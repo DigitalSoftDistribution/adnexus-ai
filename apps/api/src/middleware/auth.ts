@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { config } from '../config';
 import { supabase } from '../lib/supabase';
-import { UnauthorizedError, ForbiddenError } from '../lib/errors';
+import { UnauthorizedError, ForbiddenError, EmailNotVerifiedError } from '../lib/errors';
 import type { JWTPayload, WorkspaceRole } from '../types';
 import { expandLegacyScopes } from './scopeCheck';
 
@@ -110,7 +110,7 @@ export async function authenticateToken(req: Request, _res: Response, next: Next
     // Verify user still exists and is active
     const { data: user, error } = await supabase
       .from('users')
-      .select('id')
+      .select('id, email_verified')
       .eq('id', payload.sub)
       .single();
 
@@ -118,7 +118,10 @@ export async function authenticateToken(req: Request, _res: Response, next: Next
       throw new UnauthorizedError('User no longer exists');
     }
 
-    req.user = payload;
+    req.user = {
+      ...payload,
+      emailVerified: Boolean((user as { email_verified?: boolean | null }).email_verified),
+    };
     req.workspaceId = payload.workspace_id;
     next();
   } catch (err) {
@@ -168,6 +171,27 @@ export function requireRole(...allowedRoles: WorkspaceRole[]) {
       next(err);
     }
   };
+}
+
+export function requireVerifiedEmail(req: Request, _res: Response, next: NextFunction) {
+  try {
+    if (!config.jwt.requireEmailVerification || req.user?.apiKeyId) {
+      next();
+      return;
+    }
+
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
+    if (!req.user.emailVerified) {
+      throw new EmailNotVerifiedError();
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
 
 /** Owner or admin only */

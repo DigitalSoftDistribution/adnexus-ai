@@ -5,6 +5,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { config } from '../config';
 import { getModuleLogger } from '../lib/logger';
 
 const logger = getModuleLogger('upload-route');
@@ -75,12 +76,7 @@ const upload = multer({
 // ─── Supabase Client Factory ─────────────────────────────────────
 
 function createSupabaseClient(): SupabaseClient {
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable');
-  }
-  return createClient(url, serviceKey);
+  return createClient(config.supabase.url, config.supabase.serviceKey);
 }
 
 // ─── Helper Functions ────────────────────────────────────────────

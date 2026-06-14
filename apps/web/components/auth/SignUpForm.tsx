@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface FieldErrors {
   name?: string;
@@ -92,6 +92,7 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [verificationEmail, setVerificationEmail] = useState('');
   const touchedRef = useRef<Record<FieldName, boolean>>({
     name: false,
     email: false,
@@ -149,13 +150,41 @@ export function SignUpForm() {
         return;
       }
       localStorage.setItem('adnexus_token', token);
-      window.location.assign(`/${locale}/onboarding`);
+      setVerificationEmail(email.trim());
     } catch {
       setError(t('unexpectedError'));
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (verificationEmail) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">{t('verifyEmailTitle')}</CardTitle>
+          <CardDescription className="text-center">
+            {t('verifyEmailSignupDescription', { email: verificationEmail })}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button className="w-full" onClick={() => window.location.assign(`/${locale}/onboarding`)}>
+            {t('continueToOnboarding')}
+          </Button>
+          <div className="text-center text-sm text-muted-foreground">
+            <Link href="/auth/signin" className="text-primary hover:underline">
+              {t('backToSignIn')}
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md">

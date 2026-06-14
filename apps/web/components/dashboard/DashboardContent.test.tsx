@@ -61,6 +61,18 @@ function mockDashboardFetch(
         json: async () => ({ data: integrationData }),
       });
     }
+    if (url.includes("/api/v2/drafts")) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: { drafts: [] } }) });
+    }
+    if (url.includes("/api/v2/alerts")) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: { alerts: [] } }) });
+    }
+    if (url.includes("/api/v2/agent/recommendations")) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: [] }) });
+    }
+    if (url.includes("/api/v2/notifications")) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: { notifications: [], total: 0, unreadCount: 0 } }) });
+    }
     return Promise.resolve({ ok: false, json: async () => ({}) });
   });
 }
@@ -120,6 +132,68 @@ describe("DashboardContent", () => {
     expect(
       await screen.findByText("Failed to load dashboard"),
     ).toBeInTheDocument();
+  });
+
+  it("surfaces the latest in-app morning brief", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.startsWith("/api/v2/campaigns/summary")) {
+          return Promise.resolve({ ok: true, json: async () => ({ data: summary }) });
+        }
+        if (url.includes("/api/v2/integrations")) {
+          return Promise.resolve({ ok: true, json: async () => ({ data: integrations }) });
+        }
+        if (url.includes("/api/v2/drafts")) {
+          return Promise.resolve({ ok: true, json: async () => ({ data: { drafts: [] } }) });
+        }
+        if (url.includes("/api/v2/alerts")) {
+          return Promise.resolve({ ok: true, json: async () => ({ data: { alerts: [] } }) });
+        }
+        if (url.includes("/api/v2/agent/recommendations")) {
+          return Promise.resolve({ ok: true, json: async () => ({ data: [] }) });
+        }
+        if (url.includes("/api/v2/notifications")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: {
+                notifications: [
+                  {
+                    id: "brief-1",
+                    type: "morning_brief",
+                    title: "Daily Brief — Jun 14, 2026",
+                    message: "Spend: $1,234 · ROAS: 3.4x · 2 AI recommendations · 1 alerts",
+                    priority: "medium",
+                    read: false,
+                    createdAt: "2026-06-14T07:00:00.000Z",
+                    metadata: {
+                      date: "Jun 14, 2026",
+                      kpis: { spend: { value: 1234 }, roas: { value: 3.4 } },
+                      executiveSummary: ["Meta prospecting improved overnight."],
+                      recommendationCount: 2,
+                      anomalyCount: 1,
+                      draftCount: 3,
+                    },
+                  },
+                ],
+                total: 1,
+                unreadCount: 1,
+              },
+            }),
+          });
+        }
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      }),
+    );
+
+    renderWithQuery(<DashboardContent />);
+
+    expect(await screen.findByText("Morning Brief")).toBeInTheDocument();
+    expect(screen.getAllByText("Daily Brief — Jun 14, 2026").length).toBeGreaterThan(0);
+    expect(screen.getByText("Meta prospecting improved overnight.")).toBeInTheDocument();
+    expect(screen.getAllByText("Recommendations").length).toBeGreaterThan(0);
   });
 
   it("shows a guided first-value empty state when there are no campaigns", async () => {

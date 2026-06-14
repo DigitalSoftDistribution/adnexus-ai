@@ -21,6 +21,19 @@ describe('platform base URL config', () => {
     vi.resetModules();
   });
 
+  it('accepts SUPABASE_SERVICE_ROLE_KEY as a compatibility alias', async () => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('SUPABASE_SERVICE_KEY', undefined);
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
+    vi.stubEnv('JWT_SECRET', 'test-jwt-secret-key-with-32-characters');
+
+    const { config } = await import('./index');
+
+    expect(config.supabase.serviceKey).toBe('test-service-role-key');
+  });
+
   it('defaults external platform clients to their production API hosts', async () => {
     const { config } = await loadConfig();
 

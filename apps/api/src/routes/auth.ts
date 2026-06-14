@@ -45,6 +45,14 @@ const resetPasswordRequestSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
+const verifyEmailSchema = z.object({
+  token: z.string().min(1, 'Verification token is required'),
+});
+
+const resendVerificationSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -78,12 +86,37 @@ const acceptInviteSchema = z.object({
  * Sign a short-lived access token for the authenticated user.
  * Contains user identity, workspace, and role claims.
  */
-function signAccessToken(userId: string, email: string, workspaceId: string, role: string): string {
+function signAccessToken(
+  userId: string,
+  email: string,
+  workspaceId: string,
+  role: string,
+  emailVerified = false,
+): string {
   return jwt.sign(
-    { sub: userId, email, workspace_id: workspaceId, role },
+    { sub: userId, email, workspace_id: workspaceId, role, emailVerified },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn as unknown as number },
   );
+}
+
+async function sendVerificationEmail(email: string): Promise<void> {
+  try {
+    const { data: linkData, error } = await supabaseAuthAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+    });
+
+    const tokenHash = linkData?.properties?.hashed_token;
+    if (error || !tokenHash) {
+      logger.warn({ err: error?.message, email }, '[auth] Verification link generation failed');
+      return;
+    }
+
+    await emailService.sendEmailVerification(email, tokenHash);
+  } catch (err) {
+    logger.error({ err, email }, '[auth] Email verification flow failed');
+  }
 }
 
 /**
@@ -236,8 +269,16 @@ router.post(
     });
 
     // ── 7. Generate tokens ──
-    const token = signAccessToken(userRecord.id, userRecord.email, workspace.id, 'owner');
+    const token = signAccessToken(
+      userRecord.id,
+      userRecord.email,
+      workspace.id,
+      'owner',
+      Boolean((userRecord as { email_verified?: boolean | null }).email_verified),
+    );
     const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
+
+    await sendVerificationEmail(userRecord.email);
 
     // ── 8. Log audit event ──
     await supabase.from('audit_log').insert({
@@ -332,6 +373,7 @@ router.post(
       userRecord.email,
       workspace.id,
       membership.role,
+      Boolean((userRecord as { email_verified?: boolean | null }).email_verified),
     );
     const refreshToken = await createAndStoreRefreshToken(userRecord.id, req.ip);
 
@@ -416,6 +458,7 @@ router.post(
       userRecord.email,
       membership.workspace_id,
       membership.role,
+      Boolean((userRecord as { email_verified?: boolean | null }).email_verified),
     );
 
     res.json({
@@ -495,6 +538,7 @@ router.get(
           email: userRecord.email,
           name: userRecord.name,
           role,
+          email_verified: Boolean((userRecord as { email_verified?: boolean | null }).email_verified),
         },
         workspace,
         connectedAccounts: connectedAccounts ?? [],
@@ -523,7 +567,7 @@ router.post(
     if (typeof (req.body as Record<string, unknown> | undefined)?.token === 'string') {
       const body = resetPasswordSchema.parse(req.body);
 
-const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+      const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
         type: 'recovery',
         token_hash: body.token,
       });
@@ -603,6 +647,87 @@ const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
       }
     } catch (err) {
       logger.error({ err }, '[auth] Password reset email flow failed');
+    }
+
+    res.json(genericMessage);
+  }),
+);
+
+router.post(
+  '/verify-email',
+  asyncHandler(async (req, res) => {
+    const body = verifyEmailSchema.parse(req.body);
+
+    const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+      type: 'magiclink',
+      token_hash: body.token,
+    });
+
+    if (verifyError || !verified?.user) {
+      throw new UnauthorizedError('Invalid or expired verification token');
+    }
+
+    const { data: userRecord, error: userError } = await supabase
+      .from('users')
+      .select('id, email_verified')
+      .eq('id', verified.user.id)
+      .single();
+
+    if (userError || !userRecord) {
+      throw new UnauthorizedError('User profile not found');
+    }
+
+    if (!(userRecord as { email_verified?: boolean | null }).email_verified) {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ email_verified: true })
+        .eq('id', verified.user.id);
+
+      if (updateError) {
+        throw new AppError('EMAIL_VERIFICATION_FAILED', 'Failed to verify email', 500);
+      }
+
+      await supabase.from('audit_log').insert({
+        actor_type: 'user',
+        actor_id: verified.user.id,
+        action: 'User verified email',
+        action_category: 'email_verified',
+        source: 'api',
+        ip_address: req.ip,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { message: 'Email verified successfully' },
+    });
+  }),
+);
+
+router.post(
+  '/resend-verification',
+  asyncHandler(async (req, res) => {
+    const body = resendVerificationSchema.parse(req.body);
+    const genericMessage = {
+      success: true,
+      data: { message: 'If an account exists and is unverified, a verification email has been sent' },
+    };
+
+    try {
+      const normalizedEmail = body.email.toLowerCase();
+      const { data: userRecord, error } = await supabase
+        .from('users')
+        .select('email, email_verified')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (error) {
+        logger.warn({ err: error.message }, '[auth] Verification resend lookup failed');
+      } else if (userRecord && !(userRecord as { email_verified?: boolean | null }).email_verified) {
+        await sendVerificationEmail((userRecord as { email: string }).email);
+      }
+    } catch (err) {
+      logger.error({ err }, '[auth] Verification resend flow failed');
     }
 
     res.json(genericMessage);
